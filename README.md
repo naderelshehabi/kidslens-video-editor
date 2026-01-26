@@ -1,2 +1,66 @@
-# kidslens-video-editor
-A video editor to remove unsafe visual and audio content from videos and audios rendering them safe for the entire family.
+# KidsLens Video Editor
+
+<p align="center">
+  <img src="assets/images/app_logo.png" alt="KidsLens Logo" width="300"/>
+</p>
+
+<p align="center">
+  <strong>A desktop video editor to detect and remove unsafe visual and audio content from videos, making them safe for the entire family.</strong>
+</p>
+
+---
+
+## Overview
+
+KidsLens is a powerful desktop application that uses local AI models to analyze and clean video content, ensuring it's appropriate for children and family viewing. All processing happens on your computer - no data is sent to the cloud.
+
+## Features
+
+- **Visual Content Detection**: Identify inappropriate scenes using ONNX Runtime
+- **Audio Profanity Detection**: Detect offensive language in audio tracks
+- **Speech Transcription**: Automatic speech-to-text with Whisper AI
+- **Multi-language Support**: Analyze content in 100+ languages with Meta MMS
+- **Timeline Editing**: Visual timeline with precise detection markers
+- **Safe Export**: Remove or blur detected content automatically
+- **Family-Friendly UI**: Kid-safe interface with green and blue color palette
+
+## Getting Started
+
+See [docs/getting-started.md](docs/getting-started.md) for detailed setup instructions.
+
+### Quick Start
+
+```bash
+# Install dependencies
+flutter pub get
+
+# Run on Windows
+flutter run -d windows
+
+# Run on macOS
+flutter run -d macos
+
+# Run on Linux
+flutter run -d linux
+```
+
+## Documentation
+
+- [Architecture Overview](docs/architecture.md)
+- [Getting Started Guide](docs/getting-started.md)
+- [State Management](docs/state-management.md)
+- [Native Integration](docs/native-integration.md)
+- [Testing Guide](docs/testing.md)
+- [Deployment Guide](docs/deployment.md)
+
+## Requirements
+
+- Flutter 3.16+
+- Dart 3.2+
+- Windows 10+, macOS 11+, or Linux (Ubuntu 20.04+)
+- 8GB RAM minimum (16GB recommended for 4K videos)
+- GPU recommended for optimal performance
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

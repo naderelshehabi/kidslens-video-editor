@@ -5,7 +5,6 @@ import '../../data/models/analysis_result.dart';
 import '../../data/models/analysis_settings.dart';
 import '../../state/providers/analysis_provider.dart';
 import '../../state/providers/media_provider.dart';
-import '../widgets/common/empty_state.dart';
 import '../widgets/common/progress_card.dart';
 import 'detection_review_screen.dart';
 import 'import_screen.dart';
@@ -22,7 +21,18 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('KidsLens'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/images/app_logo.png',
+              height: 32,
+              errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+            ),
+            const SizedBox(width: 12),
+            const Text('KidsLens'),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -89,10 +99,31 @@ class HomeScreen extends ConsumerWidget {
 
     // Show empty state if no media
     if (mediaState.currentMedia == null) {
-      return const EmptyState(
-        icon: Icons.video_library_outlined,
-        title: 'No Media Loaded',
-        message: 'Import a video or audio file to start analyzing content.',
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              'assets/images/app_logo.png',
+              height: 200,
+              errorBuilder: (context, error, stackTrace) => 
+                const Icon(Icons.video_library_outlined, size: 120),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'No Media Loaded',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Import a video or audio file to start analyzing content.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       );
     }
 
