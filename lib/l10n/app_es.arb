@@ -1,0 +1,115 @@
+{
+  "@@locale": "es",
+  "@@last_modified": "2024-01-01T00:00:00.000Z",
+  
+  "appTitle": "KidsLens",
+  "appTagline": "Haz tus videos seguros para todas las audiencias",
+  
+  "homeTitle": "Inicio",
+  "importMedia": "Importar Media",
+  "settings": "Configuración",
+  "about": "Acerca de",
+  
+  "noMediaLoaded": "Sin Media Cargado",
+  "noMediaLoadedMessage": "Importa un archivo de video o audio para comenzar a analizar contenido.",
+  
+  "startAnalysis": "Iniciar Análisis",
+  "previewAnalysis": "Vista Previa (5s)",
+  "analysisComplete": "Análisis Completo",
+  "reAnalyze": "Re-analizar",
+  "reviewDetections": "Revisar Detecciones",
+  
+  "analyzing": "Analizando...",
+  "analyzingContent": "Analizando contenido inapropiado",
+  "analysisProgress": "Progreso del Análisis: {progress}%",
+  
+  "detectionsFound": "{count, plural, =0{Sin detecciones} =1{1 detección} other{{count} detecciones}}",
+  
+  "profanity": "Lenguaje Soez",
+  "nudity": "Desnudez",
+  "violence": "Violencia",
+  "blood": "Sangre",
+  "weapons": "Armas",
+  
+  "mute": "Silenciar",
+  "bleep": "Pitido",
+  "blur": "Difuminar",
+  "cut": "Cortar",
+  "skip": "Saltar",
+  
+  "dismiss": "Descartar",
+  "restore": "Restaurar",
+  "jumpTo": "Ir a",
+  
+  "export": "Exportar",
+  "exportProgress": "Progreso de Exportación",
+  "exportComplete": "Exportación Completa",
+  "exportFailed": "Exportación Fallida",
+  
+  "outputFormat": "Formato de Salida",
+  "quality": "Calidad",
+  "qualityLow": "Baja",
+  "qualityMedium": "Media",
+  "qualityHigh": "Alta",
+  "qualityLossless": "Sin Pérdida",
+  
+  "aiModels": "Modelos de IA",
+  "manageModels": "Administrar Modelos",
+  "downloadModel": "Descargar",
+  "deleteModel": "Eliminar",
+  "useModel": "Usar Modelo",
+  "downloading": "Descargando...",
+  "downloaded": "Descargado",
+  
+  "speechRecognition": "Reconocimiento de Voz",
+  "languageDetection": "Detección de Idioma",
+  "imageClassification": "Clasificación de Imágenes",
+  "objectDetection": "Detección de Objetos",
+  
+  "timelineEditor": "Editor de Línea de Tiempo",
+  "undo": "Deshacer",
+  "redo": "Rehacer",
+  "zoomIn": "Acercar",
+  "zoomOut": "Alejar",
+  
+  "play": "Reproducir",
+  "pause": "Pausar",
+  "stop": "Detener",
+  
+  "analysisSettings": "Configuración de Análisis",
+  "profanityThreshold": "Umbral de Lenguaje Soez",
+  "nudityThreshold": "Umbral de Desnudez",
+  "violenceThreshold": "Umbral de Violencia",
+  
+  "detectProfanity": "Detectar Lenguaje Soez",
+  "detectNudity": "Detectar Desnudez",
+  "detectViolence": "Detectar Violencia",
+  "detectBlood": "Detectar Sangre",
+  
+  "appearance": "Apariencia",
+  "darkTheme": "Tema Oscuro",
+  
+  "privacyPolicy": "Política de Privacidad",
+  "openSourceLicenses": "Licencias de Código Abierto",
+  "version": "Versión {version}",
+  
+  "cancel": "Cancelar",
+  "confirm": "Confirmar",
+  "save": "Guardar",
+  "delete": "Eliminar",
+  "close": "Cerrar",
+  "retry": "Reintentar",
+  "ok": "OK",
+  
+  "errorGeneric": "Ocurrió un error",
+  "errorFileNotFound": "Archivo no encontrado",
+  "errorInvalidFormat": "Formato inválido",
+  
+  "onboardingWelcome": "Bienvenido a KidsLens",
+  "onboardingWelcomeMessage": "Haz tus videos seguros para todas las audiencias detectando y eliminando contenido inapropiado.",
+  
+  "getStarted": "Comenzar",
+  "next": "Siguiente",
+  "back": "Atrás",
+  "skip": "Omitir"
+}

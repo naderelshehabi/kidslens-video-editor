@@ -1,0 +1,163 @@
+{
+  "@@locale": "en",
+  "@@last_modified": "2024-01-01T00:00:00.000Z",
+  
+  "appTitle": "KidsLens",
+  "@appTitle": {
+    "description": "The application title"
+  },
+  
+  "appTagline": "Make your videos safe for all audiences",
+  "@appTagline": {
+    "description": "Application tagline"
+  },
+  
+  "homeTitle": "Home",
+  "importMedia": "Import Media",
+  "settings": "Settings",
+  "about": "About",
+  
+  "noMediaLoaded": "No Media Loaded",
+  "noMediaLoadedMessage": "Import a video or audio file to start analyzing content.",
+  
+  "startAnalysis": "Start Analysis",
+  "previewAnalysis": "Preview (5s)",
+  "analysisComplete": "Analysis Complete",
+  "reAnalyze": "Re-analyze",
+  "reviewDetections": "Review Detections",
+  
+  "analyzing": "Analyzing...",
+  "analyzingContent": "Analyzing content for inappropriate material",
+  "analysisProgress": "Analysis Progress: {progress}%",
+  "@analysisProgress": {
+    "placeholders": {
+      "progress": {
+        "type": "double",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  
+  "detectionsFound": "{count, plural, =0{No detections} =1{1 detection} other{{count} detections}}",
+  "@detectionsFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  
+  "profanity": "Profanity",
+  "nudity": "Nudity",
+  "violence": "Violence",
+  "blood": "Blood",
+  "weapons": "Weapons",
+  
+  "mute": "Mute",
+  "bleep": "Bleep",
+  "blur": "Blur",
+  "cut": "Cut",
+  "skip": "Skip",
+  
+  "dismiss": "Dismiss",
+  "restore": "Restore",
+  "jumpTo": "Jump to",
+  
+  "export": "Export",
+  "exportProgress": "Export Progress",
+  "exportComplete": "Export Complete",
+  "exportFailed": "Export Failed",
+  
+  "outputFormat": "Output Format",
+  "quality": "Quality",
+  "qualityLow": "Low",
+  "qualityMedium": "Medium",
+  "qualityHigh": "High",
+  "qualityLossless": "Lossless",
+  
+  "formatMp4H264": "MP4 (H.264)",
+  "formatMp4H265": "MP4 (H.265/HEVC)",
+  "formatWebm": "WebM (VP9)",
+  "formatMov": "MOV (ProRes)",
+  "formatAudioOnly": "Audio Only",
+  
+  "aiModels": "AI Models",
+  "manageModels": "Manage Models",
+  "downloadModel": "Download",
+  "deleteModel": "Delete",
+  "useModel": "Use Model",
+  "downloading": "Downloading...",
+  "downloaded": "Downloaded",
+  
+  "speechRecognition": "Speech Recognition",
+  "languageDetection": "Language Detection",
+  "imageClassification": "Image Classification",
+  "objectDetection": "Object Detection",
+  
+  "timelineEditor": "Timeline Editor",
+  "undo": "Undo",
+  "redo": "Redo",
+  "zoomIn": "Zoom In",
+  "zoomOut": "Zoom Out",
+  
+  "play": "Play",
+  "pause": "Pause",
+  "stop": "Stop",
+  "forward": "Forward",
+  "backward": "Backward",
+  "skipForward": "Skip Forward",
+  "skipBackward": "Skip Backward",
+  
+  "analysisSettings": "Analysis Settings",
+  "profanityThreshold": "Profanity Threshold",
+  "nudityThreshold": "Nudity Threshold",
+  "violenceThreshold": "Violence Threshold",
+  
+  "detectProfanity": "Detect Profanity",
+  "detectNudity": "Detect Nudity",
+  "detectViolence": "Detect Violence",
+  "detectBlood": "Detect Blood",
+  
+  "appearance": "Appearance",
+  "darkTheme": "Dark Theme",
+  
+  "privacyPolicy": "Privacy Policy",
+  "openSourceLicenses": "Open Source Licenses",
+  "version": "Version {version}",
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "save": "Save",
+  "delete": "Delete",
+  "close": "Close",
+  "retry": "Retry",
+  "ok": "OK",
+  
+  "errorGeneric": "An error occurred",
+  "errorFileNotFound": "File not found",
+  "errorInvalidFormat": "Invalid format",
+  "errorNoGpu": "GPU not available",
+  "errorModelNotFound": "Model not found",
+  "errorNetworkError": "Network error",
+  
+  "onboardingWelcome": "Welcome to KidsLens",
+  "onboardingWelcomeMessage": "Make your videos safe for all audiences by detecting and removing inappropriate content.",
+  "onboardingAiPowered": "AI-Powered Analysis",
+  "onboardingAiPoweredMessage": "Our advanced AI models detect profanity, nudity, violence, and other sensitive content automatically.",
+  "onboardingPrivate": "100% Private",
+  "onboardingPrivateMessage": "All processing happens locally on your device. Your videos never leave your computer.",
+  "onboardingSmartEditing": "Smart Editing",
+  "onboardingSmartEditingMessage": "Automatically mute, blur, or cut detected content. Review and customize before exporting.",
+  
+  "getStarted": "Get Started",
+  "next": "Next",
+  "back": "Back",
+  "skip": "Skip"
+}

@@ -1,0 +1,115 @@
+{
+  "@@locale": "ar",
+  "@@last_modified": "2024-01-01T00:00:00.000Z",
+  
+  "appTitle": "كيدز لينس",
+  "appTagline": "اجعل مقاطع الفيديو آمنة لجميع الجماهير",
+  
+  "homeTitle": "الرئيسية",
+  "importMedia": "استيراد الوسائط",
+  "settings": "الإعدادات",
+  "about": "حول",
+  
+  "noMediaLoaded": "لا توجد وسائط محملة",
+  "noMediaLoadedMessage": "قم باستيراد ملف فيديو أو صوت لبدء تحليل المحتوى.",
+  
+  "startAnalysis": "بدء التحليل",
+  "previewAnalysis": "معاينة (5 ثوانٍ)",
+  "analysisComplete": "اكتمل التحليل",
+  "reAnalyze": "إعادة التحليل",
+  "reviewDetections": "مراجعة الاكتشافات",
+  
+  "analyzing": "جارٍ التحليل...",
+  "analyzingContent": "تحليل المحتوى غير المناسب",
+  "analysisProgress": "تقدم التحليل: {progress}%",
+  
+  "detectionsFound": "{count, plural, =0{لا توجد اكتشافات} =1{اكتشاف واحد} other{{count} اكتشافات}}",
+  
+  "profanity": "ألفاظ نابية",
+  "nudity": "عري",
+  "violence": "عنف",
+  "blood": "دم",
+  "weapons": "أسلحة",
+  
+  "mute": "كتم الصوت",
+  "bleep": "صفير",
+  "blur": "تشويش",
+  "cut": "قص",
+  "skip": "تخطي",
+  
+  "dismiss": "تجاهل",
+  "restore": "استعادة",
+  "jumpTo": "انتقل إلى",
+  
+  "export": "تصدير",
+  "exportProgress": "تقدم التصدير",
+  "exportComplete": "اكتمل التصدير",
+  "exportFailed": "فشل التصدير",
+  
+  "outputFormat": "صيغة الإخراج",
+  "quality": "الجودة",
+  "qualityLow": "منخفضة",
+  "qualityMedium": "متوسطة",
+  "qualityHigh": "عالية",
+  "qualityLossless": "بدون فقدان",
+  
+  "aiModels": "نماذج الذكاء الاصطناعي",
+  "manageModels": "إدارة النماذج",
+  "downloadModel": "تحميل",
+  "deleteModel": "حذف",
+  "useModel": "استخدام النموذج",
+  "downloading": "جارٍ التحميل...",
+  "downloaded": "تم التحميل",
+  
+  "speechRecognition": "التعرف على الكلام",
+  "languageDetection": "اكتشاف اللغة",
+  "imageClassification": "تصنيف الصور",
+  "objectDetection": "اكتشاف الكائنات",
+  
+  "timelineEditor": "محرر الجدول الزمني",
+  "undo": "تراجع",
+  "redo": "إعادة",
+  "zoomIn": "تكبير",
+  "zoomOut": "تصغير",
+  
+  "play": "تشغيل",
+  "pause": "إيقاف مؤقت",
+  "stop": "إيقاف",
+  
+  "analysisSettings": "إعدادات التحليل",
+  "profanityThreshold": "عتبة الألفاظ النابية",
+  "nudityThreshold": "عتبة العري",
+  "violenceThreshold": "عتبة العنف",
+  
+  "detectProfanity": "اكتشاف الألفاظ النابية",
+  "detectNudity": "اكتشاف العري",
+  "detectViolence": "اكتشاف العنف",
+  "detectBlood": "اكتشاف الدم",
+  
+  "appearance": "المظهر",
+  "darkTheme": "الوضع الداكن",
+  
+  "privacyPolicy": "سياسة الخصوصية",
+  "openSourceLicenses": "تراخيص المصدر المفتوح",
+  "version": "الإصدار {version}",
+  
+  "cancel": "إلغاء",
+  "confirm": "تأكيد",
+  "save": "حفظ",
+  "delete": "حذف",
+  "close": "إغلاق",
+  "retry": "إعادة المحاولة",
+  "ok": "موافق",
+  
+  "errorGeneric": "حدث خطأ",
+  "errorFileNotFound": "الملف غير موجود",
+  "errorInvalidFormat": "صيغة غير صالحة",
+  
+  "onboardingWelcome": "مرحباً بك في كيدز لينس",
+  "onboardingWelcomeMessage": "اجعل مقاطع الفيديو آمنة لجميع الجماهير من خلال اكتشاف وإزالة المحتوى غير المناسب.",
+  
+  "getStarted": "ابدأ الآن",
+  "next": "التالي",
+  "back": "رجوع",
+  "skip": "تخطي"
+}

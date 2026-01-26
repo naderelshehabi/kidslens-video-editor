@@ -1,0 +1,522 @@
+import 'dart:convert';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:kidslens_video_editor/data/models/detection.dart';
+
+void main() {
+  group('ContentType enum', () {
+    test('should have all expected values', () {
+      expect(ContentType.values, hasLength(5));
+      expect(ContentType.values, contains(ContentType.nsfw));
+      expect(ContentType.values, contains(ContentType.violence));
+      expect(ContentType.values, contains(ContentType.blood));
+      expect(ContentType.values, contains(ContentType.profanity));
+      expect(ContentType.values, contains(ContentType.weapons));
+    });
+
+    test('should have correct JSON values', () {
+      expect(ContentType.nsfw.name, equals('nsfw'));
+      expect(ContentType.violence.name, equals('violence'));
+      expect(ContentType.blood.name, equals('blood'));
+      expect(ContentType.profanity.name, equals('profanity'));
+      expect(ContentType.weapons.name, equals('weapons'));
+    });
+  });
+
+  group('DetectionUserStatus enum', () {
+    test('should have all expected values', () {
+      expect(DetectionUserStatus.values, hasLength(4));
+      expect(DetectionUserStatus.values, contains(DetectionUserStatus.pending));
+      expect(DetectionUserStatus.values, contains(DetectionUserStatus.confirmed));
+      expect(DetectionUserStatus.values, contains(DetectionUserStatus.rejected));
+      expect(DetectionUserStatus.values, contains(DetectionUserStatus.adjusted));
+    });
+  });
+
+  group('Detection', () {
+    group('creation', () {
+      test('should create a detection with all required fields', () {
+        final detection = Detection(
+          id: 'det-1',
+          type: ContentType.nsfw,
+          startTime: const Duration(seconds: 10),
+          endTime: const Duration(seconds: 15),
+          confidence: 0.95,
+          description: 'NSFW content detected',
+        );
+
+        expect(detection.id, equals('det-1'));
+        expect(detection.type, equals(ContentType.nsfw));
+        expect(detection.startTime, equals(const Duration(seconds: 10)));
+        expect(detection.endTime, equals(const Duration(seconds: 15)));
+        expect(detection.confidence, equals(0.95));
+        expect(detection.description, equals('NSFW content detected'));
+        expect(detection.userStatus, equals(DetectionUserStatus.pending));
+      });
+
+      test('should have pending status by default', () {
+        final detection = Detection(
+          id: 'det-1',
+          type: ContentType.violence,
+          startTime: Duration.zero,
+          endTime: const Duration(seconds: 5),
+          confidence: 0.8,
+          description: 'Violence detected',
+        );
+
+        expect(detection.userStatus, equals(DetectionUserStatus.pending));
+      });
+    });
+
+    group('Detection.profanity factory', () {
+      test('should create a profanity detection with correct defaults', () {
+        final detection = Detection.profanity(
+          id: 'prof-1',
+          startTime: const Duration(seconds: 30),
+          endTime: const Duration(seconds: 31),
+          confidence: 0.99,
+          word: 'badword',
+        );
+
+        expect(detection.type, equals(ContentType.profanity));
+        expect(detection.source, equals('asr'));
+        expect(detection.description, contains('badword'));
+        expect(detection.metadata?['word'], equals('badword'));
+      });
+    });
+
+    group('Detection.visual factory', () {
+      test('should create a visual detection with default description', () {
+        final detection = Detection.visual(
+          id: 'vis-1',
+          type: ContentType.violence,
+          startTime: const Duration(minutes: 1),
+          endTime: const Duration(minutes: 1, seconds: 5),
+          confidence: 0.85,
+        );
+
+        expect(detection.type, equals(ContentType.violence));
+        expect(detection.source, equals('visual'));
+        expect(detection.description, equals('Violent content detected'));
+      });
+
+      test('should use provided description if given', () {
+        final detection = Detection.visual(
+          id: 'vis-2',
+          type: ContentType.blood,
+          startTime: Duration.zero,
+          endTime: const Duration(seconds: 10),
+          confidence: 0.75,
+          description: 'Custom blood description',
+        );
+
+        expect(detection.description, equals('Custom blood description'));
+      });
+    });
+
+    group('computed properties', () {
+      test('duration should calculate correctly', () {
+        final detection = Detection(
+          id: 'det-1',
+          type: ContentType.nsfw,
+          startTime: const Duration(seconds: 10),
+          endTime: const Duration(seconds: 25),
+          confidence: 0.9,
+          description: 'Test',
+        );
+
+        expect(detection.duration, equals(const Duration(seconds: 15)));
+      });
+
+      group('review status checks', () {
+        test('isReviewed should return false for pending', () {
+          final detection = Detection(
+            id: 'det-1',
+            type: ContentType.nsfw,
+            startTime: Duration.zero,
+            endTime: const Duration(seconds: 5),
+            confidence: 0.9,
+            description: 'Test',
+            userStatus: DetectionUserStatus.pending,
+          );
+
+          expect(detection.isReviewed, isFalse);
+        });
+
+        test('isReviewed should return true for confirmed', () {
+          final detection = Detection(
+            id: 'det-1',
+            type: ContentType.nsfw,
+            startTime: Duration.zero,
+            endTime: const Duration(seconds: 5),
+            confidence: 0.9,
+            description: 'Test',
+            userStatus: DetectionUserStatus.confirmed,
+          );
+
+          expect(detection.isReviewed, isTrue);
+          expect(detection.isConfirmed, isTrue);
+        });
+
+        test('isRejected should return true for rejected status', () {
+          final detection = Detection(
+            id: 'det-1',
+            type: ContentType.nsfw,
+            startTime: Duration.zero,
+            endTime: const Duration(seconds: 5),
+            confidence: 0.9,
+            description: 'Test',
+            userStatus: DetectionUserStatus.rejected,
+          );
+
+          expect(detection.isRejected, isTrue);
+        });
+
+        test('isAdjusted should return true for adjusted status', () {
+          final detection = Detection(
+            id: 'det-1',
+            type: ContentType.nsfw,
+            startTime: Duration.zero,
+            endTime: const Duration(seconds: 5),
+            confidence: 0.9,
+            description: 'Test',
+            userStatus: DetectionUserStatus.adjusted,
+          );
+
+          expect(detection.isAdjusted, isTrue);
+        });
+      });
+
+      group('detection type checks', () {
+        test('isAudioDetection should return true for profanity', () {
+          final detection = Detection(
+            id: 'det-1',
+            type: ContentType.profanity,
+            startTime: Duration.zero,
+            endTime: const Duration(seconds: 1),
+            confidence: 0.9,
+            description: 'Test',
+          );
+
+          expect(detection.isAudioDetection, isTrue);
+          expect(detection.isVisualDetection, isFalse);
+        });
+
+        test('isVisualDetection should return true for non-profanity types', () {
+          for (final type in [
+            ContentType.nsfw,
+            ContentType.violence,
+            ContentType.blood,
+            ContentType.weapons,
+          ]) {
+            final detection = Detection(
+              id: 'det-1',
+              type: type,
+              startTime: Duration.zero,
+              endTime: const Duration(seconds: 1),
+              confidence: 0.9,
+              description: 'Test',
+            );
+
+            expect(detection.isVisualDetection, isTrue);
+            expect(detection.isAudioDetection, isFalse);
+          }
+        });
+      });
+
+      group('confidence checks', () {
+        test('isHighConfidence should return true for >= 0.9', () {
+          final high = Detection(
+            id: 'det-1',
+            type: ContentType.nsfw,
+            startTime: Duration.zero,
+            endTime: const Duration(seconds: 1),
+            confidence: 0.9,
+            description: 'Test',
+          );
+
+          expect(high.isHighConfidence, isTrue);
+        });
+
+        test('isLowConfidence should return true for < 0.7', () {
+          final low = Detection(
+            id: 'det-1',
+            type: ContentType.nsfw,
+            startTime: Duration.zero,
+            endTime: const Duration(seconds: 1),
+            confidence: 0.65,
+            description: 'Test',
+          );
+
+          expect(low.isLowConfidence, isTrue);
+        });
+      });
+
+      group('typeDisplayName', () {
+        test('should return correct display names', () {
+          expect(
+            Detection(
+              id: 'id',
+              type: ContentType.nsfw,
+              startTime: Duration.zero,
+              endTime: const Duration(seconds: 1),
+              confidence: 0.9,
+              description: 'Test',
+            ).typeDisplayName,
+            equals('NSFW'),
+          );
+
+          expect(
+            Detection(
+              id: 'id',
+              type: ContentType.violence,
+              startTime: Duration.zero,
+              endTime: const Duration(seconds: 1),
+              confidence: 0.9,
+              description: 'Test',
+            ).typeDisplayName,
+            equals('Violence'),
+          );
+
+          expect(
+            Detection(
+              id: 'id',
+              type: ContentType.blood,
+              startTime: Duration.zero,
+              endTime: const Duration(seconds: 1),
+              confidence: 0.9,
+              description: 'Test',
+            ).typeDisplayName,
+            equals('Blood/Gore'),
+          );
+
+          expect(
+            Detection(
+              id: 'id',
+              type: ContentType.profanity,
+              startTime: Duration.zero,
+              endTime: const Duration(seconds: 1),
+              confidence: 0.9,
+              description: 'Test',
+            ).typeDisplayName,
+            equals('Profanity'),
+          );
+
+          expect(
+            Detection(
+              id: 'id',
+              type: ContentType.weapons,
+              startTime: Duration.zero,
+              endTime: const Duration(seconds: 1),
+              confidence: 0.9,
+              description: 'Test',
+            ).typeDisplayName,
+            equals('Weapons'),
+          );
+        });
+      });
+    });
+
+    group('overlap detection', () {
+      test('overlapsWithRange should detect overlapping ranges', () {
+        final detection = Detection(
+          id: 'det-1',
+          type: ContentType.nsfw,
+          startTime: const Duration(seconds: 10),
+          endTime: const Duration(seconds: 20),
+          confidence: 0.9,
+          description: 'Test',
+        );
+
+        // Overlapping range
+        expect(
+          detection.overlapsWithRange(
+            const Duration(seconds: 15),
+            const Duration(seconds: 25),
+          ),
+          isTrue,
+        );
+
+        // Non-overlapping range (before)
+        expect(
+          detection.overlapsWithRange(
+            const Duration(seconds: 0),
+            const Duration(seconds: 10),
+          ),
+          isFalse,
+        );
+
+        // Non-overlapping range (after)
+        expect(
+          detection.overlapsWithRange(
+            const Duration(seconds: 20),
+            const Duration(seconds: 30),
+          ),
+          isFalse,
+        );
+      });
+
+      test('overlapsWith should detect overlapping detections', () {
+        final det1 = Detection(
+          id: 'det-1',
+          type: ContentType.nsfw,
+          startTime: const Duration(seconds: 10),
+          endTime: const Duration(seconds: 20),
+          confidence: 0.9,
+          description: 'Test',
+        );
+
+        final det2 = Detection(
+          id: 'det-2',
+          type: ContentType.violence,
+          startTime: const Duration(seconds: 15),
+          endTime: const Duration(seconds: 25),
+          confidence: 0.8,
+          description: 'Test',
+        );
+
+        expect(det1.overlapsWith(det2), isTrue);
+        expect(det2.overlapsWith(det1), isTrue);
+      });
+
+      test('containsTime should check if time is within detection', () {
+        final detection = Detection(
+          id: 'det-1',
+          type: ContentType.nsfw,
+          startTime: const Duration(seconds: 10),
+          endTime: const Duration(seconds: 20),
+          confidence: 0.9,
+          description: 'Test',
+        );
+
+        expect(detection.containsTime(const Duration(seconds: 15)), isTrue);
+        expect(detection.containsTime(const Duration(seconds: 10)), isTrue);
+        expect(detection.containsTime(const Duration(seconds: 20)), isFalse);
+        expect(detection.containsTime(const Duration(seconds: 5)), isFalse);
+      });
+    });
+
+    group('user actions', () {
+      test('confirm should set status to confirmed', () {
+        final detection = Detection(
+          id: 'det-1',
+          type: ContentType.nsfw,
+          startTime: Duration.zero,
+          endTime: const Duration(seconds: 5),
+          confidence: 0.9,
+          description: 'Test',
+        );
+
+        final confirmed = detection.confirm(note: 'Looks correct');
+
+        expect(confirmed.userStatus, equals(DetectionUserStatus.confirmed));
+        expect(confirmed.userNote, equals('Looks correct'));
+      });
+
+      test('reject should set status to rejected', () {
+        final detection = Detection(
+          id: 'det-1',
+          type: ContentType.nsfw,
+          startTime: Duration.zero,
+          endTime: const Duration(seconds: 5),
+          confidence: 0.9,
+          description: 'Test',
+        );
+
+        final rejected = detection.reject(note: 'False positive');
+
+        expect(rejected.userStatus, equals(DetectionUserStatus.rejected));
+        expect(rejected.userNote, equals('False positive'));
+      });
+
+      test('adjustTimeRange should update times and set adjusted status', () {
+        final detection = Detection(
+          id: 'det-1',
+          type: ContentType.nsfw,
+          startTime: const Duration(seconds: 10),
+          endTime: const Duration(seconds: 20),
+          confidence: 0.9,
+          description: 'Test',
+        );
+
+        final adjusted = detection.adjustTimeRange(
+          newStartTime: const Duration(seconds: 12),
+          newEndTime: const Duration(seconds: 18),
+        );
+
+        expect(adjusted.startTime, equals(const Duration(seconds: 12)));
+        expect(adjusted.endTime, equals(const Duration(seconds: 18)));
+        expect(adjusted.originalStartTime, equals(const Duration(seconds: 10)));
+        expect(adjusted.originalEndTime, equals(const Duration(seconds: 20)));
+        expect(adjusted.userStatus, equals(DetectionUserStatus.adjusted));
+      });
+    });
+
+    group('JSON serialization', () {
+      test('should serialize to JSON correctly', () {
+        final detection = Detection(
+          id: 'det-1',
+          type: ContentType.violence,
+          startTime: const Duration(seconds: 30),
+          endTime: const Duration(seconds: 45),
+          confidence: 0.87,
+          description: 'Violence detected',
+          userStatus: DetectionUserStatus.confirmed,
+          source: 'visual',
+        );
+
+        final json = detection.toJson();
+
+        expect(json['id'], equals('det-1'));
+        expect(json['type'], equals('violence'));
+        expect(json['startTime'], equals(30000000)); // microseconds
+        expect(json['endTime'], equals(45000000));
+        expect(json['confidence'], equals(0.87));
+        expect(json['description'], equals('Violence detected'));
+        expect(json['userStatus'], equals('confirmed'));
+        expect(json['source'], equals('visual'));
+      });
+
+      test('should deserialize from JSON correctly', () {
+        final json = {
+          'id': 'json-det',
+          'type': 'blood',
+          'startTime': 60000000,
+          'endTime': 75000000,
+          'confidence': 0.75,
+          'description': 'Blood detected',
+          'userStatus': 'pending',
+        };
+
+        final detection = Detection.fromJson(json);
+
+        expect(detection.id, equals('json-det'));
+        expect(detection.type, equals(ContentType.blood));
+        expect(detection.startTime, equals(const Duration(seconds: 60)));
+        expect(detection.endTime, equals(const Duration(seconds: 75)));
+        expect(detection.confidence, equals(0.75));
+      });
+
+      test('should round-trip through JSON correctly', () {
+        final original = Detection.visual(
+          id: 'roundtrip-det',
+          type: ContentType.weapons,
+          startTime: const Duration(minutes: 5),
+          endTime: const Duration(minutes: 5, seconds: 10),
+          confidence: 0.92,
+        );
+
+        final jsonString = jsonEncode(original.toJson());
+        final restored = Detection.fromJson(
+          jsonDecode(jsonString) as Map<String, dynamic>,
+        );
+
+        expect(restored.id, equals(original.id));
+        expect(restored.type, equals(original.type));
+        expect(restored.startTime, equals(original.startTime));
+        expect(restored.endTime, equals(original.endTime));
+        expect(restored.confidence, equals(original.confidence));
+      });
+    });
+  });
+}
