@@ -290,6 +290,7 @@ class AnalysisService {
       if (match.confidence >= settings.profanityConfig.fuzzyThreshold) {
         detections.add(Detection(
           id: 'profanity_${detections.length}',
+          mediaId: mediaPath, // Use path as mediaId for now
           type: ContentType.profanity,
           startTime: match.word.startTime,
           endTime: match.word.endTime,
@@ -305,6 +306,7 @@ class AnalysisService {
     for (final segment in aggregatedSegments) {
       detections.add(Detection(
         id: '${segment.type.name}_${detections.length}',
+        mediaId: mediaPath, // Use path as mediaId for now
         type: segment.type,
         startTime: segment.start,
         endTime: segment.end,

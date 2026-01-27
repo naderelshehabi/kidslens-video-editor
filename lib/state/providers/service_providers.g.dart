@@ -72,6 +72,23 @@ final onnxBindingsProvider = Provider<ONNXBindings>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef OnnxBindingsRef = ProviderRef<ONNXBindings>;
+String _$projectServiceHash() => r'109b5021d38df091a9e349cbfbaab56f76ad4246';
+
+/// See also [projectService].
+@ProviderFor(projectService)
+final projectServiceProvider = Provider<ProjectService>.internal(
+  projectService,
+  name: r'projectServiceProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$projectServiceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ProjectServiceRef = ProviderRef<ProjectService>;
 String _$mediaServiceHash() => r'dddd74cb2eee57a4353c110340013d3ce6f27c79';
 
 /// See also [mediaService].

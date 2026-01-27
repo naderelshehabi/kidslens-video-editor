@@ -22,3 +22,26 @@ class NullableDurationConverter implements JsonConverter<Duration?, int?> {
   @override
   int? toJson(Duration? object) => object?.inMicroseconds;
 }
+
+/// Converter for DateTime to/from JSON (stored as ISO 8601 string)
+class DateTimeConverter implements JsonConverter<DateTime, String> {
+  const DateTimeConverter();
+
+  @override
+  DateTime fromJson(String json) => DateTime.parse(json);
+
+  @override
+  String toJson(DateTime object) => object.toIso8601String();
+}
+
+/// Converter for nullable DateTime to/from JSON
+class NullableDateTimeConverter implements JsonConverter<DateTime?, String?> {
+  const NullableDateTimeConverter();
+
+  @override
+  DateTime? fromJson(String? json) =>
+      json != null ? DateTime.parse(json) : null;
+
+  @override
+  String? toJson(DateTime? object) => object?.toIso8601String();
+}

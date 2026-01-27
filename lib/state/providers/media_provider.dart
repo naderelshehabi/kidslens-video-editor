@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:kidslens_video_editor/data/models/media_file.dart';
+import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 
 part 'media_provider.g.dart';
 
@@ -42,10 +43,19 @@ class MediaNotifier extends _$MediaNotifier {
   Future<void> importMedia(String path) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
-      // TODO: Implement actual media import via MediaService
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-      // Placeholder - actual implementation will use FFmpeg bindings
-      state = state.copyWith(isLoading: false);
+      final mediaService = ref.read(mediaServiceProvider);
+      final mediaFile = await mediaService.importMedia(path);
+      
+      final updatedRecent = [
+        mediaFile,
+        ...state.recentFiles.where((f) => f.id != mediaFile.id).take(9),
+      ];
+      
+      state = state.copyWith(
+        isLoading: false,
+        currentMedia: mediaFile,
+        recentFiles: updatedRecent,
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,

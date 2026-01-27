@@ -1,0 +1,350 @@
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../../data/models/detection.dart';
+import '../../data/models/edit_action.dart';
+import '../../data/models/media_file.dart';
+import '../../data/models/project.dart';
+import 'service_providers.dart';
+
+part 'project_provider.g.dart';
+
+/// State for project management
+class ProjectState {
+  final Project? currentProject;
+  final bool isLoading;
+  final bool isSaving;
+  final String? errorMessage;
+  final List<String> recentProjectPaths;
+
+  const ProjectState({
+    this.currentProject,
+    this.isLoading = false,
+    this.isSaving = false,
+    this.errorMessage,
+    this.recentProjectPaths = const [],
+  });
+
+  ProjectState copyWith({
+    Project? currentProject,
+    bool? isLoading,
+    bool? isSaving,
+    String? errorMessage,
+    List<String>? recentProjectPaths,
+  }) {
+    return ProjectState(
+      currentProject: currentProject ?? this.currentProject,
+      isLoading: isLoading ?? this.isLoading,
+      isSaving: isSaving ?? this.isSaving,
+      errorMessage: errorMessage,
+      recentProjectPaths: recentProjectPaths ?? this.recentProjectPaths,
+    );
+  }
+
+  /// Whether a project is currently open
+  bool get hasProject => currentProject != null;
+
+  /// Whether analysis is in progress
+  bool get isAnalyzing => 
+      currentProject?.analysisProgress != null && 
+      !(currentProject?.analysisComplete ?? true);
+}
+
+/// Provider for managing project state
+@Riverpod(keepAlive: true)
+class ProjectNotifier extends _$ProjectNotifier {
+  @override
+  ProjectState build() => const ProjectState();
+
+  /// Create a new project
+  Future<void> createProject({
+    required String name,
+    required String directoryPath,
+  }) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final projectService = ref.read(projectServiceProvider);
+      final project = await projectService.createProject(
+        name: name,
+        directoryPath: directoryPath,
+      );
+      
+      state = state.copyWith(
+        isLoading: false,
+        currentProject: project,
+        recentProjectPaths: [
+          project.projectPath,
+          ...state.recentProjectPaths.where((p) => p != project.projectPath).take(9),
+        ],
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to create project: $e',
+      );
+    }
+  }
+
+  /// Create a new project with a specific file path
+  Future<void> createProjectWithPath({
+    required String name,
+    required String projectPath,
+  }) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final projectService = ref.read(projectServiceProvider);
+      final project = await projectService.createProjectWithPath(
+        name: name,
+        projectPath: projectPath,
+      );
+      
+      state = state.copyWith(
+        isLoading: false,
+        currentProject: project,
+        recentProjectPaths: [
+          project.projectPath,
+          ...state.recentProjectPaths.where((p) => p != project.projectPath).take(9),
+        ],
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to create project: $e',
+      );
+    }
+  }
+
+  /// Open an existing project
+  Future<void> openProject(String projectPath) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final projectService = ref.read(projectServiceProvider);
+      final project = await projectService.loadProject(projectPath);
+      
+      state = state.copyWith(
+        isLoading: false,
+        currentProject: project,
+        recentProjectPaths: [
+          project.projectPath,
+          ...state.recentProjectPaths.where((p) => p != project.projectPath).take(9),
+        ],
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to open project: $e',
+      );
+    }
+  }
+
+  /// Save the current project
+  Future<void> saveProject() async {
+    if (state.currentProject == null) return;
+    
+    state = state.copyWith(isSaving: true);
+    try {
+      final projectService = ref.read(projectServiceProvider);
+      await projectService.saveProject(state.currentProject!);
+      state = state.copyWith(isSaving: false);
+    } catch (e) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to save project: $e',
+      );
+    }
+  }
+
+  /// Close the current project
+  Future<void> closeProject() async {
+    if (state.currentProject != null) {
+      await saveProject();
+    }
+    state = state.copyWith(currentProject: null);
+  }
+
+  /// Import a media file into the project
+  Future<void> importMedia(MediaFile media) async {
+    if (state.currentProject == null) return;
+
+    final updatedProject = state.currentProject!.copyWith(
+      mediaFiles: [...state.currentProject!.mediaFiles, media],
+      modifiedAt: DateTime.now(),
+    );
+    
+    state = state.copyWith(currentProject: updatedProject);
+    await saveProject();
+  }
+
+  /// Remove a media file from the project
+  Future<void> removeMedia(String mediaId) async {
+    if (state.currentProject == null) return;
+
+    final updatedProject = state.currentProject!.copyWith(
+      mediaFiles: state.currentProject!.mediaFiles
+          .where((m) => m.id != mediaId)
+          .toList(),
+      detections: state.currentProject!.detections
+          .where((d) => d.mediaId != mediaId)
+          .toList(),
+      editActions: state.currentProject!.editActions
+          .where((e) => e.mediaId != mediaId)
+          .toList(),
+      selectedMediaId: state.currentProject!.selectedMediaId == mediaId
+          ? null
+          : state.currentProject!.selectedMediaId,
+      modifiedAt: DateTime.now(),
+    );
+    
+    state = state.copyWith(currentProject: updatedProject);
+    await saveProject();
+  }
+
+  /// Select a media file for editing
+  void selectMedia(String? mediaId) {
+    if (state.currentProject == null) return;
+
+    final updatedProject = state.currentProject!.copyWith(
+      selectedMediaId: mediaId,
+    );
+    
+    state = state.copyWith(currentProject: updatedProject);
+  }
+
+  /// Add a detection to the project
+  void addDetection(Detection detection) {
+    if (state.currentProject == null) return;
+
+    final updatedProject = state.currentProject!.copyWith(
+      detections: [...state.currentProject!.detections, detection],
+      modifiedAt: DateTime.now(),
+    );
+    
+    state = state.copyWith(currentProject: updatedProject);
+  }
+
+  /// Add multiple detections to the project
+  void addDetections(List<Detection> detections) {
+    if (state.currentProject == null) return;
+
+    final updatedProject = state.currentProject!.copyWith(
+      detections: [...state.currentProject!.detections, ...detections],
+      modifiedAt: DateTime.now(),
+    );
+    
+    state = state.copyWith(currentProject: updatedProject);
+  }
+
+  /// Update a detection
+  void updateDetection(Detection detection) {
+    if (state.currentProject == null) return;
+
+    final updatedProject = state.currentProject!.copyWith(
+      detections: state.currentProject!.detections
+          .map((d) => d.id == detection.id ? detection : d)
+          .toList(),
+      modifiedAt: DateTime.now(),
+    );
+    
+    state = state.copyWith(currentProject: updatedProject);
+  }
+
+  /// Remove a detection
+  void removeDetection(String detectionId) {
+    if (state.currentProject == null) return;
+
+    final updatedProject = state.currentProject!.copyWith(
+      detections: state.currentProject!.detections
+          .where((d) => d.id != detectionId)
+          .toList(),
+      modifiedAt: DateTime.now(),
+    );
+    
+    state = state.copyWith(currentProject: updatedProject);
+  }
+
+  /// Add an edit action
+  void addEditAction(
+    String mediaId,
+    Duration startTime,
+    Duration endTime,
+    EditActionType type, {
+    BoundingBox? boundingBox,
+    String? detectionId,
+  }) {
+    if (state.currentProject == null) return;
+
+    final action = EditAction(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      mediaId: mediaId,
+      type: type,
+      startTime: startTime,
+      endTime: endTime,
+      enabled: true,
+      boundingBox: boundingBox,
+      detectionId: detectionId,
+    );
+
+    final updatedProject = state.currentProject!.copyWith(
+      editActions: [...state.currentProject!.editActions, action],
+      modifiedAt: DateTime.now(),
+    );
+    
+    state = state.copyWith(currentProject: updatedProject);
+  }
+
+  /// Add an edit action object directly
+  void addEditActionDirect(EditAction action) {
+    if (state.currentProject == null) return;
+
+    final updatedProject = state.currentProject!.copyWith(
+      editActions: [...state.currentProject!.editActions, action],
+      modifiedAt: DateTime.now(),
+    );
+    
+    state = state.copyWith(currentProject: updatedProject);
+  }
+
+  /// Update an edit action
+  void updateEditAction(EditAction action) {
+    if (state.currentProject == null) return;
+
+    final updatedProject = state.currentProject!.copyWith(
+      editActions: state.currentProject!.editActions
+          .map((e) => e.id == action.id ? action : e)
+          .toList(),
+      modifiedAt: DateTime.now(),
+    );
+    
+    state = state.copyWith(currentProject: updatedProject);
+  }
+
+  /// Remove an edit action
+  void removeEditAction(String actionId) {
+    if (state.currentProject == null) return;
+
+    final updatedProject = state.currentProject!.copyWith(
+      editActions: state.currentProject!.editActions
+          .where((e) => e.id != actionId)
+          .toList(),
+      modifiedAt: DateTime.now(),
+    );
+    
+    state = state.copyWith(currentProject: updatedProject);
+  }
+
+  /// Update analysis progress
+  void updateAnalysisProgress(double progress) {
+    if (state.currentProject == null) return;
+
+    final updatedProject = state.currentProject!.copyWith(
+      analysisProgress: progress,
+      analysisComplete: progress >= 1.0,
+    );
+    
+    state = state.copyWith(currentProject: updatedProject);
+  }
+
+  /// Clear any error
+  void clearError() {
+    state = state.copyWith(errorMessage: null);
+  }
+}

@@ -23,6 +23,9 @@ mixin _$Detection {
   /// Unique identifier for the detection
   String get id => throw _privateConstructorUsedError;
 
+  /// ID of the media file this detection belongs to
+  String get mediaId => throw _privateConstructorUsedError;
+
   /// Type of content detected
   ContentType get type => throw _privateConstructorUsedError;
 
@@ -77,6 +80,7 @@ abstract class $DetectionCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
+      String mediaId,
       ContentType type,
       @DurationConverter() Duration startTime,
       @DurationConverter() Duration endTime,
@@ -106,6 +110,7 @@ class _$DetectionCopyWithImpl<$Res, $Val extends Detection>
   @override
   $Res call({
     Object? id = null,
+    Object? mediaId = null,
     Object? type = null,
     Object? startTime = null,
     Object? endTime = null,
@@ -122,6 +127,10 @@ class _$DetectionCopyWithImpl<$Res, $Val extends Detection>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      mediaId: null == mediaId
+          ? _value.mediaId
+          : mediaId // ignore: cast_nullable_to_non_nullable
               as String,
       type: null == type
           ? _value.type
@@ -181,6 +190,7 @@ abstract class _$$DetectionImplCopyWith<$Res>
   @useResult
   $Res call(
       {String id,
+      String mediaId,
       ContentType type,
       @DurationConverter() Duration startTime,
       @DurationConverter() Duration endTime,
@@ -208,6 +218,7 @@ class __$$DetectionImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
+    Object? mediaId = null,
     Object? type = null,
     Object? startTime = null,
     Object? endTime = null,
@@ -224,6 +235,10 @@ class __$$DetectionImplCopyWithImpl<$Res>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      mediaId: null == mediaId
+          ? _value.mediaId
+          : mediaId // ignore: cast_nullable_to_non_nullable
               as String,
       type: null == type
           ? _value.type
@@ -278,6 +293,7 @@ class __$$DetectionImplCopyWithImpl<$Res>
 class _$DetectionImpl extends _Detection {
   const _$DetectionImpl(
       {required this.id,
+      required this.mediaId,
       required this.type,
       @DurationConverter() required this.startTime,
       @DurationConverter() required this.endTime,
@@ -298,6 +314,10 @@ class _$DetectionImpl extends _Detection {
   /// Unique identifier for the detection
   @override
   final String id;
+
+  /// ID of the media file this detection belongs to
+  @override
+  final String mediaId;
 
   /// Type of content detected
   @override
@@ -359,7 +379,7 @@ class _$DetectionImpl extends _Detection {
 
   @override
   String toString() {
-    return 'Detection(id: $id, type: $type, startTime: $startTime, endTime: $endTime, confidence: $confidence, description: $description, userStatus: $userStatus, userNote: $userNote, originalStartTime: $originalStartTime, originalEndTime: $originalEndTime, source: $source, metadata: $metadata)';
+    return 'Detection(id: $id, mediaId: $mediaId, type: $type, startTime: $startTime, endTime: $endTime, confidence: $confidence, description: $description, userStatus: $userStatus, userNote: $userNote, originalStartTime: $originalStartTime, originalEndTime: $originalEndTime, source: $source, metadata: $metadata)';
   }
 
   @override
@@ -368,6 +388,7 @@ class _$DetectionImpl extends _Detection {
         (other.runtimeType == runtimeType &&
             other is _$DetectionImpl &&
             (identical(other.id, id) || other.id == id) &&
+            (identical(other.mediaId, mediaId) || other.mediaId == mediaId) &&
             (identical(other.type, type) || other.type == type) &&
             (identical(other.startTime, startTime) ||
                 other.startTime == startTime) &&
@@ -393,6 +414,7 @@ class _$DetectionImpl extends _Detection {
   int get hashCode => Object.hash(
       runtimeType,
       id,
+      mediaId,
       type,
       startTime,
       endTime,
@@ -424,6 +446,7 @@ class _$DetectionImpl extends _Detection {
 abstract class _Detection extends Detection {
   const factory _Detection(
       {required final String id,
+      required final String mediaId,
       required final ContentType type,
       @DurationConverter() required final Duration startTime,
       @DurationConverter() required final Duration endTime,
@@ -443,6 +466,10 @@ abstract class _Detection extends Detection {
   /// Unique identifier for the detection
   @override
   String get id;
+
+  /// ID of the media file this detection belongs to
+  @override
+  String get mediaId;
 
   /// Type of content detected
   @override

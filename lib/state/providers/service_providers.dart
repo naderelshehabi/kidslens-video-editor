@@ -9,6 +9,7 @@ import 'package:kidslens_video_editor/services/export_service.dart';
 import 'package:kidslens_video_editor/services/media_service.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
 import 'package:kidslens_video_editor/services/profanity_service.dart';
+import 'package:kidslens_video_editor/services/project_service.dart';
 import 'package:kidslens_video_editor/services/sample_analysis_service.dart';
 
 part 'service_providers.g.dart';
@@ -27,6 +28,11 @@ MMSBindings mmsBindings(MmsBindingsRef ref) => MMSBindings();
 ONNXBindings onnxBindings(OnnxBindingsRef ref) => ONNXBindings();
 
 // Services
+@Riverpod(keepAlive: true)
+ProjectService projectService(ProjectServiceRef ref) {
+  return ProjectService();
+}
+
 @Riverpod(keepAlive: true)
 MediaService mediaService(MediaServiceRef ref) {
   return MediaService(ref.watch(ffmpegBindingsProvider));

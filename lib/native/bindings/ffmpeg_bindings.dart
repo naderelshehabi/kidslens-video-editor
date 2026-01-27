@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 import '../../services/media_service.dart';
 import '../resource_manager.dart';
 
@@ -9,16 +11,19 @@ import '../resource_manager.dart';
 class FFmpegBindings extends NativeResource {
   DynamicLibrary? _lib;
   bool _initialized = false;
+  bool _initializationAttempted = false;
 
   /// Initialize FFmpeg bindings
   Future<void> initialize() async {
-    if (_initialized) return;
+    if (_initialized || _initializationAttempted) return;
+    _initializationAttempted = true;
 
     try {
       _lib = _loadLibrary();
       _initialized = true;
     } catch (e) {
-      throw FFmpegInitializationException('Failed to load FFmpeg library: $e');
+      // Library not available - fallback to placeholder mode
+      debugPrint('FFmpeg library not available, using placeholder mode: $e');
     }
   }
 
@@ -35,7 +40,7 @@ class FFmpegBindings extends NativeResource {
 
   /// Probe media file for metadata
   Future<MediaMetadata> probeMedia(String path) async {
-    _ensureInitialized();
+    await _ensureInitialized();
     
     // TODO: Implement actual FFmpeg probing via FFI
     // For now, return placeholder metadata
@@ -54,7 +59,7 @@ class FFmpegBindings extends NativeResource {
 
   /// Extract audio track from video file
   Future<String> extractAudio(String videoPath, String outputPath) async {
-    _ensureInitialized();
+    await _ensureInitialized();
     
     // TODO: Implement actual FFmpeg audio extraction
     // ffmpeg -i input.mp4 -vn -acodec pcm_s16le output.wav
@@ -68,7 +73,7 @@ class FFmpegBindings extends NativeResource {
     int? startFrame,
     int? endFrame,
   }) async* {
-    _ensureInitialized();
+    await _ensureInitialized();
     
     // TODO: Implement actual FFmpeg frame extraction
     // Placeholder: yield dummy frames
@@ -94,7 +99,7 @@ class FFmpegBindings extends NativeResource {
     int width = 320,
     int height = 180,
   }) async {
-    _ensureInitialized();
+    await _ensureInitialized();
     
     // TODO: Implement actual FFmpeg thumbnail generation
     return outputPath;
@@ -107,7 +112,7 @@ class FFmpegBindings extends NativeResource {
     required String filterComplex,
     Map<String, String>? outputSettings,
   }) async* {
-    _ensureInitialized();
+    await _ensureInitialized();
     
     // TODO: Implement actual FFmpeg filter processing
     // Simulate progress
@@ -122,16 +127,16 @@ class FFmpegBindings extends NativeResource {
     String videoPath, {
     double threshold = 0.4,
   }) async {
-    _ensureInitialized();
+    await _ensureInitialized();
     
     // TODO: Implement scene detection using FFmpeg's select filter
     // ffmpeg -i input.mp4 -vf "select='gt(scene,0.4)',showinfo" -f null -
     return [];
   }
 
-  void _ensureInitialized() {
-    if (!_initialized) {
-      throw FFmpegNotInitializedException();
+  Future<void> _ensureInitialized() async {
+    if (!_initializationAttempted) {
+      await initialize();
     }
   }
 

@@ -313,6 +313,7 @@ class UnifiedTimeline with _$UnifiedTimeline {
         if (segment.detectionId != null) {
           result.add(Detection(
             id: segment.detectionId!,
+            mediaId: '', // mediaId not available in timeline context
             type: segment.type,
             startTime: segment.start,
             endTime: segment.end,

@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'converters.dart';
+import 'edit_action.dart';
 
 part 'detection.freezed.dart';
 part 'detection.g.dart';
@@ -49,6 +50,9 @@ class Detection with _$Detection {
     /// Unique identifier for the detection
     required String id,
 
+    /// ID of the media file this detection belongs to
+    required String mediaId,
+
     /// Type of content detected
     required ContentType type,
 
@@ -89,6 +93,7 @@ class Detection with _$Detection {
   /// Creates a profanity detection
   factory Detection.profanity({
     required String id,
+    required String mediaId,
     required Duration startTime,
     required Duration endTime,
     required double confidence,
@@ -97,6 +102,7 @@ class Detection with _$Detection {
   }) {
     return Detection(
       id: id,
+      mediaId: mediaId,
       type: ContentType.profanity,
       startTime: startTime,
       endTime: endTime,
@@ -110,6 +116,7 @@ class Detection with _$Detection {
   /// Creates a visual content detection (NSFW, violence, etc.)
   factory Detection.visual({
     required String id,
+    required String mediaId,
     required ContentType type,
     required Duration startTime,
     required Duration endTime,
@@ -125,6 +132,7 @@ class Detection with _$Detection {
 
     return Detection(
       id: id,
+      mediaId: mediaId,
       type: type,
       startTime: startTime,
       endTime: endTime,
@@ -237,6 +245,32 @@ class Detection with _$Detection {
         return 'volume_off';
       case ContentType.weapons:
         return 'warning';
+    }
+  }
+
+  /// Whether this detection has an edit action applied to it
+  /// (needs to be set externally based on edit actions)
+  bool get hasAction => metadata?['hasAction'] == true;
+
+  /// Get the detected content (e.g., the profane word)
+  String? get content {
+    if (type == ContentType.profanity) {
+      return metadata?['word'] as String?;
+    }
+    return null;
+  }
+
+  /// Suggested edit action based on detection type
+  EditActionType get suggestedAction {
+    switch (type) {
+      case ContentType.profanity:
+        return EditActionType.mute;
+      case ContentType.nsfw:
+      case ContentType.blood:
+        return EditActionType.blur;
+      case ContentType.violence:
+      case ContentType.weapons:
+        return EditActionType.blur;
     }
   }
 }

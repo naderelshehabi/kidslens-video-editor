@@ -9,6 +9,7 @@ part of 'detection.dart';
 _$DetectionImpl _$$DetectionImplFromJson(Map<String, dynamic> json) =>
     _$DetectionImpl(
       id: json['id'] as String,
+      mediaId: json['mediaId'] as String,
       type: $enumDecode(_$ContentTypeEnumMap, json['type']),
       startTime: const DurationConverter()
           .fromJson((json['startTime'] as num).toInt()),
@@ -31,6 +32,7 @@ _$DetectionImpl _$$DetectionImplFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$$DetectionImplToJson(_$DetectionImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'mediaId': instance.mediaId,
       'type': _$ContentTypeEnumMap[instance.type]!,
       'startTime': const DurationConverter().toJson(instance.startTime),
       'endTime': const DurationConverter().toJson(instance.endTime),

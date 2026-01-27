@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/analysis_result.dart';
 import '../../data/models/analysis_settings.dart';
+import '../../data/models/media_file.dart';
 import '../../state/providers/analysis_provider.dart';
 import '../../state/providers/media_provider.dart';
 import '../widgets/common/progress_card.dart';
@@ -297,7 +298,7 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _MediaInfoCard extends StatelessWidget {
-  final dynamic media;
+  final MediaFile media;
 
   const _MediaInfoCard({required this.media});
 
@@ -315,7 +316,7 @@ class _MediaInfoCard extends StatelessWidget {
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.video_file, size: 32),
+              child: Icon(media.isVideo ? Icons.video_file : Icons.audio_file, size: 32),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -323,14 +324,14 @@ class _MediaInfoCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    media.name as String,
+                    media.name,
                     style: Theme.of(context).textTheme.titleMedium,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _formatDuration(media.metadata.duration as Duration),
+                    _formatDuration(media.duration),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
