@@ -1,17 +1,29 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../data/models/detection.dart';
 import '../../../data/models/edit_action.dart';
 import '../../../data/models/media_file.dart';
+import '../../../state/providers/playback_provider.dart';
+import '../../../state/providers/service_providers.dart';
 
 /// Timeline panel with tracks and detection indicators
-class TimelinePanel extends StatefulWidget {
+class TimelinePanel extends ConsumerStatefulWidget {
   final MediaFile? media;
   final List<Detection> detections;
   final List<EditAction> editActions;
   final void Function(Duration) onSeek;
   final void Function(EditAction) onAddEditAction;
+  final void Function(EditAction)? onEditActionUpdated;
+  final void Function(String)? onRemoveEditAction;
+  final void Function(String)? onEditBlurAction;
+  final List<Uint8List>? thumbnails;
 
   const TimelinePanel({
     super.key,
@@ -20,21 +32,120 @@ class TimelinePanel extends StatefulWidget {
     required this.editActions,
     required this.onSeek,
     required this.onAddEditAction,
+    this.onEditActionUpdated,
+    this.onRemoveEditAction,
+    this.onEditBlurAction,
+    this.thumbnails,
   });
 
   @override
-  State<TimelinePanel> createState() => _TimelinePanelState();
+  ConsumerState<TimelinePanel> createState() => _TimelinePanelState();
 }
 
-class _TimelinePanelState extends State<TimelinePanel> {
+class _TimelinePanelState extends ConsumerState<TimelinePanel> 
+    with SingleTickerProviderStateMixin {
   double _zoom = 1.0;
-  double _scrollOffset = 0.0;
-  Duration _playheadPosition = Duration.zero;
   final ScrollController _scrollController = ScrollController();
+  static const _uuid = Uuid();
+  
+  // Selection by drag state
+  bool _isDraggingSelection = false;
+  Duration? _dragSelectionStart;
+  Duration? _dragSelectionEnd;
+
+  // Thumbnail loading state
+  List<ui.Image>? _thumbnailImages;
+  String? _loadedMediaPath;
+  bool _isLoadingThumbnails = false;
+  
+  // Shimmer animation controller
+  late AnimationController _shimmerController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+    _loadThumbnailsIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(TimelinePanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.media?.path != widget.media?.path) {
+      _loadThumbnailsIfNeeded();
+    }
+  }
+
+  void _loadThumbnailsIfNeeded() {
+    final media = widget.media;
+    if (media == null || !media.isVideo) return;
+    if (media.path == _loadedMediaPath && _thumbnailImages != null) return;
+    if (_isLoadingThumbnails) return;
+
+    _loadThumbnails(media);
+  }
+
+  Future<void> _loadThumbnails(MediaFile media) async {
+    setState(() => _isLoadingThumbnails = true);
+
+    try {
+      final thumbnailService = ref.read(thumbnailServiceProvider);
+      final duration = media.duration;
+      final count = (duration.inSeconds / 5).ceil().clamp(1, 200);
+
+      final thumbnailBytes = await thumbnailService.extractThumbnails(
+        videoPath: media.path,
+        duration: duration,
+        count: count,
+      );
+
+      // Decode bytes to ui.Image
+      final images = <ui.Image>[];
+      for (final bytes in thumbnailBytes) {
+        try {
+          final codec = await ui.instantiateImageCodec(bytes);
+          final frame = await codec.getNextFrame();
+          images.add(frame.image);
+        } catch (e) {
+          // Skip failed decodes
+          debugPrint('Failed to decode thumbnail: $e');
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _thumbnailImages = images;
+          _loadedMediaPath = media.path;
+          _isLoadingThumbnails = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading thumbnails: $e');
+      if (mounted) {
+        setState(() => _isLoadingThumbnails = false);
+      }
+    }
+  }
+
+  void _onScroll() {
+    setState(() {}); // Trigger repaint for scroll-dependent elements
+  }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _shimmerController.dispose();
+    // Dispose thumbnail images
+    if (_thumbnailImages != null) {
+      for (final image in _thumbnailImages!) {
+        image.dispose();
+      }
+    }
     super.dispose();
   }
 
@@ -42,13 +153,14 @@ class _TimelinePanelState extends State<TimelinePanel> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final playbackState = ref.watch(playbackNotifierProvider);
 
     return Container(
       color: colorScheme.surfaceContainerLow,
       child: Column(
         children: [
           // Timeline toolbar
-          _buildToolbar(context),
+          _buildToolbar(context, playbackState),
           
           // Timeline content
           Expanded(
@@ -61,7 +173,7 @@ class _TimelinePanelState extends State<TimelinePanel> {
                       
                       // Timeline area
                       Expanded(
-                        child: _buildTimelineArea(context),
+                        child: _buildTimelineArea(context, playbackState),
                       ),
                     ],
                   ),
@@ -71,7 +183,7 @@ class _TimelinePanelState extends State<TimelinePanel> {
     );
   }
 
-  Widget _buildToolbar(BuildContext context) {
+  Widget _buildToolbar(BuildContext context, PlaybackState playbackState) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -100,7 +212,7 @@ class _TimelinePanelState extends State<TimelinePanel> {
           // Zoom controls
           IconButton(
             icon: const Icon(Icons.zoom_out, size: 16),
-            onPressed: () => setState(() => _zoom = math.max(0.5, _zoom - 0.25)),
+            onPressed: () => setState(() => _zoom = math.max(0.25, _zoom - 0.25)),
             visualDensity: VisualDensity.compact,
             tooltip: 'Zoom Out',
           ),
@@ -108,43 +220,74 @@ class _TimelinePanelState extends State<TimelinePanel> {
             width: 100,
             child: Slider(
               value: _zoom,
-              min: 0.5,
-              max: 4.0,
+              min: 0.25,
+              max: 8.0,
               onChanged: (value) => setState(() => _zoom = value),
             ),
           ),
           IconButton(
             icon: const Icon(Icons.zoom_in, size: 16),
-            onPressed: () => setState(() => _zoom = math.min(4.0, _zoom + 0.25)),
+            onPressed: () => setState(() => _zoom = math.min(8.0, _zoom + 0.25)),
             visualDensity: VisualDensity.compact,
             tooltip: 'Zoom In',
           ),
           
-          const Spacer(),
+          Text(
+            '${(_zoom * 100).round()}%',
+            style: theme.textTheme.bodySmall,
+          ),
           
-          // Edit action buttons
+          const Spacer(),
+
+          // Selection indicator
+          if (playbackState.hasSelection)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.blue),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${_formatDuration(playbackState.selectionStart!)} - ${_formatDuration(playbackState.selectionEnd!)}',
+                    style: const TextStyle(fontSize: 11, color: Colors.blue),
+                  ),
+                  const SizedBox(width: 4),
+                  InkWell(
+                    onTap: () => ref.read(playbackNotifierProvider.notifier).clearSelection(),
+                    child: const Icon(Icons.close, size: 14, color: Colors.blue),
+                  ),
+                ],
+              ),
+            ),
+          
+          // Edit action buttons - enabled only when selection exists
           _ToolButton(
             icon: Icons.content_cut,
             label: 'Cut',
-            onPressed: _cutSelection,
+            onPressed: playbackState.hasSelection ? _cutSelection : null,
           ),
           const SizedBox(width: 4),
           _ToolButton(
             icon: Icons.volume_off,
             label: 'Mute',
-            onPressed: _muteSelection,
+            onPressed: playbackState.hasSelection ? _muteSelection : null,
           ),
           const SizedBox(width: 4),
           _ToolButton(
             icon: Icons.blur_on,
             label: 'Blur',
-            onPressed: _blurSelection,
+            onPressed: playbackState.hasSelection ? _blurSelection : null,
           ),
           const SizedBox(width: 4),
           _ToolButton(
             icon: Icons.notifications,
             label: 'Beep',
-            onPressed: _beepSelection,
+            onPressed: playbackState.hasSelection ? _beepSelection : null,
           ),
         ],
       ),
@@ -166,8 +309,7 @@ class _TimelinePanelState extends State<TimelinePanel> {
   }
 
   Widget _buildTrackLabels(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       width: 120,
@@ -193,87 +335,359 @@ class _TimelinePanelState extends State<TimelinePanel> {
             icon: Icons.videocam,
             label: 'Video',
             color: colorScheme.primary,
+            height: 64, // Taller for thumbnails
           ),
           // Audio track label
           _TrackLabel(
             icon: Icons.audiotrack,
             label: 'Audio',
             color: colorScheme.secondary,
+            height: 40,
           ),
           // Detections track label
           _TrackLabel(
             icon: Icons.warning_amber,
             label: 'Detections',
             color: Colors.orange,
+            height: 30,
           ),
           // Edits track label
           _TrackLabel(
             icon: Icons.edit,
             label: 'Edits',
             color: Colors.purple,
+            height: 30,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTimelineArea(BuildContext context) {
+  Widget _buildTimelineArea(BuildContext context, PlaybackState playbackState) {
+    final duration = widget.media?.duration ?? Duration.zero;
+    final timelineWidth = math.max(duration.inSeconds * 20.0 * _zoom, 500.0);
+
+    return Listener(
+      onPointerSignal: (event) {
+        if (event is PointerScrollEvent) {
+          // Check for horizontal scroll (shift+scroll or trackpad horizontal)
+          if (event.scrollDelta.dx.abs() > event.scrollDelta.dy.abs()) {
+            // Horizontal scroll - let it pass through for scrolling
+            return;
+          }
+          
+          // Ctrl + scroll OR pinch gesture = zoom
+          // On trackpad, pinch sends scroll events with Ctrl modifier
+          if (HardwareKeyboard.instance.isControlPressed || 
+              HardwareKeyboard.instance.isMetaPressed) {
+            final delta = event.scrollDelta.dy > 0 ? -0.15 : 0.15;
+            setState(() => _zoom = (_zoom + delta).clamp(0.1, 10.0));
+          } else {
+            // Regular scroll without modifiers = zoom (for easier UX)
+            // Use smaller delta for smoother zoom
+            final delta = event.scrollDelta.dy > 0 ? -0.08 : 0.08;
+            setState(() => _zoom = (_zoom + delta).clamp(0.1, 10.0));
+          }
+        }
+      },
+      child: GestureDetector(
+        onScaleStart: (details) {
+          // For single finger: start selection drag
+          // For two fingers: prepare for pinch zoom
+          if (details.pointerCount == 1 && duration.inMilliseconds > 0) {
+            final scrollOffset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+            final position = Duration(
+              milliseconds: ((details.localFocalPoint.dx + scrollOffset) /
+                  timelineWidth * duration.inMilliseconds).round().clamp(0, duration.inMilliseconds),
+            );
+            setState(() {
+              _isDraggingSelection = true;
+              _dragSelectionStart = position;
+              _dragSelectionEnd = position;
+            });
+          }
+        },
+        onScaleUpdate: (details) {
+          if (details.pointerCount >= 2 && details.scale != 1.0) {
+            // Handle pinch-to-zoom with two fingers
+            final newZoom = (_zoom * details.scale).clamp(0.1, 10.0);
+            setState(() => _zoom = newZoom);
+          } else if (_isDraggingSelection && duration.inMilliseconds > 0) {
+            // Handle single finger drag for selection
+            final scrollOffset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+            final position = Duration(
+              milliseconds: ((details.localFocalPoint.dx + scrollOffset) /
+                  timelineWidth * duration.inMilliseconds).round().clamp(0, duration.inMilliseconds),
+            );
+            setState(() {
+              _dragSelectionEnd = position;
+            });
+          }
+        },
+        onScaleEnd: (details) {
+          if (_isDraggingSelection && _dragSelectionStart != null && _dragSelectionEnd != null) {
+            // Finalize selection
+            final start = _dragSelectionStart!.inMilliseconds < _dragSelectionEnd!.inMilliseconds
+                ? _dragSelectionStart!
+                : _dragSelectionEnd!;
+            final end = _dragSelectionStart!.inMilliseconds < _dragSelectionEnd!.inMilliseconds
+                ? _dragSelectionEnd!
+                : _dragSelectionStart!;
+            
+            if ((end - start).inMilliseconds > 50) {
+              // Only set selection if it's meaningful (> 50ms)
+              ref.read(playbackNotifierProvider.notifier).setSelection(start, end);
+            }
+          }
+          setState(() {
+            _isDraggingSelection = false;
+            _dragSelectionStart = null;
+            _dragSelectionEnd = null;
+          });
+        },
+        onTapDown: (details) {
+          if (duration.inMilliseconds == 0) return;
+          final scrollOffset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+          final position = Duration(
+            milliseconds: ((details.localPosition.dx + scrollOffset) /
+                timelineWidth * duration.inMilliseconds).round(),
+          );
+          ref.read(playbackNotifierProvider.notifier).seek(position);
+          widget.onSeek(position);
+        },
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          physics: const ClampingScrollPhysics(),
+          child: SizedBox(
+            width: timelineWidth,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.vertical,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 200),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Time ruler
+                    _buildTimeRuler(context, timelineWidth),
+                    
+                    // Video track with thumbnails
+                    _buildVideoTrack(context, timelineWidth, playbackState),
+                    
+                    // Audio track with waveform
+                    _buildAudioTrack(context, timelineWidth, playbackState),
+                    
+                    // Detections track
+                    _buildTrack(
+                      context,
+                      height: 30,
+                      color: Colors.orange.withOpacity(0.1),
+                      child: _buildDetectionMarkers(context, timelineWidth),
+                      playbackState: playbackState,
+                      timelineWidth: timelineWidth,
+                    ),
+                    
+                    // Edits track
+                    _buildTrack(
+                      context,
+                      height: 30,
+                      color: Colors.purple.withOpacity(0.1),
+                      child: _buildEditMarkers(context, timelineWidth),
+                      playbackState: playbackState,
+                      timelineWidth: timelineWidth,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoTrack(BuildContext context, double timelineWidth, PlaybackState playbackState) {
     final colorScheme = Theme.of(context).colorScheme;
     final duration = widget.media?.duration ?? Duration.zero;
-    final timelineWidth = duration.inSeconds * 20.0 * _zoom;
+    final thumbnailCount = (duration.inSeconds / 5).ceil().clamp(1, 200);
+    const trackHeight = 64.0;
 
-    return GestureDetector(
-      onTapDown: (details) {
-        if (duration.inMilliseconds == 0) return;
-        final position = Duration(
-          milliseconds: ((details.localPosition.dx + _scrollOffset) /
-              timelineWidth * duration.inMilliseconds).round(),
-        );
-        setState(() => _playheadPosition = position);
-        widget.onSeek(position);
-      },
-      child: SingleChildScrollView(
-        controller: _scrollController,
-        scrollDirection: Axis.horizontal,
-        child: SizedBox(
-          width: math.max(timelineWidth, 500),
-          child: Column(
-            children: [
-              // Time ruler
-              _buildTimeRuler(context, timelineWidth),
-              
-              // Video track
-              _buildTrack(
-                context,
-                height: 30,
-                color: colorScheme.primary.withOpacity(0.3),
-                child: _buildMediaClip(context, timelineWidth),
+    return Container(
+      height: trackHeight,
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withOpacity(0.1),
+        border: Border(
+          bottom: BorderSide(color: colorScheme.outlineVariant),
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Thumbnail strip with shimmer animation when loading
+          if (widget.media != null && widget.media!.isVideo)
+            AnimatedBuilder(
+              animation: _shimmerController,
+              builder: (context, child) {
+                return CustomPaint(
+                  painter: _ThumbnailStripPainter(
+                    duration: duration,
+                    zoom: _zoom,
+                    primaryColor: colorScheme.primary,
+                    thumbnailCount: thumbnailCount,
+                    thumbnailImages: _thumbnailImages,
+                    isLoading: _isLoadingThumbnails,
+                    animationValue: _shimmerController.value,
+                  ),
+                  size: Size(timelineWidth, trackHeight),
+                );
+              },
+            ),
+          // Loading indicator badge for thumbnails
+          if (_isLoadingThumbnails && widget.media != null && widget.media!.isVideo)
+            Positioned(
+              right: 8,
+              top: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 10,
+                      height: 10,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 1.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Loading thumbnails...',
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              
-              // Audio track
-              _buildTrack(
-                context,
-                height: 30,
-                color: colorScheme.secondary.withOpacity(0.3),
-                child: _buildWaveformTrack(context, timelineWidth),
+            ),
+          // Media clip overlay
+          _buildMediaClipOverlay(context, timelineWidth),
+          // Selection overlay
+          if (_isDraggingSelection)
+            _buildDragSelectionOverlay(trackHeight, timelineWidth, duration),
+          if (playbackState.hasSelection && duration.inMilliseconds > 0)
+            _buildSelectionRegion(trackHeight, playbackState, timelineWidth, duration),
+          // Playhead
+          _buildPlayhead(trackHeight, playbackState, timelineWidth),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAudioTrack(BuildContext context, double timelineWidth, PlaybackState playbackState) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final duration = widget.media?.duration ?? Duration.zero;
+
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: colorScheme.secondary.withOpacity(0.1),
+        border: Border(
+          bottom: BorderSide(color: colorScheme.outlineVariant),
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Waveform with zoom
+          CustomPaint(
+            painter: _MiniWaveformPainter(
+              color: colorScheme.secondary,
+              duration: duration,
+              zoom: _zoom,
+              detections: widget.detections.where((d) => d.isAudioDetection).toList(),
+            ),
+            size: Size(timelineWidth, 40),
+          ),
+          // Selection overlay
+          if (_isDraggingSelection)
+            _buildDragSelectionOverlay(40, timelineWidth, duration),
+          if (playbackState.hasSelection && duration.inMilliseconds > 0)
+            _buildSelectionRegion(40, playbackState, timelineWidth, duration),
+          // Playhead
+          _buildPlayhead(40, playbackState, timelineWidth),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDragSelectionOverlay(double height, double timelineWidth, Duration duration) {
+    if (_dragSelectionStart == null || _dragSelectionEnd == null) {
+      return const SizedBox.shrink();
+    }
+    
+    final startX = (_dragSelectionStart!.inMilliseconds / 
+        duration.inMilliseconds) * timelineWidth;
+    final endX = (_dragSelectionEnd!.inMilliseconds / 
+        duration.inMilliseconds) * timelineWidth;
+    
+    final left = math.min(startX, endX);
+    final width = (startX - endX).abs();
+    
+    return Positioned(
+      left: left,
+      top: 0,
+      bottom: 0,
+      child: Container(
+        width: width,
+        color: Colors.blue.withOpacity(0.3),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.blue,
+              borderRadius: BorderRadius.circular(2),
+            ),
+            child: Text(
+              _formatDuration(Duration(milliseconds: (width / timelineWidth * duration.inMilliseconds).round().abs())),
+              style: const TextStyle(color: Colors.white, fontSize: 9),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMediaClipOverlay(BuildContext context, double timelineWidth) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Positioned.fill(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 1),
+        decoration: BoxDecoration(
+          border: Border.all(color: colorScheme.primary.withOpacity(0.5), width: 1),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(3),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Text(
+                widget.media?.name ?? '',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
-              
-              // Detections track
-              _buildTrack(
-                context,
-                height: 30,
-                color: Colors.orange.withOpacity(0.1),
-                child: _buildDetectionMarkers(context, timelineWidth),
-              ),
-              
-              // Edits track
-              _buildTrack(
-                context,
-                height: 30,
-                color: Colors.purple.withOpacity(0.1),
-                child: _buildEditMarkers(context, timelineWidth),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -309,8 +723,11 @@ class _TimelinePanelState extends State<TimelinePanel> {
     required double height,
     required Color color,
     required Widget child,
+    required PlaybackState playbackState,
+    required double timelineWidth,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
+    final duration = widget.media?.duration ?? Duration.zero;
 
     return Container(
       height: height,
@@ -323,19 +740,46 @@ class _TimelinePanelState extends State<TimelinePanel> {
       child: Stack(
         children: [
           child,
+          // Selection region
+          if (_isDraggingSelection)
+            _buildDragSelectionOverlay(height, timelineWidth, duration),
+          if (playbackState.hasSelection && duration.inMilliseconds > 0)
+            _buildSelectionRegion(height, playbackState, timelineWidth, duration),
           // Playhead
-          _buildPlayhead(height),
+          _buildPlayhead(height, playbackState, timelineWidth),
         ],
       ),
     );
   }
 
-  Widget _buildPlayhead(double height) {
+  Widget _buildSelectionRegion(double height, PlaybackState playbackState, double timelineWidth, Duration duration) {
+    final startX = (playbackState.selectionStart!.inMilliseconds / 
+        duration.inMilliseconds) * timelineWidth;
+    final endX = (playbackState.selectionEnd!.inMilliseconds / 
+        duration.inMilliseconds) * timelineWidth;
+    
+    return Positioned(
+      left: startX,
+      top: 0,
+      bottom: 0,
+      child: Container(
+        width: endX - startX,
+        decoration: BoxDecoration(
+          color: Colors.blue.withOpacity(0.2),
+          border: Border(
+            left: const BorderSide(color: Colors.blue, width: 2),
+            right: const BorderSide(color: Colors.blue, width: 2),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlayhead(double height, PlaybackState playbackState, double timelineWidth) {
     final duration = widget.media?.duration ?? Duration.zero;
     if (duration.inMilliseconds == 0) return const SizedBox.shrink();
 
-    final timelineWidth = duration.inSeconds * 20.0 * _zoom;
-    final playheadX = (_playheadPosition.inMilliseconds / 
+    final playheadX = (playbackState.position.inMilliseconds / 
         duration.inMilliseconds) * timelineWidth;
 
     return Positioned(
@@ -344,45 +788,17 @@ class _TimelinePanelState extends State<TimelinePanel> {
       bottom: 0,
       child: Container(
         width: 2,
-        color: Colors.red,
-      ),
-    );
-  }
-
-  Widget _buildMediaClip(BuildContext context, double timelineWidth) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 2),
-      decoration: BoxDecoration(
-        color: colorScheme.primary.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: colorScheme.primary),
-      ),
-      child: Center(
-        child: Text(
-          widget.media?.name ?? '',
-          style: TextStyle(
-            fontSize: 10,
-            color: colorScheme.onPrimary,
-          ),
-          overflow: TextOverflow.ellipsis,
+        decoration: BoxDecoration(
+          color: Colors.red,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.red.withOpacity(0.3),
+              blurRadius: 4,
+              spreadRadius: 1,
+            ),
+          ],
         ),
       ),
-    );
-  }
-
-  Widget _buildWaveformTrack(BuildContext context, double timelineWidth) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final duration = widget.media?.duration ?? Duration.zero;
-
-    return CustomPaint(
-      painter: _MiniWaveformPainter(
-        color: colorScheme.secondary,
-        duration: duration,
-        detections: widget.detections.where((d) => d.isAudioDetection).toList(),
-      ),
-      size: Size(timelineWidth, 30),
     );
   }
 
@@ -431,53 +847,110 @@ class _TimelinePanelState extends State<TimelinePanel> {
 
     return Stack(
       children: widget.editActions.where((e) => e.enabled).map((action) {
-        final startX = (action.startTime.inMilliseconds /
-            duration.inMilliseconds) * timelineWidth;
-        final width = ((action.endTime.inMilliseconds -
-            action.startTime.inMilliseconds) /
-            duration.inMilliseconds) * timelineWidth;
-
-        return Positioned(
-          left: startX,
-          top: 2,
-          bottom: 2,
-          child: Container(
-            width: math.max(width, 8),
-            decoration: BoxDecoration(
-              color: _getEditColor(action.type).withOpacity(0.7),
-              borderRadius: BorderRadius.circular(2),
-              border: Border.all(
-                color: _getEditColor(action.type),
-              ),
-            ),
-            child: Tooltip(
-              message: '${action.typeLabel}\n${_formatDuration(action.startTime)} - ${_formatDuration(action.endTime)}',
-              child: Icon(
-                _getEditIcon(action.type),
-                size: 12,
-                color: Colors.white,
-              ),
-            ),
-          ),
+        return _EditActionMarker(
+          key: ValueKey(action.id),
+          action: action,
+          duration: duration,
+          timelineWidth: timelineWidth,
+          editColor: _getEditColor(action.type),
+          editIcon: _getEditIcon(action.type),
+          onTap: () {
+            if (action.type == EditActionType.blur) {
+              widget.onEditBlurAction?.call(action.id);
+            }
+          },
+          onUpdated: widget.onEditActionUpdated,
+          onRemoved: widget.onRemoveEditAction,
+          formatDuration: _formatDuration,
         );
       }).toList(),
     );
   }
 
   void _cutSelection() {
-    // TODO: Implement cut
+    final playbackState = ref.read(playbackNotifierProvider);
+    if (!playbackState.hasSelection || widget.media == null) return;
+    
+    final action = EditAction.cut(
+      id: _uuid.v4(),
+      mediaId: widget.media!.id,
+      startTime: playbackState.selectionStart!,
+      endTime: playbackState.selectionEnd!,
+    );
+    
+    widget.onAddEditAction(action);
+    ref.read(playbackNotifierProvider.notifier).clearSelection();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Cut added to timeline'), duration: Duration(seconds: 1)),
+    );
   }
 
   void _muteSelection() {
-    // TODO: Implement mute
+    final playbackState = ref.read(playbackNotifierProvider);
+    if (!playbackState.hasSelection || widget.media == null) return;
+    
+    final action = EditAction.mute(
+      id: _uuid.v4(),
+      mediaId: widget.media!.id,
+      startTime: playbackState.selectionStart!,
+      endTime: playbackState.selectionEnd!,
+    );
+    
+    widget.onAddEditAction(action);
+    ref.read(playbackNotifierProvider.notifier).clearSelection();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Mute added to timeline'), duration: Duration(seconds: 1)),
+    );
   }
 
   void _blurSelection() {
-    // TODO: Implement blur
+    final playbackState = ref.read(playbackNotifierProvider);
+    if (!playbackState.hasSelection || widget.media == null) return;
+    
+    final action = EditAction.blur(
+      id: _uuid.v4(),
+      mediaId: widget.media!.id,
+      startTime: playbackState.selectionStart!,
+      endTime: playbackState.selectionEnd!,
+      boundingBox: const BoundingBox(
+        left: 0.25,
+        top: 0.25,
+        width: 0.5,
+        height: 0.5,
+      ),
+      intensity: 0.75, // 0.0 to 1.0 range, moderate blur
+    );
+    
+    widget.onAddEditAction(action);
+    ref.read(playbackNotifierProvider.notifier).clearSelection();
+    
+    widget.onEditBlurAction?.call(action.id);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Blur added - drag handles to adjust region'), duration: Duration(seconds: 2)),
+    );
   }
 
   void _beepSelection() {
-    // TODO: Implement beep
+    final playbackState = ref.read(playbackNotifierProvider);
+    if (!playbackState.hasSelection || widget.media == null) return;
+    
+    final action = EditAction.beep(
+      id: _uuid.v4(),
+      mediaId: widget.media!.id,
+      startTime: playbackState.selectionStart!,
+      endTime: playbackState.selectionEnd!,
+      frequency: 1000.0,
+    );
+    
+    widget.onAddEditAction(action);
+    ref.read(playbackNotifierProvider.notifier).clearSelection();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Beep added to timeline'), duration: Duration(seconds: 1)),
+    );
   }
 
   Color _getDetectionColor(ContentType type) {
@@ -543,7 +1016,261 @@ class _TimelinePanelState extends State<TimelinePanel> {
   String _formatDuration(Duration duration) {
     final minutes = duration.inMinutes % 60;
     final seconds = duration.inSeconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    final millis = (duration.inMilliseconds % 1000) ~/ 10;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}.${millis.toString().padLeft(2, '0')}';
+  }
+}
+
+/// Draggable and scalable edit action marker
+class _EditActionMarker extends StatefulWidget {
+  final EditAction action;
+  final Duration duration;
+  final double timelineWidth;
+  final Color editColor;
+  final IconData editIcon;
+  final VoidCallback? onTap;
+  final void Function(EditAction)? onUpdated;
+  final void Function(String)? onRemoved;
+  final String Function(Duration) formatDuration;
+
+  const _EditActionMarker({
+    super.key,
+    required this.action,
+    required this.duration,
+    required this.timelineWidth,
+    required this.editColor,
+    required this.editIcon,
+    this.onTap,
+    this.onUpdated,
+    this.onRemoved,
+    required this.formatDuration,
+  });
+
+  @override
+  State<_EditActionMarker> createState() => _EditActionMarkerState();
+}
+
+class _EditActionMarkerState extends State<_EditActionMarker> {
+  bool _isDragging = false;
+  bool _isDraggingLeftEdge = false;
+  bool _isDraggingRightEdge = false;
+  Duration _tempStartTime = Duration.zero;
+  Duration _tempEndTime = Duration.zero;
+
+  double get startX => (_isDragging || _isDraggingLeftEdge || _isDraggingRightEdge
+      ? _tempStartTime.inMilliseconds
+      : widget.action.startTime.inMilliseconds) /
+      widget.duration.inMilliseconds *
+      widget.timelineWidth;
+
+  double get endX => (_isDragging || _isDraggingLeftEdge || _isDraggingRightEdge
+      ? _tempEndTime.inMilliseconds
+      : widget.action.endTime.inMilliseconds) /
+      widget.duration.inMilliseconds *
+      widget.timelineWidth;
+
+  double get markerWidth => math.max(endX - startX, 8);
+
+  Duration _positionToDuration(double x) {
+    return Duration(
+      milliseconds: (x / widget.timelineWidth * widget.duration.inMilliseconds)
+          .round()
+          .clamp(0, widget.duration.inMilliseconds),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const handleWidth = 8.0;
+
+    return Positioned(
+      left: startX,
+      top: 2,
+      bottom: 2,
+      child: SizedBox(
+        width: markerWidth,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Main draggable body
+            Positioned.fill(
+              left: handleWidth,
+              right: handleWidth,
+              child: GestureDetector(
+                onTap: widget.onTap,
+                onSecondaryTap: () => _showContextMenu(context),
+                onPanStart: (details) {
+                  setState(() {
+                    _isDragging = true;
+                    _tempStartTime = widget.action.startTime;
+                    _tempEndTime = widget.action.endTime;
+                  });
+                },
+                onPanUpdate: (details) {
+                  if (!_isDragging) return;
+                  final delta = _positionToDuration(details.delta.dx + startX) -
+                      _positionToDuration(startX);
+                  final newStart = _tempStartTime + delta;
+                  final newEnd = _tempEndTime + delta;
+                  
+                  // Keep within bounds
+                  if (newStart >= Duration.zero &&
+                      newEnd <= widget.duration) {
+                    setState(() {
+                      _tempStartTime = newStart;
+                      _tempEndTime = newEnd;
+                    });
+                  }
+                },
+                onPanEnd: (details) {
+                  if (_isDragging) {
+                    widget.onUpdated?.call(
+                      widget.action.copyWith(
+                        startTime: _tempStartTime,
+                        endTime: _tempEndTime,
+                      ),
+                    );
+                    setState(() => _isDragging = false);
+                  }
+                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.move,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: widget.editColor.withValues(alpha: _isDragging ? 0.9 : 0.7),
+                      borderRadius: BorderRadius.circular(2),
+                      border: Border.all(color: widget.editColor, width: _isDragging ? 2 : 1),
+                    ),
+                    child: Tooltip(
+                      message: '${widget.action.typeLabel}\n${widget.formatDuration(widget.action.startTime)} - ${widget.formatDuration(widget.action.endTime)}',
+                      child: Center(
+                        child: Icon(widget.editIcon, size: 12, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            
+            // Left resize handle
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: handleWidth,
+              child: GestureDetector(
+                onPanStart: (details) {
+                  setState(() {
+                    _isDraggingLeftEdge = true;
+                    _tempStartTime = widget.action.startTime;
+                    _tempEndTime = widget.action.endTime;
+                  });
+                },
+                onPanUpdate: (details) {
+                  if (!_isDraggingLeftEdge) return;
+                  final newStart = _positionToDuration(startX + details.delta.dx);
+                  if (newStart < _tempEndTime - const Duration(milliseconds: 100)) {
+                    setState(() => _tempStartTime = newStart);
+                  }
+                },
+                onPanEnd: (details) {
+                  if (_isDraggingLeftEdge) {
+                    widget.onUpdated?.call(
+                      widget.action.copyWith(startTime: _tempStartTime),
+                    );
+                    setState(() => _isDraggingLeftEdge = false);
+                  }
+                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.resizeLeftRight,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: widget.editColor,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(2),
+                        bottomLeft: Radius.circular(2),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            
+            // Right resize handle
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: handleWidth,
+              child: GestureDetector(
+                onPanStart: (details) {
+                  setState(() {
+                    _isDraggingRightEdge = true;
+                    _tempStartTime = widget.action.startTime;
+                    _tempEndTime = widget.action.endTime;
+                  });
+                },
+                onPanUpdate: (details) {
+                  if (!_isDraggingRightEdge) return;
+                  final newEnd = _positionToDuration(endX + details.delta.dx);
+                  if (newEnd > _tempStartTime + const Duration(milliseconds: 100)) {
+                    setState(() => _tempEndTime = newEnd);
+                  }
+                },
+                onPanEnd: (details) {
+                  if (_isDraggingRightEdge) {
+                    widget.onUpdated?.call(
+                      widget.action.copyWith(endTime: _tempEndTime),
+                    );
+                    setState(() => _isDraggingRightEdge = false);
+                  }
+                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.resizeLeftRight,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: widget.editColor,
+                      borderRadius: const BorderRadius.only(
+                        topRight: Radius.circular(2),
+                        bottomRight: Radius.circular(2),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showContextMenu(BuildContext context) {
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        startX + 50,
+        100,
+        startX + 150,
+        200,
+      ),
+      items: [
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete, size: 18, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Delete'),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value == 'delete') {
+        widget.onRemoved?.call(widget.action.id);
+      }
+    });
   }
 }
 
@@ -551,17 +1278,19 @@ class _TrackLabel extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
+  final double height;
 
   const _TrackLabel({
     required this.icon,
     required this.label,
     required this.color,
+    this.height = 30,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 30,
+      height: height,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         border: Border(
@@ -633,10 +1362,22 @@ class _TimeRulerPainter extends CustomPainter {
       fontSize: 9,
     );
 
-    // Draw second markers
     final pixelsPerSecond = 20.0 * zoom;
     final totalSeconds = duration.inSeconds;
-    final majorInterval = zoom < 1 ? 10 : zoom < 2 ? 5 : 1;
+    
+    // Adjust major interval based on zoom level
+    int majorInterval;
+    if (zoom < 0.5) {
+      majorInterval = 30;
+    } else if (zoom < 1) {
+      majorInterval = 10;
+    } else if (zoom < 2) {
+      majorInterval = 5;
+    } else if (zoom < 4) {
+      majorInterval = 2;
+    } else {
+      majorInterval = 1;
+    }
 
     for (int s = 0; s <= totalSeconds; s++) {
       final x = s * pixelsPerSecond;
@@ -659,8 +1400,8 @@ class _TimeRulerPainter extends CustomPainter {
           textDirection: TextDirection.ltr,
         )..layout();
         tp.paint(canvas, Offset(x - tp.width / 2, 2));
-      } else if (s % (majorInterval ~/ 2 + 1) == 0) {
-        // Minor tick
+      } else if (zoom >= 2 && s % (majorInterval ~/ 2 + 1) == 0) {
+        // Minor tick (only at higher zoom)
         canvas.drawLine(
           Offset(x, size.height - 6),
           Offset(x, size.height),
@@ -682,14 +1423,260 @@ class _TimeRulerPainter extends CustomPainter {
   }
 }
 
+class _ThumbnailStripPainter extends CustomPainter {
+  final Duration duration;
+  final double zoom;
+  final Color primaryColor;
+  final int thumbnailCount;
+  final List<ui.Image>? thumbnailImages;
+  final bool isLoading;
+  final double animationValue;
+
+  _ThumbnailStripPainter({
+    required this.duration,
+    required this.zoom,
+    required this.primaryColor,
+    required this.thumbnailCount,
+    this.thumbnailImages,
+    this.isLoading = false,
+    this.animationValue = 0.0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (duration.inMilliseconds == 0) return;
+
+    final thumbnailWidth = size.width / thumbnailCount;
+    final random = math.Random(42); // Consistent random for placeholder thumbnails
+    final hasThumbnails = thumbnailImages != null && thumbnailImages!.isNotEmpty;
+
+    for (var i = 0; i < thumbnailCount; i++) {
+      final x = i * thumbnailWidth;
+      final rect = Rect.fromLTWH(x, 2, thumbnailWidth - 1, size.height - 4);
+      
+      // Draw actual thumbnail if available
+      if (hasThumbnails && i < thumbnailImages!.length) {
+        final image = thumbnailImages![i];
+        final srcRect = Rect.fromLTWH(
+          0, 0, 
+          image.width.toDouble(), 
+          image.height.toDouble(),
+        );
+        
+        // Scale to fit height while maintaining aspect ratio
+        final imageAspectRatio = image.width / image.height;
+        final destHeight = size.height - 4;
+        final destWidth = destHeight * imageAspectRatio;
+        
+        // If thumbnail width is wider than dest width, tile; otherwise center-crop
+        if (thumbnailWidth >= destWidth) {
+          // Center the thumbnail in its slot
+          final destRect = Rect.fromLTWH(
+            x + (thumbnailWidth - destWidth) / 2,
+            2,
+            destWidth,
+            destHeight,
+          );
+          canvas.drawImageRect(image, srcRect, destRect, Paint()..filterQuality = FilterQuality.medium);
+        } else {
+          // Crop to fill the slot
+          final cropWidth = image.height * (thumbnailWidth / destHeight);
+          final cropX = (image.width - cropWidth) / 2;
+          final croppedSrcRect = Rect.fromLTWH(
+            math.max(0, cropX),
+            0,
+            math.min(cropWidth, image.width.toDouble()),
+            image.height.toDouble(),
+          );
+          canvas.drawImageRect(image, croppedSrcRect, rect, Paint()..filterQuality = FilterQuality.medium);
+        }
+        
+        // Draw subtle border around thumbnail
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(rect, const Radius.circular(2)),
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..color = Colors.black.withValues(alpha: 0.2)
+            ..strokeWidth = 0.5,
+        );
+        
+        // Draw timestamp overlay
+        _drawTimestamp(canvas, rect, i);
+        continue;
+      }
+      
+      // Draw placeholder/loading state
+      if (isLoading) {
+        // Shimmer loading animation
+        final shimmerOffset = (animationValue + i * 0.1) % 1.0;
+        final shimmerGradient = LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            primaryColor.withValues(alpha: 0.15),
+            primaryColor.withValues(alpha: 0.3),
+            primaryColor.withValues(alpha: 0.15),
+          ],
+          stops: [
+            math.max(0.0, shimmerOffset - 0.3),
+            shimmerOffset,
+            math.min(1.0, shimmerOffset + 0.3),
+          ],
+        );
+        
+        final shimmerPaint = Paint()
+          ..shader = shimmerGradient.createShader(rect);
+        
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(rect, const Radius.circular(2)),
+          shimmerPaint,
+        );
+        
+        // Draw film strip icon in center
+        final iconSize = math.min(rect.width * 0.4, 20.0);
+        final iconRect = Rect.fromCenter(
+          center: rect.center,
+          width: iconSize,
+          height: iconSize,
+        );
+        
+        // Draw simple film frame icon
+        final iconPaint = Paint()
+          ..color = primaryColor.withValues(alpha: 0.4)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5;
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(iconRect, const Radius.circular(2)),
+          iconPaint,
+        );
+        
+        // Draw film perforations
+        final perfSize = iconSize * 0.15;
+        for (var p = 0; p < 3; p++) {
+          final perfY = iconRect.top + iconSize * (p + 1) / 4;
+          canvas.drawRect(
+            Rect.fromLTWH(iconRect.left - perfSize - 1, perfY - perfSize / 2, perfSize, perfSize),
+            Paint()..color = primaryColor.withValues(alpha: 0.3),
+          );
+          canvas.drawRect(
+            Rect.fromLTWH(iconRect.right + 1, perfY - perfSize / 2, perfSize, perfSize),
+            Paint()..color = primaryColor.withValues(alpha: 0.3),
+          );
+        }
+      } else {
+        // Static placeholder when not loading (fallback)
+        final hue = (i * 15 + 200) % 360;
+        final saturation = 0.3 + random.nextDouble() * 0.2;
+        final lightness = 0.3 + random.nextDouble() * 0.2;
+        
+        final color = HSLColor.fromAHSL(1.0, hue.toDouble(), saturation, lightness).toColor();
+        
+        final gradient = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            color.withValues(alpha: 0.8),
+            color.withValues(alpha: 0.6),
+          ],
+        );
+        
+        final paint = Paint()
+          ..shader = gradient.createShader(rect);
+        
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(rect, const Radius.circular(2)),
+          paint,
+        );
+
+        // Draw frame indicator lines
+        final linePaint = Paint()
+          ..color = Colors.white.withValues(alpha: 0.1)
+          ..strokeWidth = 1;
+        
+        // Add some visual variation to simulate video frames
+        final lineCount = 3 + (random.nextDouble() * 3).toInt();
+        for (var j = 0; j < lineCount; j++) {
+          final lineY = rect.top + (rect.height * (j + 1) / (lineCount + 1));
+          final lineLength = rect.width * (0.3 + random.nextDouble() * 0.5);
+          final lineX = rect.left + (rect.width - lineLength) * random.nextDouble();
+          canvas.drawLine(
+            Offset(lineX, lineY),
+            Offset(lineX + lineLength, lineY),
+            linePaint,
+          );
+        }
+      }
+      
+      // Draw timestamp for placeholders too
+      _drawTimestamp(canvas, rect, i);
+    }
+  }
+
+  void _drawTimestamp(Canvas canvas, Rect rect, int index) {
+    // Calculate timestamp for this thumbnail
+    final totalSeconds = duration.inSeconds;
+    final intervalSeconds = totalSeconds / thumbnailCount;
+    final seconds = (index * intervalSeconds).round();
+    final minutes = seconds ~/ 60;
+    final secs = seconds % 60;
+    final timeText = '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+    
+    // Draw semi-transparent background
+    final bgRect = Rect.fromLTWH(
+      rect.left + 2,
+      rect.bottom - 14,
+      rect.width - 4,
+      12,
+    );
+    canvas.drawRect(
+      bgRect,
+      Paint()..color = Colors.black.withValues(alpha: 0.5),
+    );
+    
+    // Draw text
+    final textSpan = TextSpan(
+      text: timeText,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 8,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+    final textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        rect.left + (rect.width - textPainter.width) / 2,
+        rect.bottom - 13,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ThumbnailStripPainter oldDelegate) {
+    return oldDelegate.duration != duration || 
+           oldDelegate.zoom != zoom ||
+           oldDelegate.thumbnailCount != thumbnailCount ||
+           oldDelegate.thumbnailImages != thumbnailImages ||
+           oldDelegate.isLoading != isLoading ||
+           oldDelegate.animationValue != animationValue;
+  }
+}
+
 class _MiniWaveformPainter extends CustomPainter {
   final Color color;
   final Duration duration;
+  final double zoom;
   final List<Detection> detections;
 
   _MiniWaveformPainter({
     required this.color,
     required this.duration,
+    required this.zoom,
     required this.detections,
   });
 
@@ -712,27 +1699,45 @@ class _MiniWaveformPainter extends CustomPainter {
       );
     }
 
-    // Draw mini waveform
+    // Draw waveform background
+    final bgPaint = Paint()
+      ..color = color.withOpacity(0.1);
+    canvas.drawRect(Offset.zero & size, bgPaint);
+
+    // Draw mini waveform - detail increases with zoom
     final wavePaint = Paint()
-      ..color = color.withOpacity(0.5)
-      ..strokeWidth = 1;
+      ..color = color.withOpacity(0.6)
+      ..strokeWidth = math.max(1.0, zoom * 0.5);
 
     final centerY = size.height / 2;
     final random = math.Random(42);
 
-    for (double x = 0; x < size.width; x += 3) {
-      final amplitude = random.nextDouble() * size.height * 0.3;
+    // More detailed waveform at higher zoom/widths
+    final step = math.max(1.0, 3.0 / zoom);
+    for (double x = 0; x < size.width; x += step) {
+      final amplitude = random.nextDouble() * size.height * 0.35;
       canvas.drawLine(
         Offset(x, centerY - amplitude),
         Offset(x, centerY + amplitude),
         wavePaint,
       );
     }
+
+    // Draw centerline
+    final centerPaint = Paint()
+      ..color = color.withOpacity(0.3)
+      ..strokeWidth = 0.5;
+    canvas.drawLine(
+      Offset(0, centerY),
+      Offset(size.width, centerY),
+      centerPaint,
+    );
   }
 
   @override
   bool shouldRepaint(covariant _MiniWaveformPainter oldDelegate) {
     return oldDelegate.duration != duration ||
+        oldDelegate.zoom != zoom ||
         oldDelegate.detections != detections;
   }
 }

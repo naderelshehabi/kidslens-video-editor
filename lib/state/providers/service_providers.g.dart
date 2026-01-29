@@ -192,5 +192,39 @@ final exportServiceProvider = Provider<ExportService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ExportServiceRef = ProviderRef<ExportService>;
+String _$thumbnailServiceHash() => r'23181ca97879a231e335f01973f6d88841f3c561';
+
+/// See also [thumbnailService].
+@ProviderFor(thumbnailService)
+final thumbnailServiceProvider = Provider<ThumbnailService>.internal(
+  thumbnailService,
+  name: r'thumbnailServiceProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$thumbnailServiceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ThumbnailServiceRef = ProviderRef<ThumbnailService>;
+String _$beepAudioServiceHash() => r'612aea39c4b49e79c660ad3bee804c3416097b4c';
+
+/// See also [beepAudioService].
+@ProviderFor(beepAudioService)
+final beepAudioServiceProvider = Provider<BeepAudioService>.internal(
+  beepAudioService,
+  name: r'beepAudioServiceProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$beepAudioServiceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef BeepAudioServiceRef = ProviderRef<BeepAudioService>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

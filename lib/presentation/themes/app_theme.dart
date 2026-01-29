@@ -1,43 +1,54 @@
 import 'package:flutter/material.dart';
 
 /// Application theme configuration
-/// Uses a family-friendly color palette with green and blue tones
-/// that feel welcoming and safe for kids content editing.
+/// Uses a cheerful, family-friendly color palette inspired by popular kids apps
+/// (YouTube Kids, PBS Kids, Disney+). Colors evoke safety, joy, and entertainment.
+///
+/// Color Psychology:
+/// - Coral/Orange: Friendly, energizing, warm, inviting
+/// - Teal/Cyan: Trustworthy, calming, playful
+/// - Yellow: Cheerful, happy, optimistic
+/// - Purple: Creative, imaginative, fun
 class AppTheme {
   AppTheme._();
 
-  // Primary colors - Friendly green palette
-  static const Color primaryColor = Color(0xFF4CAF50); // Material Green 500
-  static const Color primaryVariant = Color(0xFF2E7D32); // Material Green 800
-  static const Color primaryLight = Color(0xFF81C784); // Material Green 300
+  // Primary colors - Cheerful coral/orange palette (warmth, joy, energy)
+  static const Color primaryColor = Color(0xFFFF7043); // Deep Orange 400 - Coral
+  static const Color primaryVariant = Color(0xFFE64A19); // Deep Orange 700
+  static const Color primaryLight = Color(0xFFFFAB91); // Deep Orange 200 - Soft coral
 
-  // Secondary colors - Calming blue palette
-  static const Color secondaryColor = Color(0xFF2196F3); // Material Blue 500
-  static const Color secondaryVariant = Color(0xFF1976D2); // Material Blue 700
-  static const Color secondaryLight = Color(0xFF64B5F6); // Material Blue 300
+  // Secondary colors - Playful teal palette (trust, calm, safety)
+  static const Color secondaryColor = Color(0xFF26C6DA); // Cyan 400 - Teal
+  static const Color secondaryVariant = Color(0xFF00ACC1); // Cyan 600
+  static const Color secondaryLight = Color(0xFF80DEEA); // Cyan 200 - Sky blue
 
-  // Accent colors - Warm and inviting
-  static const Color accentColor = Color(0xFFFFB74D); // Warm orange
-  static const Color accentLight = Color(0xFFFFE0B2); // Light peach
+  // Accent colors - Sunny and cheerful
+  static const Color accentColor = Color(0xFFFFD54F); // Amber 300 - Sunny yellow
+  static const Color accentLight = Color(0xFFFFF8E1); // Amber 50 - Cream yellow
 
-  // Status colors
-  static const Color successColor = Color(0xFF66BB6A); // Friendly green
-  static const Color warningColor = Color(0xFFFFB74D); // Warm orange
-  static const Color errorColor = Color(0xFFE57373); // Softer red
-  static const Color infoColor = Color(0xFF64B5F6); // Calming blue
+  // Tertiary colors - Playful purple for creativity
+  static const Color tertiaryColor = Color(0xFFBA68C8); // Purple 300 - Playful purple
+  static const Color tertiaryLight = Color(0xFFE1BEE7); // Purple 100 - Soft lavender
 
-  // Detection type colors - Distinct but not harsh
+  // Status colors - Friendly, not alarming
+  static const Color successColor = Color(0xFF81C784); // Green 300 - Soft green
+  static const Color warningColor = Color(0xFFFFB74D); // Orange 300 - Warm amber
+  static const Color errorColor = Color(0xFFE57373); // Red 300 - Soft coral red
+  static const Color infoColor = Color(0xFF4FC3F7); // Light Blue 300 - Friendly blue
+
+  // Detection type colors - Visible but child-friendly (not scary)
   static const Color profanityColor =
-      Color(0xFFFF9800); // Orange (warning but not scary)
-  static const Color nsfwColor = Color(0xFFE91E63); // Pink/Magenta (distinct)
+      Color(0xFFFFB300); // Amber 600 - Warm gold (alert but friendly)
+  static const Color nsfwColor = Color(0xFFEC407A); // Pink 400 (soft magenta)
   static const Color nudityColor =
-      Color(0xFFE91E63); // Pink/Magenta (same as NSFW)
-  static const Color violenceColor = Color(0xFFEF5350); // Softer red
-  static const Color bloodColor = Color(0xFFC62828); // Dark red
+      Color(0xFFEC407A); // Pink 400 (same as NSFW)
+  static const Color violenceColor = Color(0xFFFF8A65); // Deep Orange 300 - Muted coral
+  static const Color bloodColor = Color(0xFFEF5350); // Red 400 - Softer red
   static const Color weaponsColor =
-      Color(0xFF78909C); // Gray/Steel (Blue Grey 400)
+      Color(0xFF90A4AE); // Blue Grey 300 - Neutral gray
 
-  /// Light theme - Family-friendly with green/blue palette
+  /// Light theme - Cheerful coral/teal palette for family-friendly editing
+  /// Inspired by popular kids apps with warm, inviting colors
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
@@ -45,7 +56,9 @@ class AppTheme {
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryColor,
         brightness: Brightness.light,
+        primary: primaryColor,
         secondary: secondaryColor,
+        tertiary: tertiaryColor,
         error: errorColor,
       ),
       appBarTheme: const AppBarTheme(
@@ -91,7 +104,8 @@ class AppTheme {
     );
   }
 
-  /// Dark theme - Family-friendly with green/blue palette
+  /// Dark theme - Cheerful coral/teal palette for family-friendly editing
+  /// Uses lighter variants for better visibility on dark backgrounds
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
@@ -99,7 +113,9 @@ class AppTheme {
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryColor,
         brightness: Brightness.dark,
-        secondary: secondaryLight, // Lighter blue for dark theme visibility
+        primary: primaryLight, // Lighter coral for dark theme visibility
+        secondary: secondaryLight, // Sky blue for dark theme visibility
+        tertiary: tertiaryLight,
         error: errorColor,
       ),
       appBarTheme: const AppBarTheme(
@@ -146,23 +162,24 @@ class AppTheme {
   }
 
   /// Get color for detection type
-  /// Returns family-friendly colors that are distinct but not harsh
+  /// Returns child-friendly colors that are distinct but not scary
+  /// Colors are softer variants that alert without alarming children
   static Color getDetectionColor(String type) {
     switch (type.toLowerCase()) {
       case 'profanity':
-        return profanityColor; // Orange - warning but not scary
+        return profanityColor; // Warm gold - alert but friendly
       case 'nsfw':
-        return nsfwColor; // Pink/Magenta - distinct
+        return nsfwColor; // Soft pink - distinct
       case 'nudity':
-        return nudityColor; // Pink/Magenta
+        return nudityColor; // Soft pink
       case 'violence':
-        return violenceColor; // Softer red
+        return violenceColor; // Muted coral
       case 'blood':
-        return bloodColor; // Dark red
+        return bloodColor; // Softer red
       case 'weapons':
-        return weaponsColor; // Gray/Steel
+        return weaponsColor; // Neutral gray
       default:
-        return const Color(0xFF90A4AE); // Blue Grey 300 - neutral fallback
+        return const Color(0xFFB0BEC5); // Blue Grey 200 - neutral fallback
     }
   }
 

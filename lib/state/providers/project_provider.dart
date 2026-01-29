@@ -15,6 +15,8 @@ class ProjectState {
   final bool isSaving;
   final String? errorMessage;
   final List<String> recentProjectPaths;
+  final List<Project> undoStack;
+  final List<Project> redoStack;
 
   const ProjectState({
     this.currentProject,
@@ -22,21 +24,28 @@ class ProjectState {
     this.isSaving = false,
     this.errorMessage,
     this.recentProjectPaths = const [],
+    this.undoStack = const [],
+    this.redoStack = const [],
   });
 
   ProjectState copyWith({
     Project? currentProject,
+    bool clearProject = false,
     bool? isLoading,
     bool? isSaving,
     String? errorMessage,
     List<String>? recentProjectPaths,
+    List<Project>? undoStack,
+    List<Project>? redoStack,
   }) {
     return ProjectState(
-      currentProject: currentProject ?? this.currentProject,
+      currentProject: clearProject ? null : (currentProject ?? this.currentProject),
       isLoading: isLoading ?? this.isLoading,
       isSaving: isSaving ?? this.isSaving,
       errorMessage: errorMessage,
       recentProjectPaths: recentProjectPaths ?? this.recentProjectPaths,
+      undoStack: undoStack ?? this.undoStack,
+      redoStack: redoStack ?? this.redoStack,
     );
   }
 
@@ -44,9 +53,15 @@ class ProjectState {
   bool get hasProject => currentProject != null;
 
   /// Whether analysis is in progress
-  bool get isAnalyzing => 
-      currentProject?.analysisProgress != null && 
+  bool get isAnalyzing =>
+      currentProject?.analysisProgress != null &&
       !(currentProject?.analysisComplete ?? true);
+
+  /// Whether undo is available
+  bool get canUndo => undoStack.isNotEmpty;
+
+  /// Whether redo is available
+  bool get canRedo => redoStack.isNotEmpty;
 }
 
 /// Provider for managing project state
@@ -67,13 +82,15 @@ class ProjectNotifier extends _$ProjectNotifier {
         name: name,
         directoryPath: directoryPath,
       );
-      
+
       state = state.copyWith(
         isLoading: false,
         currentProject: project,
         recentProjectPaths: [
           project.projectPath,
-          ...state.recentProjectPaths.where((p) => p != project.projectPath).take(9),
+          ...state.recentProjectPaths
+              .where((p) => p != project.projectPath)
+              .take(9),
         ],
       );
     } catch (e) {
@@ -96,13 +113,15 @@ class ProjectNotifier extends _$ProjectNotifier {
         name: name,
         projectPath: projectPath,
       );
-      
+
       state = state.copyWith(
         isLoading: false,
         currentProject: project,
         recentProjectPaths: [
           project.projectPath,
-          ...state.recentProjectPaths.where((p) => p != project.projectPath).take(9),
+          ...state.recentProjectPaths
+              .where((p) => p != project.projectPath)
+              .take(9),
         ],
       );
     } catch (e) {
@@ -119,13 +138,15 @@ class ProjectNotifier extends _$ProjectNotifier {
     try {
       final projectService = ref.read(projectServiceProvider);
       final project = await projectService.loadProject(projectPath);
-      
+
       state = state.copyWith(
         isLoading: false,
         currentProject: project,
         recentProjectPaths: [
           project.projectPath,
-          ...state.recentProjectPaths.where((p) => p != project.projectPath).take(9),
+          ...state.recentProjectPaths
+              .where((p) => p != project.projectPath)
+              .take(9),
         ],
       );
     } catch (e) {
@@ -139,12 +160,16 @@ class ProjectNotifier extends _$ProjectNotifier {
   /// Save the current project
   Future<void> saveProject() async {
     if (state.currentProject == null) return;
-    
+
     state = state.copyWith(isSaving: true);
     try {
       final projectService = ref.read(projectServiceProvider);
       await projectService.saveProject(state.currentProject!);
-      state = state.copyWith(isSaving: false);
+      // Clear dirty flag after successful save
+      state = state.copyWith(
+        isSaving: false,
+        currentProject: state.currentProject!.copyWith(isDirty: false),
+      );
     } catch (e) {
       state = state.copyWith(
         isSaving: false,
@@ -155,21 +180,74 @@ class ProjectNotifier extends _$ProjectNotifier {
 
   /// Close the current project
   Future<void> closeProject() async {
-    if (state.currentProject != null) {
-      await saveProject();
+    // Don't auto-save on close - let the UI handle asking user
+    state = state.copyWith(
+      clearProject: true,
+      undoStack: [],
+      redoStack: [],
+    );
+  }
+
+  /// Clear all recent projects
+  void clearRecentProjects() {
+    state = state.copyWith(recentProjectPaths: []);
+  }
+
+  /// Push current state to undo stack
+  void _pushUndo() {
+    if (state.currentProject == null) return;
+
+    // Limit undo stack size to 50 items
+    final newStack = [...state.undoStack, state.currentProject!];
+    if (newStack.length > 50) {
+      newStack.removeAt(0);
     }
-    state = state.copyWith(currentProject: null);
+
+    state = state.copyWith(
+      undoStack: newStack,
+      redoStack: [], // Clear redo stack on new action
+    );
+  }
+
+  /// Undo last action
+  void undo() {
+    if (!state.canUndo || state.currentProject == null) return;
+
+    final newUndoStack = [...state.undoStack];
+    final previousState = newUndoStack.removeLast();
+
+    state = state.copyWith(
+      undoStack: newUndoStack,
+      redoStack: [...state.redoStack, state.currentProject!],
+      currentProject: previousState.copyWith(isDirty: true),
+    );
+  }
+
+  /// Redo last undone action
+  void redo() {
+    if (!state.canRedo || state.currentProject == null) return;
+
+    final newRedoStack = [...state.redoStack];
+    final nextState = newRedoStack.removeLast();
+
+    state = state.copyWith(
+      redoStack: newRedoStack,
+      undoStack: [...state.undoStack, state.currentProject!],
+      currentProject: nextState.copyWith(isDirty: true),
+    );
   }
 
   /// Import a media file into the project
   Future<void> importMedia(MediaFile media) async {
     if (state.currentProject == null) return;
 
+    _pushUndo();
     final updatedProject = state.currentProject!.copyWith(
       mediaFiles: [...state.currentProject!.mediaFiles, media],
       modifiedAt: DateTime.now(),
+      isDirty: true,
     );
-    
+
     state = state.copyWith(currentProject: updatedProject);
     await saveProject();
   }
@@ -178,6 +256,7 @@ class ProjectNotifier extends _$ProjectNotifier {
   Future<void> removeMedia(String mediaId) async {
     if (state.currentProject == null) return;
 
+    _pushUndo();
     final updatedProject = state.currentProject!.copyWith(
       mediaFiles: state.currentProject!.mediaFiles
           .where((m) => m.id != mediaId)
@@ -193,7 +272,7 @@ class ProjectNotifier extends _$ProjectNotifier {
           : state.currentProject!.selectedMediaId,
       modifiedAt: DateTime.now(),
     );
-    
+
     state = state.copyWith(currentProject: updatedProject);
     await saveProject();
   }
@@ -205,7 +284,7 @@ class ProjectNotifier extends _$ProjectNotifier {
     final updatedProject = state.currentProject!.copyWith(
       selectedMediaId: mediaId,
     );
-    
+
     state = state.copyWith(currentProject: updatedProject);
   }
 
@@ -217,7 +296,7 @@ class ProjectNotifier extends _$ProjectNotifier {
       detections: [...state.currentProject!.detections, detection],
       modifiedAt: DateTime.now(),
     );
-    
+
     state = state.copyWith(currentProject: updatedProject);
   }
 
@@ -229,7 +308,7 @@ class ProjectNotifier extends _$ProjectNotifier {
       detections: [...state.currentProject!.detections, ...detections],
       modifiedAt: DateTime.now(),
     );
-    
+
     state = state.copyWith(currentProject: updatedProject);
   }
 
@@ -237,27 +316,31 @@ class ProjectNotifier extends _$ProjectNotifier {
   void updateDetection(Detection detection) {
     if (state.currentProject == null) return;
 
+    _pushUndo();
     final updatedProject = state.currentProject!.copyWith(
       detections: state.currentProject!.detections
           .map((d) => d.id == detection.id ? detection : d)
           .toList(),
       modifiedAt: DateTime.now(),
+      isDirty: true,
     );
-    
+
     state = state.copyWith(currentProject: updatedProject);
   }
 
-  /// Remove a detection
+  /// Remove a detection (Note: we keep rejected detections, don't delete)
   void removeDetection(String detectionId) {
     if (state.currentProject == null) return;
 
+    _pushUndo();
     final updatedProject = state.currentProject!.copyWith(
       detections: state.currentProject!.detections
           .where((d) => d.id != detectionId)
           .toList(),
       modifiedAt: DateTime.now(),
+      isDirty: true,
     );
-    
+
     state = state.copyWith(currentProject: updatedProject);
   }
 
@@ -272,6 +355,7 @@ class ProjectNotifier extends _$ProjectNotifier {
   }) {
     if (state.currentProject == null) return;
 
+    _pushUndo();
     final action = EditAction(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       mediaId: mediaId,
@@ -286,8 +370,9 @@ class ProjectNotifier extends _$ProjectNotifier {
     final updatedProject = state.currentProject!.copyWith(
       editActions: [...state.currentProject!.editActions, action],
       modifiedAt: DateTime.now(),
+      isDirty: true,
     );
-    
+
     state = state.copyWith(currentProject: updatedProject);
   }
 
@@ -295,11 +380,13 @@ class ProjectNotifier extends _$ProjectNotifier {
   void addEditActionDirect(EditAction action) {
     if (state.currentProject == null) return;
 
+    _pushUndo();
     final updatedProject = state.currentProject!.copyWith(
       editActions: [...state.currentProject!.editActions, action],
       modifiedAt: DateTime.now(),
+      isDirty: true,
     );
-    
+
     state = state.copyWith(currentProject: updatedProject);
   }
 
@@ -307,13 +394,15 @@ class ProjectNotifier extends _$ProjectNotifier {
   void updateEditAction(EditAction action) {
     if (state.currentProject == null) return;
 
+    _pushUndo();
     final updatedProject = state.currentProject!.copyWith(
       editActions: state.currentProject!.editActions
           .map((e) => e.id == action.id ? action : e)
           .toList(),
       modifiedAt: DateTime.now(),
+      isDirty: true,
     );
-    
+
     state = state.copyWith(currentProject: updatedProject);
   }
 
@@ -321,13 +410,15 @@ class ProjectNotifier extends _$ProjectNotifier {
   void removeEditAction(String actionId) {
     if (state.currentProject == null) return;
 
+    _pushUndo();
     final updatedProject = state.currentProject!.copyWith(
       editActions: state.currentProject!.editActions
           .where((e) => e.id != actionId)
           .toList(),
       modifiedAt: DateTime.now(),
+      isDirty: true,
     );
-    
+
     state = state.copyWith(currentProject: updatedProject);
   }
 
@@ -339,7 +430,7 @@ class ProjectNotifier extends _$ProjectNotifier {
       analysisProgress: progress,
       analysisComplete: progress >= 1.0,
     );
-    
+
     state = state.copyWith(currentProject: updatedProject);
   }
 

@@ -1,38 +1,48 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../../data/models/detection.dart';
 import '../../../data/models/edit_action.dart';
 import '../../../data/models/media_file.dart';
+import '../../../state/providers/playback_provider.dart';
+import '../../../state/providers/service_providers.dart';
+import 'blur_region_overlay.dart';
 
 /// Preview panel for video/audio with playback controls using media_kit
-class PreviewPanel extends StatefulWidget {
+class PreviewPanel extends ConsumerStatefulWidget {
   final MediaFile? media;
   final List<Detection> detections;
   final List<EditAction> editActions;
+  final void Function(EditAction)? onEditActionUpdated;
+  final String? editingBlurActionId;
+  final void Function(String?)? onEditingBlurActionChanged;
 
   const PreviewPanel({
     super.key,
     required this.media,
     required this.detections,
     required this.editActions,
+    this.onEditActionUpdated,
+    this.editingBlurActionId,
+    this.onEditingBlurActionChanged,
   });
 
   @override
-  State<PreviewPanel> createState() => _PreviewPanelState();
+  ConsumerState<PreviewPanel> createState() => _PreviewPanelState();
 }
 
-class _PreviewPanelState extends State<PreviewPanel> {
+class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   Player? _player;
   VideoController? _videoController;
-  Duration _currentPosition = Duration.zero;
-  Duration _duration = Duration.zero;
-  bool _isPlaying = false;
-  double _volume = 1.0;
   String? _currentMediaPath;
+  /// Tracks the previous audio effect state to detect changes
+  AudioEffectState _previousEffectState = AudioEffectState.none;
+  int _previousBeepFrequency = 0;
 
   @override
   void initState() {
@@ -44,33 +54,169 @@ class _PreviewPanelState extends State<PreviewPanel> {
     _player = Player();
     _videoController = VideoController(_player!);
 
-    // Listen to player streams
+    // Register player with playback provider after build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(playbackNotifierProvider.notifier).setPlayer(_player!);
+      }
+    });
+
+    // Listen to player streams and update provider
     _player!.stream.position.listen((position) {
       if (mounted) {
-        setState(() => _currentPosition = position);
+        Future.microtask(() {
+          if (mounted) {
+            ref.read(playbackNotifierProvider.notifier).updatePosition(position);
+          }
+        });
+        _checkAndApplyEditActions(position);
       }
     });
 
     _player!.stream.duration.listen((duration) {
       if (mounted) {
-        setState(() => _duration = duration);
+        Future.microtask(() {
+          if (mounted) {
+            ref.read(playbackNotifierProvider.notifier).updateDuration(duration);
+          }
+        });
       }
     });
 
     _player!.stream.playing.listen((playing) {
       if (mounted) {
-        setState(() => _isPlaying = playing);
-      }
-    });
-
-    _player!.stream.volume.listen((volume) {
-      if (mounted) {
-        setState(() => _volume = volume / 100.0);
+        Future.microtask(() {
+          if (mounted) {
+            ref.read(playbackNotifierProvider.notifier).updatePlaying(playing);
+            // Handle playback stop - beep should stop immediately
+            if (!playing) {
+              _stopAllAudioEffects();
+            }
+          }
+        });
       }
     });
 
     // Load initial media if available
     _loadMedia();
+  }
+
+  /// Stop all audio effects and restore normal playback volume
+  void _stopAllAudioEffects() {
+    // Stop beep audio
+    ref.read(beepAudioServiceProvider).stopBeep();
+    
+    // Reset effect state
+    _previousEffectState = AudioEffectState.none;
+    _previousBeepFrequency = 0;
+    
+    // Restore user's intended volume
+    final userVolume = ref.read(playbackNotifierProvider).userVolume;
+    _player?.setVolume(userVolume * 100);
+  }
+
+  void _checkAndApplyEditActions(Duration position) {
+    final playbackState = ref.read(playbackNotifierProvider);
+    
+    // Only apply effects during active playback
+    if (!playbackState.isPlaying) {
+      return;
+    }
+    
+    // Find any cut actions that should skip
+    for (final action in widget.editActions) {
+      if (!action.enabled) continue;
+      
+      if (action.type == EditActionType.cut || action.type == EditActionType.skip) {
+        if (action.containsTime(position)) {
+          // Skip past this section
+          _player?.seek(action.endTime);
+          return;
+        }
+      }
+    }
+    
+    // Determine current audio effect state
+    AudioEffectState newEffectState = AudioEffectState.none;
+    int beepFrequency = 1000;
+    
+    // Check for beep region (takes precedence over mute)
+    final beepAction = widget.editActions.firstWhere(
+      (action) =>
+          action.enabled &&
+          action.type == EditActionType.beep &&
+          action.containsTime(position),
+      orElse: () => EditAction.mute(
+        id: '',
+        mediaId: '',
+        startTime: Duration.zero,
+        endTime: Duration.zero,
+      ),
+    );
+    
+    if (beepAction.id.isNotEmpty) {
+      newEffectState = AudioEffectState.beep;
+      beepFrequency = beepAction.beepFrequency.toInt();
+    } else {
+      // Check for mute region
+      final inMuteRegion = widget.editActions.any((action) =>
+          action.enabled &&
+          action.type == EditActionType.mute &&
+          action.containsTime(position));
+      
+      if (inMuteRegion) {
+        newEffectState = AudioEffectState.muted;
+      }
+    }
+    
+    // Apply audio effect changes
+    _applyAudioEffectState(newEffectState, beepFrequency, playbackState.userVolume);
+  }
+
+  /// Apply the audio effect state, managing player volume and beep playback
+  void _applyAudioEffectState(AudioEffectState newState, int beepFrequency, double userVolume) {
+    final beepService = ref.read(beepAudioServiceProvider);
+    
+    // Check if state changed
+    final stateChanged = newState != _previousEffectState;
+    final frequencyChanged = newState == AudioEffectState.beep && 
+                             beepFrequency != _previousBeepFrequency;
+    
+    if (!stateChanged && !frequencyChanged) {
+      return; // No change, nothing to do
+    }
+    
+    // Handle transition from previous state
+    if (_previousEffectState == AudioEffectState.beep && newState != AudioEffectState.beep) {
+      // Was beeping, now not beeping - stop beep
+      beepService.stopBeep();
+    }
+    
+    // Apply new state
+    switch (newState) {
+      case AudioEffectState.none:
+        // Normal playback - restore user volume
+        _player?.setVolume(userVolume * 100);
+        
+      case AudioEffectState.muted:
+        // Mute the video player
+        _player?.setVolume(0);
+        
+      case AudioEffectState.beep:
+        // Mute video and play beep
+        _player?.setVolume(0);
+        beepService.startBeep(frequency: beepFrequency);
+    }
+    
+    // Update provider state for UI indicators
+    ref.read(playbackNotifierProvider.notifier).updateAudioEffect(
+      newState, 
+      beepFrequency: beepFrequency,
+    );
+    
+    // Remember current state for next comparison
+    _previousEffectState = newState;
+    _previousBeepFrequency = beepFrequency;
   }
 
   @override
@@ -84,6 +230,7 @@ class _PreviewPanelState extends State<PreviewPanel> {
 
   void _loadMedia() {
     if (widget.media == null) {
+      _stopAllAudioEffects();
       _player?.stop();
       _currentMediaPath = null;
       return;
@@ -92,6 +239,9 @@ class _PreviewPanelState extends State<PreviewPanel> {
     final mediaPath = widget.media!.path;
     if (mediaPath == _currentMediaPath) return;
 
+    // Stop any effects from previous media
+    _stopAllAudioEffects();
+    
     _currentMediaPath = mediaPath;
 
     // Check if file exists
@@ -107,6 +257,8 @@ class _PreviewPanelState extends State<PreviewPanel> {
 
   @override
   void dispose() {
+    // Stop all audio effects first
+    _stopAllAudioEffects();
     _player?.dispose();
     super.dispose();
   }
@@ -114,6 +266,7 @@ class _PreviewPanelState extends State<PreviewPanel> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final playbackState = ref.watch(playbackNotifierProvider);
 
     return Container(
       color: colorScheme.surfaceContainerLowest,
@@ -124,13 +277,13 @@ class _PreviewPanelState extends State<PreviewPanel> {
             child: widget.media == null
                 ? _buildEmptyState(context)
                 : widget.media!.isVideo
-                    ? _buildVideoPreview(context)
-                    : _buildAudioPreview(context),
+                    ? _buildVideoPreview(context, playbackState)
+                    : _buildAudioPreview(context, playbackState),
           ),
           
           // Playback controls
           if (widget.media != null)
-            _buildPlaybackControls(context),
+            _buildPlaybackControls(context, playbackState),
         ],
       ),
     );
@@ -161,83 +314,194 @@ class _PreviewPanelState extends State<PreviewPanel> {
     );
   }
 
-  Widget _buildVideoPreview(BuildContext context) {
+  Widget _buildVideoPreview(BuildContext context, PlaybackState playbackState) {
+    final position = playbackState.position;
+    
     // Detection overlays for current position
     final activeDetections = widget.detections
-        .where((d) => d.containsTime(_currentPosition) && !d.isRejected)
+        .where((d) => d.containsTime(position) && !d.isRejected)
         .toList();
 
-    return Stack(
-      children: [
-        // Video player
-        Center(
-          child: AspectRatio(
-            aspectRatio: widget.media!.aspectRatio > 0 
-                ? widget.media!.aspectRatio 
-                : 16 / 9,
-            child: _videoController != null
-                ? Video(
-                    controller: _videoController!,
-                    controls: (state) => const SizedBox.shrink(), // Custom controls below
-                  )
-                : Container(
-                    color: Colors.black,
-                    child: const Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
-          ),
-        ),
+    // Active blur actions for current position
+    final activeBlurActions = widget.editActions
+        .where((a) => a.type == EditActionType.blur && 
+                      a.enabled && 
+                      a.containsTime(position))
+        .toList();
+
+    // Active mute actions for current position
+    final isMuted = widget.editActions.any((a) => 
+        a.type == EditActionType.mute && 
+        a.enabled && 
+        a.containsTime(position));
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final aspectRatio = widget.media!.aspectRatio > 0 
+            ? widget.media!.aspectRatio 
+            : 16 / 9;
         
-        // Detection overlays
-        if (activeDetections.isNotEmpty)
-          Center(
-            child: AspectRatio(
-              aspectRatio: widget.media!.aspectRatio > 0 
-                  ? widget.media!.aspectRatio 
-                  : 16 / 9,
-              child: Stack(
-                children: activeDetections.map((detection) => 
-                  _buildDetectionOverlay(detection)).toList(),
+        // Calculate actual video display size
+        double videoWidth = constraints.maxWidth;
+        double videoHeight = videoWidth / aspectRatio;
+        
+        if (videoHeight > constraints.maxHeight) {
+          videoHeight = constraints.maxHeight;
+          videoWidth = videoHeight * aspectRatio;
+        }
+        
+        final displaySize = Size(videoWidth, videoHeight);
+
+        return Stack(
+          children: [
+            // Video player
+            Center(
+              child: SizedBox(
+                width: videoWidth,
+                height: videoHeight,
+                child: Stack(
+                  children: [
+                    // Video widget - wrapped to disable default gesture handlers
+                    _videoController != null
+                        ? IgnorePointer(
+                            child: Video(
+                              controller: _videoController!,
+                              controls: (state) => const SizedBox.shrink(),
+                            ),
+                          )
+                        : Container(
+                            color: Colors.black,
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          ),
+                    
+                    // Blur overlays during playback
+                    ...activeBlurActions.map((action) {
+                      final isEditing = widget.editingBlurActionId == action.id;
+                      
+                      if (isEditing) {
+                        return BlurRegionOverlay(
+                          blurAction: action,
+                          videoSize: displaySize,
+                          isSelected: true,
+                          isEditing: true,
+                          onBoundingBoxChanged: (newBox) {
+                            widget.onEditActionUpdated?.call(
+                              action.copyWith(boundingBox: newBox),
+                            );
+                          },
+                          onIntensityChanged: (intensity) {
+                            widget.onEditActionUpdated?.call(
+                              action.copyWith(blurIntensity: intensity),
+                            );
+                          },
+                          onSelected: () {
+                            widget.onEditingBlurActionChanged?.call(action.id);
+                          },
+                        );
+                      } else {
+                        return SimpleBlurOverlay(
+                          boundingBox: action.boundingBox,
+                          intensity: action.blurIntensity,
+                          videoSize: displaySize,
+                        );
+                      }
+                    }),
+                    
+                    // Detection visual overlays
+                    ...activeDetections
+                        .where((d) => d.isVisualDetection)
+                        .map((detection) => _buildDetectionOverlay(detection)),
+                  ],
+                ),
               ),
             ),
-          ),
-        
-        // Detection indicators on the side
-        if (activeDetections.isNotEmpty)
-          Positioned(
-            top: 8,
-            right: 8,
-            child: Column(
-              children: activeDetections.map((d) => 
-                _buildDetectionBadge(context, d)).toList(),
-            ),
-          ),
+            
+            // Detection indicators on the side
+            if (activeDetections.isNotEmpty)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Column(
+                  children: activeDetections.map((d) => 
+                    _buildDetectionBadge(context, d)).toList(),
+                ),
+              ),
 
-        // Play/Pause overlay on tap
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: () => _player?.playOrPause(),
-            behavior: HitTestBehavior.translucent,
-            child: !_isPlaying
-                ? Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                      child: const Icon(
-                        Icons.play_arrow,
-                        size: 48,
-                        color: Colors.white,
-                      ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-        ),
-      ],
+            // Mute indicator
+            if (isMuted)
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.volume_off, size: 14, color: Colors.white),
+                      SizedBox(width: 4),
+                      Text('Muted', style: TextStyle(color: Colors.white, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Play/Pause overlay on tap
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () {
+                  // Clear blur editing when tapping elsewhere
+                  if (widget.editingBlurActionId != null) {
+                    widget.onEditingBlurActionChanged?.call(null);
+                  } else {
+                    ref.read(playbackNotifierProvider.notifier).playOrPause();
+                  }
+                },
+                behavior: HitTestBehavior.translucent,
+                child: !playbackState.isPlaying
+                    ? Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          child: const Icon(
+                            Icons.play_arrow,
+                            size: 48,
+                            color: Colors.white,
+                          ),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ),
+
+            // Selection indicator
+            if (playbackState.hasSelection)
+              Positioned(
+                bottom: 8,
+                left: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'Selection: ${_formatDuration(playbackState.selectionStart!)} - ${_formatDuration(playbackState.selectionEnd!)}',
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -288,13 +552,14 @@ class _PreviewPanelState extends State<PreviewPanel> {
     );
   }
 
-  Widget _buildAudioPreview(BuildContext context) {
+  Widget _buildAudioPreview(BuildContext context, PlaybackState playbackState) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final position = playbackState.position;
 
     // Detection indicators for audio
     final activeDetections = widget.detections
-        .where((d) => d.containsTime(_currentPosition) && !d.isRejected)
+        .where((d) => d.containsTime(position) && !d.isRejected)
         .toList();
 
     return Column(
@@ -321,7 +586,7 @@ class _PreviewPanelState extends State<PreviewPanel> {
         
         // Waveform visualization
         Expanded(
-          child: _buildWaveform(context),
+          child: _buildWaveform(context, playbackState),
         ),
         
         // Active detections
@@ -338,27 +603,32 @@ class _PreviewPanelState extends State<PreviewPanel> {
     );
   }
 
-  Widget _buildWaveform(BuildContext context) {
+  Widget _buildWaveform(BuildContext context, PlaybackState playbackState) {
     final colorScheme = Theme.of(context).colorScheme;
+    final duration = playbackState.duration.inMilliseconds > 0 
+        ? playbackState.duration 
+        : (widget.media?.duration ?? Duration.zero);
     
     return CustomPaint(
       painter: _WaveformPainter(
         color: colorScheme.primary,
         backgroundColor: colorScheme.surfaceContainerHigh,
-        position: _currentPosition,
-        duration: _duration.inMilliseconds > 0 ? _duration : (widget.media?.duration ?? Duration.zero),
+        position: playbackState.position,
+        duration: duration,
         detections: widget.detections,
         editActions: widget.editActions,
+        selectionStart: playbackState.selectionStart,
+        selectionEnd: playbackState.selectionEnd,
       ),
       size: Size.infinite,
     );
   }
 
-  Widget _buildPlaybackControls(BuildContext context) {
+  Widget _buildPlaybackControls(BuildContext context, PlaybackState playbackState) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final duration = _duration.inMilliseconds > 0 
-        ? _duration 
+    final duration = playbackState.duration.inMilliseconds > 0 
+        ? playbackState.duration 
         : (widget.media?.duration ?? Duration.zero);
 
     return Container(
@@ -375,7 +645,7 @@ class _PreviewPanelState extends State<PreviewPanel> {
           Row(
             children: [
               Text(
-                _formatDuration(_currentPosition),
+                _formatDuration(playbackState.position),
                 style: theme.textTheme.bodySmall,
               ),
               const SizedBox(width: 8),
@@ -389,14 +659,14 @@ class _PreviewPanelState extends State<PreviewPanel> {
                   ),
                   child: Slider(
                     value: duration.inMilliseconds > 0
-                        ? (_currentPosition.inMilliseconds / 
+                        ? (playbackState.position.inMilliseconds / 
                            duration.inMilliseconds).clamp(0.0, 1.0)
                         : 0,
                     onChanged: (value) {
                       final seekPosition = Duration(
                         milliseconds: (value * duration.inMilliseconds).round(),
                       );
-                      _player?.seek(seekPosition);
+                      ref.read(playbackNotifierProvider.notifier).seek(seekPosition);
                     },
                   ),
                 ),
@@ -417,22 +687,22 @@ class _PreviewPanelState extends State<PreviewPanel> {
             children: [
               IconButton(
                 icon: const Icon(Icons.skip_previous),
-                onPressed: () => _player?.seek(Duration.zero),
+                onPressed: () => ref.read(playbackNotifierProvider.notifier).seek(Duration.zero),
               ),
               IconButton(
                 icon: const Icon(Icons.replay_10),
                 onPressed: () {
                   final newPosition = Duration(
-                    milliseconds: math.max(0, _currentPosition.inMilliseconds - 10000),
+                    milliseconds: math.max(0, playbackState.position.inMilliseconds - 10000),
                   );
-                  _player?.seek(newPosition);
+                  ref.read(playbackNotifierProvider.notifier).seek(newPosition);
                 },
               ),
               const SizedBox(width: 8),
               FloatingActionButton(
                 mini: true,
-                onPressed: () => _player?.playOrPause(),
-                child: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+                onPressed: () => ref.read(playbackNotifierProvider.notifier).playOrPause(),
+                child: Icon(playbackState.isPlaying ? Icons.pause : Icons.play_arrow),
               ),
               const SizedBox(width: 8),
               IconButton(
@@ -441,35 +711,63 @@ class _PreviewPanelState extends State<PreviewPanel> {
                   final newPosition = Duration(
                     milliseconds: math.min(
                       duration.inMilliseconds,
-                      _currentPosition.inMilliseconds + 10000,
+                      playbackState.position.inMilliseconds + 10000,
                     ),
                   );
-                  _player?.seek(newPosition);
+                  ref.read(playbackNotifierProvider.notifier).seek(newPosition);
                 },
               ),
               IconButton(
                 icon: const Icon(Icons.skip_next),
-                onPressed: () => _player?.seek(duration),
+                onPressed: () => ref.read(playbackNotifierProvider.notifier).seek(duration),
               ),
               
-              const SizedBox(width: 24),
+              const SizedBox(width: 16),
+
+              // Selection buttons
+              IconButton(
+                icon: Icon(
+                  Icons.start,
+                  color: playbackState.selectionStart != null ? Colors.blue : null,
+                ),
+                tooltip: 'Set selection start (I)',
+                onPressed: () => ref.read(playbackNotifierProvider.notifier).setSelectionStart(),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.last_page,
+                  color: playbackState.selectionEnd != null ? Colors.blue : null,
+                ),
+                tooltip: 'Set selection end (O)',
+                onPressed: () => ref.read(playbackNotifierProvider.notifier).setSelectionEnd(),
+              ),
+              if (playbackState.hasSelection)
+                IconButton(
+                  icon: const Icon(Icons.clear),
+                  tooltip: 'Clear selection',
+                  onPressed: () => ref.read(playbackNotifierProvider.notifier).clearSelection(),
+                ),
+              
+              const SizedBox(width: 16),
               
               // Volume control
               IconButton(
                 icon: Icon(
-                  _volume == 0 ? Icons.volume_off : Icons.volume_up,
+                  playbackState.volume == 0 ? Icons.volume_off : Icons.volume_up,
                   size: 18,
                 ),
                 onPressed: () {
-                  _player?.setVolume(_volume == 0 ? 100 : 0);
+                  ref.read(playbackNotifierProvider.notifier).setVolume(
+                    playbackState.volume == 0 ? 1.0 : 0,
+                  );
                 },
               ),
               SizedBox(
                 width: 100,
                 child: Slider(
-                  value: _volume,
+                  value: playbackState.volume,
                   onChanged: (value) {
-                    _player?.setVolume(value * 100);
+                    ref.read(playbackNotifierProvider.notifier).setVolume(value);
                   },
                 ),
               ),
@@ -531,6 +829,8 @@ class _WaveformPainter extends CustomPainter {
   final Duration duration;
   final List<Detection> detections;
   final List<EditAction> editActions;
+  final Duration? selectionStart;
+  final Duration? selectionEnd;
 
   _WaveformPainter({
     required this.color,
@@ -539,6 +839,8 @@ class _WaveformPainter extends CustomPainter {
     required this.duration,
     required this.detections,
     required this.editActions,
+    this.selectionStart,
+    this.selectionEnd,
   });
 
   @override
@@ -547,6 +849,40 @@ class _WaveformPainter extends CustomPainter {
     canvas.drawRect(Offset.zero & size, bgPaint);
 
     if (duration.inMilliseconds == 0) return;
+
+    // Draw selection region
+    if (selectionStart != null && selectionEnd != null) {
+      final startX = (selectionStart!.inMilliseconds / 
+          duration.inMilliseconds) * size.width;
+      final endX = (selectionEnd!.inMilliseconds / 
+          duration.inMilliseconds) * size.width;
+      
+      final selectionPaint = Paint()
+        ..color = Colors.blue.withOpacity(0.2);
+      
+      canvas.drawRect(
+        Rect.fromLTRB(startX, 0, endX, size.height),
+        selectionPaint,
+      );
+    }
+
+    // Draw edit action regions
+    for (final action in editActions) {
+      if (!action.enabled) continue;
+      
+      final startX = (action.startTime.inMilliseconds / 
+          duration.inMilliseconds) * size.width;
+      final endX = (action.endTime.inMilliseconds / 
+          duration.inMilliseconds) * size.width;
+      
+      final actionPaint = Paint()
+        ..color = _getEditActionColor(action.type).withOpacity(0.3);
+      
+      canvas.drawRect(
+        Rect.fromLTRB(startX, 0, endX, size.height),
+        actionPaint,
+      );
+    }
 
     // Draw detection regions
     for (final detection in detections) {
@@ -612,10 +948,28 @@ class _WaveformPainter extends CustomPainter {
     }
   }
 
+  Color _getEditActionColor(EditActionType type) {
+    switch (type) {
+      case EditActionType.mute:
+        return Colors.purple;
+      case EditActionType.beep:
+        return Colors.indigo;
+      case EditActionType.blur:
+        return Colors.blue;
+      case EditActionType.cut:
+        return Colors.red;
+      case EditActionType.skip:
+        return Colors.grey;
+    }
+  }
+
   @override
   bool shouldRepaint(covariant _WaveformPainter oldDelegate) {
     return oldDelegate.position != position ||
         oldDelegate.duration != duration ||
-        oldDelegate.detections != detections;
+        oldDelegate.detections != detections ||
+        oldDelegate.editActions != editActions ||
+        oldDelegate.selectionStart != selectionStart ||
+        oldDelegate.selectionEnd != selectionEnd;
   }
 }

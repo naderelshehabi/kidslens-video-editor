@@ -58,6 +58,10 @@ mixin _$Project {
   /// Whether analysis is complete
   bool get analysisComplete => throw _privateConstructorUsedError;
 
+  /// Track if project has unsaved changes
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  bool get isDirty => throw _privateConstructorUsedError;
+
   /// Serializes this Project to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -84,7 +88,8 @@ abstract class $ProjectCopyWith<$Res> {
       List<EditAction> editActions,
       ProjectSettings settings,
       double? analysisProgress,
-      bool analysisComplete});
+      bool analysisComplete,
+      @JsonKey(includeFromJson: false, includeToJson: false) bool isDirty});
 
   $ProjectSettingsCopyWith<$Res> get settings;
 }
@@ -116,6 +121,7 @@ class _$ProjectCopyWithImpl<$Res, $Val extends Project>
     Object? settings = null,
     Object? analysisProgress = freezed,
     Object? analysisComplete = null,
+    Object? isDirty = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -166,6 +172,10 @@ class _$ProjectCopyWithImpl<$Res, $Val extends Project>
           ? _value.analysisComplete
           : analysisComplete // ignore: cast_nullable_to_non_nullable
               as bool,
+      isDirty: null == isDirty
+          ? _value.isDirty
+          : isDirty // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 
@@ -199,7 +209,8 @@ abstract class _$$ProjectImplCopyWith<$Res> implements $ProjectCopyWith<$Res> {
       List<EditAction> editActions,
       ProjectSettings settings,
       double? analysisProgress,
-      bool analysisComplete});
+      bool analysisComplete,
+      @JsonKey(includeFromJson: false, includeToJson: false) bool isDirty});
 
   @override
   $ProjectSettingsCopyWith<$Res> get settings;
@@ -230,6 +241,7 @@ class __$$ProjectImplCopyWithImpl<$Res>
     Object? settings = null,
     Object? analysisProgress = freezed,
     Object? analysisComplete = null,
+    Object? isDirty = null,
   }) {
     return _then(_$ProjectImpl(
       id: null == id
@@ -280,6 +292,10 @@ class __$$ProjectImplCopyWithImpl<$Res>
           ? _value.analysisComplete
           : analysisComplete // ignore: cast_nullable_to_non_nullable
               as bool,
+      isDirty: null == isDirty
+          ? _value.isDirty
+          : isDirty // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -299,7 +315,9 @@ class _$ProjectImpl extends _Project {
       final List<EditAction> editActions = const [],
       this.settings = const ProjectSettings(),
       this.analysisProgress,
-      this.analysisComplete = false})
+      this.analysisComplete = false,
+      @JsonKey(includeFromJson: false, includeToJson: false)
+      this.isDirty = false})
       : _mediaFiles = mediaFiles,
         _detections = detections,
         _editActions = editActions,
@@ -384,9 +402,14 @@ class _$ProjectImpl extends _Project {
   @JsonKey()
   final bool analysisComplete;
 
+  /// Track if project has unsaved changes
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final bool isDirty;
+
   @override
   String toString() {
-    return 'Project(id: $id, name: $name, projectPath: $projectPath, createdAt: $createdAt, modifiedAt: $modifiedAt, mediaFiles: $mediaFiles, selectedMediaId: $selectedMediaId, detections: $detections, editActions: $editActions, settings: $settings, analysisProgress: $analysisProgress, analysisComplete: $analysisComplete)';
+    return 'Project(id: $id, name: $name, projectPath: $projectPath, createdAt: $createdAt, modifiedAt: $modifiedAt, mediaFiles: $mediaFiles, selectedMediaId: $selectedMediaId, detections: $detections, editActions: $editActions, settings: $settings, analysisProgress: $analysisProgress, analysisComplete: $analysisComplete, isDirty: $isDirty)';
   }
 
   @override
@@ -415,7 +438,8 @@ class _$ProjectImpl extends _Project {
             (identical(other.analysisProgress, analysisProgress) ||
                 other.analysisProgress == analysisProgress) &&
             (identical(other.analysisComplete, analysisComplete) ||
-                other.analysisComplete == analysisComplete));
+                other.analysisComplete == analysisComplete) &&
+            (identical(other.isDirty, isDirty) || other.isDirty == isDirty));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -433,7 +457,8 @@ class _$ProjectImpl extends _Project {
       const DeepCollectionEquality().hash(_editActions),
       settings,
       analysisProgress,
-      analysisComplete);
+      analysisComplete,
+      isDirty);
 
   /// Create a copy of Project
   /// with the given fields replaced by the non-null parameter values.
@@ -464,7 +489,9 @@ abstract class _Project extends Project {
       final List<EditAction> editActions,
       final ProjectSettings settings,
       final double? analysisProgress,
-      final bool analysisComplete}) = _$ProjectImpl;
+      final bool analysisComplete,
+      @JsonKey(includeFromJson: false, includeToJson: false)
+      final bool isDirty}) = _$ProjectImpl;
   const _Project._() : super._();
 
   factory _Project.fromJson(Map<String, dynamic> json) = _$ProjectImpl.fromJson;
@@ -518,6 +545,11 @@ abstract class _Project extends Project {
   /// Whether analysis is complete
   @override
   bool get analysisComplete;
+
+  /// Track if project has unsaved changes
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  bool get isDirty;
 
   /// Create a copy of Project
   /// with the given fields replaced by the non-null parameter values.

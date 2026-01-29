@@ -3,6 +3,13 @@ import 'package:flutter/material.dart';
 import '../../../data/models/detection.dart';
 import '../../../data/models/edit_action.dart';
 
+/// Filter mode for detection list
+enum DetectionFilterMode {
+  active, // Show only non-rejected
+  all,    // Show all
+  rejected, // Show only rejected
+}
+
 /// Right panel showing detections and allowing actions
 class DetectionPanel extends StatefulWidget {
   final List<Detection> detections;
@@ -34,7 +41,7 @@ class _DetectionPanelState extends State<DetectionPanel>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   ContentType? _filterType;
-  bool _showRejected = false;
+  DetectionFilterMode _filterMode = DetectionFilterMode.active;
 
   @override
   void initState() {
@@ -165,45 +172,64 @@ class _DetectionPanelState extends State<DetectionPanel>
               bottom: BorderSide(color: colorScheme.outlineVariant),
             ),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Type filter dropdown
-              Expanded(
-                child: DropdownButtonFormField<ContentType?>(
-                  value: _filterType,
-                  decoration: const InputDecoration(
-                    labelText: 'Filter by type',
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 8,
-                    ),
+              // Filter mode segmented button
+              SegmentedButton<DetectionFilterMode>(
+                segments: const [
+                  ButtonSegment(
+                    value: DetectionFilterMode.active,
+                    label: Text('Active', style: TextStyle(fontSize: 11)),
+                    icon: Icon(Icons.check_circle_outline, size: 14),
                   ),
-                  items: [
-                    const DropdownMenuItem(
-                      value: null,
-                      child: Text('All types', style: TextStyle(fontSize: 12)),
-                    ),
-                    ...ContentType.values.map((type) => DropdownMenuItem(
-                      value: type,
-                      child: Text(
-                        _contentTypeName(type),
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    )),
-                  ],
-                  onChanged: (value) => setState(() => _filterType = value),
-                  style: const TextStyle(fontSize: 12),
+                  ButtonSegment(
+                    value: DetectionFilterMode.all,
+                    label: Text('All', style: TextStyle(fontSize: 11)),
+                    icon: Icon(Icons.list, size: 14),
+                  ),
+                  ButtonSegment(
+                    value: DetectionFilterMode.rejected,
+                    label: Text('Rejected', style: TextStyle(fontSize: 11)),
+                    icon: Icon(Icons.cancel_outlined, size: 14),
+                  ),
+                ],
+                selected: {_filterMode},
+                onSelectionChanged: (value) => setState(() => _filterMode = value.first),
+                showSelectedIcon: false,
+                style: ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
-              const SizedBox(width: 8),
-              // Show rejected toggle
-              FilterChip(
-                selected: _showRejected,
-                label: const Text('Rejected', style: TextStyle(fontSize: 10)),
-                onSelected: (value) => setState(() => _showRejected = value),
-                visualDensity: VisualDensity.compact,
+              const SizedBox(height: 8),
+              // Type filter dropdown
+              DropdownButtonFormField<ContentType?>(
+                value: _filterType,
+                decoration: const InputDecoration(
+                  labelText: 'Filter by type',
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
+                ),
+                items: [
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('All types', style: TextStyle(fontSize: 12)),
+                  ),
+                  ...ContentType.values.map((type) => DropdownMenuItem(
+                    value: type,
+                    child: Text(
+                      _contentTypeName(type),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  )),
+                ],
+                onChanged: (value) => setState(() => _filterType = value),
+                style: const TextStyle(fontSize: 12),
               ),
             ],
           ),
@@ -355,7 +381,17 @@ class _DetectionPanelState extends State<DetectionPanel>
 
   List<Detection> _getFilteredDetections() {
     return widget.detections.where((d) {
-      if (!_showRejected && d.isRejected) return false;
+      // Apply filter mode
+      switch (_filterMode) {
+        case DetectionFilterMode.active:
+          if (d.isRejected) return false;
+          break;
+        case DetectionFilterMode.rejected:
+          if (!d.isRejected) return false;
+          break;
+        case DetectionFilterMode.all:
+          break;
+      }
       if (_filterType != null && d.type != _filterType) return false;
       return true;
     }).toList();
@@ -389,83 +425,95 @@ class _DetectionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isRejected = detection.isRejected;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      color: isRejected ? colorScheme.surfaceContainerLow : null,
       child: InkWell(
         onTap: onSeek,
         borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header row
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getTypeColor(detection.type).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _getTypeIcon(detection.type),
-                          size: 12,
-                          color: _getTypeColor(detection.type),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          detection.typeDisplayName,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+        child: Opacity(
+          opacity: isRejected ? 0.6 : 1.0,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header row
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _getTypeColor(detection.type).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _getTypeIcon(detection.type),
+                            size: 12,
                             color: _getTypeColor(detection.type),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          Text(
+                            detection.typeDisplayName,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: _getTypeColor(detection.type),
+                              decoration: isRejected ? TextDecoration.lineThrough : null,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Confidence
+                    const SizedBox(width: 8),
+                    // Rejected indicator
+                    if (isRejected) ...[
+                      Icon(Icons.cancel, size: 14, color: Colors.red.shade300),
+                      const SizedBox(width: 4),
+                    ],
+                    // Confidence
+                    Text(
+                      '${(detection.confidence * 100).round()}%',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: colorScheme.outline,
+                        decoration: isRejected ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                    const Spacer(),
+                    // Time
+                    Text(
+                      _formatTimeRange(detection.startTime, detection.endTime),
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
+                
+                // Content (if any)
+                if (detection.content != null) ...[
+                  const SizedBox(height: 4),
                   Text(
-                    '${(detection.confidence * 100).round()}%',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: colorScheme.outline,
+                    detection.content!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontStyle: FontStyle.italic,
+                      color: colorScheme.onSurfaceVariant,
+                      decoration: isRejected ? TextDecoration.lineThrough : null,
                     ),
-                  ),
-                  const Spacer(),
-                  // Time
-                  Text(
-                    _formatTimeRange(detection.startTime, detection.endTime),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: colorScheme.outline,
-                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
-              ),
-              
-              // Content (if any)
-              if (detection.content != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  detection.content!,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontStyle: FontStyle.italic,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
               
               const SizedBox(height: 8),
               
@@ -535,7 +583,8 @@ class _DetectionTile extends StatelessWidget {
                     ),
                   ],
                 ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

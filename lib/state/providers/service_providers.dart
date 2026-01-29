@@ -11,6 +11,8 @@ import 'package:kidslens_video_editor/services/model_manager_service.dart';
 import 'package:kidslens_video_editor/services/profanity_service.dart';
 import 'package:kidslens_video_editor/services/project_service.dart';
 import 'package:kidslens_video_editor/services/sample_analysis_service.dart';
+import 'package:kidslens_video_editor/services/thumbnail_service.dart';
+import 'package:kidslens_video_editor/services/beep_audio_service.dart';
 
 part 'service_providers.g.dart';
 
@@ -74,4 +76,14 @@ ExportService exportService(ExportServiceRef ref) {
     ffmpeg: ref.watch(ffmpegBindingsProvider),
     mediaService: ref.watch(mediaServiceProvider),
   );
+}
+
+@Riverpod(keepAlive: true)
+ThumbnailService thumbnailService(ThumbnailServiceRef ref) {
+  return ThumbnailService();
+}
+
+@Riverpod(keepAlive: true)
+BeepAudioService beepAudioService(BeepAudioServiceRef ref) {
+  return BeepAudioService();
 }

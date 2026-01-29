@@ -49,6 +49,9 @@ class Project with _$Project {
 
     /// Whether analysis is complete
     @Default(false) bool analysisComplete,
+    
+    /// Track if project has unsaved changes
+    @Default(false) @JsonKey(includeFromJson: false, includeToJson: false) bool isDirty,
   }) = _Project;
 
   factory Project.fromJson(Map<String, dynamic> json) =>
@@ -87,7 +90,7 @@ class Project with _$Project {
   }
 
   /// Check if project has unsaved changes
-  bool get hasUnsavedChanges => modifiedAt.isAfter(createdAt);
+  bool get hasUnsavedChanges => isDirty;
 }
 
 /// Project-level settings

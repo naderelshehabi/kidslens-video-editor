@@ -7,9 +7,13 @@ import '../../app.dart';
 import '../../core/constants/supported_formats.dart';
 import '../../data/models/detection.dart';
 import '../../data/models/edit_action.dart';
+import '../../data/models/models.dart';
 import '../../data/models/project.dart';
+import '../../state/providers/analysis_provider.dart';
+import '../../state/providers/playback_provider.dart';
 import '../../state/providers/project_provider.dart';
 import '../../state/providers/service_providers.dart';
+import '../widgets/dialogs/export_dialog.dart';
 import '../widgets/editor/media_bin_panel.dart';
 import '../widgets/editor/preview_panel.dart';
 import '../widgets/editor/timeline_panel.dart';
@@ -28,12 +32,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   double _leftPanelWidth = 280;
   double _rightPanelWidth = 280;
   double _timelineHeight = 200;
-  
+
   // Minimum sizes
   static const double _minPanelWidth = 200;
   static const double _maxPanelWidth = 400;
   static const double _minTimelineHeight = 150;
   static const double _maxTimelineHeight = 400;
+
+  // Blur editing state
+  String? _editingBlurActionId;
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +75,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             children: [
               // Menu bar
               _buildMenuBar(context, project),
-              
+
               // Main content area
               Expanded(
                 child: Row(
@@ -88,7 +95,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                             .removeMedia(id),
                       ),
                     ),
-                    
+
                     // Left panel resizer
                     _buildVerticalResizer(
                       onDrag: (dx) {
@@ -98,7 +105,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                         });
                       },
                     ),
-                    
+
                     // Center: Preview area
                     Expanded(
                       child: Column(
@@ -115,12 +122,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                                   ? project.editActionsForMedia(
                                       project.selectedMediaId!)
                                   : [],
+                              onEditActionUpdated: _onEditActionUpdated,
+                              editingBlurActionId: _editingBlurActionId,
+                              onEditingBlurActionChanged:
+                                  _onEditingBlurActionChanged,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    
+
                     // Right panel resizer
                     _buildVerticalResizer(
                       onDrag: (dx) {
@@ -130,16 +141,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                         });
                       },
                     ),
-                    
+
                     // Right panel: Detection panel
                     SizedBox(
                       width: _rightPanelWidth,
                       child: DetectionPanel(
                         detections: project.selectedMediaId != null
-                            ? project.detectionsForMedia(project.selectedMediaId!)
+                            ? project
+                                .detectionsForMedia(project.selectedMediaId!)
                             : [],
                         editActions: project.selectedMediaId != null
-                            ? project.editActionsForMedia(project.selectedMediaId!)
+                            ? project
+                                .editActionsForMedia(project.selectedMediaId!)
                             : [],
                         onSeekToDetection: _onSeekToDetection,
                         onApplyAction: _onApplyAction,
@@ -152,7 +165,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   ],
                 ),
               ),
-              
+
               // Timeline resizer
               _buildHorizontalResizer(
                 onDrag: (dy) {
@@ -162,7 +175,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   });
                 },
               ),
-              
+
               // Timeline panel
               SizedBox(
                 height: _timelineHeight,
@@ -176,6 +189,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       : [],
                   onSeek: _onSeek,
                   onAddEditAction: _onAddEditAction,
+                  onEditActionUpdated: _onEditActionUpdated,
+                  onRemoveEditAction: _onRemoveEditActionById,
+                  onEditBlurAction: _onEditingBlurActionChanged,
                 ),
               ),
             ],
@@ -196,8 +212,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       child: Row(
         children: [
           // App logo/title
-          Icon(Icons.movie_filter_rounded, 
-               color: colorScheme.primary, size: 20),
+          Icon(Icons.movie_filter_rounded,
+              color: colorScheme.primary, size: 20),
           const SizedBox(width: 8),
           Text(
             project.name,
@@ -206,7 +222,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             ),
           ),
           const SizedBox(width: 24),
-          
+
           // File menu
           _MenuButton(
             label: 'File',
@@ -219,20 +235,20 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               _MenuItem('Export', Icons.movie, _exportProject),
             ],
           ),
-          
+
           // Edit menu
           _MenuButton(
             label: 'Edit',
             items: [
-              _MenuItem('Undo', Icons.undo, null),
-              _MenuItem('Redo', Icons.redo, null),
+              _MenuItem('Undo', Icons.undo, _undo),
+              _MenuItem('Redo', Icons.redo, _redo),
               const _MenuDivider(),
               _MenuItem('Cut Selection', Icons.content_cut, null),
               _MenuItem('Mute Selection', Icons.volume_off, null),
               _MenuItem('Blur Selection', Icons.blur_on, null),
             ],
           ),
-          
+
           // Analysis menu
           _MenuButton(
             label: 'Analysis',
@@ -243,9 +259,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               _MenuItem('Analysis Settings', Icons.settings, null),
             ],
           ),
-          
+
           const Spacer(),
-          
+
           // Save indicator
           if (ref.watch(projectNotifierProvider).isSaving)
             const Row(
@@ -259,9 +275,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 Text('Saving...'),
               ],
             ),
-          
+
           const SizedBox(width: 16),
-          
+
           // Quick action buttons
           IconButton(
             icon: const Icon(Icons.save),
@@ -334,13 +350,24 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   Map<ShortcutActivator, VoidCallback> _buildKeyboardShortcuts() {
     return {
-      const SingleActivator(LogicalKeyboardKey.keyS, control: true): 
+      const SingleActivator(LogicalKeyboardKey.keyS, control: true):
           _saveProject,
-      const SingleActivator(LogicalKeyboardKey.keyI, control: true): 
+      const SingleActivator(LogicalKeyboardKey.keyI, control: true):
           _importMedia,
-      const SingleActivator(LogicalKeyboardKey.space): 
-          _togglePlayback,
+      const SingleActivator(LogicalKeyboardKey.space): _togglePlayback,
+      const SingleActivator(LogicalKeyboardKey.keyZ, control: true): _undo,
+      const SingleActivator(LogicalKeyboardKey.keyY, control: true): _redo,
+      const SingleActivator(LogicalKeyboardKey.keyZ,
+          control: true, shift: true): _redo,
     };
+  }
+
+  void _undo() {
+    ref.read(projectNotifierProvider.notifier).undo();
+  }
+
+  void _redo() {
+    ref.read(projectNotifierProvider.notifier).redo();
   }
 
   Future<void> _importMedia() async {
@@ -357,20 +384,22 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
       if (result != null) {
         final mediaService = ref.read(mediaServiceProvider);
-        
+
         for (final file in result.files) {
           if (file.path != null) {
             final mediaFile = await mediaService.importMedia(file.path!);
-            await ref.read(projectNotifierProvider.notifier)
+            await ref
+                .read(projectNotifierProvider.notifier)
                 .importMedia(mediaFile);
           }
         }
-        
+
         // Select the first imported file if nothing is selected
         final project = ref.read(projectNotifierProvider).currentProject;
-        if (project?.selectedMediaId == null && 
+        if (project?.selectedMediaId == null &&
             project?.mediaFiles.isNotEmpty == true) {
-          ref.read(projectNotifierProvider.notifier)
+          ref
+              .read(projectNotifierProvider.notifier)
               .selectMedia(project!.mediaFiles.first.id);
         }
       }
@@ -391,22 +420,105 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   Future<void> _closeProject() async {
+    final projectState = ref.read(projectNotifierProvider);
+
+    // Check for unsaved changes
+    if (projectState.currentProject?.hasUnsavedChanges ?? false) {
+      final shouldClose = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Unsaved Changes'),
+          content: const Text(
+            'You have unsaved changes. Are you sure you want to close the project? Your changes will be lost.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                // Save first, then close
+                await ref.read(projectNotifierProvider.notifier).saveProject();
+                if (context.mounted) {
+                  Navigator.of(context).pop(true);
+                }
+              },
+              child: const Text('Save & Close'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Discard & Close'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldClose != true) return;
+    }
+
+    // Stop any active playback before closing
+    await ref.read(playbackNotifierProvider.notifier).stop();
+
     await ref.read(projectNotifierProvider.notifier).closeProject();
-    // Project state will trigger navigation back to welcome screen
-    // via the watch in _WelcomeScreenState
+    // Navigation handled by the watch in build()
   }
 
   void _exportProject() {
-    // TODO: Implement export dialog
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Export functionality coming soon')),
+    final project = ref.read(projectNotifierProvider).currentProject;
+    if (project == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No project loaded')),
+      );
+      return;
+    }
+
+    final selectedMedia = project.selectedMedia;
+    if (selectedMedia == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a media file first')),
+      );
+      return;
+    }
+
+    // Get edit actions for the selected media
+    final editActions = project.editActionsForMedia(selectedMedia.id);
+
+    // Show export dialog
+    ExportDialog.show(
+      context: context,
+      media: selectedMedia,
+      editActions: editActions,
     );
   }
 
   void _startAnalysis() {
-    // TODO: Implement analysis
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Analysis functionality coming soon')),
+    final project = ref.read(projectNotifierProvider).currentProject;
+    if (project == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No project loaded')),
+      );
+      return;
+    }
+
+    final selectedMedia = project.selectedMedia;
+    if (selectedMedia == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a media file first')),
+      );
+      return;
+    }
+
+    // Show analysis dialog
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _AnalysisDialog(
+        mediaPath: selectedMedia.path,
+        mediaId: selectedMedia.id,
+        mediaDuration: selectedMedia.duration,
+      ),
     );
   }
 
@@ -415,7 +527,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   void _onSeek(Duration position) {
-    // TODO: Implement seeking
+    ref.read(playbackNotifierProvider.notifier).seek(position);
   }
 
   void _onSeekToDetection(Detection detection) {
@@ -425,38 +537,52 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   void _onApplyAction(Detection detection, EditActionType actionType) {
     ref.read(projectNotifierProvider.notifier).addEditAction(
-      ref.read(projectNotifierProvider).currentProject!.selectedMediaId!,
-      detection.startTime,
-      detection.endTime,
-      actionType,
-      detectionId: detection.id,
-    );
+          ref.read(projectNotifierProvider).currentProject!.selectedMediaId!,
+          detection.startTime,
+          detection.endTime,
+          actionType,
+          detectionId: detection.id,
+        );
   }
 
   void _onRejectDetection(Detection detection) {
     ref.read(projectNotifierProvider.notifier).updateDetection(
-      detection.reject(),
-    );
+          detection.reject(),
+        );
   }
 
   void _onAcceptDetection(Detection detection) {
     ref.read(projectNotifierProvider.notifier).updateDetection(
-      detection.copyWith(userStatus: DetectionUserStatus.pending),
-    );
+          detection.copyWith(userStatus: DetectionUserStatus.pending),
+        );
   }
 
   void _onToggleEditAction(EditAction action) {
     ref.read(projectNotifierProvider.notifier).updateEditAction(
-      action.copyWith(enabled: !action.enabled),
-    );
+          action.copyWith(enabled: !action.enabled),
+        );
   }
 
   void _onRemoveEditAction(EditAction action) {
     ref.read(projectNotifierProvider.notifier).removeEditAction(action.id);
   }
 
+  void _onRemoveEditActionById(String actionId) {
+    ref.read(projectNotifierProvider.notifier).removeEditAction(actionId);
+  }
+
   void _onAddEditAction(EditAction action) {
     ref.read(projectNotifierProvider.notifier).addEditActionDirect(action);
+  }
+
+  void _onEditActionUpdated(EditAction action) {
+    ref.read(projectNotifierProvider.notifier).updateEditAction(action);
+  }
+
+  void _onEditingBlurActionChanged(String? actionId) {
+    setState(() {
+      _editingBlurActionId = actionId;
+    });
   }
 }
 
@@ -476,7 +602,8 @@ class _MenuButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Text(label),
       ),
-      itemBuilder: (context) => items.map<PopupMenuEntry<VoidCallback?>>((item) {
+      itemBuilder: (context) =>
+          items.map<PopupMenuEntry<VoidCallback?>>((item) {
         if (item is _MenuDivider) {
           return const PopupMenuDivider();
         }
@@ -510,4 +637,286 @@ class _MenuItem implements _MenuItemBase {
 
 class _MenuDivider implements _MenuItemBase {
   const _MenuDivider();
+}
+
+/// Dialog for running content analysis
+class _AnalysisDialog extends ConsumerStatefulWidget {
+  final String mediaPath;
+  final String mediaId;
+  final Duration mediaDuration;
+
+  const _AnalysisDialog({
+    required this.mediaPath,
+    required this.mediaId,
+    required this.mediaDuration,
+  });
+
+  @override
+  ConsumerState<_AnalysisDialog> createState() => _AnalysisDialogState();
+}
+
+class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
+  bool _enableProfanity = true;
+  bool _enableViolence = true;
+  bool _enableNsfw = true;
+  bool _enableBlood = true;
+  bool _enableWeapons = true;
+  bool _hasStarted = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final analysisState = ref.watch(analysisNotifierProvider);
+    final isRunning = analysisState.status == AnalysisStatus.running;
+    final isComplete = analysisState.status == AnalysisStatus.completed;
+    final isFailed = analysisState.status == AnalysisStatus.failed;
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(
+            isComplete ? Icons.check_circle : Icons.analytics,
+            color: isComplete ? Colors.green : theme.colorScheme.primary,
+          ),
+          const SizedBox(width: 12),
+          Text(isComplete ? 'Analysis Complete' : 'Content Analysis'),
+        ],
+      ),
+      content: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!_hasStarted) ...[
+              Text(
+                'Select content types to detect:',
+                style: theme.textTheme.titleSmall,
+              ),
+              const SizedBox(height: 16),
+              _buildCheckbox('Profanity', _enableProfanity, (v) {
+                setState(() => _enableProfanity = v ?? false);
+              }),
+              _buildCheckbox('Violence', _enableViolence, (v) {
+                setState(() => _enableViolence = v ?? false);
+              }),
+              _buildCheckbox('NSFW', _enableNsfw, (v) {
+                setState(() => _enableNsfw = v ?? false);
+              }),
+              _buildCheckbox('Blood/Gore', _enableBlood, (v) {
+                setState(() => _enableBlood = v ?? false);
+              }),
+              _buildCheckbox('Weapons', _enableWeapons, (v) {
+                setState(() => _enableWeapons = v ?? false);
+              }),
+            ] else ...[
+              if (isRunning) ...[
+                Text(
+                  analysisState.currentStep ?? 'Processing...',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                LinearProgressIndicator(
+                  value: analysisState.progress,
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${(analysisState.progress * 100).toStringAsFixed(0)}%',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ] else if (isComplete) ...[
+                Text(
+                  'Found ${analysisState.detections.length} detection(s)',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 12),
+                if (analysisState.detections.isNotEmpty) ...[
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: analysisState.detections.length,
+                      itemBuilder: (context, index) {
+                        final detection = analysisState.detections[index];
+                        return ListTile(
+                          dense: true,
+                          leading: Icon(
+                            _getIconForType(detection.type),
+                            color: _getColorForType(detection.type),
+                            size: 20,
+                          ),
+                          title: Text(
+                            detection.description,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                          subtitle: Text(
+                            '${_formatDuration(detection.startTime)} - ${_formatDuration(detection.endTime)}',
+                            style: theme.textTheme.labelSmall,
+                          ),
+                          trailing: Text(
+                            '${(detection.confidence * 100).toStringAsFixed(0)}%',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    alignment: Alignment.center,
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 48,
+                          color: Colors.green,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No concerning content detected!',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ] else if (isFailed) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error, color: theme.colorScheme.error),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          analysisState.errorMessage ?? 'Analysis failed',
+                          style: TextStyle(
+                              color: theme.colorScheme.onErrorContainer),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        if (!_hasStarted) ...[
+          TextButton(
+            onPressed: () {
+              ref.read(analysisNotifierProvider.notifier).reset();
+              Navigator.of(context).pop();
+            },
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: _startAnalysis,
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Start Analysis'),
+          ),
+        ] else if (isRunning) ...[
+          TextButton(
+            onPressed: () {
+              ref.read(analysisNotifierProvider.notifier).cancel();
+              Navigator.of(context).pop();
+            },
+            child: const Text('Cancel'),
+          ),
+        ] else ...[
+          FilledButton(
+            onPressed: () {
+              ref.read(analysisNotifierProvider.notifier).reset();
+              Navigator.of(context).pop();
+            },
+            child: const Text('Close'),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildCheckbox(
+      String label, bool value, ValueChanged<bool?> onChanged) {
+    return CheckboxListTile(
+      title: Text(label),
+      value: value,
+      onChanged: onChanged,
+      dense: true,
+      controlAffinity: ListTileControlAffinity.leading,
+    );
+  }
+
+  void _startAnalysis() {
+    setState(() => _hasStarted = true);
+
+    // Create settings with defaults, overriding enable flags based on user selection
+    final settings = AnalysisSettings.defaults().copyWith(
+      enableProfanity: _enableProfanity,
+      enableViolence: _enableViolence,
+      enableNsfw: _enableNsfw,
+      enableBlood: _enableBlood,
+      enableWeapons: _enableWeapons,
+    );
+
+    ref.read(analysisNotifierProvider.notifier).startAnalysis(
+          mediaPath: widget.mediaPath,
+          mediaId: widget.mediaId,
+          mediaDuration: widget.mediaDuration,
+          settings: settings,
+        );
+  }
+
+  IconData _getIconForType(ContentType type) {
+    switch (type) {
+      case ContentType.profanity:
+        return Icons.volume_off;
+      case ContentType.violence:
+        return Icons.warning;
+      case ContentType.nsfw:
+        return Icons.visibility_off;
+      case ContentType.blood:
+        return Icons.local_hospital;
+      case ContentType.weapons:
+        return Icons.gpp_maybe;
+    }
+  }
+
+  Color _getColorForType(ContentType type) {
+    switch (type) {
+      case ContentType.profanity:
+        return Colors.orange;
+      case ContentType.violence:
+        return Colors.red;
+      case ContentType.nsfw:
+        return Colors.pink;
+      case ContentType.blood:
+        return Colors.deepOrange;
+      case ContentType.weapons:
+        return Colors.blueGrey;
+    }
+  }
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
 }
