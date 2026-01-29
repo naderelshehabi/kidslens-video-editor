@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui';
@@ -43,6 +44,11 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   /// Tracks the previous audio effect state to detect changes
   AudioEffectState _previousEffectState = AudioEffectState.none;
   int _previousBeepFrequency = 0;
+  
+  // Stream subscriptions for proper cleanup
+  StreamSubscription<Duration>? _positionSubscription;
+  StreamSubscription<Duration>? _durationSubscription;
+  StreamSubscription<bool>? _playingSubscription;
 
   @override
   void initState() {
@@ -62,39 +68,33 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     });
 
     // Listen to player streams and update provider
-    _player!.stream.position.listen((position) {
-      if (mounted) {
-        Future.microtask(() {
-          if (mounted) {
-            ref.read(playbackNotifierProvider.notifier).updatePosition(position);
-          }
-        });
-        _checkAndApplyEditActions(position);
-      }
+    _positionSubscription = _player!.stream.position.listen((position) {
+      if (!mounted) return;
+      Future.microtask(() {
+        if (!mounted) return;
+        ref.read(playbackNotifierProvider.notifier).updatePosition(position);
+      });
+      _checkAndApplyEditActions(position);
     });
 
-    _player!.stream.duration.listen((duration) {
-      if (mounted) {
-        Future.microtask(() {
-          if (mounted) {
-            ref.read(playbackNotifierProvider.notifier).updateDuration(duration);
-          }
-        });
-      }
+    _durationSubscription = _player!.stream.duration.listen((duration) {
+      if (!mounted) return;
+      Future.microtask(() {
+        if (!mounted) return;
+        ref.read(playbackNotifierProvider.notifier).updateDuration(duration);
+      });
     });
 
-    _player!.stream.playing.listen((playing) {
-      if (mounted) {
-        Future.microtask(() {
-          if (mounted) {
-            ref.read(playbackNotifierProvider.notifier).updatePlaying(playing);
-            // Handle playback stop - beep should stop immediately
-            if (!playing) {
-              _stopAllAudioEffects();
-            }
-          }
-        });
-      }
+    _playingSubscription = _player!.stream.playing.listen((playing) {
+      if (!mounted) return;
+      Future.microtask(() {
+        if (!mounted) return;
+        ref.read(playbackNotifierProvider.notifier).updatePlaying(playing);
+        // Handle playback stop - beep should stop immediately
+        if (!playing) {
+          _stopAllAudioEffects();
+        }
+      });
     });
 
     // Load initial media if available
@@ -257,8 +257,15 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
 
   @override
   void dispose() {
-    // Stop all audio effects first
+    // Cancel all stream subscriptions first to prevent callbacks after dispose
+    _positionSubscription?.cancel();
+    _durationSubscription?.cancel();
+    _playingSubscription?.cancel();
+    
+    // Stop all audio effects
     _stopAllAudioEffects();
+    
+    // Dispose the player
     _player?.dispose();
     super.dispose();
   }

@@ -330,33 +330,43 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
               ),
             ),
           ),
-          // Video track label
-          _TrackLabel(
-            icon: Icons.videocam,
-            label: 'Video',
-            color: colorScheme.primary,
-            height: 64, // Taller for thumbnails
-          ),
-          // Audio track label
-          _TrackLabel(
-            icon: Icons.audiotrack,
-            label: 'Audio',
-            color: colorScheme.secondary,
-            height: 40,
-          ),
-          // Detections track label
-          _TrackLabel(
-            icon: Icons.warning_amber,
-            label: 'Detections',
-            color: Colors.orange,
-            height: 30,
-          ),
-          // Edits track label
-          _TrackLabel(
-            icon: Icons.edit,
-            label: 'Edits',
-            color: Colors.purple,
-            height: 30,
+          // Track labels - wrapped in Expanded to prevent overflow
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Video track label
+                  _TrackLabel(
+                    icon: Icons.videocam,
+                    label: 'Video',
+                    color: colorScheme.primary,
+                    height: 64, // Taller for thumbnails
+                  ),
+                  // Audio track label
+                  _TrackLabel(
+                    icon: Icons.audiotrack,
+                    label: 'Audio',
+                    color: colorScheme.secondary,
+                    height: 40,
+                  ),
+                  // Detections track label
+                  _TrackLabel(
+                    icon: Icons.warning_amber,
+                    label: 'Detections',
+                    color: Colors.orange,
+                    height: 30,
+                  ),
+                  // Edits track label
+                  _TrackLabel(
+                    icon: Icons.edit,
+                    label: 'Edits',
+                    color: Colors.purple,
+                    height: 30,
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

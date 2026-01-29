@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/models/detection.dart';
 import '../../data/models/edit_action.dart';
@@ -67,8 +70,44 @@ class ProjectState {
 /// Provider for managing project state
 @Riverpod(keepAlive: true)
 class ProjectNotifier extends _$ProjectNotifier {
+  static const _recentProjectsKey = 'recent_project_paths';
+
   @override
-  ProjectState build() => const ProjectState();
+  ProjectState build() {
+    // Load recent projects asynchronously
+    _loadRecentProjects();
+    return const ProjectState();
+  }
+
+  /// Load recent projects from SharedPreferences
+  Future<void> _loadRecentProjects() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPaths = prefs.getStringList(_recentProjectsKey) ?? [];
+
+    // Filter out paths that no longer exist on disk
+    final validPaths = <String>[];
+    for (final path in savedPaths) {
+      if (await File(path).exists()) {
+        validPaths.add(path);
+      }
+    }
+
+    // Limit to 10 recent projects
+    final limitedPaths = validPaths.take(10).toList();
+
+    // Save filtered list back if paths were removed
+    if (limitedPaths.length != savedPaths.length) {
+      await prefs.setStringList(_recentProjectsKey, limitedPaths);
+    }
+
+    state = state.copyWith(recentProjectPaths: limitedPaths);
+  }
+
+  /// Save recent projects to SharedPreferences
+  Future<void> _saveRecentProjects() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_recentProjectsKey, state.recentProjectPaths);
+  }
 
   /// Create a new project
   Future<void> createProject({
@@ -93,6 +132,7 @@ class ProjectNotifier extends _$ProjectNotifier {
               .take(9),
         ],
       );
+      await _saveRecentProjects();
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -124,6 +164,7 @@ class ProjectNotifier extends _$ProjectNotifier {
               .take(9),
         ],
       );
+      await _saveRecentProjects();
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -149,6 +190,7 @@ class ProjectNotifier extends _$ProjectNotifier {
               .take(9),
         ],
       );
+      await _saveRecentProjects();
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -189,8 +231,9 @@ class ProjectNotifier extends _$ProjectNotifier {
   }
 
   /// Clear all recent projects
-  void clearRecentProjects() {
+  Future<void> clearRecentProjects() async {
     state = state.copyWith(recentProjectPaths: []);
+    await _saveRecentProjects();
   }
 
   /// Push current state to undo stack

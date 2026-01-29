@@ -44,6 +44,16 @@ class ExportService {
       phase: 'Initializing export',
     );
 
+    // Check if FFmpeg is available
+    await ffmpeg.initialize();
+    if (!ffmpeg.isAvailable) {
+      throw ExportException(
+        'FFmpeg is not installed or not found.\n'
+        'Please install FFmpeg and add it to your PATH.\n'
+        'Download from: https://ffmpeg.org/download.html'
+      );
+    }
+
     // Collect all modifications with their time ranges
     final audioMods = <_TimedModification>[];
     final videoMods = <_TimedModification>[];
@@ -85,32 +95,44 @@ class ExportService {
 
     // Run FFmpeg export
     yield const ExportProgress(
-      progress: 0.2,
-      phase: 'Processing media',
+      progress: 0.15,
+      phase: 'Starting export',
     );
 
-    await for (final progress in ffmpeg.runFilterComplex(
-      inputPath: inputPath,
-      outputPath: outputPath,
-      filterComplex: filterComplex,
-      outputSettings: _buildOutputSettings(settings),
-    )) {
-      yield ExportProgress(
-        progress: 0.2 + (progress * 0.75),
-        phase: 'Encoding',
-        encodedFrames: progress.toInt(),
-      );
+    try {
+      await for (final progress in ffmpeg.runFilterComplex(
+        inputPath: inputPath,
+        outputPath: outputPath,
+        filterComplex: filterComplex,
+        outputSettings: _buildOutputSettings(settings),
+        totalDuration: timeline.mediaDuration,
+      )) {
+        // Map FFmpeg progress (0-1) to export progress (0.15-0.95)
+        final exportProgress = 0.15 + (progress * 0.80);
+        yield ExportProgress(
+          progress: exportProgress.clamp(0.0, 0.95),
+          phase: 'Encoding: ${(progress * 100).toStringAsFixed(0)}%',
+          encodedFrames: (progress * 100).toInt(),
+        );
+      }
+    } catch (e) {
+      throw ExportException('Export failed: $e');
     }
 
     // Verify output
     yield const ExportProgress(
-      progress: 0.95,
+      progress: 0.97,
       phase: 'Verifying output',
     );
 
     final outputFile = File(outputPath);
     if (!await outputFile.exists()) {
-      throw ExportException('Output file was not created');
+      throw ExportException('Output file was not created. FFmpeg may have failed silently.');
+    }
+
+    final stat = await outputFile.stat();
+    if (stat.size == 0) {
+      throw ExportException('Output file is empty. FFmpeg encoding may have failed.');
     }
 
     yield const ExportProgress(

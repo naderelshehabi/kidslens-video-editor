@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/presentation/screens/editor_screen.dart';
+import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 import 'package:kidslens_video_editor/services/project_service.dart';
 import 'package:kidslens_video_editor/state/providers/project_provider.dart';
 
@@ -12,80 +13,10 @@ class KidsLensApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
         title: 'KidsLens Video Editor',
         debugShowCheckedModeBanner: false,
-        theme: _buildLightTheme(),
-        darkTheme: _buildDarkTheme(),
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.dark, // Video editors typically use dark theme
         home: const _WelcomeScreen(),
-      );
-
-  ThemeData _buildLightTheme() => ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF4CAF50),
-          brightness: Brightness.light,
-          secondary: const Color(0xFF2196F3),
-          error: const Color(0xFFE57373),
-        ),
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 0,
-        ),
-        cardTheme: CardThemeData(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          filled: true,
-        ),
-      );
-
-  ThemeData _buildDarkTheme() => ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF4CAF50),
-          brightness: Brightness.dark,
-          secondary: const Color(0xFF42A5F5),
-          error: const Color(0xFFEF9A9A),
-        ),
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 0,
-        ),
-        cardTheme: CardThemeData(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          filled: true,
-        ),
       );
 }
 
@@ -161,6 +92,15 @@ class _WelcomeScreenState extends ConsumerState<_WelcomeScreen> {
                     width: 350,
                     height: 350,
                     fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      // Gracefully handle missing logo
+                      debugPrint('Logo not found: $error');
+                      return Icon(
+                        Icons.movie_filter_rounded,
+                        size: 350,
+                        color: colorScheme.primary.withOpacity(0.3),
+                      );
+                    },
                   ),
                 ),
               ),
