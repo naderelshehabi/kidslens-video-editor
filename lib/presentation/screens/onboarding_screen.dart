@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 /// Onboarding screen for first-time users
 class OnboardingScreen extends StatefulWidget {
-  final VoidCallback onComplete;
-
   const OnboardingScreen({
-    super.key,
     required this.onComplete,
+    super.key,
   });
+
+  final VoidCallback onComplete;
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -51,8 +51,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       body: SafeArea(
         child: Column(
           children: [
@@ -72,15 +71,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildIndicators() {
-    return Padding(
+  Widget _buildIndicators() => Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(_pages.length, (index) {
-          return AnimatedContainer(
+        children: List.generate(_pages.length, (index) => AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             margin: const EdgeInsets.symmetric(horizontal: 4),
             width: _currentPage == index ? 24 : 8,
@@ -88,14 +84,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             decoration: BoxDecoration(
               color: _currentPage == index
                   ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                  : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(4),
             ),
-          );
-        }),
+          ),),
       ),
     );
-  }
 
   Widget _buildButtons() {
     final isLastPage = _currentPage == _pages.length - 1;
@@ -138,19 +132,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 }
 
 class _OnboardingPage extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String description;
-
   const _OnboardingPage({
     required this.icon,
     required this.title,
     required this.description,
   });
 
+  final IconData icon;
+  final String title;
+  final String description;
+
   @override
-  Widget build(BuildContext context) {
-    return Padding(
+  Widget build(BuildContext context) => Padding(
       padding: const EdgeInsets.all(32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -185,5 +178,4 @@ class _OnboardingPage extends StatelessWidget {
         ],
       ),
     );
-  }
 }

@@ -2,6 +2,18 @@ import 'package:flutter/material.dart';
 
 /// Widget showing model download progress
 class DownloadProgressWidget extends StatelessWidget {
+  const DownloadProgressWidget({
+    required this.modelName,
+    required this.progress,
+    required this.bytesDownloaded,
+    required this.totalBytes,
+    super.key,
+    this.onCancel,
+    this.onPause,
+    this.onResume,
+    this.isPaused = false,
+  });
+
   final String modelName;
   final double progress;
   final int bytesDownloaded;
@@ -11,21 +23,8 @@ class DownloadProgressWidget extends StatelessWidget {
   final VoidCallback? onResume;
   final bool isPaused;
 
-  const DownloadProgressWidget({
-    super.key,
-    required this.modelName,
-    required this.progress,
-    required this.bytesDownloaded,
-    required this.totalBytes,
-    this.onCancel,
-    this.onPause,
-    this.onResume,
-    this.isPaused = false,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Card(
+  Widget build(BuildContext context) => Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -87,7 +86,6 @@ class DownloadProgressWidget extends StatelessWidget {
         ),
       ),
     );
-  }
 
   String _formatSize(int bytes) {
     if (bytes < 1024) return '$bytes B';

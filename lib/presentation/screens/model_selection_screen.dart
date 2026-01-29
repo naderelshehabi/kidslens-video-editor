@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../data/models/analysis_settings.dart';
-import '../../data/models/model_info.dart';
-import '../../state/providers/model_provider.dart';
-import '../themes/app_theme.dart';
+import 'package:kidslens_video_editor/data/models/analysis_settings.dart';
+import 'package:kidslens_video_editor/data/models/model_info.dart';
+import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
+import 'package:kidslens_video_editor/state/providers/model_provider.dart';
 
 /// Screen for managing AI models
 class ModelSelectionScreen extends ConsumerWidget {
@@ -141,6 +140,17 @@ class ModelSelectionScreen extends ConsumerWidget {
 }
 
 class _ModelCard extends StatelessWidget {
+  const _ModelCard({
+    required this.model,
+    required this.isDownloaded,
+    required this.isSelected,
+    required this.isDownloading,
+    required this.onDownload,
+    required this.onDelete,
+    required this.onSelect,
+    this.downloadProgress,
+  });
+
   final ModelInfo model;
   final bool isDownloaded;
   final bool isSelected;
@@ -150,20 +160,8 @@ class _ModelCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onSelect;
 
-  const _ModelCard({
-    required this.model,
-    required this.isDownloaded,
-    required this.isSelected,
-    required this.isDownloading,
-    this.downloadProgress,
-    required this.onDownload,
-    required this.onDelete,
-    required this.onSelect,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Card(
+  Widget build(BuildContext context) => Card(
       child: InkWell(
         onTap: isDownloaded ? onSelect : null,
         borderRadius: BorderRadius.circular(12),
@@ -192,7 +190,7 @@ class _ModelCard extends StatelessWidget {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.successColor.withOpacity(0.2),
+                                  color: AppTheme.successColor.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: const Text(
@@ -244,7 +242,6 @@ class _ModelCard extends StatelessWidget {
         ),
       ),
     );
-  }
 
   Widget _buildActionButton(BuildContext context) {
     if (isDownloading) {
@@ -293,8 +290,7 @@ class _ModelCard extends StatelessWidget {
     );
   }
 
-  Widget _buildChip(BuildContext context, String label, IconData icon) {
-    return Container(
+  Widget _buildChip(BuildContext context, String label, IconData icon) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -312,7 +308,6 @@ class _ModelCard extends StatelessWidget {
         ],
       ),
     );
-  }
 
   String _formatSize(int bytes) {
     if (bytes < 1024) return '$bytes B';

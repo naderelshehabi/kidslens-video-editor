@@ -1,26 +1,17 @@
 import 'dart:io';
 
+import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/data/models/edit_action.dart';
+import 'package:kidslens_video_editor/data/models/media_file.dart';
+import 'package:kidslens_video_editor/data/models/project.dart';
+import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../data/models/detection.dart';
-import '../../data/models/edit_action.dart';
-import '../../data/models/media_file.dart';
-import '../../data/models/project.dart';
-import 'service_providers.dart';
 
 part 'project_provider.g.dart';
 
 /// State for project management
 class ProjectState {
-  final Project? currentProject;
-  final bool isLoading;
-  final bool isSaving;
-  final String? errorMessage;
-  final List<String> recentProjectPaths;
-  final List<Project> undoStack;
-  final List<Project> redoStack;
-
   const ProjectState({
     this.currentProject,
     this.isLoading = false,
@@ -31,6 +22,14 @@ class ProjectState {
     this.redoStack = const [],
   });
 
+  final Project? currentProject;
+  final bool isLoading;
+  final bool isSaving;
+  final String? errorMessage;
+  final List<String> recentProjectPaths;
+  final List<Project> undoStack;
+  final List<Project> redoStack;
+
   ProjectState copyWith({
     Project? currentProject,
     bool clearProject = false,
@@ -40,17 +39,17 @@ class ProjectState {
     List<String>? recentProjectPaths,
     List<Project>? undoStack,
     List<Project>? redoStack,
-  }) {
-    return ProjectState(
-      currentProject: clearProject ? null : (currentProject ?? this.currentProject),
-      isLoading: isLoading ?? this.isLoading,
-      isSaving: isSaving ?? this.isSaving,
-      errorMessage: errorMessage,
-      recentProjectPaths: recentProjectPaths ?? this.recentProjectPaths,
-      undoStack: undoStack ?? this.undoStack,
-      redoStack: redoStack ?? this.redoStack,
-    );
-  }
+  }) =>
+      ProjectState(
+        currentProject:
+            clearProject ? null : (currentProject ?? this.currentProject),
+        isLoading: isLoading ?? this.isLoading,
+        isSaving: isSaving ?? this.isSaving,
+        errorMessage: errorMessage,
+        recentProjectPaths: recentProjectPaths ?? this.recentProjectPaths,
+        undoStack: undoStack ?? this.undoStack,
+        redoStack: redoStack ?? this.redoStack,
+      );
 
   /// Whether a project is currently open
   bool get hasProject => currentProject != null;
@@ -87,7 +86,7 @@ class ProjectNotifier extends _$ProjectNotifier {
     // Filter out paths that no longer exist on disk
     final validPaths = <String>[];
     for (final path in savedPaths) {
-      if (await File(path).exists()) {
+      if (File(path).existsSync()) {
         validPaths.add(path);
       }
     }
@@ -114,7 +113,7 @@ class ProjectNotifier extends _$ProjectNotifier {
     required String name,
     required String directoryPath,
   }) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true);
     try {
       final projectService = ref.read(projectServiceProvider);
       final project = await projectService.createProject(
@@ -146,7 +145,7 @@ class ProjectNotifier extends _$ProjectNotifier {
     required String name,
     required String projectPath,
   }) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true);
     try {
       final projectService = ref.read(projectServiceProvider);
       final project = await projectService.createProjectWithPath(
@@ -175,7 +174,7 @@ class ProjectNotifier extends _$ProjectNotifier {
 
   /// Open an existing project
   Future<void> openProject(String projectPath) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true);
     try {
       final projectService = ref.read(projectServiceProvider);
       final project = await projectService.loadProject(projectPath);
@@ -405,7 +404,6 @@ class ProjectNotifier extends _$ProjectNotifier {
       type: type,
       startTime: startTime,
       endTime: endTime,
-      enabled: true,
       boundingBox: boundingBox,
       detectionId: detectionId,
     );
@@ -479,6 +477,6 @@ class ProjectNotifier extends _$ProjectNotifier {
 
   /// Clear any error
   void clearError() {
-    state = state.copyWith(errorMessage: null);
+    state = state.copyWith();
   }
 }

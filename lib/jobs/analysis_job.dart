@@ -2,23 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:kidslens_video_editor/data/models/models.dart';
+import 'package:kidslens_video_editor/jobs/job_system.dart';
+import 'package:kidslens_video_editor/services/analysis_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import '../data/models/models.dart';
-import '../services/analysis_service.dart';
-import 'job_system.dart';
-
 /// Analysis job with checkpoint/resume support
 class AnalysisJob extends Job<AnalysisResult> {
-  final MediaFile media;
-  final AnalysisSettings settings;
-  final AnalysisService analysisService;
-
-  AnalysisCheckpoint? _checkpoint;
-  String? _checkpointPath;
-  DateTime? _startTime;
-
   AnalysisJob({
     required super.id,
     required this.media,
@@ -26,6 +17,14 @@ class AnalysisJob extends Job<AnalysisResult> {
     required this.analysisService,
     super.cancellationToken,
   });
+
+  final MediaFile media;
+  final AnalysisSettings settings;
+  final AnalysisService analysisService;
+
+  AnalysisCheckpoint? _checkpoint;
+  String? _checkpointPath;
+  DateTime? _startTime;
 
   @override
   Future<AnalysisResult> execute() async {
@@ -57,7 +56,7 @@ class AnalysisJob extends Job<AnalysisResult> {
         await _saveCheckpoint(AnalysisCheckpoint(
           lastAnalyzedFrame: progress.itemsProcessed ?? 0,
           timestamp: DateTime.now(),
-        ));
+        ),);
       }
     }
 
@@ -99,7 +98,7 @@ class AnalysisJob extends Job<AnalysisResult> {
     _checkpointPath ??= await _getCheckpointPath();
 
     final file = File(_checkpointPath!);
-    if (!await file.exists()) return null;
+    if (!file.existsSync()) return null;
 
     try {
       final content = await file.readAsString();
@@ -119,7 +118,7 @@ class AnalysisJob extends Job<AnalysisResult> {
   Future<void> clearCheckpoint() async {
     if (_checkpointPath != null) {
       final file = File(_checkpointPath!);
-      if (await file.exists()) {
+      if (file.existsSync()) {
         await file.delete();
       }
     }

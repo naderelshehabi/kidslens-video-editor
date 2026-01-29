@@ -138,7 +138,7 @@ sealed class Modification with _$Modification {
           'amovie=$audioPath,volume=$volume',
         VideoBlur(:final intensity) => 'boxblur=${intensity ~/ 5}:${intensity ~/ 5}',
         VideoPixelate(:final blockSize) =>
-          'scale=iw/${blockSize}:ih/${blockSize},scale=iw*${blockSize}:ih*${blockSize}:flags=neighbor',
+          'scale=iw/$blockSize:ih/$blockSize,scale=iw*$blockSize:ih*$blockSize:flags=neighbor',
         VideoBlackBox(:final color, :final opacity) =>
           'drawbox=color=${color.replaceFirst('#', '')}@$opacity:t=fill',
         VideoSkip() => 'select=0', // Will need special handling in export

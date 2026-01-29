@@ -2,10 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:kidslens_video_editor/data/models/models.dart';
-import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/state/providers/project_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-
-import 'project_provider.dart';
 
 part 'analysis_provider.g.dart';
 
@@ -90,7 +88,7 @@ class AnalysisNotifier extends _$AnalysisNotifier {
       if (totalDurationMs < 3000) {
         state = state.copyWith(
           status: AnalysisStatus.completed,
-          progress: 1.0,
+          progress: 1,
           currentStep: 'Analysis complete (video too short for demo detections)',
           detections: [],
         );
@@ -118,7 +116,7 @@ class AnalysisNotifier extends _$AnalysisNotifier {
             endTime: Duration(milliseconds: startMs + durationMs),
             confidence: 0.75 + random.nextDouble() * 0.2,
             description: _getRandomProfanityDescription(random),
-          ));
+          ),);
         }
       }
       
@@ -146,7 +144,7 @@ class AnalysisNotifier extends _$AnalysisNotifier {
             endTime: Duration(milliseconds: startMs + durationMs),
             confidence: 0.70 + random.nextDouble() * 0.25,
             description: 'Potential violent content detected',
-          ));
+          ),);
         }
       }
       
@@ -166,7 +164,7 @@ class AnalysisNotifier extends _$AnalysisNotifier {
             endTime: Duration(milliseconds: startMs + durationMs),
             confidence: 0.65 + random.nextDouble() * 0.30,
             description: 'Potential inappropriate visual content',
-          ));
+          ),);
         }
       }
       
@@ -193,7 +191,7 @@ class AnalysisNotifier extends _$AnalysisNotifier {
             endTime: Duration(milliseconds: startMs + durationMs),
             confidence: 0.60 + random.nextDouble() * 0.35,
             description: 'Potential blood/gore content',
-          ));
+          ),);
         }
       }
       
@@ -210,7 +208,7 @@ class AnalysisNotifier extends _$AnalysisNotifier {
             endTime: Duration(milliseconds: startMs + durationMs),
             confidence: 0.55 + random.nextDouble() * 0.40,
             description: 'Potential weapons detected',
-          ));
+          ),);
         }
       }
       
@@ -224,16 +222,13 @@ class AnalysisNotifier extends _$AnalysisNotifier {
       );
       await Future<void>.delayed(const Duration(milliseconds: 200));
       
-      // Sort detections by start time
+      // Sort detections by start time and update project
       detections.sort((a, b) => a.startTime.compareTo(b.startTime));
-      
-      // Update project with detections
-      final projectNotifier = ref.read(projectNotifierProvider.notifier);
-      projectNotifier.addDetections(detections);
+      ref.read(projectNotifierProvider.notifier).addDetections(detections);
       
       state = state.copyWith(
         status: AnalysisStatus.completed,
-        progress: 1.0,
+        progress: 1,
         currentStep: 'Analysis complete',
         detections: detections,
       );

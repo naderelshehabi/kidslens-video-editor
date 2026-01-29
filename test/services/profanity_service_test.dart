@@ -31,42 +31,42 @@ void main() {
       test('should detect custom words', () async {
         profanityService.addCustomWords(['testbadword']);
 
-        final transcript = Transcript(
+        const transcript = Transcript(
           segments: [
             TranscriptSegment(
               id: 'seg-1',
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 5),
+              endTime: Duration(seconds: 5),
               text: 'This is a testbadword example',
               words: [
                 TranscriptWord(
                   word: 'This',
                   startTime: Duration.zero,
-                  endTime: const Duration(milliseconds: 200),
+                  endTime: Duration(milliseconds: 200),
                   confidence: 0.95,
                 ),
                 TranscriptWord(
                   word: 'is',
-                  startTime: const Duration(milliseconds: 200),
-                  endTime: const Duration(milliseconds: 400),
+                  startTime: Duration(milliseconds: 200),
+                  endTime: Duration(milliseconds: 400),
                   confidence: 0.98,
                 ),
                 TranscriptWord(
                   word: 'a',
-                  startTime: const Duration(milliseconds: 400),
-                  endTime: const Duration(milliseconds: 500),
+                  startTime: Duration(milliseconds: 400),
+                  endTime: Duration(milliseconds: 500),
                   confidence: 0.99,
                 ),
                 TranscriptWord(
                   word: 'testbadword',
-                  startTime: const Duration(milliseconds: 500),
-                  endTime: const Duration(seconds: 1),
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(seconds: 1),
                   confidence: 0.97,
                 ),
                 TranscriptWord(
                   word: 'example',
-                  startTime: const Duration(seconds: 1),
-                  endTime: const Duration(seconds: 2),
+                  startTime: Duration(seconds: 1),
+                  endTime: Duration(seconds: 2),
                   confidence: 0.96,
                 ),
               ],
@@ -92,33 +92,34 @@ void main() {
 
       test('should not detect excluded words', () async {
         await profanityService.loadWordList('en');
-        profanityService.addCustomWords(['testword']);
-        profanityService.excludeWords(['testword']);
+        profanityService
+          ..addCustomWords(['testword'])
+          ..excludeWords(['testword']);
 
-        final transcript = Transcript(
+        const transcript = Transcript(
           segments: [
             TranscriptSegment(
               id: 'seg-1',
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 2),
+              endTime: Duration(seconds: 2),
               text: 'Using testword here',
               words: [
                 TranscriptWord(
                   word: 'Using',
                   startTime: Duration.zero,
-                  endTime: const Duration(milliseconds: 500),
+                  endTime: Duration(milliseconds: 500),
                   confidence: 0.95,
                 ),
                 TranscriptWord(
                   word: 'testword',
-                  startTime: const Duration(milliseconds: 500),
-                  endTime: const Duration(seconds: 1),
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(seconds: 1),
                   confidence: 0.98,
                 ),
                 TranscriptWord(
                   word: 'here',
-                  startTime: const Duration(seconds: 1),
-                  endTime: const Duration(seconds: 2),
+                  startTime: Duration(seconds: 1),
+                  endTime: Duration(seconds: 2),
                   confidence: 0.97,
                 ),
               ],
@@ -135,42 +136,42 @@ void main() {
 
     group('detection', () {
       test('should return empty list for clean transcript', () {
-        final transcript = Transcript(
+        const transcript = Transcript(
           segments: [
             TranscriptSegment(
               id: 'seg-1',
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 5),
+              endTime: Duration(seconds: 5),
               text: 'This is a clean sentence',
               words: [
                 TranscriptWord(
                   word: 'This',
                   startTime: Duration.zero,
-                  endTime: const Duration(milliseconds: 500),
+                  endTime: Duration(milliseconds: 500),
                   confidence: 0.95,
                 ),
                 TranscriptWord(
                   word: 'is',
-                  startTime: const Duration(milliseconds: 500),
-                  endTime: const Duration(milliseconds: 700),
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(milliseconds: 700),
                   confidence: 0.98,
                 ),
                 TranscriptWord(
                   word: 'a',
-                  startTime: const Duration(milliseconds: 700),
-                  endTime: const Duration(milliseconds: 800),
+                  startTime: Duration(milliseconds: 700),
+                  endTime: Duration(milliseconds: 800),
                   confidence: 0.99,
                 ),
                 TranscriptWord(
                   word: 'clean',
-                  startTime: const Duration(milliseconds: 800),
-                  endTime: const Duration(seconds: 1),
+                  startTime: Duration(milliseconds: 800),
+                  endTime: Duration(seconds: 1),
                   confidence: 0.97,
                 ),
                 TranscriptWord(
                   word: 'sentence',
-                  startTime: const Duration(seconds: 1),
-                  endTime: const Duration(seconds: 2),
+                  startTime: Duration(seconds: 1),
+                  endTime: Duration(seconds: 2),
                   confidence: 0.96,
                 ),
               ],
@@ -195,36 +196,36 @@ void main() {
       test('should detect multiple profanity matches', () async {
         profanityService.addCustomWords(['badword1', 'badword2']);
 
-        final transcript = Transcript(
+        const transcript = Transcript(
           segments: [
             TranscriptSegment(
               id: 'seg-1',
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 5),
+              endTime: Duration(seconds: 5),
               text: 'badword1 and then badword2',
               words: [
                 TranscriptWord(
                   word: 'badword1',
                   startTime: Duration.zero,
-                  endTime: const Duration(milliseconds: 500),
+                  endTime: Duration(milliseconds: 500),
                   confidence: 0.95,
                 ),
                 TranscriptWord(
                   word: 'and',
-                  startTime: const Duration(milliseconds: 500),
-                  endTime: const Duration(milliseconds: 700),
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(milliseconds: 700),
                   confidence: 0.98,
                 ),
                 TranscriptWord(
                   word: 'then',
-                  startTime: const Duration(milliseconds: 700),
-                  endTime: const Duration(seconds: 1),
+                  startTime: Duration(milliseconds: 700),
+                  endTime: Duration(seconds: 1),
                   confidence: 0.97,
                 ),
                 TranscriptWord(
                   word: 'badword2',
-                  startTime: const Duration(seconds: 1),
-                  endTime: const Duration(seconds: 2),
+                  startTime: Duration(seconds: 1),
+                  endTime: Duration(seconds: 2),
                   confidence: 0.96,
                 ),
               ],
@@ -241,44 +242,44 @@ void main() {
       test('should detect profanity in multiple segments', () async {
         profanityService.addCustomWords(['profanity']);
 
-        final transcript = Transcript(
+        const transcript = Transcript(
           segments: [
             TranscriptSegment(
               id: 'seg-1',
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 2),
+              endTime: Duration(seconds: 2),
               text: 'First profanity',
               words: [
                 TranscriptWord(
                   word: 'First',
                   startTime: Duration.zero,
-                  endTime: const Duration(milliseconds: 500),
+                  endTime: Duration(milliseconds: 500),
                   confidence: 0.95,
                 ),
                 TranscriptWord(
                   word: 'profanity',
-                  startTime: const Duration(milliseconds: 500),
-                  endTime: const Duration(seconds: 1),
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(seconds: 1),
                   confidence: 0.98,
                 ),
               ],
             ),
             TranscriptSegment(
               id: 'seg-2',
-              startTime: const Duration(seconds: 5),
-              endTime: const Duration(seconds: 8),
+              startTime: Duration(seconds: 5),
+              endTime: Duration(seconds: 8),
               text: 'Second profanity',
               words: [
                 TranscriptWord(
                   word: 'Second',
-                  startTime: const Duration(seconds: 5),
-                  endTime: const Duration(seconds: 6),
+                  startTime: Duration(seconds: 5),
+                  endTime: Duration(seconds: 6),
                   confidence: 0.95,
                 ),
                 TranscriptWord(
                   word: 'profanity',
-                  startTime: const Duration(seconds: 6),
-                  endTime: const Duration(seconds: 7),
+                  startTime: Duration(seconds: 6),
+                  endTime: Duration(seconds: 7),
                   confidence: 0.97,
                 ),
               ],
@@ -298,24 +299,24 @@ void main() {
         await profanityService.loadWordList('en');
         profanityService.addCustomWords(['test']);
 
-        final transcript = Transcript(
+        const transcript = Transcript(
           segments: [
             TranscriptSegment(
               id: 'seg-1',
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 2),
+              endTime: Duration(seconds: 2),
               text: 't3st word',
               words: [
                 TranscriptWord(
                   word: 't3st',
                   startTime: Duration.zero,
-                  endTime: const Duration(milliseconds: 500),
+                  endTime: Duration(milliseconds: 500),
                   confidence: 0.95,
                 ),
                 TranscriptWord(
                   word: 'word',
-                  startTime: const Duration(milliseconds: 500),
-                  endTime: const Duration(seconds: 1),
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(seconds: 1),
                   confidence: 0.98,
                 ),
               ],
@@ -338,30 +339,30 @@ void main() {
       test('should handle case insensitivity', () {
         profanityService.addCustomWords(['testword']);
 
-        final transcript = Transcript(
+        const transcript = Transcript(
           segments: [
             TranscriptSegment(
               id: 'seg-1',
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 2),
+              endTime: Duration(seconds: 2),
               text: 'TESTWORD and TestWord',
               words: [
                 TranscriptWord(
                   word: 'TESTWORD',
                   startTime: Duration.zero,
-                  endTime: const Duration(milliseconds: 500),
+                  endTime: Duration(milliseconds: 500),
                   confidence: 0.95,
                 ),
                 TranscriptWord(
                   word: 'and',
-                  startTime: const Duration(milliseconds: 500),
-                  endTime: const Duration(milliseconds: 700),
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(milliseconds: 700),
                   confidence: 0.98,
                 ),
                 TranscriptWord(
                   word: 'TestWord',
-                  startTime: const Duration(milliseconds: 700),
-                  endTime: const Duration(seconds: 1),
+                  startTime: Duration(milliseconds: 700),
+                  endTime: Duration(seconds: 1),
                   confidence: 0.97,
                 ),
               ],
@@ -378,30 +379,30 @@ void main() {
       test('should strip punctuation from words', () {
         profanityService.addCustomWords(['badword']);
 
-        final transcript = Transcript(
+        const transcript = Transcript(
           segments: [
             TranscriptSegment(
               id: 'seg-1',
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 2),
+              endTime: Duration(seconds: 2),
               text: 'badword! and badword?',
               words: [
                 TranscriptWord(
                   word: 'badword!',
                   startTime: Duration.zero,
-                  endTime: const Duration(milliseconds: 500),
+                  endTime: Duration(milliseconds: 500),
                   confidence: 0.95,
                 ),
                 TranscriptWord(
                   word: 'and',
-                  startTime: const Duration(milliseconds: 500),
-                  endTime: const Duration(milliseconds: 700),
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(milliseconds: 700),
                   confidence: 0.98,
                 ),
                 TranscriptWord(
                   word: 'badword?',
-                  startTime: const Duration(milliseconds: 700),
-                  endTime: const Duration(seconds: 1),
+                  startTime: Duration(milliseconds: 700),
+                  endTime: Duration(seconds: 1),
                   confidence: 0.97,
                 ),
               ],
@@ -420,36 +421,36 @@ void main() {
       test('should include correct word timing information', () {
         profanityService.addCustomWords(['detected']);
 
-        final transcript = Transcript(
+        const transcript = Transcript(
           segments: [
             TranscriptSegment(
               id: 'seg-1',
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 5),
+              endTime: Duration(seconds: 5),
               text: 'The detected word here',
               words: [
                 TranscriptWord(
                   word: 'The',
                   startTime: Duration.zero,
-                  endTime: const Duration(milliseconds: 200),
+                  endTime: Duration(milliseconds: 200),
                   confidence: 0.95,
                 ),
                 TranscriptWord(
                   word: 'detected',
-                  startTime: const Duration(milliseconds: 500),
-                  endTime: const Duration(seconds: 1),
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(seconds: 1),
                   confidence: 0.98,
                 ),
                 TranscriptWord(
                   word: 'word',
-                  startTime: const Duration(seconds: 1),
-                  endTime: const Duration(seconds: 2),
+                  startTime: Duration(seconds: 1),
+                  endTime: Duration(seconds: 2),
                   confidence: 0.97,
                 ),
                 TranscriptWord(
                   word: 'here',
-                  startTime: const Duration(seconds: 2),
-                  endTime: const Duration(seconds: 3),
+                  startTime: Duration(seconds: 2),
+                  endTime: Duration(seconds: 3),
                   confidence: 0.96,
                 ),
               ],
@@ -475,24 +476,24 @@ void main() {
       test('should generate unique IDs for each match', () {
         profanityService.addCustomWords(['word1', 'word2']);
 
-        final transcript = Transcript(
+        const transcript = Transcript(
           segments: [
             TranscriptSegment(
               id: 'seg-1',
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 3),
+              endTime: Duration(seconds: 3),
               text: 'word1 word2',
               words: [
                 TranscriptWord(
                   word: 'word1',
                   startTime: Duration.zero,
-                  endTime: const Duration(milliseconds: 500),
+                  endTime: Duration(milliseconds: 500),
                   confidence: 0.95,
                 ),
                 TranscriptWord(
                   word: 'word2',
-                  startTime: const Duration(milliseconds: 500),
-                  endTime: const Duration(seconds: 1),
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(seconds: 1),
                   confidence: 0.98,
                 ),
               ],
@@ -514,30 +515,30 @@ void main() {
       test('should handle very short words', () {
         profanityService.addCustomWords(['x']);
 
-        final transcript = Transcript(
+        const transcript = Transcript(
           segments: [
             TranscriptSegment(
               id: 'seg-1',
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 2),
+              endTime: Duration(seconds: 2),
               text: 'A x B',
               words: [
                 TranscriptWord(
                   word: 'A',
                   startTime: Duration.zero,
-                  endTime: const Duration(milliseconds: 200),
+                  endTime: Duration(milliseconds: 200),
                   confidence: 0.95,
                 ),
                 TranscriptWord(
                   word: 'x',
-                  startTime: const Duration(milliseconds: 200),
-                  endTime: const Duration(milliseconds: 400),
+                  startTime: Duration(milliseconds: 200),
+                  endTime: Duration(milliseconds: 400),
                   confidence: 0.98,
                 ),
                 TranscriptWord(
                   word: 'B',
-                  startTime: const Duration(milliseconds: 400),
-                  endTime: const Duration(milliseconds: 600),
+                  startTime: Duration(milliseconds: 400),
+                  endTime: Duration(milliseconds: 600),
                   confidence: 0.97,
                 ),
               ],
@@ -552,18 +553,18 @@ void main() {
       });
 
       test('should handle empty words gracefully', () {
-        final transcript = Transcript(
+        const transcript = Transcript(
           segments: [
             TranscriptSegment(
               id: 'seg-1',
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 2),
+              endTime: Duration(seconds: 2),
               text: '',
               words: [
                 TranscriptWord(
                   word: '',
                   startTime: Duration.zero,
-                  endTime: const Duration(milliseconds: 200),
+                  endTime: Duration(milliseconds: 200),
                   confidence: 0.95,
                 ),
               ],
@@ -580,18 +581,18 @@ void main() {
       test('should handle special characters in words', () {
         profanityService.addCustomWords(['test']);
 
-        final transcript = Transcript(
+        const transcript = Transcript(
           segments: [
             TranscriptSegment(
               id: 'seg-1',
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 2),
+              endTime: Duration(seconds: 2),
               text: 't@e#s\$t',
               words: [
                 TranscriptWord(
                   word: 't@e#s\$t',
                   startTime: Duration.zero,
-                  endTime: const Duration(milliseconds: 500),
+                  endTime: Duration(milliseconds: 500),
                   confidence: 0.95,
                 ),
               ],
@@ -601,7 +602,7 @@ void main() {
         );
 
         // Should try to normalize and potentially match
-        final matches = profanityService.detect(transcript);
+        profanityService.detect(transcript);
         // Result depends on implementation details
       });
     });

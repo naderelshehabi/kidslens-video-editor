@@ -19,11 +19,11 @@ void main() {
   group('MediaFile', () {
     group('creation', () {
       test('should create a video media file with all required fields', () {
-        final mediaFile = MediaFile(
+        const mediaFile = MediaFile(
           id: 'test-id',
           path: '/path/to/video.mp4',
           name: 'video.mp4',
-          duration: const Duration(minutes: 5),
+          duration: Duration(minutes: 5),
           width: 1920,
           height: 1080,
           fileSize: 1024 * 1024 * 100, // 100 MB
@@ -41,11 +41,11 @@ void main() {
       });
 
       test('should create a media file with optional codec and container', () {
-        final mediaFile = MediaFile(
+        const mediaFile = MediaFile(
           id: 'test-id',
           path: '/path/to/video.mp4',
           name: 'video.mp4',
-          duration: const Duration(minutes: 5),
+          duration: Duration(minutes: 5),
           width: 1920,
           height: 1080,
           fileSize: 1024 * 1024 * 100,
@@ -101,11 +101,11 @@ void main() {
 
     group('computed properties', () {
       test('isVideo should return true for video files', () {
-        final video = MediaFile(
+        const video = MediaFile(
           id: 'id',
           path: '/path',
           name: 'video.mp4',
-          duration: const Duration(minutes: 1),
+          duration: Duration(minutes: 1),
           width: 1920,
           height: 1080,
           fileSize: 1000,
@@ -117,11 +117,11 @@ void main() {
       });
 
       test('isAudio should return true for audio files', () {
-        final audio = MediaFile(
+        const audio = MediaFile(
           id: 'id',
           path: '/path',
           name: 'audio.mp3',
-          duration: const Duration(minutes: 1),
+          duration: Duration(minutes: 1),
           width: 0,
           height: 0,
           fileSize: 1000,
@@ -133,11 +133,11 @@ void main() {
       });
 
       test('aspectRatio should calculate correctly', () {
-        final widescreen = MediaFile(
+        const widescreen = MediaFile(
           id: 'id',
           path: '/path',
           name: 'video.mp4',
-          duration: const Duration(minutes: 1),
+          duration: Duration(minutes: 1),
           width: 1920,
           height: 1080,
           fileSize: 1000,
@@ -148,11 +148,11 @@ void main() {
       });
 
       test('aspectRatio should return 0 for zero height', () {
-        final noHeight = MediaFile(
+        const noHeight = MediaFile(
           id: 'id',
           path: '/path',
           name: 'audio.mp3',
-          duration: const Duration(minutes: 1),
+          duration: Duration(minutes: 1),
           width: 0,
           height: 0,
           fileSize: 1000,
@@ -164,7 +164,7 @@ void main() {
 
       group('fileSizeFormatted', () {
         test('should format bytes correctly', () {
-          final file = MediaFile(
+          const file = MediaFile(
             id: 'id',
             path: '/path',
             name: 'small.txt',
@@ -179,7 +179,7 @@ void main() {
         });
 
         test('should format kilobytes correctly', () {
-          final file = MediaFile(
+          const file = MediaFile(
             id: 'id',
             path: '/path',
             name: 'small.txt',
@@ -194,7 +194,7 @@ void main() {
         });
 
         test('should format megabytes correctly', () {
-          final file = MediaFile(
+          const file = MediaFile(
             id: 'id',
             path: '/path',
             name: 'medium.mp3',
@@ -209,7 +209,7 @@ void main() {
         });
 
         test('should format gigabytes correctly', () {
-          final file = MediaFile(
+          const file = MediaFile(
             id: 'id',
             path: '/path',
             name: 'large.mp4',
@@ -227,11 +227,11 @@ void main() {
 
     group('JSON serialization', () {
       test('should serialize to JSON correctly', () {
-        final mediaFile = MediaFile(
+        const mediaFile = MediaFile(
           id: 'test-id',
           path: '/path/to/video.mp4',
           name: 'video.mp4',
-          duration: const Duration(seconds: 300),
+          duration: Duration(seconds: 300),
           width: 1920,
           height: 1080,
           fileSize: 104857600,
@@ -333,22 +333,22 @@ void main() {
 
     group('equality', () {
       test('should be equal when all fields match', () {
-        final file1 = MediaFile(
+        const file1 = MediaFile(
           id: 'same-id',
           path: '/same/path.mp4',
           name: 'path.mp4',
-          duration: const Duration(seconds: 60),
+          duration: Duration(seconds: 60),
           width: 1920,
           height: 1080,
           fileSize: 1000,
           mediaType: MediaType.video,
         );
 
-        final file2 = MediaFile(
+        const file2 = MediaFile(
           id: 'same-id',
           path: '/same/path.mp4',
           name: 'path.mp4',
-          duration: const Duration(seconds: 60),
+          duration: Duration(seconds: 60),
           width: 1920,
           height: 1080,
           fileSize: 1000,
@@ -360,22 +360,22 @@ void main() {
       });
 
       test('should not be equal when any field differs', () {
-        final file1 = MediaFile(
+        const file1 = MediaFile(
           id: 'id-1',
           path: '/path.mp4',
           name: 'path.mp4',
-          duration: const Duration(seconds: 60),
+          duration: Duration(seconds: 60),
           width: 1920,
           height: 1080,
           fileSize: 1000,
           mediaType: MediaType.video,
         );
 
-        final file2 = MediaFile(
+        const file2 = MediaFile(
           id: 'id-2', // Different ID
           path: '/path.mp4',
           name: 'path.mp4',
-          duration: const Duration(seconds: 60),
+          duration: Duration(seconds: 60),
           width: 1920,
           height: 1080,
           fileSize: 1000,
@@ -388,11 +388,11 @@ void main() {
 
     group('copyWith', () {
       test('should create a copy with modified fields', () {
-        final original = MediaFile(
+        const original = MediaFile(
           id: 'original-id',
           path: '/original/path.mp4',
           name: 'path.mp4',
-          duration: const Duration(minutes: 5),
+          duration: Duration(minutes: 5),
           width: 1920,
           height: 1080,
           fileSize: 1000,

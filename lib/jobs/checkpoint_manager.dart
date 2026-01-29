@@ -29,8 +29,8 @@ class CheckpointManager {
   Future<String> _initDir(String subdir) async {
     final appDir = await getApplicationSupportDirectory();
     final dir = Directory(p.join(appDir.path, subdir));
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
+    if (!dir.existsSync()) {
+      dir.createSync(recursive: true);
     }
     return dir.path;
   }
@@ -52,7 +52,7 @@ class CheckpointManager {
     final dir = await checkpointsDirectory;
     final file = File(p.join(dir, '$jobId.json'));
     
-    if (!await file.exists()) return null;
+    if (!file.existsSync()) return null;
     
     try {
       final content = await file.readAsString();
@@ -67,7 +67,7 @@ class CheckpointManager {
   Future<void> deleteCheckpoint(String jobId) async {
     final dir = await checkpointsDirectory;
     final file = File(p.join(dir, '$jobId.json'));
-    if (await file.exists()) {
+    if (file.existsSync()) {
       await file.delete();
     }
   }
@@ -108,14 +108,14 @@ class CheckpointManager {
   Future<bool> hasArtifact(String mediaHash) async {
     final dir = await artifactsDirectory;
     final file = File(p.join(dir, '$mediaHash.json'));
-    return file.exists();
+    return file.existsSync();
   }
 
   /// Delete an artifact
   Future<void> deleteArtifact(String mediaHash) async {
     final dir = await artifactsDirectory;
     final file = File(p.join(dir, '$mediaHash.json'));
-    if (await file.exists()) {
+    if (file.existsSync()) {
       await file.delete();
     }
   }
@@ -136,7 +136,7 @@ class CheckpointManager {
     
     await for (final entity in dir.list()) {
       if (entity is File) {
-        final stat = await entity.stat();
+        final stat = entity.statSync();
         if (stat.modified.isBefore(cutoff)) {
           await entity.delete();
         }

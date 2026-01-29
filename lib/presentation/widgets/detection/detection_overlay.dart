@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/models/detection.dart';
-import '../../themes/app_theme.dart';
+import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 
 /// Overlay widget for displaying active detections
 class DetectionOverlay extends StatelessWidget {
-  final Detection? currentDetection;
-  final VoidCallback? onDismiss;
-  final VoidCallback? onAction;
-
   const DetectionOverlay({
     super.key,
     this.currentDetection,
     this.onDismiss,
     this.onAction,
   });
+
+  final Detection? currentDetection;
+  final VoidCallback? onDismiss;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -32,11 +32,11 @@ class DetectionOverlay extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.9),
+            color: color.withValues(alpha: 0.9),
             borderRadius: BorderRadius.circular(8),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -62,16 +62,15 @@ class DetectionOverlay extends StatelessWidget {
                         fontSize: 12,
                       ),
                     ),
-                    if (detection.description != null)
-                      Text(
-                        detection.description!,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                    Text(
+                      detection.description,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
@@ -94,13 +93,11 @@ class DetectionOverlay extends StatelessWidget {
     );
   }
 
-  IconData _getIcon(ContentType type) {
-    return switch (type) {
+  IconData _getIcon(ContentType type) => switch (type) {
       ContentType.profanity => Icons.mic_off,
       ContentType.nsfw => Icons.visibility_off,
       ContentType.violence => Icons.warning,
       ContentType.blood => Icons.water_drop,
       ContentType.weapons => Icons.gpp_bad,
     };
-  }
 }

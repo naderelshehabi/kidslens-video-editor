@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/errors/error_handler.dart';
+import 'package:kidslens_video_editor/core/errors/error_handler.dart';
 
 /// Widget for displaying errors
 class ErrorDisplay extends StatelessWidget {
-  final ErrorResult? error;
-  final VoidCallback? onRetry;
-  final VoidCallback? onDismiss;
-
   const ErrorDisplay({
     super.key,
     this.error,
     this.onRetry,
     this.onDismiss,
   });
+
+  final ErrorResult? error;
+  final VoidCallback? onRetry;
+  final VoidCallback? onDismiss;
 
   @override
   Widget build(BuildContext context) {

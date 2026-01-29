@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'converters.dart';
+import 'package:kidslens_video_editor/data/models/converters.dart';
 
 part 'edit_action.freezed.dart';
 part 'edit_action.g.dart';
@@ -23,17 +23,12 @@ enum EditActionType {
 /// Represents an edit action applied to a media file
 @freezed
 class EditAction with _$EditAction {
-  const EditAction._();
-
   const factory EditAction({
     /// Unique identifier for this edit action
     required String id,
 
     /// ID of the media file this action applies to
     required String mediaId,
-
-    /// ID of the detection this action was created from (if any)
-    String? detectionId,
 
     /// Type of edit action
     required EditActionType type,
@@ -43,6 +38,9 @@ class EditAction with _$EditAction {
 
     /// End time in the media
     @DurationConverter() required Duration endTime,
+
+    /// ID of the detection this action was created from (if any)
+    String? detectionId,
 
     /// Whether this action is enabled
     @Default(true) bool enabled,
@@ -63,6 +61,8 @@ class EditAction with _$EditAction {
     @DateTimeConverter() DateTime? createdAt,
   }) = _EditAction;
 
+  const EditAction._();
+
   factory EditAction.fromJson(Map<String, dynamic> json) =>
       _$EditActionFromJson(json);
 
@@ -74,18 +74,17 @@ class EditAction with _$EditAction {
     required Duration endTime,
     String? detectionId,
     String? notes,
-  }) {
-    return EditAction(
-      id: id,
-      mediaId: mediaId,
-      detectionId: detectionId,
-      type: EditActionType.mute,
-      startTime: startTime,
-      endTime: endTime,
-      notes: notes,
-      createdAt: DateTime.now(),
-    );
-  }
+  }) =>
+      EditAction(
+        id: id,
+        mediaId: mediaId,
+        detectionId: detectionId,
+        type: EditActionType.mute,
+        startTime: startTime,
+        endTime: endTime,
+        notes: notes,
+        createdAt: DateTime.now(),
+      );
 
   /// Create a beep action
   factory EditAction.beep({
@@ -96,19 +95,18 @@ class EditAction with _$EditAction {
     String? detectionId,
     double frequency = 1000.0,
     String? notes,
-  }) {
-    return EditAction(
-      id: id,
-      mediaId: mediaId,
-      detectionId: detectionId,
-      type: EditActionType.beep,
-      startTime: startTime,
-      endTime: endTime,
-      beepFrequency: frequency,
-      notes: notes,
-      createdAt: DateTime.now(),
-    );
-  }
+  }) =>
+      EditAction(
+        id: id,
+        mediaId: mediaId,
+        detectionId: detectionId,
+        type: EditActionType.beep,
+        startTime: startTime,
+        endTime: endTime,
+        beepFrequency: frequency,
+        notes: notes,
+        createdAt: DateTime.now(),
+      );
 
   /// Create a blur action
   factory EditAction.blur({
@@ -120,20 +118,19 @@ class EditAction with _$EditAction {
     BoundingBox? boundingBox,
     double intensity = 1.0,
     String? notes,
-  }) {
-    return EditAction(
-      id: id,
-      mediaId: mediaId,
-      detectionId: detectionId,
-      type: EditActionType.blur,
-      startTime: startTime,
-      endTime: endTime,
-      boundingBox: boundingBox,
-      blurIntensity: intensity,
-      notes: notes,
-      createdAt: DateTime.now(),
-    );
-  }
+  }) =>
+      EditAction(
+        id: id,
+        mediaId: mediaId,
+        detectionId: detectionId,
+        type: EditActionType.blur,
+        startTime: startTime,
+        endTime: endTime,
+        boundingBox: boundingBox,
+        blurIntensity: intensity,
+        notes: notes,
+        createdAt: DateTime.now(),
+      );
 
   /// Create a cut action
   factory EditAction.cut({
@@ -143,18 +140,17 @@ class EditAction with _$EditAction {
     required Duration endTime,
     String? detectionId,
     String? notes,
-  }) {
-    return EditAction(
-      id: id,
-      mediaId: mediaId,
-      detectionId: detectionId,
-      type: EditActionType.cut,
-      startTime: startTime,
-      endTime: endTime,
-      notes: notes,
-      createdAt: DateTime.now(),
-    );
-  }
+  }) =>
+      EditAction(
+        id: id,
+        mediaId: mediaId,
+        detectionId: detectionId,
+        type: EditActionType.cut,
+        startTime: startTime,
+        endTime: endTime,
+        notes: notes,
+        createdAt: DateTime.now(),
+      );
 
   /// Duration of this edit action
   Duration get duration => endTime - startTime;
@@ -200,14 +196,11 @@ class EditAction with _$EditAction {
       type == EditActionType.blur || type == EditActionType.cut;
 
   /// Checks if this action overlaps with a time range
-  bool overlapsWithRange(Duration start, Duration end) {
-    return startTime < end && endTime > start;
-  }
+  bool overlapsWithRange(Duration start, Duration end) =>
+      startTime < end && endTime > start;
 
   /// Checks if a timestamp falls within this action
-  bool containsTime(Duration time) {
-    return time >= startTime && time < endTime;
-  }
+  bool containsTime(Duration time) => time >= startTime && time < endTime;
 }
 
 /// Bounding box for blur regions (reuse from detection or define here)

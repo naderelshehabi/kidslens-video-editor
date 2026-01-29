@@ -1,10 +1,11 @@
 import 'dart:ffi';
 import 'dart:io';
 
-import '../resource_manager.dart';
+import 'package:kidslens_video_editor/native/resource_manager.dart';
 
 /// FFI bindings for ONNX Runtime
 class ONNXBindings extends NativeResource {
+  // ignore: unused_field - Will be used when FFI is fully implemented
   DynamicLibrary? _lib;
   bool _initialized = false;
   final Map<String, _LoadedModel> _loadedModels = {};
@@ -102,10 +103,10 @@ class ONNXBindings extends NativeResource {
       inputNames: ['input'],
       outputNames: ['output'],
       inputShapes: [
-        [1, 3, 224, 224]
+        [1, 3, 224, 224],
       ],
       outputShapes: [
-        [1, 5]
+        [1, 5],
       ],
     );
   }
@@ -125,30 +126,31 @@ class ONNXBindings extends NativeResource {
 }
 
 class _LoadedModel {
-  final String path;
-
   _LoadedModel({required this.path});
+
+  final String path;
 }
 
 /// ONNX model metadata
 class ONNXModelMetadata {
-  final List<String> inputNames;
-  final List<String> outputNames;
-  final List<List<int>> inputShapes;
-  final List<List<int>> outputShapes;
-
   ONNXModelMetadata({
     required this.inputNames,
     required this.outputNames,
     required this.inputShapes,
     required this.outputShapes,
   });
+
+  final List<String> inputNames;
+  final List<String> outputNames;
+  final List<List<int>> inputShapes;
+  final List<List<int>> outputShapes;
 }
 
 /// Exception thrown when ONNX initialization fails
 class ONNXInitializationException implements Exception {
-  final String message;
   ONNXInitializationException(this.message);
+
+  final String message;
 
   @override
   String toString() => 'ONNXInitializationException: $message';

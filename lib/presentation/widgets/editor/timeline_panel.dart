@@ -1,20 +1,32 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
-import 'package:flutter/material.dart';
+
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/data/models/edit_action.dart';
+import 'package:kidslens_video_editor/data/models/media_file.dart';
+import 'package:kidslens_video_editor/state/providers/playback_provider.dart';
+import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 import 'package:uuid/uuid.dart';
-
-import '../../../data/models/detection.dart';
-import '../../../data/models/edit_action.dart';
-import '../../../data/models/media_file.dart';
-import '../../../state/providers/playback_provider.dart';
-import '../../../state/providers/service_providers.dart';
 
 /// Timeline panel with tracks and detection indicators
 class TimelinePanel extends ConsumerStatefulWidget {
+  const TimelinePanel({
+    required this.media,
+    required this.detections,
+    required this.editActions,
+    required this.onSeek,
+    required this.onAddEditAction,
+    super.key,
+    this.onEditActionUpdated,
+    this.onRemoveEditAction,
+    this.onEditBlurAction,
+    this.thumbnails,
+  });
+
   final MediaFile? media;
   final List<Detection> detections;
   final List<EditAction> editActions;
@@ -25,26 +37,13 @@ class TimelinePanel extends ConsumerStatefulWidget {
   final void Function(String)? onEditBlurAction;
   final List<Uint8List>? thumbnails;
 
-  const TimelinePanel({
-    super.key,
-    required this.media,
-    required this.detections,
-    required this.editActions,
-    required this.onSeek,
-    required this.onAddEditAction,
-    this.onEditActionUpdated,
-    this.onRemoveEditAction,
-    this.onEditBlurAction,
-    this.thumbnails,
-  });
-
   @override
   ConsumerState<TimelinePanel> createState() => _TimelinePanelState();
 }
 
 class _TimelinePanelState extends ConsumerState<TimelinePanel> 
     with SingleTickerProviderStateMixin {
-  double _zoom = 1.0;
+  double _zoom = 1;
   final ScrollController _scrollController = ScrollController();
   static const _uuid = Uuid();
   
@@ -137,8 +136,9 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
     _shimmerController.dispose();
     // Dispose thumbnail images
     if (_thumbnailImages != null) {
@@ -155,7 +155,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     final colorScheme = theme.colorScheme;
     final playbackState = ref.watch(playbackNotifierProvider);
 
-    return Container(
+    return ColoredBox(
       color: colorScheme.surfaceContainerLow,
       child: Column(
         children: [
@@ -221,13 +221,13 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
             child: Slider(
               value: _zoom,
               min: 0.25,
-              max: 8.0,
+              max: 8,
               onChanged: (value) => setState(() => _zoom = value),
             ),
           ),
           IconButton(
             icon: const Icon(Icons.zoom_in, size: 16),
-            onPressed: () => setState(() => _zoom = math.min(8.0, _zoom + 0.25)),
+            onPressed: () => setState(() => _zoom = math.min(8, _zoom + 0.25)),
             visualDensity: VisualDensity.compact,
             tooltip: 'Zoom In',
           ),
@@ -245,7 +245,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               margin: const EdgeInsets.only(right: 8),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.2),
+                color: Colors.blue.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: Colors.blue),
               ),
@@ -351,18 +351,16 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                     height: 40,
                   ),
                   // Detections track label
-                  _TrackLabel(
+                  const _TrackLabel(
                     icon: Icons.warning_amber,
                     label: 'Detections',
                     color: Colors.orange,
-                    height: 30,
                   ),
                   // Edits track label
-                  _TrackLabel(
+                  const _TrackLabel(
                     icon: Icons.edit,
                     label: 'Edits',
                     color: Colors.purple,
-                    height: 30,
                   ),
                 ],
               ),
@@ -375,7 +373,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
 
   Widget _buildTimelineArea(BuildContext context, PlaybackState playbackState) {
     final duration = widget.media?.duration ?? Duration.zero;
-    final timelineWidth = math.max(duration.inSeconds * 20.0 * _zoom, 500.0);
+    final double timelineWidth = math.max(duration.inSeconds * 20.0 * _zoom, 500);
 
     return Listener(
       onPointerSignal: (event) {
@@ -472,7 +470,6 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
           child: SizedBox(
             width: timelineWidth,
             child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(minHeight: 200),
                 child: Column(
@@ -491,7 +488,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                     _buildTrack(
                       context,
                       height: 30,
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       child: _buildDetectionMarkers(context, timelineWidth),
                       playbackState: playbackState,
                       timelineWidth: timelineWidth,
@@ -501,7 +498,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                     _buildTrack(
                       context,
                       height: 30,
-                      color: Colors.purple.withOpacity(0.1),
+                      color: Colors.purple.withValues(alpha: 0.1),
                       child: _buildEditMarkers(context, timelineWidth),
                       playbackState: playbackState,
                       timelineWidth: timelineWidth,
@@ -525,7 +522,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     return Container(
       height: trackHeight,
       decoration: BoxDecoration(
-        color: colorScheme.primary.withOpacity(0.1),
+        color: colorScheme.primary.withValues(alpha: 0.1),
         border: Border(
           bottom: BorderSide(color: colorScheme.outlineVariant),
         ),
@@ -536,8 +533,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
           if (widget.media != null && widget.media!.isVideo)
             AnimatedBuilder(
               animation: _shimmerController,
-              builder: (context, child) {
-                return CustomPaint(
+              builder: (context, child) => CustomPaint(
                   painter: _ThumbnailStripPainter(
                     duration: duration,
                     zoom: _zoom,
@@ -548,8 +544,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                     animationValue: _shimmerController.value,
                   ),
                   size: Size(timelineWidth, trackHeight),
-                );
-              },
+                ),
             ),
           // Loading indicator badge for thumbnails
           if (_isLoadingThumbnails && widget.media != null && widget.media!.isVideo)
@@ -559,7 +554,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer.withOpacity(0.9),
+                  color: colorScheme.primaryContainer.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -606,7 +601,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     return Container(
       height: 40,
       decoration: BoxDecoration(
-        color: colorScheme.secondary.withOpacity(0.1),
+        color: colorScheme.secondary.withValues(alpha: 0.1),
         border: Border(
           bottom: BorderSide(color: colorScheme.outlineVariant),
         ),
@@ -654,7 +649,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
       bottom: 0,
       child: Container(
         width: width,
-        color: Colors.blue.withOpacity(0.3),
+        color: Colors.blue.withValues(alpha: 0.3),
         child: Center(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -679,7 +674,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 1),
         decoration: BoxDecoration(
-          border: Border.all(color: colorScheme.primary.withOpacity(0.5), width: 1),
+          border: Border.all(color: colorScheme.primary.withValues(alpha: 0.5)),
           borderRadius: BorderRadius.circular(4),
         ),
         child: ClipRRect(
@@ -775,10 +770,10 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
       child: Container(
         width: endX - startX,
         decoration: BoxDecoration(
-          color: Colors.blue.withOpacity(0.2),
-          border: Border(
-            left: const BorderSide(color: Colors.blue, width: 2),
-            right: const BorderSide(color: Colors.blue, width: 2),
+          color: Colors.blue.withValues(alpha: 0.2),
+          border: const Border(
+            left: BorderSide(color: Colors.blue, width: 2),
+            right: BorderSide(color: Colors.blue, width: 2),
           ),
         ),
       ),
@@ -802,7 +797,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
           color: Colors.red,
           boxShadow: [
             BoxShadow(
-              color: Colors.red.withOpacity(0.3),
+              color: Colors.red.withValues(alpha: 0.3),
               blurRadius: 4,
               spreadRadius: 1,
             ),
@@ -831,7 +826,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
           child: Container(
             width: math.max(width, 8),
             decoration: BoxDecoration(
-              color: _getDetectionColor(detection.type).withOpacity(0.7),
+              color: _getDetectionColor(detection.type).withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(2),
               border: Border.all(
                 color: _getDetectionColor(detection.type),
@@ -856,8 +851,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     if (duration.inMilliseconds == 0) return const SizedBox.shrink();
 
     return Stack(
-      children: widget.editActions.where((e) => e.enabled).map((action) {
-        return _EditActionMarker(
+      children: widget.editActions.where((e) => e.enabled).map((action) => _EditActionMarker(
           key: ValueKey(action.id),
           action: action,
           duration: duration,
@@ -872,8 +866,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
           onUpdated: widget.onEditActionUpdated,
           onRemoved: widget.onRemoveEditAction,
           formatDuration: _formatDuration,
-        );
-      }).toList(),
+        ),).toList(),
     );
   }
 
@@ -952,7 +945,6 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
       mediaId: widget.media!.id,
       startTime: playbackState.selectionStart!,
       endTime: playbackState.selectionEnd!,
-      frequency: 1000.0,
     );
     
     widget.onAddEditAction(action);
@@ -1033,6 +1025,19 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
 
 /// Draggable and scalable edit action marker
 class _EditActionMarker extends StatefulWidget {
+  const _EditActionMarker({
+    required this.action,
+    required this.duration,
+    required this.timelineWidth,
+    required this.editColor,
+    required this.editIcon,
+    required this.formatDuration,
+    super.key,
+    this.onTap,
+    this.onUpdated,
+    this.onRemoved,
+  });
+
   final EditAction action;
   final Duration duration;
   final double timelineWidth;
@@ -1042,19 +1047,6 @@ class _EditActionMarker extends StatefulWidget {
   final void Function(EditAction)? onUpdated;
   final void Function(String)? onRemoved;
   final String Function(Duration) formatDuration;
-
-  const _EditActionMarker({
-    super.key,
-    required this.action,
-    required this.duration,
-    required this.timelineWidth,
-    required this.editColor,
-    required this.editIcon,
-    this.onTap,
-    this.onUpdated,
-    this.onRemoved,
-    required this.formatDuration,
-  });
 
   @override
   State<_EditActionMarker> createState() => _EditActionMarkerState();
@@ -1081,13 +1073,11 @@ class _EditActionMarkerState extends State<_EditActionMarker> {
 
   double get markerWidth => math.max(endX - startX, 8);
 
-  Duration _positionToDuration(double x) {
-    return Duration(
+  Duration _positionToDuration(double x) => Duration(
       milliseconds: (x / widget.timelineWidth * widget.duration.inMilliseconds)
           .round()
           .clamp(0, widget.duration.inMilliseconds),
     );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1145,7 +1135,7 @@ class _EditActionMarkerState extends State<_EditActionMarker> {
                 },
                 child: MouseRegion(
                   cursor: SystemMouseCursors.move,
-                  child: Container(
+                  child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: widget.editColor.withValues(alpha: _isDragging ? 0.9 : 0.7),
                       borderRadius: BorderRadius.circular(2),
@@ -1285,11 +1275,6 @@ class _EditActionMarkerState extends State<_EditActionMarker> {
 }
 
 class _TrackLabel extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final double height;
-
   const _TrackLabel({
     required this.icon,
     required this.label,
@@ -1297,9 +1282,13 @@ class _TrackLabel extends StatelessWidget {
     this.height = 30,
   });
 
+  final IconData icon;
+  final String label;
+  final Color color;
+  final double height;
+
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       height: height,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
@@ -1320,23 +1309,21 @@ class _TrackLabel extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 class _ToolButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback? onPressed;
-
   const _ToolButton({
     required this.icon,
     required this.label,
     required this.onPressed,
   });
 
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+
   @override
-  Widget build(BuildContext context) {
-    return TextButton.icon(
+  Widget build(BuildContext context) => TextButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, size: 14),
       label: Text(label, style: const TextStyle(fontSize: 11)),
@@ -1345,21 +1332,20 @@ class _ToolButton extends StatelessWidget {
         visualDensity: VisualDensity.compact,
       ),
     );
-  }
 }
 
 class _TimeRulerPainter extends CustomPainter {
-  final Duration duration;
-  final double zoom;
-  final Color textColor;
-  final Color tickColor;
-
   _TimeRulerPainter({
     required this.duration,
     required this.zoom,
     required this.textColor,
     required this.tickColor,
   });
+
+  final Duration duration;
+  final double zoom;
+  final Color textColor;
+  final Color tickColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1389,7 +1375,7 @@ class _TimeRulerPainter extends CustomPainter {
       majorInterval = 1;
     }
 
-    for (int s = 0; s <= totalSeconds; s++) {
+    for (var s = 0; s <= totalSeconds; s++) {
       final x = s * pixelsPerSecond;
       
       if (s % majorInterval == 0) {
@@ -1428,20 +1414,10 @@ class _TimeRulerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _TimeRulerPainter oldDelegate) {
-    return oldDelegate.duration != duration || oldDelegate.zoom != zoom;
-  }
+  bool shouldRepaint(covariant _TimeRulerPainter oldDelegate) => oldDelegate.duration != duration || oldDelegate.zoom != zoom;
 }
 
 class _ThumbnailStripPainter extends CustomPainter {
-  final Duration duration;
-  final double zoom;
-  final Color primaryColor;
-  final int thumbnailCount;
-  final List<ui.Image>? thumbnailImages;
-  final bool isLoading;
-  final double animationValue;
-
   _ThumbnailStripPainter({
     required this.duration,
     required this.zoom,
@@ -1451,6 +1427,14 @@ class _ThumbnailStripPainter extends CustomPainter {
     this.isLoading = false,
     this.animationValue = 0.0,
   });
+
+  final Duration duration;
+  final double zoom;
+  final Color primaryColor;
+  final int thumbnailCount;
+  final List<ui.Image>? thumbnailImages;
+  final bool isLoading;
+  final double animationValue;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1520,17 +1504,15 @@ class _ThumbnailStripPainter extends CustomPainter {
         // Shimmer loading animation
         final shimmerOffset = (animationValue + i * 0.1) % 1.0;
         final shimmerGradient = LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
           colors: [
             primaryColor.withValues(alpha: 0.15),
             primaryColor.withValues(alpha: 0.3),
             primaryColor.withValues(alpha: 0.15),
           ],
           stops: [
-            math.max(0.0, shimmerOffset - 0.3),
+            math.max(0, shimmerOffset - 0.3),
             shimmerOffset,
-            math.min(1.0, shimmerOffset + 0.3),
+            math.min(1, shimmerOffset + 0.3),
           ],
         );
         
@@ -1543,7 +1525,7 @@ class _ThumbnailStripPainter extends CustomPainter {
         );
         
         // Draw film strip icon in center
-        final iconSize = math.min(rect.width * 0.4, 20.0);
+        final double iconSize = math.min(rect.width * 0.4, 20);
         final iconRect = Rect.fromCenter(
           center: rect.center,
           width: iconSize,
@@ -1564,14 +1546,15 @@ class _ThumbnailStripPainter extends CustomPainter {
         final perfSize = iconSize * 0.15;
         for (var p = 0; p < 3; p++) {
           final perfY = iconRect.top + iconSize * (p + 1) / 4;
-          canvas.drawRect(
-            Rect.fromLTWH(iconRect.left - perfSize - 1, perfY - perfSize / 2, perfSize, perfSize),
-            Paint()..color = primaryColor.withValues(alpha: 0.3),
-          );
-          canvas.drawRect(
-            Rect.fromLTWH(iconRect.right + 1, perfY - perfSize / 2, perfSize, perfSize),
-            Paint()..color = primaryColor.withValues(alpha: 0.3),
-          );
+          canvas
+            ..drawRect(
+              Rect.fromLTWH(iconRect.left - perfSize - 1, perfY - perfSize / 2, perfSize, perfSize),
+              Paint()..color = primaryColor.withValues(alpha: 0.3),
+            )
+            ..drawRect(
+              Rect.fromLTWH(iconRect.right + 1, perfY - perfSize / 2, perfSize, perfSize),
+              Paint()..color = primaryColor.withValues(alpha: 0.3),
+            );
         }
       } else {
         // Static placeholder when not loading (fallback)
@@ -1579,7 +1562,7 @@ class _ThumbnailStripPainter extends CustomPainter {
         final saturation = 0.3 + random.nextDouble() * 0.2;
         final lightness = 0.3 + random.nextDouble() * 0.2;
         
-        final color = HSLColor.fromAHSL(1.0, hue.toDouble(), saturation, lightness).toColor();
+        final color = HSLColor.fromAHSL(1, hue.toDouble(), saturation, lightness).toColor();
         
         final gradient = LinearGradient(
           begin: Alignment.topCenter,
@@ -1655,8 +1638,7 @@ class _ThumbnailStripPainter extends CustomPainter {
     final textPainter = TextPainter(
       text: textSpan,
       textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
+    )..layout();
     textPainter.paint(
       canvas,
       Offset(
@@ -1667,28 +1649,26 @@ class _ThumbnailStripPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _ThumbnailStripPainter oldDelegate) {
-    return oldDelegate.duration != duration || 
+  bool shouldRepaint(covariant _ThumbnailStripPainter oldDelegate) => oldDelegate.duration != duration || 
            oldDelegate.zoom != zoom ||
            oldDelegate.thumbnailCount != thumbnailCount ||
            oldDelegate.thumbnailImages != thumbnailImages ||
            oldDelegate.isLoading != isLoading ||
            oldDelegate.animationValue != animationValue;
-  }
 }
 
 class _MiniWaveformPainter extends CustomPainter {
-  final Color color;
-  final Duration duration;
-  final double zoom;
-  final List<Detection> detections;
-
   _MiniWaveformPainter({
     required this.color,
     required this.duration,
     required this.zoom,
     required this.detections,
   });
+
+  final Color color;
+  final Duration duration;
+  final double zoom;
+  final List<Detection> detections;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1702,7 +1682,7 @@ class _MiniWaveformPainter extends CustomPainter {
           duration.inMilliseconds) * size.width;
 
       final regionPaint = Paint()
-        ..color = Colors.orange.withOpacity(0.3);
+        ..color = Colors.orange.withValues(alpha: 0.3);
       canvas.drawRect(
         Rect.fromLTRB(startX, 0, endX, size.height),
         regionPaint,
@@ -1711,19 +1691,19 @@ class _MiniWaveformPainter extends CustomPainter {
 
     // Draw waveform background
     final bgPaint = Paint()
-      ..color = color.withOpacity(0.1);
+      ..color = color.withValues(alpha: 0.1);
     canvas.drawRect(Offset.zero & size, bgPaint);
 
     // Draw mini waveform - detail increases with zoom
     final wavePaint = Paint()
-      ..color = color.withOpacity(0.6)
-      ..strokeWidth = math.max(1.0, zoom * 0.5);
+      ..color = color.withValues(alpha: 0.6)
+      ..strokeWidth = math.max(1, zoom * 0.5);
 
     final centerY = size.height / 2;
     final random = math.Random(42);
 
     // More detailed waveform at higher zoom/widths
-    final step = math.max(1.0, 3.0 / zoom);
+    final step = math.max(1, 3.0 / zoom);
     for (double x = 0; x < size.width; x += step) {
       final amplitude = random.nextDouble() * size.height * 0.35;
       canvas.drawLine(
@@ -1735,7 +1715,7 @@ class _MiniWaveformPainter extends CustomPainter {
 
     // Draw centerline
     final centerPaint = Paint()
-      ..color = color.withOpacity(0.3)
+      ..color = color.withValues(alpha: 0.3)
       ..strokeWidth = 0.5;
     canvas.drawLine(
       Offset(0, centerY),
@@ -1745,9 +1725,7 @@ class _MiniWaveformPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _MiniWaveformPainter oldDelegate) {
-    return oldDelegate.duration != duration ||
+  bool shouldRepaint(covariant _MiniWaveformPainter oldDelegate) => oldDelegate.duration != duration ||
         oldDelegate.zoom != zoom ||
         oldDelegate.detections != detections;
-  }
 }

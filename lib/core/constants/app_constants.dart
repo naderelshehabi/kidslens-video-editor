@@ -118,7 +118,7 @@ abstract final class AppConstants {
       description: 'Fast processing, lower accuracy',
       vramRequirementMB: 512,
       diskRequirementMB: 100,
-      realtimeMultiple: 5.0,
+      realtimeMultiple: 5,
       accuracyPercent: 85,
     ),
     'balanced': ModelTierSpec(
@@ -126,7 +126,7 @@ abstract final class AppConstants {
       description: 'Good balance of speed and accuracy',
       vramRequirementMB: 2048,
       diskRequirementMB: 500,
-      realtimeMultiple: 3.0,
+      realtimeMultiple: 3,
       accuracyPercent: 92,
     ),
     'quality': ModelTierSpec(
@@ -166,7 +166,7 @@ abstract final class AppConstants {
   static const Duration syncTolerance = Duration(milliseconds: 40);
 
   /// Target realtime multiple for analysis
-  static const double targetRealtimeMultiple = 3.0;
+  static const double targetRealtimeMultiple = 3;
 
   /// Maximum video duration for processing (10 hours)
   static const Duration maxVideoDuration = Duration(hours: 10);
@@ -213,13 +213,13 @@ abstract final class AppConstants {
   static const String defaultExportContainer = 'mp4';
 
   /// Default export video bitrate (Mbps)
-  static const double defaultExportVideoBitrateMbps = 8.0;
+  static const double defaultExportVideoBitrateMbps = 8;
 
   /// Default export audio bitrate (kbps)
   static const int defaultExportAudioBitrateKbps = 192;
 
   /// Default export frame rate
-  static const double defaultExportFrameRate = 30.0;
+  static const double defaultExportFrameRate = 30;
 
   // ============================================================
   // Cache & Storage Settings

@@ -55,7 +55,7 @@ class ProfanityService {
         id: _uuid.v4(),
         word: transcriptWord,
         matchedProfanity: normalized,
-        confidence: 1.0,
+        confidence: 1,
         type: MatchType.exact,
       );
     }
@@ -67,7 +67,7 @@ class ProfanityService {
           id: _uuid.v4(),
           word: transcriptWord,
           matchedProfanity: normalized,
-          confidence: 1.0,
+          confidence: 1,
           type: MatchType.exact,
         );
       }
@@ -104,12 +104,10 @@ class ProfanityService {
     return null;
   }
 
-  String _normalize(String word) {
-    return word
-        .toLowerCase()
-        .replaceAll(RegExp(r"[^\w\s']"), '')
-        .trim();
-  }
+  String _normalize(String word) => word
+      .toLowerCase()
+      .replaceAll(RegExp(r"[^\w\s']"), '')
+      .trim();
 
   String _normalizeLeetspeak(String word) {
     const leetspeakMap = {
@@ -189,8 +187,8 @@ class ProfanityService {
 }
 
 class _PhoneticMatchResult {
+  _PhoneticMatchResult({required this.matchedWord, required this.confidence});
+
   final String matchedWord;
   final double confidence;
-
-  _PhoneticMatchResult({required this.matchedWord, required this.confidence});
 }

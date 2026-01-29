@@ -1,7 +1,9 @@
-import 'dart:io';
-import 'package:path/path.dart' as path;
+// ignore_for_file: avoid_classes_with_only_static_members
 
-import '../constants/supported_formats.dart';
+import 'dart:io';
+
+import 'package:kidslens_video_editor/core/constants/supported_formats.dart';
+import 'package:path/path.dart' as path;
 
 /// Utility functions for file operations
 abstract final class FileUtils {
@@ -19,7 +21,7 @@ abstract final class FileUtils {
     }
 
     const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
-    const int kilo = 1024;
+    const kilo = 1024;
 
     if (bytes == 0) {
       return '0 B';
@@ -52,7 +54,7 @@ abstract final class FileUtils {
   /// [bytes] - The size in bytes
   /// [unit] - The unit to display ('KB', 'MB', 'GB')
   static String formatFileSizeInUnit(int bytes, String unit,
-      {int decimals = 2}) {
+      {int decimals = 2,}) {
     const divisors = <String, int>{
       'B': 1,
       'KB': 1024,
@@ -110,71 +112,57 @@ abstract final class FileUtils {
   /// - "/path/to/video.mp4" → "mp4"
   /// - "file.tar.gz" → "gz"
   /// - "noextension" → ""
-  static String getFileExtension(String filePath) {
-    final ext = path.extension(filePath);
-    if (ext.isEmpty) return '';
-    // Remove the leading dot
-    return ext.substring(1).toLowerCase();
-  }
+  static String getFileExtension(String filePath) =>
+      path.extension(filePath).isEmpty
+          ? ''
+          : path.extension(filePath).substring(1).toLowerCase();
 
   /// Get the file name without extension
   ///
   /// Examples:
   /// - "/path/to/video.mp4" → "video"
   /// - "file.tar.gz" → "file.tar"
-  static String getFileNameWithoutExtension(String filePath) {
-    return path.basenameWithoutExtension(filePath);
-  }
+  static String getFileNameWithoutExtension(String filePath) =>
+      path.basenameWithoutExtension(filePath);
 
   /// Get the file name with extension
   ///
   /// Examples:
   /// - "/path/to/video.mp4" → "video.mp4"
-  static String getFileName(String filePath) {
-    return path.basename(filePath);
-  }
+  static String getFileName(String filePath) => path.basename(filePath);
 
   /// Get the directory containing a file
   ///
   /// Examples:
   /// - "/path/to/video.mp4" → "/path/to"
-  static String getDirectory(String filePath) {
-    return path.dirname(filePath);
-  }
+  static String getDirectory(String filePath) => path.dirname(filePath);
 
   /// Check if a path points to a video file
   ///
   /// Based on file extension matching supported video formats.
-  static bool isVideoFile(String filePath) {
-    final ext = getFileExtension(filePath);
-    if (ext.isEmpty) return false;
-    return SupportedFormats.isVideoFormat(ext);
-  }
+  static bool isVideoFile(String filePath) =>
+      getFileExtension(filePath).isNotEmpty &&
+      SupportedFormats.isVideoFormat(getFileExtension(filePath));
 
   /// Check if a path points to an audio file
   ///
   /// Based on file extension matching supported audio formats.
-  static bool isAudioFile(String filePath) {
-    final ext = getFileExtension(filePath);
-    if (ext.isEmpty) return false;
-    return SupportedFormats.isAudioFormat(ext);
-  }
+  static bool isAudioFile(String filePath) =>
+      getFileExtension(filePath).isNotEmpty &&
+      SupportedFormats.isAudioFormat(getFileExtension(filePath));
 
   /// Check if a path points to any supported media file
-  static bool isMediaFile(String filePath) {
-    return isVideoFile(filePath) || isAudioFile(filePath);
-  }
+  static bool isMediaFile(String filePath) =>
+      isVideoFile(filePath) || isAudioFile(filePath);
 
   /// Normalize a file path for the current platform
-  static String normalizePath(String filePath) {
-    return path.normalize(filePath);
-  }
+  static String normalizePath(String filePath) => path.normalize(filePath);
 
   /// Join path segments using the platform separator
   static String joinPath(String path1, String path2,
-      [String? path3, String? path4]) {
+      [String? path3, String? path4,]) {
     if (path4 != null) {
-      return path.join(path1, path2, path3!, path4);
+      return path.join(path1, path2, path3, path4);
     }
     if (path3 != null) {
       return path.join(path1, path2, path3);
@@ -183,29 +171,24 @@ abstract final class FileUtils {
   }
 
   /// Check if a file exists
-  static Future<bool> fileExists(String filePath) async {
-    return File(filePath).exists();
-  }
+  static Future<bool> fileExists(String filePath) async =>
+      File(filePath).existsSync();
 
   /// Check if a file exists (synchronous)
-  static bool fileExistsSync(String filePath) {
-    return File(filePath).existsSync();
-  }
+  static bool fileExistsSync(String filePath) => File(filePath).existsSync();
 
   /// Check if a directory exists
-  static Future<bool> directoryExists(String dirPath) async {
-    return Directory(dirPath).exists();
-  }
+  static Future<bool> directoryExists(String dirPath) async =>
+      Directory(dirPath).existsSync();
 
   /// Check if a directory exists (synchronous)
-  static bool directoryExistsSync(String dirPath) {
-    return Directory(dirPath).existsSync();
-  }
+  static bool directoryExistsSync(String dirPath) =>
+      Directory(dirPath).existsSync();
 
   /// Get file size in bytes
   static Future<int> getFileSize(String filePath) async {
     final file = File(filePath);
-    if (await file.exists()) {
+    if (file.existsSync()) {
       return file.length();
     }
     return 0;
@@ -223,8 +206,8 @@ abstract final class FileUtils {
   /// Get file modification time
   static Future<DateTime?> getFileModifiedTime(String filePath) async {
     final file = File(filePath);
-    if (await file.exists()) {
-      return file.lastModified();
+    if (file.existsSync()) {
+      return file.lastModifiedSync();
     }
     return null;
   }
@@ -232,8 +215,8 @@ abstract final class FileUtils {
   /// Create a directory if it doesn't exist
   static Future<Directory> ensureDirectory(String dirPath) async {
     final dir = Directory(dirPath);
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
+    if (!dir.existsSync()) {
+      dir.createSync(recursive: true);
     }
     return dir;
   }
@@ -250,7 +233,7 @@ abstract final class FileUtils {
   /// Delete a file if it exists
   static Future<void> deleteFileIfExists(String filePath) async {
     final file = File(filePath);
-    if (await file.exists()) {
+    if (file.existsSync()) {
       await file.delete();
     }
   }
@@ -316,7 +299,7 @@ abstract final class FileUtils {
   /// Calculate total size of files in a directory
   static Future<int> getDirectorySize(String dirPath) async {
     final dir = Directory(dirPath);
-    if (!await dir.exists()) {
+    if (!dir.existsSync()) {
       return 0;
     }
 
@@ -337,7 +320,7 @@ abstract final class FileUtils {
     bool recursive = false,
   }) async {
     final dir = Directory(dirPath);
-    if (!await dir.exists()) {
+    if (!dir.existsSync()) {
       return [];
     }
 
@@ -359,12 +342,10 @@ abstract final class FileUtils {
   }
 
   /// Sanitize a file name by removing/replacing invalid characters
-  static String sanitizeFileName(String fileName) {
-    // Characters invalid on Windows: \ / : * ? " < > |
-    // Also remove control characters
-    return fileName
-        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
-        .replaceAll(RegExp(r'[\x00-\x1F]'), '')
-        .trim();
-  }
+  // Characters invalid on Windows: \ / : * ? " < > |
+  // Also remove control characters
+  static String sanitizeFileName(String fileName) => fileName
+      .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
+      .replaceAll(RegExp(r'[\x00-\x1F]'), '')
+      .trim();
 }

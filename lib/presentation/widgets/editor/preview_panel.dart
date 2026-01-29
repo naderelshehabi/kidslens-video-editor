@@ -1,37 +1,36 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/data/models/edit_action.dart';
+import 'package:kidslens_video_editor/data/models/media_file.dart';
+import 'package:kidslens_video_editor/presentation/widgets/editor/blur_region_overlay.dart';
+import 'package:kidslens_video_editor/state/providers/playback_provider.dart';
+import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
-import '../../../data/models/detection.dart';
-import '../../../data/models/edit_action.dart';
-import '../../../data/models/media_file.dart';
-import '../../../state/providers/playback_provider.dart';
-import '../../../state/providers/service_providers.dart';
-import 'blur_region_overlay.dart';
-
 /// Preview panel for video/audio with playback controls using media_kit
 class PreviewPanel extends ConsumerStatefulWidget {
+  const PreviewPanel({
+    required this.media,
+    required this.detections,
+    required this.editActions,
+    super.key,
+    this.onEditActionUpdated,
+    this.editingBlurActionId,
+    this.onEditingBlurActionChanged,
+  });
+
   final MediaFile? media;
   final List<Detection> detections;
   final List<EditAction> editActions;
   final void Function(EditAction)? onEditActionUpdated;
   final String? editingBlurActionId;
   final void Function(String?)? onEditingBlurActionChanged;
-
-  const PreviewPanel({
-    super.key,
-    required this.media,
-    required this.detections,
-    required this.editActions,
-    this.onEditActionUpdated,
-    this.editingBlurActionId,
-    this.onEditingBlurActionChanged,
-  });
 
   @override
   ConsumerState<PreviewPanel> createState() => _PreviewPanelState();
@@ -89,7 +88,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
       if (!mounted) return;
       Future.microtask(() {
         if (!mounted) return;
-        ref.read(playbackNotifierProvider.notifier).updatePlaying(playing);
+        ref.read(playbackNotifierProvider.notifier).updatePlaying(isPlaying: playing);
         // Handle playback stop - beep should stop immediately
         if (!playing) {
           _stopAllAudioEffects();
@@ -137,8 +136,8 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     }
     
     // Determine current audio effect state
-    AudioEffectState newEffectState = AudioEffectState.none;
-    int beepFrequency = 1000;
+    var newEffectState = AudioEffectState.none;
+    var beepFrequency = 1000;
     
     // Check for beep region (takes precedence over mute)
     final beepAction = widget.editActions.firstWhere(
@@ -162,7 +161,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
       final inMuteRegion = widget.editActions.any((action) =>
           action.enabled &&
           action.type == EditActionType.mute &&
-          action.containsTime(position));
+          action.containsTime(position),);
       
       if (inMuteRegion) {
         newEffectState = AudioEffectState.muted;
@@ -275,7 +274,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     final colorScheme = Theme.of(context).colorScheme;
     final playbackState = ref.watch(playbackNotifierProvider);
 
-    return Container(
+    return ColoredBox(
       color: colorScheme.surfaceContainerLowest,
       child: Column(
         children: [
@@ -333,14 +332,14 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     final activeBlurActions = widget.editActions
         .where((a) => a.type == EditActionType.blur && 
                       a.enabled && 
-                      a.containsTime(position))
+                      a.containsTime(position),)
         .toList();
 
     // Active mute actions for current position
     final isMuted = widget.editActions.any((a) => 
         a.type == EditActionType.mute && 
         a.enabled && 
-        a.containsTime(position));
+        a.containsTime(position),);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -349,8 +348,8 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
             : 16 / 9;
         
         // Calculate actual video display size
-        double videoWidth = constraints.maxWidth;
-        double videoHeight = videoWidth / aspectRatio;
+        var videoWidth = constraints.maxWidth;
+        var videoHeight = videoWidth / aspectRatio;
         
         if (videoHeight > constraints.maxHeight) {
           videoHeight = constraints.maxHeight;
@@ -369,16 +368,14 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                 child: Stack(
                   children: [
                     // Video widget - wrapped to disable default gesture handlers
-                    _videoController != null
-                        ? IgnorePointer(
+                    if (_videoController != null) IgnorePointer(
                             child: Video(
                               controller: _videoController!,
                               controls: (state) => const SizedBox.shrink(),
                             ),
-                          )
-                        : Container(
+                          ) else const ColoredBox(
                             color: Colors.black,
-                            child: const Center(
+                            child: Center(
                               child: CircularProgressIndicator(),
                             ),
                           ),
@@ -419,7 +416,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                     // Detection visual overlays
                     ...activeDetections
                         .where((d) => d.isVisualDetection)
-                        .map((detection) => _buildDetectionOverlay(detection)),
+                        .map(_buildDetectionOverlay),
                   ],
                 ),
               ),
@@ -432,7 +429,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                 right: 8,
                 child: Column(
                   children: activeDetections.map((d) => 
-                    _buildDetectionBadge(context, d)).toList(),
+                    _buildDetectionBadge(context, d),).toList(),
                 ),
               ),
 
@@ -444,7 +441,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.purple.withOpacity(0.9),
+                    color: Colors.purple.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Row(
@@ -497,7 +494,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.9),
+                    color: Colors.blue.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -534,7 +531,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
       margin: const EdgeInsets.only(bottom: 4),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.9),
+        color: color.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -603,7 +600,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
             child: Wrap(
               spacing: 8,
               children: activeDetections.map((d) => 
-                _buildDetectionBadge(context, d)).toList(),
+                _buildDetectionBadge(context, d),).toList(),
             ),
           ),
       ],
@@ -830,15 +827,6 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
 
 /// Custom painter for waveform visualization
 class _WaveformPainter extends CustomPainter {
-  final Color color;
-  final Color backgroundColor;
-  final Duration position;
-  final Duration duration;
-  final List<Detection> detections;
-  final List<EditAction> editActions;
-  final Duration? selectionStart;
-  final Duration? selectionEnd;
-
   _WaveformPainter({
     required this.color,
     required this.backgroundColor,
@@ -849,6 +837,15 @@ class _WaveformPainter extends CustomPainter {
     this.selectionStart,
     this.selectionEnd,
   });
+
+  final Color color;
+  final Color backgroundColor;
+  final Duration position;
+  final Duration duration;
+  final List<Detection> detections;
+  final List<EditAction> editActions;
+  final Duration? selectionStart;
+  final Duration? selectionEnd;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -865,7 +862,7 @@ class _WaveformPainter extends CustomPainter {
           duration.inMilliseconds) * size.width;
       
       final selectionPaint = Paint()
-        ..color = Colors.blue.withOpacity(0.2);
+        ..color = Colors.blue.withValues(alpha: 0.2);
       
       canvas.drawRect(
         Rect.fromLTRB(startX, 0, endX, size.height),
@@ -883,7 +880,7 @@ class _WaveformPainter extends CustomPainter {
           duration.inMilliseconds) * size.width;
       
       final actionPaint = Paint()
-        ..color = _getEditActionColor(action.type).withOpacity(0.3);
+        ..color = _getEditActionColor(action.type).withValues(alpha: 0.3);
       
       canvas.drawRect(
         Rect.fromLTRB(startX, 0, endX, size.height),
@@ -901,7 +898,7 @@ class _WaveformPainter extends CustomPainter {
           duration.inMilliseconds) * size.width;
       
       final detectionPaint = Paint()
-        ..color = _getDetectionColor(detection.type).withOpacity(0.3);
+        ..color = _getDetectionColor(detection.type).withValues(alpha: 0.3);
       
       canvas.drawRect(
         Rect.fromLTRB(startX, 0, endX, size.height),
@@ -971,12 +968,10 @@ class _WaveformPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _WaveformPainter oldDelegate) {
-    return oldDelegate.position != position ||
+  bool shouldRepaint(covariant _WaveformPainter oldDelegate) => oldDelegate.position != position ||
         oldDelegate.duration != duration ||
         oldDelegate.detections != detections ||
         oldDelegate.editActions != editActions ||
         oldDelegate.selectionStart != selectionStart ||
         oldDelegate.selectionEnd != selectionEnd;
-  }
 }

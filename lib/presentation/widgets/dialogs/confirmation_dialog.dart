@@ -2,6 +2,17 @@ import 'package:flutter/material.dart';
 
 /// General confirmation dialog
 class ConfirmationDialog extends StatelessWidget {
+  const ConfirmationDialog({
+    required this.title,
+    required this.message,
+    super.key,
+    this.confirmLabel = 'Confirm',
+    this.cancelLabel = 'Cancel',
+    this.icon,
+    this.iconColor,
+    this.isDestructive = false,
+  });
+
   final String title;
   final String message;
   final String confirmLabel;
@@ -9,17 +20,6 @@ class ConfirmationDialog extends StatelessWidget {
   final IconData? icon;
   final Color? iconColor;
   final bool isDestructive;
-
-  const ConfirmationDialog({
-    super.key,
-    required this.title,
-    required this.message,
-    this.confirmLabel = 'Confirm',
-    this.cancelLabel = 'Cancel',
-    this.icon,
-    this.iconColor,
-    this.isDestructive = false,
-  });
 
   /// Show the dialog and return true if confirmed
   static Future<bool> show({
@@ -48,8 +48,7 @@ class ConfirmationDialog extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
+  Widget build(BuildContext context) => AlertDialog(
       icon: icon != null
           ? Icon(
               icon,
@@ -82,5 +81,4 @@ class ConfirmationDialog extends StatelessWidget {
           ),
       ],
     );
-  }
 }

@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/models/detection.dart';
-import '../../themes/app_theme.dart';
+import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 
 /// List item widget for a detection
 class DetectionListItem extends StatelessWidget {
-  final Detection detection;
-  final bool isSelected;
-  final VoidCallback? onTap;
-  final VoidCallback? onDismiss;
-  final VoidCallback? onRestore;
-  final VoidCallback? onJumpTo;
-
   const DetectionListItem({
-    super.key,
     required this.detection,
+    super.key,
     this.isSelected = false,
     this.onTap,
     this.onDismiss,
     this.onRestore,
     this.onJumpTo,
   });
+
+  final Detection detection;
+  final bool isSelected;
+  final VoidCallback? onTap;
+  final VoidCallback? onDismiss;
+  final VoidCallback? onRestore;
+  final VoidCallback? onJumpTo;
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +66,7 @@ class DetectionListItem extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: color.withOpacity(0.2),
+                              color: color.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -95,8 +95,7 @@ class DetectionListItem extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        detection.description ??
-                            'Detection at ${_formatTime(detection.startTime)}',
+                        detection.description,
                         style: Theme.of(context).textTheme.bodyMedium,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

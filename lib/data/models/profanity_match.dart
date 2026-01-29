@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'transcript.dart';
+import 'package:kidslens_video_editor/data/models/transcript.dart';
 
 part 'profanity_match.freezed.dart';
 part 'profanity_match.g.dart';
@@ -32,8 +32,6 @@ enum MatchType {
 /// Represents a detected profanity match in the transcript
 @freezed
 class ProfanityMatch with _$ProfanityMatch {
-  const ProfanityMatch._();
-
   const factory ProfanityMatch({
     /// Unique identifier for the match
     required String id,
@@ -66,6 +64,8 @@ class ProfanityMatch with _$ProfanityMatch {
     String? userNote,
   }) = _ProfanityMatch;
 
+  const ProfanityMatch._();
+
   factory ProfanityMatch.fromJson(Map<String, dynamic> json) =>
       _$ProfanityMatchFromJson(json);
 
@@ -76,17 +76,16 @@ class ProfanityMatch with _$ProfanityMatch {
     required String matchedProfanity,
     int severity = 3,
     String? category,
-  }) {
-    return ProfanityMatch(
-      id: id,
-      word: word,
-      matchedProfanity: matchedProfanity,
-      confidence: 1.0,
-      type: MatchType.exact,
-      severity: severity,
-      category: category,
-    );
-  }
+  }) =>
+      ProfanityMatch(
+        id: id,
+        word: word,
+        matchedProfanity: matchedProfanity,
+        confidence: 1,
+        type: MatchType.exact,
+        severity: severity,
+        category: category,
+      );
 
   /// Creates a leetspeak match
   factory ProfanityMatch.leetspeak({
@@ -96,17 +95,16 @@ class ProfanityMatch with _$ProfanityMatch {
     required double confidence,
     int severity = 3,
     String? category,
-  }) {
-    return ProfanityMatch(
-      id: id,
-      word: word,
-      matchedProfanity: matchedProfanity,
-      confidence: confidence,
-      type: MatchType.leetspeak,
-      severity: severity,
-      category: category,
-    );
-  }
+  }) =>
+      ProfanityMatch(
+        id: id,
+        word: word,
+        matchedProfanity: matchedProfanity,
+        confidence: confidence,
+        type: MatchType.leetspeak,
+        severity: severity,
+        category: category,
+      );
 
   /// Creates a phonetic match
   factory ProfanityMatch.phonetic({
@@ -116,17 +114,16 @@ class ProfanityMatch with _$ProfanityMatch {
     required double confidence,
     int severity = 3,
     String? category,
-  }) {
-    return ProfanityMatch(
-      id: id,
-      word: word,
-      matchedProfanity: matchedProfanity,
-      confidence: confidence,
-      type: MatchType.phonetic,
-      severity: severity,
-      category: category,
-    );
-  }
+  }) =>
+      ProfanityMatch(
+        id: id,
+        word: word,
+        matchedProfanity: matchedProfanity,
+        confidence: confidence,
+        type: MatchType.phonetic,
+        severity: severity,
+        category: category,
+      );
 
   /// Creates a fuzzy match
   factory ProfanityMatch.fuzzy({
@@ -136,17 +133,16 @@ class ProfanityMatch with _$ProfanityMatch {
     required double confidence,
     int severity = 3,
     String? category,
-  }) {
-    return ProfanityMatch(
-      id: id,
-      word: word,
-      matchedProfanity: matchedProfanity,
-      confidence: confidence,
-      type: MatchType.fuzzy,
-      severity: severity,
-      category: category,
-    );
-  }
+  }) =>
+      ProfanityMatch(
+        id: id,
+        word: word,
+        matchedProfanity: matchedProfanity,
+        confidence: confidence,
+        type: MatchType.fuzzy,
+        severity: severity,
+        category: category,
+      );
 
   /// Creates an obfuscated match
   factory ProfanityMatch.obfuscated({
@@ -156,17 +152,16 @@ class ProfanityMatch with _$ProfanityMatch {
     required double confidence,
     int severity = 3,
     String? category,
-  }) {
-    return ProfanityMatch(
-      id: id,
-      word: word,
-      matchedProfanity: matchedProfanity,
-      confidence: confidence,
-      type: MatchType.obfuscated,
-      severity: severity,
-      category: category,
-    );
-  }
+  }) =>
+      ProfanityMatch(
+        id: id,
+        word: word,
+        matchedProfanity: matchedProfanity,
+        confidence: confidence,
+        type: MatchType.obfuscated,
+        severity: severity,
+        category: category,
+      );
 
   /// Start time of the matched word
   Duration get startTime => word.startTime;
@@ -212,75 +207,61 @@ class ProfanityMatch with _$ProfanityMatch {
   }
 
   /// Short description of the match
-  String get shortDescription {
-    return '"${word.word}" → "$matchedProfanity" (${type.name})';
-  }
+  String get shortDescription =>
+      '"${word.word}" → "$matchedProfanity" (${type.name})';
 
   /// Mark as false positive
-  ProfanityMatch markAsFalsePositive({String? note}) {
-    return copyWith(
-      isFalsePositive: true,
-      isReviewed: true,
-      userNote: note ?? userNote,
-    );
-  }
+  ProfanityMatch markAsFalsePositive({String? note}) => copyWith(
+        isFalsePositive: true,
+        isReviewed: true,
+        userNote: note ?? userNote,
+      );
 
   /// Mark as reviewed (confirmed)
-  ProfanityMatch markAsReviewed({String? note}) {
-    return copyWith(
-      isReviewed: true,
-      userNote: note ?? userNote,
-    );
-  }
+  ProfanityMatch markAsReviewed({String? note}) => copyWith(
+        isReviewed: true,
+        userNote: note ?? userNote,
+      );
 
   /// Checks if this match overlaps with a time range
-  bool overlapsWithRange(Duration start, Duration end) {
-    return startTime < end && endTime > start;
-  }
+  bool overlapsWithRange(Duration start, Duration end) =>
+      startTime < end && endTime > start;
 }
 
 /// Extension for working with lists of profanity matches
 extension ProfanityMatchListExtensions on List<ProfanityMatch> {
   /// Gets matches by type
-  List<ProfanityMatch> byType(MatchType type) {
-    return where((m) => m.type == type).toList();
-  }
+  List<ProfanityMatch> byType(MatchType type) =>
+      where((m) => m.type == type).toList();
 
   /// Gets exact matches only
   List<ProfanityMatch> get exactMatches => byType(MatchType.exact);
 
   /// Gets all matches that are not false positives
-  List<ProfanityMatch> get validMatches {
-    return where((m) => !m.isFalsePositive).toList();
-  }
+  List<ProfanityMatch> get validMatches =>
+      where((m) => !m.isFalsePositive).toList();
 
   /// Gets matches within a time range
-  List<ProfanityMatch> inTimeRange(Duration start, Duration end) {
-    return where((m) => m.overlapsWithRange(start, end)).toList();
-  }
+  List<ProfanityMatch> inTimeRange(Duration start, Duration end) =>
+      where((m) => m.overlapsWithRange(start, end)).toList();
 
   /// Gets unreviewed matches
-  List<ProfanityMatch> get unreviewedMatches {
-    return where((m) => !m.isReviewed).toList();
-  }
+  List<ProfanityMatch> get unreviewedMatches =>
+      where((m) => !m.isReviewed).toList();
 
   /// Gets high severity matches
-  List<ProfanityMatch> get highSeverityMatches {
-    return where((m) => m.isHighSeverity).toList();
-  }
+  List<ProfanityMatch> get highSeverityMatches =>
+      where((m) => m.isHighSeverity).toList();
 
   /// Sorts by time
-  List<ProfanityMatch> sortedByTime() {
-    return [...this]..sort((a, b) => a.startTime.compareTo(b.startTime));
-  }
+  List<ProfanityMatch> sortedByTime() =>
+      [...this]..sort((a, b) => a.startTime.compareTo(b.startTime));
 
   /// Sorts by confidence (descending)
-  List<ProfanityMatch> sortedByConfidence() {
-    return [...this]..sort((a, b) => b.confidence.compareTo(a.confidence));
-  }
+  List<ProfanityMatch> sortedByConfidence() =>
+      [...this]..sort((a, b) => b.confidence.compareTo(a.confidence));
 
   /// Sorts by severity (descending)
-  List<ProfanityMatch> sortedBySeverity() {
-    return [...this]..sort((a, b) => b.severity.compareTo(a.severity));
-  }
+  List<ProfanityMatch> sortedBySeverity() =>
+      [...this]..sort((a, b) => b.severity.compareTo(a.severity));
 }

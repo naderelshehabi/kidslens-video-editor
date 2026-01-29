@@ -20,9 +20,9 @@ class AcceleratorInfo with _$AcceleratorInfo {
     required AcceleratorType type,
     required String name,
     required int vramMB,
+    required int recommendedBatchSize,
     String? computeCapability,
     @Default(false) bool isAppleSilicon,
-    required int recommendedBatchSize,
   }) = _AcceleratorInfo;
   
   factory AcceleratorInfo.fromJson(Map<String, dynamic> json) =>

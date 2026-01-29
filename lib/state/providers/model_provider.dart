@@ -1,19 +1,11 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'model_provider.g.dart';
 
 /// State for AI model management
 class ModelState {
-  final List<ModelInfo> availableModels;
-  final Set<String> downloadedModels;
-  final Map<String, ModelDownloadProgress> activeDownloads;
-  final ModelConfig? selectedConfig;
-  final bool isLoading;
-  final String? errorMessage;
-
   const ModelState({
     this.availableModels = const [],
     this.downloadedModels = const {},
@@ -23,6 +15,13 @@ class ModelState {
     this.errorMessage,
   });
 
+  final List<ModelInfo> availableModels;
+  final Set<String> downloadedModels;
+  final Map<String, ModelDownloadProgress> activeDownloads;
+  final ModelConfig? selectedConfig;
+  final bool isLoading;
+  final String? errorMessage;
+
   ModelState copyWith({
     List<ModelInfo>? availableModels,
     Set<String>? downloadedModels,
@@ -30,16 +29,15 @@ class ModelState {
     ModelConfig? selectedConfig,
     bool? isLoading,
     String? errorMessage,
-  }) {
-    return ModelState(
-      availableModels: availableModels ?? this.availableModels,
-      downloadedModels: downloadedModels ?? this.downloadedModels,
-      activeDownloads: activeDownloads ?? this.activeDownloads,
-      selectedConfig: selectedConfig ?? this.selectedConfig,
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
-    );
-  }
+  }) =>
+      ModelState(
+        availableModels: availableModels ?? this.availableModels,
+        downloadedModels: downloadedModels ?? this.downloadedModels,
+        activeDownloads: activeDownloads ?? this.activeDownloads,
+        selectedConfig: selectedConfig ?? this.selectedConfig,
+        isLoading: isLoading ?? this.isLoading,
+        errorMessage: errorMessage,
+      );
 }
 
 /// Provider for managing AI models
@@ -49,7 +47,7 @@ class ModelNotifier extends _$ModelNotifier {
   ModelState build() => const ModelState();
 
   Future<void> loadAvailableModels() async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true);
     try {
       // TODO: Implement actual model loading via ModelManagerService
       await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -70,7 +68,7 @@ class ModelNotifier extends _$ModelNotifier {
           ...state.activeDownloads,
           modelId: ModelDownloadProgress(
             modelId: modelId,
-            percentage: 0.0,
+            percentage: 0,
             downloadedBytes: 0,
             totalBytes: 0,
           ),
@@ -124,6 +122,6 @@ class ModelNotifier extends _$ModelNotifier {
   }
 
   void clearError() {
-    state = state.copyWith(errorMessage: null);
+    state = state.copyWith();
   }
 }

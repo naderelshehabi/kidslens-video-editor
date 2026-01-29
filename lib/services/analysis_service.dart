@@ -10,27 +10,14 @@ import 'package:kidslens_video_editor/services/profanity_service.dart';
 
 /// Checkpoint for resuming analysis
 class AnalysisCheckpoint {
-  final Transcript? transcript;
-  final List<ProfanityMatch>? profanityMatches;
-  final int lastAnalyzedFrame;
-  final DateTime timestamp;
-
   AnalysisCheckpoint({
+    required this.timestamp,
     this.transcript,
     this.profanityMatches,
     this.lastAnalyzedFrame = 0,
-    required this.timestamp,
   });
 
-  Map<String, dynamic> toJson() => {
-        'transcript': transcript?.toJson(),
-        'profanityMatches': profanityMatches?.map((e) => e.toJson()).toList(),
-        'lastAnalyzedFrame': lastAnalyzedFrame,
-        'timestamp': timestamp.toIso8601String(),
-      };
-
-  factory AnalysisCheckpoint.fromJson(Map<String, dynamic> json) {
-    return AnalysisCheckpoint(
+  factory AnalysisCheckpoint.fromJson(Map<String, dynamic> json) => AnalysisCheckpoint(
       transcript: json['transcript'] != null
           ? Transcript.fromJson(json['transcript'] as Map<String, dynamic>)
           : null,
@@ -42,18 +29,22 @@ class AnalysisCheckpoint {
       lastAnalyzedFrame: json['lastAnalyzedFrame'] as int? ?? 0,
       timestamp: DateTime.parse(json['timestamp'] as String),
     );
-  }
+
+  final Transcript? transcript;
+  final List<ProfanityMatch>? profanityMatches;
+  final int lastAnalyzedFrame;
+  final DateTime timestamp;
+
+  Map<String, dynamic> toJson() => {
+        'transcript': transcript?.toJson(),
+        'profanityMatches': profanityMatches?.map((e) => e.toJson()).toList(),
+        'lastAnalyzedFrame': lastAnalyzedFrame,
+        'timestamp': timestamp.toIso8601String(),
+      };
 }
 
 /// Service for running content analysis on media files
 class AnalysisService {
-  final FFmpegBindings ffmpeg;
-  final WhisperBindings whisper;
-  final MMSBindings mms;
-  final ONNXBindings onnx;
-  final ModelManagerService modelManager;
-  final ProfanityService profanity;
-
   AnalysisService({
     required this.ffmpeg,
     required this.whisper,
@@ -62,6 +53,13 @@ class AnalysisService {
     required this.modelManager,
     required this.profanity,
   });
+
+  final FFmpegBindings ffmpeg;
+  final WhisperBindings whisper;
+  final MMSBindings mms;
+  final ONNXBindings onnx;
+  final ModelManagerService modelManager;
+  final ProfanityService profanity;
 
   /// Run complete analysis on a media file
   Stream<AnalysisProgress> analyze(
@@ -73,7 +71,7 @@ class AnalysisService {
       stepName: 'Initializing',
       currentStep: 1,
       totalSteps: 4,
-      stepProgress: 0.0,
+      stepProgress: 0,
     );
 
     // Phase 1: Extract audio and transcribe
@@ -81,7 +79,7 @@ class AnalysisService {
       stepName: 'Extracting audio',
       currentStep: 1,
       totalSteps: 4,
-      stepProgress: 0.0,
+      stepProgress: 0,
     );
 
     Transcript? transcript;
@@ -91,7 +89,7 @@ class AnalysisService {
         stepName: 'Audio transcription complete',
         currentStep: 1,
         totalSteps: 4,
-        stepProgress: 1.0,
+        stepProgress: 1,
         itemsProcessed: transcript.segments.length,
         totalItems: transcript.segments.length,
       );
@@ -106,14 +104,14 @@ class AnalysisService {
         stepName: 'Detecting profanity',
         currentStep: 2,
         totalSteps: 4,
-        stepProgress: 0.0,
+        stepProgress: 0,
       );
       profanityMatches = await _detectProfanity(transcript!, settings);
       yield AnalysisProgress(
         stepName: 'Profanity detection complete',
         currentStep: 2,
         totalSteps: 4,
-        stepProgress: 1.0,
+        stepProgress: 1,
         itemsProcessed: profanityMatches.length,
         totalItems: profanityMatches.length,
       );
@@ -129,7 +127,7 @@ class AnalysisService {
       stepName: 'Analyzing video frames',
       currentStep: 3,
       totalSteps: 4,
-      stepProgress: 0.0,
+      stepProgress: 0,
       itemsProcessed: startFrame,
     );
 
@@ -167,7 +165,7 @@ class AnalysisService {
       stepName: 'Complete',
       currentStep: 4,
       totalSteps: 4,
-      stepProgress: 1.0,
+      stepProgress: 1,
       itemsProcessed: frameResults.length,
       totalItems: frameResults.length,
     );
@@ -198,8 +196,9 @@ class AnalysisService {
   ) async {
     if (!settings.enableProfanity) return [];
 
-    profanity.addCustomWords(settings.profanityConfig.customWords);
-    profanity.excludeWords(settings.profanityConfig.excludedWords);
+    profanity
+      ..addCustomWords(settings.profanityConfig.customWords)
+      ..excludeWords(settings.profanityConfig.excludedWords);
 
     return profanity.detect(transcript);
   }
@@ -211,7 +210,7 @@ class AnalysisService {
   ) async* {
     // Get total frame count for progress
     final metadata = await ffmpeg.probeMedia(mediaPath);
-    final fps = metadata.frameRate ?? 30.0;
+    final fps = metadata.frameRate;
     final totalSeconds = metadata.duration.inMilliseconds / 1000.0;
     final samplingRate = settings.frameSamplingRate;
     final samplingFps = fps / samplingRate;
@@ -230,7 +229,7 @@ class AnalysisService {
       frameNumber++;
 
       // Run NSFW detection
-      NsfwResult nsfwResult = NsfwResult.safe();
+      var nsfwResult = NsfwResult.safe();
       if (nsfwModelPath != null) {
         final nsfwScores = await onnx.runInference(
           nsfwModelPath,
@@ -248,7 +247,7 @@ class AnalysisService {
       }
 
       // Run violence detection
-      ViolenceResult violenceResult = ViolenceResult.safe();
+      var violenceResult = ViolenceResult.safe();
       if (violenceModelPath != null) {
         final violenceScores = await onnx.runInference(
           violenceModelPath,
@@ -297,7 +296,7 @@ class AnalysisService {
           confidence: match.confidence,
           description: 'Profanity detected: "${match.word.word}"',
           source: 'audio',
-        ));
+        ),);
       }
     }
 
@@ -313,7 +312,7 @@ class AnalysisService {
         confidence: segment.confidence,
         description: _getDescriptionForType(segment.type),
         source: 'video',
-      ));
+      ),);
     }
 
     return UnifiedTimeline.fromDetections(
@@ -405,25 +404,20 @@ class AnalysisService {
 }
 
 class _FrameAnalysisProgress {
-  final FrameAnalysisResult frame;
-  final int frameNumber;
-  final int totalFrames;
-  final double progress;
-
   _FrameAnalysisProgress({
     required this.frame,
     required this.frameNumber,
     required this.totalFrames,
     required this.progress,
   });
+
+  final FrameAnalysisResult frame;
+  final int frameNumber;
+  final int totalFrames;
+  final double progress;
 }
 
 class _AggregatedSegment {
-  final ContentType type;
-  final Duration start;
-  final Duration end;
-  final double confidence;
-
   _AggregatedSegment({
     required this.type,
     required this.start,
@@ -431,25 +425,29 @@ class _AggregatedSegment {
     required this.confidence,
   });
 
+  final ContentType type;
+  final Duration start;
+  final Duration end;
+  final double confidence;
+
   _AggregatedSegment copyWith({
     ContentType? type,
     Duration? start,
     Duration? end,
     double? confidence,
-  }) {
-    return _AggregatedSegment(
+  }) => _AggregatedSegment(
       type: type ?? this.type,
       start: start ?? this.start,
       end: end ?? this.end,
       confidence: confidence ?? this.confidence,
     );
-  }
 }
 
 /// Exception thrown during analysis
 class AnalysisException implements Exception {
-  final String message;
   AnalysisException(this.message);
+
+  final String message;
 
   @override
   String toString() => 'AnalysisException: $message';

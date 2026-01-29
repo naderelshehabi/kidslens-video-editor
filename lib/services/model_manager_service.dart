@@ -1,24 +1,23 @@
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import 'package:kidslens_video_editor/data/models/models.dart';
-
 /// Progress information for model downloads
 class ModelDownloadProgress {
-  final String modelId;
-  final double percentage;
-  final int downloadedBytes;
-  final int totalBytes;
-
   const ModelDownloadProgress({
     required this.modelId,
     required this.percentage,
     required this.downloadedBytes,
     required this.totalBytes,
   });
+
+  final String modelId;
+  final double percentage;
+  final int downloadedBytes;
+  final int totalBytes;
 
   /// Whether the download is complete
   bool get isComplete => percentage >= 1.0;
@@ -42,17 +41,15 @@ class ModelManagerService {
   Future<String> _initCacheDir() async {
     final appDir = await getApplicationSupportDirectory();
     final modelsDir = Directory(p.join(appDir.path, _modelsSubdir));
-    if (!await modelsDir.exists()) {
-      await modelsDir.create(recursive: true);
+    if (!modelsDir.existsSync()) {
+      modelsDir.createSync(recursive: true);
     }
     return modelsDir.path;
   }
 
   /// Get list of available models (from registry)
-  Future<List<ModelInfo>> getAvailableModels() async {
-    // Returns the predefined list of supported models
-    return _defaultModels;
-  }
+  // Returns the predefined list of supported models
+  Future<List<ModelInfo>> getAvailableModels() async => _defaultModels;
 
   /// Get list of downloaded model IDs
   Future<Set<String>> getDownloadedModels() async {
@@ -127,7 +124,7 @@ class ModelManagerService {
   Future<void> deleteModel(String modelId) async {
     final dir = await modelsDirectory;
     final modelDir = Directory(p.join(dir, modelId));
-    if (await modelDir.exists()) {
+    if (modelDir.existsSync()) {
       await modelDir.delete(recursive: true);
     }
   }
@@ -137,7 +134,7 @@ class ModelManagerService {
     final dir = await modelsDirectory;
     final modelPath = p.join(dir, modelId, 'model.onnx');
     final file = File(modelPath);
-    if (await file.exists()) {
+    if (file.existsSync()) {
       return modelPath;
     }
     return null;
@@ -151,7 +148,7 @@ class ModelManagerService {
 
   Future<bool> _isModelValid(String modelDir) async {
     final modelFile = File(p.join(modelDir, 'model.onnx'));
-    return modelFile.exists();
+    return modelFile.existsSync();
   }
 
   /// Default list of supported models
@@ -256,8 +253,9 @@ class ModelManagerService {
 
 /// Exception thrown when a model is not found
 class ModelNotFoundException implements Exception {
-  final String modelId;
   ModelNotFoundException(this.modelId);
+
+  final String modelId;
 
   @override
   String toString() => 'Model not found: $modelId';
@@ -265,9 +263,10 @@ class ModelNotFoundException implements Exception {
 
 /// Exception thrown when model download fails
 class ModelDownloadException implements Exception {
+  ModelDownloadException(this.modelId, this.reason);
+
   final String modelId;
   final String reason;
-  ModelDownloadException(this.modelId, this.reason);
 
   @override
   String toString() => 'Failed to download model $modelId: $reason';

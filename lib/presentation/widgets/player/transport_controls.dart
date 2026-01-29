@@ -2,6 +2,21 @@ import 'package:flutter/material.dart';
 
 /// Transport controls for media playback
 class TransportControls extends StatelessWidget {
+  const TransportControls({
+    required this.isPlaying,
+    required this.currentPosition,
+    required this.totalDuration,
+    super.key,
+    this.onPlay,
+    this.onPause,
+    this.onStop,
+    this.onSkipForward,
+    this.onSkipBackward,
+    this.onPrevious,
+    this.onNext,
+    this.onSeek,
+  });
+
   final bool isPlaying;
   final Duration currentPosition;
   final Duration totalDuration;
@@ -14,24 +29,8 @@ class TransportControls extends StatelessWidget {
   final VoidCallback? onNext;
   final ValueChanged<Duration>? onSeek;
 
-  const TransportControls({
-    super.key,
-    required this.isPlaying,
-    required this.currentPosition,
-    required this.totalDuration,
-    this.onPlay,
-    this.onPause,
-    this.onStop,
-    this.onSkipForward,
-    this.onSkipBackward,
-    this.onPrevious,
-    this.onNext,
-    this.onSeek,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget build(BuildContext context) => Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // Seek bar
@@ -102,7 +101,6 @@ class TransportControls extends StatelessWidget {
         ),
       ],
     );
-  }
 
   double get _progressValue {
     if (totalDuration.inMilliseconds == 0) return 0;

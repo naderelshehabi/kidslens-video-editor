@@ -13,7 +13,7 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('KidsLens App Integration Tests', () {
-    testWidgets('app launches successfully', (WidgetTester tester) async {
+    testWidgets('app launches successfully', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -30,7 +30,7 @@ void main() {
     });
 
     testWidgets('app shows empty state on first launch',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -54,7 +54,7 @@ void main() {
       );
     });
 
-    testWidgets('can navigate to settings', (WidgetTester tester) async {
+    testWidgets('can navigate to settings', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -74,7 +74,7 @@ void main() {
     });
 
     testWidgets('settings screen has all sections',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -96,7 +96,7 @@ void main() {
     });
 
     testWidgets('can toggle dark theme in settings',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -121,7 +121,7 @@ void main() {
     });
 
     testWidgets('can navigate back from settings',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -155,7 +155,7 @@ void main() {
   group('Full App Flow Integration', () {
     testWidgets(
       'import → analyze → export flow with mocked data',
-      (WidgetTester tester) async {
+      (tester) async {
       // Create mocked state
       final testMedia = MediaFile.video(
         id: 'test-id',
@@ -176,7 +176,7 @@ void main() {
               () => _MockMediaNotifierWithMedia(testMedia),
             ),
             analysisNotifierProvider.overrideWith(
-              () => _MockAnalysisNotifierCompleted(),
+              _MockAnalysisNotifierCompleted.new,
             ),
           ],
           child: const KidsLensApp(),
@@ -186,11 +186,11 @@ void main() {
 
       // With media loaded, should show media info
       expect(find.text('test_video.mp4'), findsWidgets);
-    }, skip: true); // MediaInfoCard has metadata access bug
+    }, skip: true,); // MediaInfoCard has metadata access bug
 
     testWidgets(
       'shows loading state during analysis',
-      (WidgetTester tester) async {
+      (tester) async {
       final testMedia = MediaFile.video(
         id: 'test-id',
         path: '/path/to/test_video.mp4',
@@ -210,7 +210,7 @@ void main() {
               () => _MockMediaNotifierWithMedia(testMedia),
             ),
             analysisNotifierProvider.overrideWith(
-              () => _MockAnalysisNotifierRunning(),
+              _MockAnalysisNotifierRunning.new,
             ),
           ],
           child: const KidsLensApp(),
@@ -225,11 +225,11 @@ void main() {
             find.textContaining('Analyzing').evaluate().isNotEmpty,
         isTrue,
       );
-    }, skip: true); // MediaInfoCard has metadata access bug
+    }, skip: true,); // MediaInfoCard has metadata access bug
 
     testWidgets(
       'shows error state when analysis fails',
-      (WidgetTester tester) async {
+      (tester) async {
       final testMedia = MediaFile.video(
         id: 'test-id',
         path: '/path/to/test_video.mp4',
@@ -249,7 +249,7 @@ void main() {
               () => _MockMediaNotifierWithMedia(testMedia),
             ),
             analysisNotifierProvider.overrideWith(
-              () => _MockAnalysisNotifierFailed(),
+              _MockAnalysisNotifierFailed.new,
             ),
           ],
           child: const KidsLensApp(),
@@ -258,12 +258,12 @@ void main() {
       await tester.pumpAndSettle();
 
       // Error state could show error icon or message
-    }, skip: true); // MediaInfoCard has metadata access bug
+    }, skip: true,); // MediaInfoCard has metadata access bug
   });
 
   group('Detection Options Integration', () {
     testWidgets('can toggle all detection options',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -297,7 +297,7 @@ void main() {
     });
 
     testWidgets('threshold sliders are interactive',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -321,12 +321,12 @@ void main() {
   });
 
   group('Theme Integration', () {
-    testWidgets('app respects light theme', (WidgetTester tester) async {
+    testWidgets('app respects light theme', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             settingsNotifierProvider.overrideWith(
-              () => _MockSettingsNotifier(useDarkTheme: false),
+              _MockSettingsNotifier.new,
             ),
           ],
           child: const KidsLensApp(),
@@ -343,7 +343,7 @@ void main() {
 
   group('Navigation Integration', () {
     testWidgets('import buttons are visible on initial screen',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -361,7 +361,7 @@ void main() {
       );
     });
 
-    testWidgets('app bar is present', (WidgetTester tester) async {
+    testWidgets('app bar is present', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -375,7 +375,7 @@ void main() {
 
   group('Accessibility Integration', () {
     testWidgets('main navigation elements have semantics',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -401,9 +401,9 @@ void main() {
 // Mock providers for testing
 
 class _MockMediaNotifierWithMedia extends MediaNotifier {
-  final MediaFile _media;
-
   _MockMediaNotifierWithMedia(this._media);
+
+  final MediaFile _media;
 
   @override
   MediaState build() => MediaState(currentMedia: _media);
@@ -413,7 +413,7 @@ class _MockAnalysisNotifierCompleted extends AnalysisNotifier {
   @override
   AnalysisState build() => const AnalysisState(
         status: AnalysisStatus.completed,
-        progress: 1.0,
+        progress: 1,
         currentStep: 'Complete',
       );
 }
@@ -436,9 +436,9 @@ class _MockAnalysisNotifierFailed extends AnalysisNotifier {
 }
 
 class _MockSettingsNotifier extends SettingsNotifier {
-  final bool useDarkTheme;
-
   _MockSettingsNotifier({this.useDarkTheme = false});
+
+  final bool useDarkTheme;
 
   @override
   SettingsState build() => SettingsState(useDarkTheme: useDarkTheme);

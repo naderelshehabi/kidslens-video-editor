@@ -9,8 +9,7 @@ void main() {
       ErrorResult? error,
       VoidCallback? onRetry,
       VoidCallback? onDismiss,
-    }) {
-      return MaterialApp(
+    }) => MaterialApp(
         home: Scaffold(
           body: ErrorDisplay(
             error: error,
@@ -19,117 +18,112 @@ void main() {
           ),
         ),
       );
-    }
 
     ErrorResult createError({
       String userMessage = 'An error occurred',
       String remediation = 'Please try again',
       bool isRetryable = true,
-    }) {
-      return ErrorResult(
+    }) => ErrorResult(
         userMessage: userMessage,
         remediation: remediation,
         isRetryable: isRetryable,
         originalError: Exception('Test error'),
       );
-    }
 
     testWidgets('renders nothing when error is null',
-        (WidgetTester tester) async {
-      await tester.pumpWidget(createErrorDisplay(error: null));
+        (tester) async {
+      await tester.pumpWidget(createErrorDisplay());
 
       expect(find.byType(Card), findsNothing);
       expect(find.byType(SizedBox), findsWidgets); // SizedBox.shrink()
     });
 
     testWidgets('renders card when error is provided',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createErrorDisplay(error: createError()));
 
       expect(find.byType(Card), findsOneWidget);
     });
 
-    testWidgets('displays user message', (WidgetTester tester) async {
+    testWidgets('displays user message', (tester) async {
       await tester.pumpWidget(createErrorDisplay(
         error: createError(userMessage: 'Failed to load file'),
-      ));
+      ),);
 
       expect(find.text('Failed to load file'), findsOneWidget);
     });
 
-    testWidgets('displays remediation message', (WidgetTester tester) async {
+    testWidgets('displays remediation message', (tester) async {
       await tester.pumpWidget(createErrorDisplay(
         error: createError(remediation: 'Check your connection'),
-      ));
+      ),);
 
       expect(find.text('Check your connection'), findsOneWidget);
     });
 
-    testWidgets('displays error icon', (WidgetTester tester) async {
+    testWidgets('displays error icon', (tester) async {
       await tester.pumpWidget(createErrorDisplay(error: createError()));
 
       expect(find.byIcon(Icons.error_outline), findsOneWidget);
     });
 
     testWidgets('shows retry button when retryable and onRetry provided',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createErrorDisplay(
-        error: createError(isRetryable: true),
+        error: createError(),
         onRetry: () {},
-      ));
+      ),);
 
       expect(find.text('Try Again'), findsOneWidget);
       expect(find.byIcon(Icons.refresh), findsOneWidget);
     });
 
     testWidgets('hides retry button when not retryable',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createErrorDisplay(
         error: createError(isRetryable: false),
         onRetry: () {},
-      ));
+      ),);
 
       expect(find.text('Try Again'), findsNothing);
     });
 
     testWidgets('hides retry button when onRetry is null',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createErrorDisplay(
-        error: createError(isRetryable: true),
-        onRetry: null,
-      ));
+        error: createError(),
+      ),);
 
       expect(find.text('Try Again'), findsNothing);
     });
 
     testWidgets('shows dismiss button when onDismiss provided',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createErrorDisplay(
         error: createError(),
         onDismiss: () {},
-      ));
+      ),);
 
       expect(find.byIcon(Icons.close), findsOneWidget);
     });
 
     testWidgets('hides dismiss button when onDismiss is null',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createErrorDisplay(
         error: createError(),
-        onDismiss: null,
-      ));
+      ),);
 
       expect(find.byIcon(Icons.close), findsNothing);
     });
 
     testWidgets('calls onRetry when retry button tapped',
-        (WidgetTester tester) async {
+        (tester) async {
       var retryCalled = false;
 
       await tester.pumpWidget(createErrorDisplay(
-        error: createError(isRetryable: true),
+        error: createError(),
         onRetry: () => retryCalled = true,
-      ));
+      ),);
 
       await tester.tap(find.text('Try Again'));
       await tester.pump();
@@ -138,13 +132,13 @@ void main() {
     });
 
     testWidgets('calls onDismiss when dismiss button tapped',
-        (WidgetTester tester) async {
+        (tester) async {
       var dismissCalled = false;
 
       await tester.pumpWidget(createErrorDisplay(
         error: createError(),
         onDismiss: () => dismissCalled = true,
-      ));
+      ),);
 
       await tester.tap(find.byIcon(Icons.close));
       await tester.pump();
@@ -153,19 +147,19 @@ void main() {
     });
 
     testWidgets('displays both retry and dismiss buttons',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createErrorDisplay(
-        error: createError(isRetryable: true),
+        error: createError(),
         onRetry: () {},
         onDismiss: () {},
-      ));
+      ),);
 
       expect(find.text('Try Again'), findsOneWidget);
       expect(find.byIcon(Icons.close), findsOneWidget);
     });
 
     testWidgets('uses error container color scheme',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createErrorDisplay(error: createError()));
 
       // Card should use errorContainer color from theme
@@ -174,7 +168,7 @@ void main() {
     });
 
     testWidgets('handles long error messages gracefully',
-        (WidgetTester tester) async {
+        (tester) async {
       const longMessage =
           'This is a very long error message that should still display correctly '
           'even when it exceeds the typical width of the error display widget. '
@@ -182,13 +176,13 @@ void main() {
 
       await tester.pumpWidget(createErrorDisplay(
         error: createError(userMessage: longMessage),
-      ));
+      ),);
 
       expect(find.text(longMessage), findsOneWidget);
     });
 
     testWidgets('handles long remediation messages gracefully',
-        (WidgetTester tester) async {
+        (tester) async {
       const longRemediation =
           'To fix this issue, please try the following steps: '
           '1. Check your internet connection. '
@@ -197,7 +191,7 @@ void main() {
 
       await tester.pumpWidget(createErrorDisplay(
         error: createError(remediation: longRemediation),
-      ));
+      ),);
 
       expect(find.text(longRemediation), findsOneWidget);
     });
@@ -205,11 +199,10 @@ void main() {
 
   group('ErrorDisplay.showSnackBar', () {
     testWidgets('shows snackbar with error message',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(MaterialApp(
         home: Builder(
-          builder: (context) {
-            return Scaffold(
+          builder: (context) => Scaffold(
               body: ElevatedButton(
                 onPressed: () {
                   ErrorDisplay.showSnackBar(
@@ -224,10 +217,9 @@ void main() {
                 },
                 child: const Text('Show Error'),
               ),
-            );
-          },
+            ),
         ),
-      ));
+      ),);
 
       await tester.tap(find.text('Show Error'));
       await tester.pumpAndSettle();
@@ -236,11 +228,10 @@ void main() {
     });
 
     testWidgets('shows retry action for retryable errors',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(MaterialApp(
         home: Builder(
-          builder: (context) {
-            return Scaffold(
+          builder: (context) => Scaffold(
               body: ElevatedButton(
                 onPressed: () {
                   ErrorDisplay.showSnackBar(
@@ -255,10 +246,9 @@ void main() {
                 },
                 child: const Text('Show Error'),
               ),
-            );
-          },
+            ),
         ),
-      ));
+      ),);
 
       await tester.tap(find.text('Show Error'));
       await tester.pumpAndSettle();
@@ -267,11 +257,10 @@ void main() {
     });
 
     testWidgets('hides retry action for non-retryable errors',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(MaterialApp(
         home: Builder(
-          builder: (context) {
-            return Scaffold(
+          builder: (context) => Scaffold(
               body: ElevatedButton(
                 onPressed: () {
                   ErrorDisplay.showSnackBar(
@@ -286,10 +275,9 @@ void main() {
                 },
                 child: const Text('Show Error'),
               ),
-            );
-          },
+            ),
         ),
-      ));
+      ),);
 
       await tester.tap(find.text('Show Error'));
       await tester.pumpAndSettle();

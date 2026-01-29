@@ -3,9 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-
-import '../../services/media_service.dart';
-import '../resource_manager.dart';
+import 'package:kidslens_video_editor/native/resource_manager.dart';
+import 'package:kidslens_video_editor/services/media_service.dart';
 
 /// FFmpeg bindings - uses system FFmpeg command-line tool
 class FFmpegBindings extends NativeResource {
@@ -105,13 +104,13 @@ class FFmpegBindings extends NativeResource {
 
     // Fallback to file info
     final file = File(path);
-    final stat = await file.stat();
+    final stat = file.statSync();
 
     return MediaMetadata(
       duration: const Duration(minutes: 5),
       fileSizeBytes: stat.size,
       resolution: const Resolution(width: 1920, height: 1080),
-      frameRate: 30.0,
+      frameRate: 30,
       videoCodec: 'h264',
       audioCodec: 'aac',
     );
@@ -121,13 +120,13 @@ class FFmpegBindings extends NativeResource {
     final format = json['format'] as Map<String, dynamic>?;
     final streams = json['streams'] as List<dynamic>? ?? [];
 
-    Duration duration = const Duration(minutes: 5);
-    int width = 1920;
-    int height = 1080;
-    double frameRate = 30.0;
-    String videoCodec = 'h264';
-    String audioCodec = 'aac';
-    int fileSize = 0;
+    var duration = const Duration(minutes: 5);
+    var width = 1920;
+    var height = 1080;
+    var frameRate = 30.0;
+    var videoCodec = 'h264';
+    var audioCodec = 'aac';
+    var fileSize = 0;
 
     if (format != null) {
       final durationStr = format['duration'] as String?;
@@ -138,7 +137,8 @@ class FFmpegBindings extends NativeResource {
       fileSize = int.tryParse(format['size']?.toString() ?? '0') ?? 0;
     }
 
-    for (final stream in streams) {
+    for (final streamItem in streams) {
+      final stream = streamItem as Map<String, dynamic>;
       final codecType = stream['codec_type'] as String?;
       if (codecType == 'video') {
         width = stream['width'] as int? ?? 1920;
@@ -265,6 +265,7 @@ class FFmpegBindings extends NativeResource {
     Map<String, String>? outputSettings,
     Duration? totalDuration,
   }) {
+    // ignore: close_sinks - Controller is closed in _runFFmpegExport finally block
     final controller = StreamController<double>();
     
     _runFFmpegExport(
@@ -320,7 +321,7 @@ class FFmpegBindings extends NativeResource {
     debugPrint('Running FFmpeg: $_ffmpegPath ${args.join(' ')}');
 
     // Get total duration for progress calculation
-    Duration duration = totalDuration ?? _lastProbedDuration ?? const Duration(minutes: 5);
+    var duration = totalDuration ?? _lastProbedDuration ?? const Duration(minutes: 5);
     
     // Try to get actual duration if not provided
     if (totalDuration == null && _lastProbedDuration == null) {
@@ -340,7 +341,7 @@ class FFmpegBindings extends NativeResource {
         runInShell: Platform.isWindows,
       );
 
-      double lastProgress = 0.0;
+      var lastProgress = 0.0;
       final stderrBuffer = StringBuffer();
 
       // Parse progress from stdout (due to -progress pipe:1)
@@ -367,7 +368,7 @@ class FFmpegBindings extends NativeResource {
           }
         } else if (line == 'progress=end') {
           if (lastProgress < 1.0) {
-            controller.add(1.0);
+            controller.add(1);
           }
         }
       });
@@ -407,19 +408,19 @@ class FFmpegBindings extends NativeResource {
       if (exitCode != 0) {
         // Check if output file was created despite error
         final outputFile = File(outputPath);
-        if (!await outputFile.exists()) {
+        if (!outputFile.existsSync()) {
           controller.addError(FFmpegException(
-            'FFmpeg failed with exit code $exitCode.\n${stderrBuffer.toString().split('\n').take(10).join('\n')}'
-          ));
+            'FFmpeg failed with exit code $exitCode.\n${stderrBuffer.toString().split('\n').take(10).join('\n')}',
+          ),);
         } else {
           // File was created, consider it a success (some warnings may cause non-zero exit)
           if (lastProgress < 1.0) {
-            controller.add(1.0);
+            controller.add(1);
           }
         }
       } else {
         if (lastProgress < 1.0) {
-          controller.add(1.0);
+          controller.add(1);
         }
       }
     } catch (e) {
@@ -440,7 +441,7 @@ class FFmpegBindings extends NativeResource {
     
     final secParts = parts[2].split('.');
     final seconds = int.tryParse(secParts[0]) ?? 0;
-    int microseconds = 0;
+    var microseconds = 0;
     
     if (secParts.length > 1) {
       final fracStr = secParts[1].padRight(6, '0').substring(0, 6);
@@ -498,7 +499,7 @@ class FFmpegBindings extends NativeResource {
           frameNumber: scenes.length,
           timestamp: Duration(milliseconds: (time * 1000).round()),
           score: threshold,
-        ));
+        ),);
       }
     }
 
@@ -522,15 +523,15 @@ class FFmpegBindings extends NativeResource {
 
 /// Scene change detection result
 class SceneChange {
-  final int frameNumber;
-  final Duration timestamp;
-  final double score;
-
   SceneChange({
     required this.frameNumber,
     required this.timestamp,
     required this.score,
   });
+
+  final int frameNumber;
+  final Duration timestamp;
+  final double score;
 }
 
 /// Exception thrown when FFmpeg is not available on the system
@@ -543,8 +544,9 @@ class FFmpegNotAvailableException implements Exception {
 
 /// Exception thrown when FFmpeg command fails
 class FFmpegException implements Exception {
-  final String message;
   FFmpegException(this.message);
+
+  final String message;
 
   @override
   String toString() => 'FFmpegException: $message';
@@ -552,8 +554,9 @@ class FFmpegException implements Exception {
 
 /// Exception thrown when FFmpeg initialization fails
 class FFmpegInitializationException implements Exception {
-  final String message;
   FFmpegInitializationException(this.message);
+
+  final String message;
 
   @override
   String toString() => 'FFmpegInitializationException: $message';

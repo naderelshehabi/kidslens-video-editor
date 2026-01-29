@@ -3,13 +3,13 @@ import 'dart:io';
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'analysis_result.dart';
-import 'analysis_settings.dart';
-import 'frame_analysis_result.dart';
-import 'media_file.dart';
-import 'profanity_match.dart';
-import 'timeline.dart';
-import 'transcript.dart';
+import 'package:kidslens_video_editor/data/models/analysis_result.dart';
+import 'package:kidslens_video_editor/data/models/analysis_settings.dart';
+import 'package:kidslens_video_editor/data/models/frame_analysis_result.dart';
+import 'package:kidslens_video_editor/data/models/media_file.dart';
+import 'package:kidslens_video_editor/data/models/profanity_match.dart';
+import 'package:kidslens_video_editor/data/models/timeline.dart';
+import 'package:kidslens_video_editor/data/models/transcript.dart';
 
 part 'artifact.freezed.dart';
 part 'artifact.g.dart';
@@ -41,27 +41,20 @@ class ArtifactMediaInfo with _$ArtifactMediaInfo {
       _$ArtifactMediaInfoFromJson(json);
 
   /// Creates from a MediaFile
-  factory ArtifactMediaInfo.fromMediaFile(MediaFile file) {
-    return ArtifactMediaInfo(
-      durationMicroseconds: file.duration.inMicroseconds,
-      fileSize: file.fileSize,
-      width: file.width,
-      height: file.height,
-      codec: file.codec,
-      container: file.container,
-    );
-  }
+  factory ArtifactMediaInfo.fromMediaFile(MediaFile file) => ArtifactMediaInfo(
+        durationMicroseconds: file.duration.inMicroseconds,
+        fileSize: file.fileSize,
+        width: file.width,
+        height: file.height,
+        codec: file.codec,
+        container: file.container,
+      );
 }
 
 /// Versioned analysis artifact for caching and resume
 @freezed
 class AnalysisArtifact with _$AnalysisArtifact {
-  const AnalysisArtifact._();
-  
   const factory AnalysisArtifact({
-    /// Version of the artifact format
-    @Default(1) int version,
-
     /// SHA-256 hash of the source media file
     required String mediaHash,
 
@@ -70,6 +63,18 @@ class AnalysisArtifact with _$AnalysisArtifact {
 
     /// Settings used for this analysis
     required AnalysisSettings settingsUsed,
+
+    /// Unified timeline with all detections and modifications
+    required UnifiedTimeline timeline,
+
+    /// When the analysis was started
+    required DateTime createdAt,
+
+    /// Current status of the analysis
+    required AnalysisStatus status,
+
+    /// Version of the artifact format
+    @Default(1) int version,
 
     /// Transcript if ASR was performed
     Transcript? transcript,
@@ -80,21 +85,14 @@ class AnalysisArtifact with _$AnalysisArtifact {
     /// Frame analysis results
     @Default([]) List<FrameAnalysisResult> frameResults,
 
-    /// Unified timeline with all detections and modifications
-    required UnifiedTimeline timeline,
-
-    /// When the analysis was started
-    required DateTime createdAt,
-
     /// When the analysis was completed
     DateTime? completedAt,
-
-    /// Current status of the analysis
-    required AnalysisStatus status,
 
     /// Error message if failed
     String? errorMessage,
   }) = _AnalysisArtifact;
+
+  const AnalysisArtifact._();
   
   factory AnalysisArtifact.fromJson(Map<String, dynamic> json) =>
       _$AnalysisArtifactFromJson(json);
@@ -111,7 +109,7 @@ class AnalysisArtifact with _$AnalysisArtifact {
   /// Load artifact from JSON file
   static Future<AnalysisArtifact?> load(String path) async {
     final file = File(path);
-    if (!await file.exists()) return null;
+    if (!file.existsSync()) return null;
     
     try {
       final content = await file.readAsString();

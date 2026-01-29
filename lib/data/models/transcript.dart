@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'converters.dart';
+import 'package:kidslens_video_editor/data/models/converters.dart';
 
 part 'transcript.freezed.dart';
 part 'transcript.g.dart';
@@ -8,8 +8,6 @@ part 'transcript.g.dart';
 /// Represents a word within a transcript segment with timing information
 @freezed
 class TranscriptWord with _$TranscriptWord {
-  const TranscriptWord._();
-
   const factory TranscriptWord({
     /// The actual word text
     required String word,
@@ -23,6 +21,8 @@ class TranscriptWord with _$TranscriptWord {
     /// Confidence score from ASR (0.0 to 1.0)
     required double confidence,
   }) = _TranscriptWord;
+
+  const TranscriptWord._();
 
   factory TranscriptWord.fromJson(Map<String, dynamic> json) =>
       _$TranscriptWordFromJson(json);
@@ -40,8 +40,6 @@ class TranscriptWord with _$TranscriptWord {
 /// Represents a segment of transcript (typically a sentence or phrase)
 @freezed
 class TranscriptSegment with _$TranscriptSegment {
-  const TranscriptSegment._();
-
   const factory TranscriptSegment({
     /// Unique identifier for the segment
     required String id,
@@ -59,6 +57,8 @@ class TranscriptSegment with _$TranscriptSegment {
     required List<TranscriptWord> words,
   }) = _TranscriptSegment;
 
+  const TranscriptSegment._();
+
   factory TranscriptSegment.fromJson(Map<String, dynamic> json) =>
       _$TranscriptSegmentFromJson(json);
 
@@ -66,32 +66,27 @@ class TranscriptSegment with _$TranscriptSegment {
   Duration get duration => endTime - startTime;
 
   /// Average confidence across all words
-  double get averageConfidence {
-    if (words.isEmpty) return 0.0;
-    return words.map((w) => w.confidence).reduce((a, b) => a + b) / words.length;
-  }
+  double get averageConfidence => words.isEmpty
+      ? 0.0
+      : words.map((w) => w.confidence).reduce((a, b) => a + b) / words.length;
 
   /// Number of words in the segment
   int get wordCount => words.length;
 
   /// Gets words within a time range
-  List<TranscriptWord> getWordsInRange(Duration start, Duration end) {
-    return words.where((word) {
-      return word.startTime < end && word.endTime > start;
-    }).toList();
-  }
+  List<TranscriptWord> getWordsInRange(Duration start, Duration end) =>
+      words
+          .where((word) => word.startTime < end && word.endTime > start)
+          .toList();
 
   /// Checks if this segment overlaps with a time range
-  bool overlapsWithRange(Duration start, Duration end) {
-    return startTime < end && endTime > start;
-  }
+  bool overlapsWithRange(Duration start, Duration end) =>
+      startTime < end && endTime > start;
 }
 
 /// Represents a complete transcript for a media file
 @freezed
 class Transcript with _$Transcript {
-  const Transcript._();
-
   const factory Transcript({
     /// List of transcript segments
     required List<TranscriptSegment> segments,
@@ -109,16 +104,16 @@ class Transcript with _$Transcript {
     String? modelId,
   }) = _Transcript;
 
+  const Transcript._();
+
   factory Transcript.fromJson(Map<String, dynamic> json) =>
       _$TranscriptFromJson(json);
 
   /// Creates an empty transcript
-  factory Transcript.empty({String language = 'en'}) {
-    return Transcript(
-      segments: const [],
-      language: language,
-    );
-  }
+  factory Transcript.empty({String language = 'en'}) => Transcript(
+        segments: const [],
+        language: language,
+      );
 
   /// Total duration covered by the transcript
   Duration get totalDuration {
@@ -127,23 +122,20 @@ class Transcript with _$Transcript {
   }
 
   /// Total word count across all segments
-  int get totalWordCount {
-    return segments.fold(0, (sum, segment) => sum + segment.wordCount);
-  }
+  int get totalWordCount =>
+      segments.fold(0, (sum, segment) => sum + segment.wordCount);
 
   /// Overall average confidence
   double get overallConfidence {
-    if (segments.isEmpty) return 0.0;
+    if (segments.isEmpty) return 0;
     final allWords = segments.expand((s) => s.words).toList();
-    if (allWords.isEmpty) return 0.0;
+    if (allWords.isEmpty) return 0;
     return allWords.map((w) => w.confidence).reduce((a, b) => a + b) /
         allWords.length;
   }
 
   /// Full transcript text
-  String get fullText {
-    return segments.map((s) => s.text).join(' ');
-  }
+  String get fullText => segments.map((s) => s.text).join(' ');
 
   /// Gets the segment at a specific time
   TranscriptSegment? getSegmentAt(Duration time) {
@@ -169,17 +161,12 @@ class Transcript with _$Transcript {
   }
 
   /// Gets all segments within a time range
-  List<TranscriptSegment> getSegmentsInRange(Duration start, Duration end) {
-    return segments.where((segment) {
-      return segment.overlapsWithRange(start, end);
-    }).toList();
-  }
+  List<TranscriptSegment> getSegmentsInRange(Duration start, Duration end) =>
+      segments.where((segment) => segment.overlapsWithRange(start, end)).toList();
 
   /// Gets all words within a time range
-  List<TranscriptWord> getWordsInRange(Duration start, Duration end) {
-    return segments
-        .where((s) => s.overlapsWithRange(start, end))
-        .expand((s) => s.getWordsInRange(start, end))
-        .toList();
-  }
+  List<TranscriptWord> getWordsInRange(Duration start, Duration end) => segments
+      .where((s) => s.overlapsWithRange(start, end))
+      .expand((s) => s.getWordsInRange(start, end))
+      .toList();
 }

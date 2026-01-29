@@ -63,26 +63,26 @@ class MockFFmpegBindings {
 }
 
 class MockMediaMetadata {
-  final Duration duration;
-  final MockResolution resolution;
-  final int fileSizeBytes;
-  final String videoCodec;
-  final String audioCodec;
-
   MockMediaMetadata({
     required this.duration,
     required this.resolution,
-    required this.fileSizeBytes,
-    required this.videoCodec,
-    required this.audioCodec,
+    // ignore: avoid_unused_constructor_parameters - Match real MediaMetadata
+    required int fileSizeBytes,
+    // ignore: avoid_unused_constructor_parameters - Match real MediaMetadata
+    required String videoCodec,
+    // ignore: avoid_unused_constructor_parameters - Match real MediaMetadata
+    required String audioCodec,
   });
+
+  final Duration duration;
+  final MockResolution resolution;
 }
 
 class MockResolution {
+  MockResolution({required this.width, required this.height});
+
   final int width;
   final int height;
-
-  MockResolution({required this.width, required this.height});
 }
 
 void main() {
@@ -172,9 +172,10 @@ void main() {
       });
 
       test('mock should return correct metadata', () async {
-        mockBindings.mockDuration = const Duration(minutes: 10);
-        mockBindings.mockWidth = 3840;
-        mockBindings.mockHeight = 2160;
+        mockBindings
+          ..mockDuration = const Duration(minutes: 10)
+          ..mockWidth = 3840
+          ..mockHeight = 2160;
 
         final metadata = await mockBindings.probeMedia('/test.mp4');
 
@@ -187,9 +188,7 @@ void main() {
         mockBindings.mockDuration = const Duration(seconds: 5);
 
         final frames = <FrameData>[];
-        await for (final frame in mockBindings.extractFrames('/test.mp4', fps: 2.0)) {
-          frames.add(frame);
-        }
+        await mockBindings.extractFrames('/test.mp4').forEach(frames.add);
 
         expect(frames, hasLength(10)); // 5 seconds * 2 fps
         expect(frames.first.frameNumber, equals(0));
@@ -198,14 +197,11 @@ void main() {
 
       test('mock should respect frame range', () async {
         final frames = <FrameData>[];
-        await for (final frame in mockBindings.extractFrames(
+        await mockBindings.extractFrames(
           '/test.mp4',
-          fps: 2.0,
           startFrame: 2,
           endFrame: 5,
-        )) {
-          frames.add(frame);
-        }
+        ).forEach(frames.add);
 
         expect(frames, hasLength(3));
         expect(frames.first.frameNumber, equals(2));

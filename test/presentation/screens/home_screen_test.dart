@@ -22,8 +22,7 @@ void main() {
     Widget createHomeScreen({
       MediaState? mediaState,
       AnalysisState? analysisState,
-    }) {
-      return ProviderScope(
+    }) => ProviderScope(
         overrides: [
           if (mediaState != null)
             mediaNotifierProvider.overrideWith(
@@ -38,22 +37,21 @@ void main() {
           home: HomeScreen(),
         ),
       );
-    }
 
-    testWidgets('renders app bar with title', (WidgetTester tester) async {
+    testWidgets('renders app bar with title', (tester) async {
       await tester.pumpWidget(createHomeScreen());
 
       expect(find.text('KidsLens'), findsOneWidget);
     });
 
     testWidgets('renders settings button in app bar',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createHomeScreen());
 
       expect(find.byIcon(Icons.settings), findsOneWidget);
     });
 
-    testWidgets('renders import media FAB', (WidgetTester tester) async {
+    testWidgets('renders import media FAB', (tester) async {
       await tester.pumpWidget(createHomeScreen());
 
       expect(find.byType(FloatingActionButton), findsOneWidget);
@@ -62,10 +60,10 @@ void main() {
     });
 
     testWidgets('shows empty state when no media loaded',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createHomeScreen(
         mediaState: const MediaState(),
-      ));
+      ),);
 
       expect(find.text('No Media Loaded'), findsOneWidget);
       expect(
@@ -76,32 +74,32 @@ void main() {
     });
 
     testWidgets('shows loading indicator when media is loading',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createHomeScreen(
         mediaState: const MediaState(isLoading: true),
-      ));
+      ),);
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       expect(find.text('Loading media...'), findsOneWidget);
     });
 
     testWidgets('shows error message when error occurs',
-        (WidgetTester tester) async {
+        (tester) async {
       const errorMessage = 'Failed to load media';
       await tester.pumpWidget(createHomeScreen(
         mediaState: const MediaState(errorMessage: errorMessage),
-      ));
+      ),);
 
       expect(find.text(errorMessage), findsOneWidget);
       expect(find.byIcon(Icons.error_outline), findsOneWidget);
       expect(find.text('Dismiss'), findsOneWidget);
     });
 
-    testWidgets('dismiss button clears error', (WidgetTester tester) async {
+    testWidgets('dismiss button clears error', (tester) async {
       const errorMessage = 'Failed to load media';
       await tester.pumpWidget(createHomeScreen(
         mediaState: const MediaState(errorMessage: errorMessage),
-      ));
+      ),);
 
       await tester.tap(find.text('Dismiss'));
       await tester.pump();
@@ -113,7 +111,7 @@ void main() {
     // has a bug accessing media.metadata.duration instead of media.duration
     testWidgets(
       'shows analysis progress when analysis is running',
-      (WidgetTester tester) async {
+      (tester) async {
       final testMedia = _createTestMediaFile();
 
       await tester.pumpWidget(createHomeScreen(
@@ -123,13 +121,13 @@ void main() {
           progress: 0.5,
           currentStep: 'Analyzing frames',
         ),
-      ));
+      ),);
 
       expect(find.text('Analyzing Content'), findsOneWidget);
-    }, skip: true); // MediaInfoCard has metadata access bug
+    }, skip: true,); // MediaInfoCard has metadata access bug
 
     testWidgets('settings button navigates to settings screen',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createHomeScreen());
 
       await tester.tap(find.byIcon(Icons.settings));
@@ -139,7 +137,7 @@ void main() {
       expect(find.text('Settings'), findsOneWidget);
     });
 
-    testWidgets('FAB opens import screen', (WidgetTester tester) async {
+    testWidgets('FAB opens import screen', (tester) async {
       await tester.pumpWidget(createHomeScreen());
 
       await tester.tap(find.byType(FloatingActionButton));
@@ -151,36 +149,35 @@ void main() {
 
     testWidgets(
       'shows media info when media is loaded',
-      (WidgetTester tester) async {
+      (tester) async {
       final testMedia = _createTestMediaFile();
 
       await tester.pumpWidget(createHomeScreen(
         mediaState: MediaState(currentMedia: testMedia),
-        analysisState: const AnalysisState(status: AnalysisStatus.pending),
-      ));
+        analysisState: const AnalysisState(),
+      ),);
 
       // Media name should be displayed
       expect(find.text('test_video.mp4'), findsOneWidget);
-    }, skip: true); // MediaInfoCard has metadata access bug
+    }, skip: true,); // MediaInfoCard has metadata access bug
 
     testWidgets(
       'shows completed actions when analysis is done',
-      (WidgetTester tester) async {
+      (tester) async {
       final testMedia = _createTestMediaFile();
 
       await tester.pumpWidget(createHomeScreen(
         mediaState: MediaState(currentMedia: testMedia),
         analysisState: const AnalysisState(status: AnalysisStatus.completed),
-      ));
+      ),);
 
       // Should show completed state UI
       expect(find.text('test_video.mp4'), findsOneWidget);
-    }, skip: true); // MediaInfoCard has metadata access bug
+    }, skip: true,); // MediaInfoCard has metadata access bug
   });
 }
 
-MediaFile _createTestMediaFile() {
-  return MediaFile.video(
+MediaFile _createTestMediaFile() => MediaFile.video(
     id: 'test-id',
     path: '/path/to/test_video.mp4',
     name: 'test_video.mp4',
@@ -191,21 +188,20 @@ MediaFile _createTestMediaFile() {
     codec: 'h264',
     container: 'mp4',
   );
-}
 
 class _MockMediaNotifier extends MediaNotifier {
-  final MediaState _initialState;
-
   _MockMediaNotifier(this._initialState);
+
+  final MediaState _initialState;
 
   @override
   MediaState build() => _initialState;
 }
 
 class _MockAnalysisNotifier extends AnalysisNotifier {
-  final AnalysisState _initialState;
-
   _MockAnalysisNotifier(this._initialState);
+
+  final AnalysisState _initialState;
 
   @override
   AnalysisState build() => _initialState;

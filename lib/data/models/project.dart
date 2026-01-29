@@ -1,9 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-
-import 'converters.dart';
-import 'media_file.dart';
-import 'detection.dart';
-import 'edit_action.dart';
+import 'package:kidslens_video_editor/data/models/converters.dart';
+import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/data/models/edit_action.dart';
+import 'package:kidslens_video_editor/data/models/media_file.dart';
 
 part 'project.freezed.dart';
 part 'project.g.dart';
@@ -11,8 +10,6 @@ part 'project.g.dart';
 /// Represents a KidsLens Editor project (.kle file)
 @freezed
 class Project with _$Project {
-  const Project._();
-
   const factory Project({
     /// Unique identifier for the project
     required String id,
@@ -54,6 +51,8 @@ class Project with _$Project {
     @Default(false) @JsonKey(includeFromJson: false, includeToJson: false) bool isDirty,
   }) = _Project;
 
+  const Project._();
+
   factory Project.fromJson(Map<String, dynamic> json) =>
       _$ProjectFromJson(json);
 
@@ -80,14 +79,12 @@ class Project with _$Project {
   }
 
   /// Get detections for a specific media file
-  List<Detection> detectionsForMedia(String mediaId) {
-    return detections.where((d) => d.mediaId == mediaId).toList();
-  }
+  List<Detection> detectionsForMedia(String mediaId) =>
+      detections.where((d) => d.mediaId == mediaId).toList();
 
   /// Get edit actions for a specific media file
-  List<EditAction> editActionsForMedia(String mediaId) {
-    return editActions.where((e) => e.mediaId == mediaId).toList();
-  }
+  List<EditAction> editActionsForMedia(String mediaId) =>
+      editActions.where((e) => e.mediaId == mediaId).toList();
 
   /// Check if project has unsaved changes
   bool get hasUnsavedChanges => isDirty;

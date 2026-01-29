@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'converters.dart';
+import 'package:kidslens_video_editor/data/models/converters.dart';
 
 part 'media_file.freezed.dart';
 part 'media_file.g.dart';
@@ -20,8 +20,6 @@ enum MediaType {
 /// Represents a media file (video or audio) in the project
 @freezed
 class MediaFile with _$MediaFile {
-  const MediaFile._();
-
   const factory MediaFile({
     /// Unique identifier for the media file
     required String id,
@@ -44,15 +42,17 @@ class MediaFile with _$MediaFile {
     /// File size in bytes
     required int fileSize,
 
+    /// Type of the media file
+    required MediaType mediaType,
+
     /// Codec used for encoding (e.g., 'h264', 'aac')
     String? codec,
 
     /// Container format (e.g., 'mp4', 'mkv', 'wav')
     String? container,
-
-    /// Type of the media file
-    required MediaType mediaType,
   }) = _MediaFile;
+
+  const MediaFile._();
 
   factory MediaFile.fromJson(Map<String, dynamic> json) =>
       _$MediaFileFromJson(json);
@@ -68,20 +68,19 @@ class MediaFile with _$MediaFile {
     required int fileSize,
     String? codec,
     String? container,
-  }) {
-    return MediaFile(
-      id: id,
-      path: path,
-      name: name,
-      duration: duration,
-      width: width,
-      height: height,
-      fileSize: fileSize,
-      codec: codec,
-      container: container,
-      mediaType: MediaType.video,
-    );
-  }
+  }) =>
+      MediaFile(
+        id: id,
+        path: path,
+        name: name,
+        duration: duration,
+        width: width,
+        height: height,
+        fileSize: fileSize,
+        codec: codec,
+        container: container,
+        mediaType: MediaType.video,
+      );
 
   /// Creates a MediaFile from an audio file path with metadata
   factory MediaFile.audio({
@@ -92,20 +91,19 @@ class MediaFile with _$MediaFile {
     required int fileSize,
     String? codec,
     String? container,
-  }) {
-    return MediaFile(
-      id: id,
-      path: path,
-      name: name,
-      duration: duration,
-      width: 0,
-      height: 0,
-      fileSize: fileSize,
-      codec: codec,
-      container: container,
-      mediaType: MediaType.audio,
-    );
-  }
+  }) =>
+      MediaFile(
+        id: id,
+        path: path,
+        name: name,
+        duration: duration,
+        width: 0,
+        height: 0,
+        fileSize: fileSize,
+        codec: codec,
+        container: container,
+        mediaType: MediaType.audio,
+      );
 
   /// Whether this is a video file
   bool get isVideo => mediaType == MediaType.video;
@@ -129,7 +127,7 @@ class MediaFile with _$MediaFile {
   /// Computes the SHA-256 hash of the file for integrity verification
   Future<String> computeHash() async {
     final file = File(path);
-    if (!await file.exists()) {
+    if (!file.existsSync()) {
       throw FileSystemException('File not found', path);
     }
 

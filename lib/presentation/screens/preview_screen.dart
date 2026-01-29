@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../data/models/detection.dart';
-import '../../state/providers/analysis_provider.dart';
-import '../../state/providers/timeline_provider.dart';
-import '../themes/app_theme.dart';
+import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
+import 'package:kidslens_video_editor/state/providers/analysis_provider.dart';
+import 'package:kidslens_video_editor/state/providers/timeline_provider.dart';
 
 /// Full-screen video preview with playback controls
 class PreviewScreen extends ConsumerStatefulWidget {
-  final Duration? initialPosition;
-
   const PreviewScreen({
     super.key,
     this.initialPosition,
   });
+
+  final Duration? initialPosition;
 
   @override
   ConsumerState<PreviewScreen> createState() => _PreviewScreenState();
@@ -45,12 +44,12 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
         child: Stack(
           children: [
             // Video area
-            Center(
+            const Center(
               child: AspectRatio(
                 aspectRatio: 16 / 9,
-                child: Container(
+                child: ColoredBox(
                   color: Colors.black,
-                  child: const Center(
+                  child: Center(
                     child: Icon(
                       Icons.movie,
                       size: 64,
@@ -64,7 +63,7 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
             if (_currentDetection(detections, timelineState.playheadPosition)
                     != null)
               _buildDetectionOverlay(context, 
-                  _currentDetection(detections, timelineState.playheadPosition)!),
+                  _currentDetection(detections, timelineState.playheadPosition)!,),
             // Controls overlay
             AnimatedOpacity(
               opacity: _showControls ? 1.0 : 0.0,
@@ -88,14 +87,13 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
     return null;
   }
 
-  Widget _buildDetectionOverlay(BuildContext context, Detection detection) {
-    return Positioned(
+  Widget _buildDetectionOverlay(BuildContext context, Detection detection) => Positioned(
       top: 16,
       right: 16,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: AppTheme.getDetectionColor(detection.type.name).withOpacity(0.8),
+          color: AppTheme.getDetectionColor(detection.type.name).withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -114,14 +112,12 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
         ),
       ),
     );
-  }
 
   Widget _buildControlsOverlay(
     BuildContext context,
     TimelineState state,
     List<Detection> detections,
-  ) {
-    return Container(
+  ) => ColoredBox(
       color: Colors.black26,
       child: SafeArea(
         child: Column(
@@ -138,10 +134,8 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildTopBar(BuildContext context) {
-    return Padding(
+  Widget _buildTopBar(BuildContext context) => Padding(
       padding: const EdgeInsets.all(8),
       child: Row(
         children: [
@@ -159,10 +153,8 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildCenterControls(BuildContext context, TimelineState state) {
-    return Row(
+  Widget _buildCenterControls(BuildContext context, TimelineState state) => Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
@@ -185,14 +177,12 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
         ),
       ],
     );
-  }
 
   Widget _buildBottomControls(
     BuildContext context,
     TimelineState state,
     List<Detection> detections,
-  ) {
-    return Column(
+  ) => Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // Seek bar with detection markers
@@ -219,7 +209,6 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
         ),
       ],
     );
-  }
 
   Widget _buildSeekBar(
     BuildContext context,
@@ -250,7 +239,7 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
                 child: Container(
                   margin: EdgeInsets.only(left: start * MediaQuery.of(context).size.width),
                   height: 8,
-                  color: AppTheme.getDetectionColor(detection.type.name).withOpacity(0.5),
+                  color: AppTheme.getDetectionColor(detection.type.name).withValues(alpha: 0.5),
                 ),
               ),
             );
@@ -282,9 +271,9 @@ class _PreviewScreenState extends ConsumerState<PreviewScreen> {
     final notifier = ref.read(timelineNotifierProvider.notifier);
     final isPlaying = ref.read(timelineNotifierProvider).isPlaying;
     if (isPlaying) {
-      notifier.setPlaying(false);
+      notifier.setPlaying(playing: false);
     } else {
-      notifier.setPlaying(true);
+      notifier.setPlaying(playing: true);
     }
   }
 

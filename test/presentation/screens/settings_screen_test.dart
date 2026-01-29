@@ -17,8 +17,7 @@ void main() {
       container.dispose();
     });
 
-    Widget createSettingsScreen({SettingsState? settingsState}) {
-      return ProviderScope(
+    Widget createSettingsScreen({SettingsState? settingsState}) => ProviderScope(
         overrides: [
           if (settingsState != null)
             settingsNotifierProvider.overrideWith(
@@ -29,22 +28,21 @@ void main() {
           home: SettingsScreen(),
         ),
       );
-    }
 
-    testWidgets('renders app bar with title', (WidgetTester tester) async {
+    testWidgets('renders app bar with title', (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       expect(find.text('Settings'), findsOneWidget);
     });
 
     testWidgets('displays Analysis Settings section',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       expect(find.text('Analysis Settings'), findsOneWidget);
     });
 
-    testWidgets('displays NSFW threshold slider', (WidgetTester tester) async {
+    testWidgets('displays NSFW threshold slider', (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       expect(find.text('NSFW Threshold'), findsOneWidget);
@@ -55,7 +53,7 @@ void main() {
     });
 
     testWidgets('displays Violence threshold slider',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       expect(find.text('Violence Threshold'), findsOneWidget);
@@ -66,7 +64,7 @@ void main() {
     });
 
     testWidgets('displays Blood threshold slider',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       expect(find.text('Blood Threshold'), findsOneWidget);
@@ -77,7 +75,7 @@ void main() {
     });
 
     testWidgets('displays Weapons threshold slider',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       expect(find.text('Weapons Threshold'), findsOneWidget);
@@ -88,14 +86,14 @@ void main() {
     });
 
     testWidgets('displays Detection Options section',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       expect(find.text('Detection Options'), findsOneWidget);
     });
 
     testWidgets('displays Detect Profanity switch',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       expect(find.text('Detect Profanity'), findsOneWidget);
@@ -105,7 +103,7 @@ void main() {
       );
     });
 
-    testWidgets('displays Detect NSFW switch', (WidgetTester tester) async {
+    testWidgets('displays Detect NSFW switch', (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       expect(find.text('Detect NSFW'), findsOneWidget);
@@ -116,7 +114,7 @@ void main() {
     });
 
     testWidgets('displays Detect Violence switch',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       expect(find.text('Detect Violence'), findsOneWidget);
@@ -126,7 +124,7 @@ void main() {
       );
     });
 
-    testWidgets('displays Detect Blood switch', (WidgetTester tester) async {
+    testWidgets('displays Detect Blood switch', (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       expect(find.text('Detect Blood'), findsOneWidget);
@@ -136,7 +134,7 @@ void main() {
       );
     });
 
-    testWidgets('displays Detect Weapons switch', (WidgetTester tester) async {
+    testWidgets('displays Detect Weapons switch', (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       expect(find.text('Detect Weapons'), findsOneWidget);
@@ -146,7 +144,7 @@ void main() {
       );
     });
 
-    testWidgets('displays AI Models section', (WidgetTester tester) async {
+    testWidgets('displays AI Models section', (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       // Scroll down to find AI Models section
@@ -164,7 +162,7 @@ void main() {
       );
     });
 
-    testWidgets('displays Appearance section', (WidgetTester tester) async {
+    testWidgets('displays Appearance section', (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       // Scroll down to find Appearance section
@@ -179,7 +177,7 @@ void main() {
       expect(find.text('Use dark color scheme'), findsOneWidget);
     });
 
-    testWidgets('displays About section', (WidgetTester tester) async {
+    testWidgets('displays About section', (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       // Scroll down to find About section
@@ -197,10 +195,10 @@ void main() {
       );
     });
 
-    testWidgets('toggles dark theme switch', (WidgetTester tester) async {
+    testWidgets('toggles dark theme switch', (tester) async {
       await tester.pumpWidget(createSettingsScreen(
-        settingsState: SettingsState(useDarkTheme: false),
-      ));
+        settingsState: SettingsState(),
+      ),);
 
       // Scroll to find dark theme switch
       await tester.scrollUntilVisible(
@@ -219,7 +217,7 @@ void main() {
     });
 
     testWidgets('toggles profanity detection switch',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       // Scroll to find Detect Profanity
@@ -237,7 +235,7 @@ void main() {
       await tester.pump();
     });
 
-    testWidgets('toggles NSFW detection switch', (WidgetTester tester) async {
+    testWidgets('toggles NSFW detection switch', (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       // Scroll to find Detect NSFW
@@ -255,7 +253,7 @@ void main() {
     });
 
     testWidgets('toggles violence detection switch',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       // Scroll to find Detect Violence
@@ -274,11 +272,11 @@ void main() {
     });
 
     testWidgets('sliders have correct initial values',
-        (WidgetTester tester) async {
+        (tester) async {
       final settings = AnalysisSettings.defaults();
       await tester.pumpWidget(createSettingsScreen(
         settingsState: SettingsState(analysisSettings: settings),
-      ));
+      ),);
 
       // Find all sliders
       final sliders = find.byType(Slider);
@@ -286,7 +284,7 @@ void main() {
     });
 
     testWidgets('manage models tile navigates on tap',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       // Scroll to find Manage Models
@@ -303,7 +301,7 @@ void main() {
       expect(find.text('AI Models'), findsWidgets);
     });
 
-    testWidgets('about tile navigates on tap', (WidgetTester tester) async {
+    testWidgets('about tile navigates on tap', (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       // Scroll to find About KidsLens
@@ -320,7 +318,7 @@ void main() {
     });
 
     testWidgets('slider interaction updates threshold',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createSettingsScreen());
 
       // Find a slider and interact with it
@@ -335,15 +333,15 @@ void main() {
 }
 
 class _MockSettingsNotifier extends SettingsNotifier {
-  final SettingsState _initialState;
-
   _MockSettingsNotifier(this._initialState);
+
+  final SettingsState _initialState;
 
   @override
   SettingsState build() => _initialState;
 
   @override
-  void setDarkTheme(bool useDark) {
+  void setDarkTheme({required bool useDark}) {
     state = state.copyWith(useDarkTheme: useDark);
   }
 

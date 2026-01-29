@@ -10,8 +10,7 @@ void main() {
       required int count,
       bool isSelected = false,
       VoidCallback? onTap,
-    }) {
-      return MaterialApp(
+    }) => MaterialApp(
         home: Scaffold(
           body: Center(
             child: DetectionBadge(
@@ -23,141 +22,140 @@ void main() {
           ),
         ),
       );
-    }
 
     group('rendering', () {
-      testWidgets('renders type text', (WidgetTester tester) async {
+      testWidgets('renders type text', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 5,
-        ));
+        ),);
 
         expect(find.text('Profanity'), findsOneWidget);
       });
 
-      testWidgets('renders count', (WidgetTester tester) async {
+      testWidgets('renders count', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 5,
-        ));
+        ),);
 
         expect(find.text('5'), findsOneWidget);
       });
 
-      testWidgets('capitalizes type name', (WidgetTester tester) async {
+      testWidgets('capitalizes type name', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'violence',
           count: 3,
-        ));
+        ),);
 
         expect(find.text('Violence'), findsOneWidget);
       });
     });
 
     group('icons per type', () {
-      testWidgets('profanity shows mic_off icon', (WidgetTester tester) async {
+      testWidgets('profanity shows mic_off icon', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 1,
-        ));
+        ),);
 
         expect(find.byIcon(Icons.mic_off), findsOneWidget);
       });
 
       testWidgets('nudity shows visibility_off icon',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'nudity',
           count: 1,
-        ));
+        ),);
 
         expect(find.byIcon(Icons.visibility_off), findsOneWidget);
       });
 
-      testWidgets('violence shows warning icon', (WidgetTester tester) async {
+      testWidgets('violence shows warning icon', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'violence',
           count: 1,
-        ));
+        ),);
 
         expect(find.byIcon(Icons.warning), findsOneWidget);
       });
 
-      testWidgets('blood shows water_drop icon', (WidgetTester tester) async {
+      testWidgets('blood shows water_drop icon', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'blood',
           count: 1,
-        ));
+        ),);
 
         expect(find.byIcon(Icons.water_drop), findsOneWidget);
       });
 
-      testWidgets('weapons shows gpp_bad icon', (WidgetTester tester) async {
+      testWidgets('weapons shows gpp_bad icon', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'weapons',
           count: 1,
-        ));
+        ),);
 
         expect(find.byIcon(Icons.gpp_bad), findsOneWidget);
       });
 
       testWidgets('unknown type shows error icon',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'unknown',
           count: 1,
-        ));
+        ),);
 
         expect(find.byIcon(Icons.error), findsOneWidget);
       });
     });
 
     group('colors per type', () {
-      testWidgets('profanity uses orange color', (WidgetTester tester) async {
+      testWidgets('profanity uses orange color', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 1,
-        ));
+        ),);
 
         final expectedColor = AppTheme.getDetectionColor('profanity');
         expect(expectedColor, equals(AppTheme.profanityColor));
       });
 
-      testWidgets('nudity uses pink color', (WidgetTester tester) async {
+      testWidgets('nudity uses pink color', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'nudity',
           count: 1,
-        ));
+        ),);
 
         final expectedColor = AppTheme.getDetectionColor('nudity');
         expect(expectedColor, equals(AppTheme.nudityColor));
       });
 
-      testWidgets('violence uses red color', (WidgetTester tester) async {
+      testWidgets('violence uses red color', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'violence',
           count: 1,
-        ));
+        ),);
 
         final expectedColor = AppTheme.getDetectionColor('violence');
         expect(expectedColor, equals(AppTheme.violenceColor));
       });
 
-      testWidgets('blood uses dark red color', (WidgetTester tester) async {
+      testWidgets('blood uses dark red color', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'blood',
           count: 1,
-        ));
+        ),);
 
         final expectedColor = AppTheme.getDetectionColor('blood');
         expect(expectedColor, equals(AppTheme.bloodColor));
       });
 
-      testWidgets('weapons uses gray color', (WidgetTester tester) async {
+      testWidgets('weapons uses gray color', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'weapons',
           count: 1,
-        ));
+        ),);
 
         final expectedColor = AppTheme.getDetectionColor('weapons');
         expect(expectedColor, equals(AppTheme.weaponsColor));
@@ -166,26 +164,25 @@ void main() {
 
     group('selection state', () {
       testWidgets('unselected badge has transparent background',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 1,
-          isSelected: false,
-        ));
+        ),);
 
         // Badge should have semi-transparent background
         final container = tester.widget<Container>(find.byType(Container).last);
-        final decoration = container.decoration as BoxDecoration;
-        expect(decoration.color?.opacity, lessThan(1.0));
+        final decoration = container.decoration! as BoxDecoration;
+        expect(decoration.color?.a, lessThan(1.0));
       });
 
       testWidgets('selected badge has solid background',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 1,
           isSelected: true,
-        ));
+        ),);
 
         // Badge should have the type color as background
         final containers = tester.widgetList<Container>(find.byType(Container));
@@ -193,12 +190,12 @@ void main() {
         expect(containers.length, greaterThan(0));
       });
 
-      testWidgets('selected badge has white text', (WidgetTester tester) async {
+      testWidgets('selected badge has white text', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 1,
           isSelected: true,
-        ));
+        ),);
 
         final texts = tester.widgetList<Text>(find.byType(Text));
         for (final text in texts) {
@@ -209,12 +206,11 @@ void main() {
       });
 
       testWidgets('unselected badge has colored text',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 1,
-          isSelected: false,
-        ));
+        ),);
 
         final expectedColor = AppTheme.getDetectionColor('profanity');
         final texts = tester.widgetList<Text>(find.byType(Text));
@@ -226,24 +222,23 @@ void main() {
       });
 
       testWidgets('selected badge has thicker border',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 1,
           isSelected: true,
-        ));
+        ),);
 
         // Just verify the badge renders
         expect(find.text('Profanity'), findsOneWidget);
       });
 
       testWidgets('unselected badge has thinner border',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 1,
-          isSelected: false,
-        ));
+        ),);
 
         // Just verify the badge renders
         expect(find.text('Profanity'), findsOneWidget);
@@ -251,14 +246,14 @@ void main() {
     });
 
     group('interaction', () {
-      testWidgets('calls onTap when tapped', (WidgetTester tester) async {
+      testWidgets('calls onTap when tapped', (tester) async {
         var tapped = false;
 
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 1,
           onTap: () => tapped = true,
-        ));
+        ),);
 
         await tester.tap(find.byType(InkWell));
         await tester.pump();
@@ -267,12 +262,11 @@ void main() {
       });
 
       testWidgets('is tappable when onTap is null',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 1,
-          onTap: null,
-        ));
+        ),);
 
         // Should still render InkWell, just with null onTap
         expect(find.byType(InkWell), findsOneWidget);
@@ -280,30 +274,30 @@ void main() {
     });
 
     group('count display', () {
-      testWidgets('displays zero count', (WidgetTester tester) async {
+      testWidgets('displays zero count', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 0,
-        ));
+        ),);
 
         expect(find.text('0'), findsOneWidget);
       });
 
-      testWidgets('displays large count', (WidgetTester tester) async {
+      testWidgets('displays large count', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 999,
-        ));
+        ),);
 
         expect(find.text('999'), findsOneWidget);
       });
 
       testWidgets('count is in container with rounded corners',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 5,
-        ));
+        ),);
 
         // Find the count container
         final containers = tester.widgetList<Container>(find.byType(Container));
@@ -312,30 +306,30 @@ void main() {
     });
 
     group('layout', () {
-      testWidgets('uses row layout', (WidgetTester tester) async {
+      testWidgets('uses row layout', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 5,
-        ));
+        ),);
 
         expect(find.byType(Row), findsOneWidget);
       });
 
-      testWidgets('has rounded corners', (WidgetTester tester) async {
+      testWidgets('has rounded corners', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 5,
-        ));
+        ),);
 
         // There are multiple containers - verify the badge renders with rounded look
         expect(find.byType(Container), findsWidgets);
       });
 
-      testWidgets('icon has correct size', (WidgetTester tester) async {
+      testWidgets('icon has correct size', (tester) async {
         await tester.pumpWidget(createDetectionBadge(
           type: 'profanity',
           count: 5,
-        ));
+        ),);
 
         final icon = tester.widget<Icon>(find.byIcon(Icons.mic_off));
         expect(icon.size, equals(16));

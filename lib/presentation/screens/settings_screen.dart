@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../state/providers/settings_provider.dart';
-import 'about_screen.dart';
-import 'model_selection_screen.dart';
+import 'package:kidslens_video_editor/presentation/screens/about_screen.dart';
+import 'package:kidslens_video_editor/presentation/screens/model_selection_screen.dart';
+import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 
 /// Settings screen
 class SettingsScreen extends ConsumerWidget {
@@ -111,7 +110,7 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: const Text('Use dark color scheme'),
                 value: settings.useDarkTheme,
                 onChanged: (value) {
-                  ref.read(settingsNotifierProvider.notifier).setDarkTheme(value);
+                  ref.read(settingsNotifierProvider.notifier).setDarkTheme(useDark: value);
                 },
               ),
             ],
@@ -138,8 +137,7 @@ class SettingsScreen extends ConsumerWidget {
     BuildContext context,
     String title,
     List<Widget> children,
-  ) {
-    return Column(
+  ) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
@@ -155,7 +153,6 @@ class SettingsScreen extends ConsumerWidget {
         const Divider(),
       ],
     );
-  }
 
   Widget _buildSliderTile(
     BuildContext context,
@@ -163,8 +160,7 @@ class SettingsScreen extends ConsumerWidget {
     String subtitle,
     double value,
     ValueChanged<double> onChanged,
-  ) {
-    return ListTile(
+  ) => ListTile(
       title: Text(title),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,7 +169,6 @@ class SettingsScreen extends ConsumerWidget {
           Slider(
             value: value,
             min: 0.1,
-            max: 1.0,
             divisions: 9,
             label: '${(value * 100).round()}%',
             onChanged: onChanged,
@@ -181,7 +176,6 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
-  }
 
   void _updateThreshold(WidgetRef ref, String type, double value) {
     final current = ref.read(settingsNotifierProvider).analysisSettings;

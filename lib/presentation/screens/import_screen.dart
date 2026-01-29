@@ -16,8 +16,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   bool _isDragging = false;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       appBar: AppBar(
         title: const Text('Import Media'),
       ),
@@ -35,10 +34,8 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildDropZone(BuildContext context) {
-    return DragTarget<String>(
+  Widget _buildDropZone(BuildContext context) => DragTarget<String>(
       onAcceptWithDetails: (details) {
         _importFile(details.data);
       },
@@ -49,8 +46,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       onLeave: (_) {
         setState(() => _isDragging = false);
       },
-      builder: (context, candidateData, rejectedData) {
-        return AnimatedContainer(
+      builder: (context, candidateData, rejectedData) => AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
             border: Border.all(
@@ -58,11 +54,10 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                   ? Theme.of(context).colorScheme.primary
                   : Theme.of(context).colorScheme.outline,
               width: _isDragging ? 2 : 1,
-              strokeAlign: BorderSide.strokeAlignInside,
             ),
             borderRadius: BorderRadius.circular(16),
             color: _isDragging
-                ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+                ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
                 : null,
           ),
           child: InkWell(
@@ -101,13 +96,10 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
               ),
             ),
           ),
-        );
-      },
+        ),
     );
-  }
 
-  Widget _buildSupportedFormats(BuildContext context) {
-    return Card(
+  Widget _buildSupportedFormats(BuildContext context) => Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -140,7 +132,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         ),
       ),
     );
-  }
 
   Future<void> _selectFile() async {
     try {
@@ -150,7 +141,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           ...SupportedFormats.videoContainers,
           ...SupportedFormats.audioFormats,
         ],
-        allowMultiple: false,
       );
 
       if (result != null && result.files.isNotEmpty) {

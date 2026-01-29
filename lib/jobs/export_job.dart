@@ -1,18 +1,12 @@
 import 'dart:async';
 
-import '../data/models/media_file.dart';
-import '../data/models/timeline.dart';
-import '../services/export_service.dart';
-import 'job_system.dart';
+import 'package:kidslens_video_editor/data/models/media_file.dart';
+import 'package:kidslens_video_editor/data/models/timeline.dart';
+import 'package:kidslens_video_editor/jobs/job_system.dart';
+import 'package:kidslens_video_editor/services/export_service.dart';
 
 /// Export job for applying modifications and saving output
 class ExportJob extends Job<String> {
-  final MediaFile media;
-  final UnifiedTimeline timeline;
-  final String outputPath;
-  final ExportSettings exportSettings;
-  final ExportService exportService;
-
   ExportJob({
     required super.id,
     required this.media,
@@ -22,6 +16,12 @@ class ExportJob extends Job<String> {
     this.exportSettings = const ExportSettings(),
     super.cancellationToken,
   });
+
+  final MediaFile media;
+  final UnifiedTimeline timeline;
+  final String outputPath;
+  final ExportSettings exportSettings;
+  final ExportService exportService;
 
   @override
   Future<String> execute() async {

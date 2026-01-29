@@ -7,7 +7,7 @@ void main() {
   group('ModelConfig', () {
     group('creation', () {
       test('should create with required fields', () {
-        final config = ModelConfig(
+        const config = ModelConfig(
           asrModelId: 'whisper-base',
           visualModelId: 'nsfw-detector',
         );
@@ -22,7 +22,7 @@ void main() {
       });
 
       test('should create with custom values', () {
-        final config = ModelConfig(
+        const config = ModelConfig(
           asrModelId: 'whisper-large',
           visualModelId: 'yolo-v8',
           asrLanguage: 'es',
@@ -52,11 +52,10 @@ void main() {
 
     group('JSON serialization', () {
       test('should serialize and deserialize correctly', () {
-        final original = ModelConfig(
+        const original = ModelConfig(
           asrModelId: 'whisper-medium',
           visualModelId: 'custom-model',
           asrLanguage: 'fr',
-          useGpu: true,
           cpuThreads: 16,
           batchSize: 32,
           useFp16: true,
@@ -81,7 +80,7 @@ void main() {
   group('ProfanityConfig', () {
     group('creation', () {
       test('should create with defaults', () {
-        final config = ProfanityConfig();
+        const config = ProfanityConfig();
 
         expect(config.wordlistIds, equals(['english-profanity']));
         expect(config.detectLeetspeak, isTrue);
@@ -96,7 +95,7 @@ void main() {
       });
 
       test('should create with custom values', () {
-        final config = ProfanityConfig(
+        const config = ProfanityConfig(
           wordlistIds: ['english-profanity', 'spanish-profanity'],
           detectLeetspeak: false,
           fuzzyThreshold: 0.9,
@@ -149,7 +148,7 @@ void main() {
 
     group('JSON serialization', () {
       test('should serialize and deserialize correctly', () {
-        final original = ProfanityConfig(
+        const original = ProfanityConfig(
           wordlistIds: ['test-list'],
           detectLeetspeak: false,
           detectPhonetic: false,
@@ -255,7 +254,6 @@ void main() {
         final visual = AnalysisSettings(
           modelConfig: ModelConfig.defaults(),
           profanityConfig: ProfanityConfig.defaults(),
-          enableNsfw: true,
         );
 
         final noVisual = AnalysisSettings(
@@ -275,7 +273,6 @@ void main() {
         final audio = AnalysisSettings(
           modelConfig: ModelConfig.defaults(),
           profanityConfig: ProfanityConfig.defaults(),
-          enableProfanity: true,
         );
 
         final noAudio = AnalysisSettings(
@@ -309,7 +306,6 @@ void main() {
           modelConfig: ModelConfig.defaults(),
           profanityConfig: ProfanityConfig.defaults(),
           nsfwThreshold: 0.5,
-          violenceThreshold: 0.6,
           bloodThreshold: 0.7,
           weaponsThreshold: 0.8,
         );
@@ -454,7 +450,7 @@ void main() {
         final invalid = AnalysisSettings(
           modelConfig: ModelConfig.defaults(),
           profanityConfig: ProfanityConfig.defaults(),
-          nsfwThreshold: 2.0, // Invalid
+          nsfwThreshold: 2, // Invalid
         );
         expect(invalid.isValid, isFalse);
       });
@@ -462,7 +458,7 @@ void main() {
 
     group('JSON serialization', () {
       test('should serialize and deserialize correctly', () {
-        final original = AnalysisSettings(
+        const original = AnalysisSettings(
           modelConfig: ModelConfig(
             asrModelId: 'whisper-large',
             visualModelId: 'yolo-v8',
@@ -475,8 +471,6 @@ void main() {
           nsfwThreshold: 0.7,
           violenceThreshold: 0.8,
           bloodThreshold: 0.5,
-          weaponsThreshold: 0.6,
-          enableNsfw: true,
           enableViolence: false,
           frameSamplingRate: 10,
           minSegmentDurationMs: 1000,

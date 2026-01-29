@@ -1,30 +1,30 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/models/media_file.dart';
+import 'package:kidslens_video_editor/data/models/media_file.dart';
 
 /// Panel showing imported media files (media bin)
 class MediaBinPanel extends StatelessWidget {
+  const MediaBinPanel({
+    required this.mediaFiles,
+    required this.selectedMediaId,
+    required this.onMediaSelected,
+    required this.onImportMedia,
+    required this.onRemoveMedia,
+    super.key,
+  });
+
   final List<MediaFile> mediaFiles;
   final String? selectedMediaId;
   final void Function(String) onMediaSelected;
   final VoidCallback onImportMedia;
   final void Function(String) onRemoveMedia;
 
-  const MediaBinPanel({
-    super.key,
-    required this.mediaFiles,
-    required this.selectedMediaId,
-    required this.onMediaSelected,
-    required this.onImportMedia,
-    required this.onRemoveMedia,
-  });
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
+    return ColoredBox(
       color: colorScheme.surfaceContainerLow,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -118,17 +118,17 @@ class MediaBinPanel extends StatelessWidget {
 }
 
 class _MediaTile extends StatelessWidget {
-  final MediaFile media;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final VoidCallback onRemove;
-
   const _MediaTile({
     required this.media,
     required this.isSelected,
     required this.onTap,
     required this.onRemove,
   });
+
+  final MediaFile media;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {

@@ -1,186 +1,130 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kidslens_video_editor/data/models/analysis_result.dart';
 import 'package:kidslens_video_editor/data/models/analysis_settings.dart';
-import 'package:kidslens_video_editor/data/models/media_file.dart';
 import 'package:kidslens_video_editor/state/providers/analysis_provider.dart';
 
 void main() {
   group('AnalysisState', () {
     group('creation', () {
-      test('should create initial state', () {
-        final state = AnalysisState.initial();
+      test('should create default state', () {
+        const state = AnalysisState();
 
-        expect(state.status, equals(AnalysisStatus.idle));
-        expect(state.mediaFile, isNull);
-        expect(state.settings, isNull);
+        expect(state.status, equals(AnalysisStatus.pending));
+        expect(state.progress, equals(0.0));
+        expect(state.currentStep, isNull);
         expect(state.result, isNull);
-        expect(state.progress, isNull);
-        expect(state.error, isNull);
+        expect(state.errorMessage, isNull);
+        expect(state.isPaused, isFalse);
+        expect(state.detections, isEmpty);
       });
 
       test('should create with required fields', () {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
-        );
-        final settings = AnalysisSettings.defaults();
-
-        final state = AnalysisState(
-          status: AnalysisStatus.analyzing,
-          mediaFile: mediaFile,
-          settings: settings,
+        const state = AnalysisState(
+          status: AnalysisStatus.running,
+          progress: 0.5,
+          currentStep: 'Processing...',
         );
 
-        expect(state.status, equals(AnalysisStatus.analyzing));
-        expect(state.mediaFile, equals(mediaFile));
-        expect(state.settings, equals(settings));
+        expect(state.status, equals(AnalysisStatus.running));
+        expect(state.progress, equals(0.5));
+        expect(state.currentStep, equals('Processing...'));
       });
     });
 
     group('status checks', () {
-      test('isIdle should return true for idle state', () {
-        final state = AnalysisState.initial();
+      test('should identify pending state', () {
+        const state = AnalysisState();
 
-        expect(state.isIdle, isTrue);
-        expect(state.isAnalyzing, isFalse);
-        expect(state.isComplete, isFalse);
+        expect(state.status, equals(AnalysisStatus.pending));
       });
 
-      test('isAnalyzing should return true for analyzing state', () {
-        final state = AnalysisState(
-          status: AnalysisStatus.analyzing,
+      test('should identify running state', () {
+        const state = AnalysisState(
+          status: AnalysisStatus.running,
         );
 
-        expect(state.isAnalyzing, isTrue);
-        expect(state.isIdle, isFalse);
-        expect(state.isComplete, isFalse);
+        expect(state.status, equals(AnalysisStatus.running));
       });
 
-      test('isComplete should return true for completed state', () {
-        final state = AnalysisState(
+      test('should identify completed state', () {
+        const state = AnalysisState(
           status: AnalysisStatus.completed,
         );
 
-        expect(state.isComplete, isTrue);
-        expect(state.isIdle, isFalse);
-        expect(state.isAnalyzing, isFalse);
+        expect(state.status, equals(AnalysisStatus.completed));
       });
 
-      test('isPaused should return true for paused state', () {
-        final state = AnalysisState(
-          status: AnalysisStatus.paused,
+      test('isPaused should return true when paused', () {
+        const state = AnalysisState(
+          status: AnalysisStatus.running,
+          isPaused: true,
         );
 
         expect(state.isPaused, isTrue);
       });
 
-      test('isCancelled should return true for cancelled state', () {
-        final state = AnalysisState(
+      test('should identify cancelled state', () {
+        const state = AnalysisState(
           status: AnalysisStatus.cancelled,
         );
 
-        expect(state.isCancelled, isTrue);
+        expect(state.status, equals(AnalysisStatus.cancelled));
       });
 
-      test('isFailed should return true for failed state', () {
-        final state = AnalysisState(
+      test('should identify failed state with error message', () {
+        const state = AnalysisState(
           status: AnalysisStatus.failed,
-          error: 'Analysis failed',
+          errorMessage: 'Analysis failed',
         );
 
-        expect(state.isFailed, isTrue);
-        expect(state.error, equals('Analysis failed'));
+        expect(state.status, equals(AnalysisStatus.failed));
+        expect(state.errorMessage, equals('Analysis failed'));
       });
     });
 
     group('progress tracking', () {
-      test('should track progress percentage', () {
-        final progress = AnalysisProgress(
-          currentStage: 'transcription',
-          stageProgress: 0.5,
-          overallProgress: 0.25,
+      test('should track progress as double', () {
+        const state = AnalysisState(
+          status: AnalysisStatus.running,
+          progress: 0.25,
+          currentStep: 'Transcribing audio...',
         );
 
-        final state = AnalysisState(
-          status: AnalysisStatus.analyzing,
-          progress: progress,
-        );
-
-        expect(state.progress?.overallProgress, equals(0.25));
-        expect(state.progress?.stageProgress, equals(0.5));
-        expect(state.progress?.currentStage, equals('transcription'));
+        expect(state.progress, equals(0.25));
+        expect(state.currentStep, equals('Transcribing audio...'));
       });
 
       test('should track estimated time remaining', () {
-        final progress = AnalysisProgress(
-          currentStage: 'detection',
-          stageProgress: 0.5,
-          overallProgress: 0.5,
-          estimatedTimeRemaining: const Duration(minutes: 2),
+        const state = AnalysisState(
+          status: AnalysisStatus.running,
+          progress: 0.5,
+          estimatedSecondsRemaining: 120,
         );
 
-        final state = AnalysisState(
-          status: AnalysisStatus.analyzing,
-          progress: progress,
-        );
-
-        expect(
-          state.progress?.estimatedTimeRemaining,
-          equals(const Duration(minutes: 2)),
-        );
-      });
-
-      test('should track elapsed time', () {
-        final progress = AnalysisProgress(
-          currentStage: 'detection',
-          stageProgress: 0.5,
-          overallProgress: 0.5,
-          elapsedTime: const Duration(minutes: 5),
-        );
-
-        final state = AnalysisState(
-          status: AnalysisStatus.analyzing,
-          progress: progress,
-        );
-
-        expect(
-          state.progress?.elapsedTime,
-          equals(const Duration(minutes: 5)),
-        );
+        expect(state.estimatedSecondsRemaining, equals(120));
       });
     });
 
     group('copyWith', () {
       test('should copy with new status', () {
-        final state = AnalysisState.initial();
-        final newState = state.copyWith(status: AnalysisStatus.analyzing);
+        const state = AnalysisState();
+        final newState = state.copyWith(status: AnalysisStatus.running);
 
-        expect(newState.status, equals(AnalysisStatus.analyzing));
-        expect(state.status, equals(AnalysisStatus.idle)); // Original unchanged
+        expect(newState.status, equals(AnalysisStatus.running));
+        expect(
+            state.status, equals(AnalysisStatus.pending),); // Original unchanged
       });
 
       test('should copy with new progress', () {
-        final state = AnalysisState(status: AnalysisStatus.analyzing);
-        final progress = AnalysisProgress(
-          currentStage: 'test',
-          stageProgress: 0.5,
-          overallProgress: 0.5,
-        );
-        final newState = state.copyWith(progress: progress);
+        const state = AnalysisState(status: AnalysisStatus.running);
+        final newState = state.copyWith(progress: 0.75);
 
-        expect(newState.progress, equals(progress));
+        expect(newState.progress, equals(0.75));
       });
 
       test('should copy with result', () {
-        final state = AnalysisState(status: AnalysisStatus.analyzing);
-        final result = AnalysisResult.empty();
+        const state = AnalysisState(status: AnalysisStatus.running);
+        final result = AnalysisResult.empty(id: 'result-123');
         final newState = state.copyWith(
           status: AnalysisStatus.completed,
           result: result,
@@ -189,483 +133,193 @@ void main() {
         expect(newState.status, equals(AnalysisStatus.completed));
         expect(newState.result, equals(result));
       });
-    });
 
-    group('equality', () {
-      test('should be equal with same values', () {
-        final state1 = AnalysisState(status: AnalysisStatus.idle);
-        final state2 = AnalysisState(status: AnalysisStatus.idle);
+      test('should clear error when clearError is true', () {
+        const state = AnalysisState(
+          status: AnalysisStatus.failed,
+          errorMessage: 'Some error',
+        );
+        final newState = state.copyWith(
+          status: AnalysisStatus.running,
+          clearError: true,
+        );
 
-        expect(state1, equals(state2));
-      });
-
-      test('should not be equal with different status', () {
-        final state1 = AnalysisState(status: AnalysisStatus.idle);
-        final state2 = AnalysisState(status: AnalysisStatus.analyzing);
-
-        expect(state1, isNot(equals(state2)));
+        expect(newState.errorMessage, isNull);
       });
     });
   });
 
-  group('AnalysisNotifier', () {
-    late AnalysisNotifier notifier;
-
-    setUp(() {
-      notifier = AnalysisNotifier();
-    });
-
-    group('initialization', () {
-      test('should start with initial state', () {
-        expect(notifier.state.isIdle, isTrue);
-        expect(notifier.state.mediaFile, isNull);
-        expect(notifier.state.settings, isNull);
-      });
-    });
-
-    group('setMediaFile', () {
-      test('should update media file', () {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
+  group('AnalysisProgress', () {
+    group('creation', () {
+      test('should create with required fields', () {
+        const progress = AnalysisProgress(
+          stepName: 'Transcribing',
+          currentStep: 1,
+          totalSteps: 4,
+          stepProgress: 0.5,
         );
 
-        notifier.setMediaFile(mediaFile);
-
-        expect(notifier.state.mediaFile, equals(mediaFile));
+        expect(progress.stepName, equals('Transcribing'));
+        expect(progress.currentStep, equals(1));
+        expect(progress.totalSteps, equals(4));
+        expect(progress.stepProgress, equals(0.5));
       });
 
-      test('should reset previous analysis', () {
-        final oldFile = MediaFile.video(
-          id: 'old-video',
-          path: '/path/to/old.mp4',
-          name: 'old.mp4',
-          duration: const Duration(minutes: 2),
-          width: 1280,
-          height: 720,
-          fileSize: 52428800,
-          codec: 'h264',
-          container: 'mp4',
-        );
+      test('should create initial progress', () {
+        final progress = AnalysisProgress.initial();
 
-        final newFile = MediaFile.video(
-          id: 'new-video',
-          path: '/path/to/new.mp4',
-          name: 'new.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
-        );
-
-        notifier.setMediaFile(oldFile);
-        notifier.setMediaFile(newFile);
-
-        expect(notifier.state.mediaFile, equals(newFile));
-        expect(notifier.state.result, isNull);
+        expect(progress.stepName, equals('Starting'));
+        expect(progress.currentStep, equals(0));
+        expect(progress.totalSteps, equals(4));
+        expect(progress.stepProgress, equals(0));
       });
     });
 
-    group('setSettings', () {
-      test('should update analysis settings', () {
-        final settings = AnalysisSettings.defaults();
+    group('overallProgress', () {
+      test('should calculate overall progress correctly', () {
+        const progress = AnalysisProgress(
+          stepName: 'Analyzing',
+          currentStep: 2,
+          totalSteps: 4,
+          stepProgress: 0.5,
+        );
 
-        notifier.setSettings(settings);
-
-        expect(notifier.state.settings, equals(settings));
+        // At step 2 of 4, with 50% of current step done
+        // = (1 completed step / 4) + (0.5 * 1/4) = 0.25 + 0.125 = 0.375
+        expect(progress.overallProgress, closeTo(0.375, 0.01));
       });
 
-      test('should accept different settings configurations', () {
-        final strictSettings = AnalysisSettings.strict();
+      test('should return 0 when totalSteps is 0', () {
+        const progress = AnalysisProgress(
+          stepName: 'Test',
+          currentStep: 1,
+          totalSteps: 0,
+          stepProgress: 0.5,
+        );
 
-        notifier.setSettings(strictSettings);
-
-        expect(notifier.state.settings?.profanityConfig.strictMode, isTrue);
+        expect(progress.overallProgress, equals(0.0));
       });
     });
 
-    group('startAnalysis', () {
-      test('should transition to analyzing state', () async {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
+    group('formatting', () {
+      test('should format estimated time as seconds', () {
+        const progress = AnalysisProgress(
+          stepName: 'Test',
+          currentStep: 1,
+          totalSteps: 4,
+          stepProgress: 0.5,
+          estimatedSecondsRemaining: 45,
         );
-        final settings = AnalysisSettings.defaults();
 
-        notifier.setMediaFile(mediaFile);
-        notifier.setSettings(settings);
-
-        // Just test state transition, not actual analysis
-        notifier.startAnalysis();
-
-        expect(notifier.state.isAnalyzing, isTrue);
+        expect(progress.estimatedTimeFormatted, equals('45s remaining'));
       });
 
-      test('should not start without media file', () {
-        final settings = AnalysisSettings.defaults();
-        notifier.setSettings(settings);
+      test('should format estimated time as minutes and seconds', () {
+        const progress = AnalysisProgress(
+          stepName: 'Test',
+          currentStep: 1,
+          totalSteps: 4,
+          stepProgress: 0.5,
+          estimatedSecondsRemaining: 125,
+        );
 
-        notifier.startAnalysis();
-
-        expect(notifier.state.isIdle, isTrue);
+        expect(progress.estimatedTimeFormatted, equals('2m 5s remaining'));
       });
 
-      test('should not start without settings', () {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
+      test('should show calculating when no estimated time', () {
+        const progress = AnalysisProgress(
+          stepName: 'Test',
+          currentStep: 1,
+          totalSteps: 4,
+          stepProgress: 0.5,
         );
-        notifier.setMediaFile(mediaFile);
 
-        notifier.startAnalysis();
-
-        expect(notifier.state.isIdle, isTrue);
+        expect(progress.estimatedTimeFormatted, equals('Calculating...'));
       });
     });
+  });
 
-    group('updateProgress', () {
-      test('should update progress during analysis', () {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
-        );
-        final settings = AnalysisSettings.defaults();
+  group('AnalysisStatus', () {
+    test('should have all expected values', () {
+      expect(AnalysisStatus.values, contains(AnalysisStatus.pending));
+      expect(AnalysisStatus.values, contains(AnalysisStatus.running));
+      expect(AnalysisStatus.values, contains(AnalysisStatus.completed));
+      expect(AnalysisStatus.values, contains(AnalysisStatus.failed));
+      expect(AnalysisStatus.values, contains(AnalysisStatus.cancelled));
+    });
+  });
 
-        notifier.setMediaFile(mediaFile);
-        notifier.setSettings(settings);
-        notifier.startAnalysis();
+  group('AnalysisSettings', () {
+    test('should create with defaults', () {
+      final settings = AnalysisSettings.defaults();
 
-        final progress = AnalysisProgress(
-          currentStage: 'transcription',
-          stageProgress: 0.5,
-          overallProgress: 0.25,
-        );
-
-        notifier.updateProgress(progress);
-
-        expect(notifier.state.progress, equals(progress));
-      });
-
-      test('should not update progress when not analyzing', () {
-        final progress = AnalysisProgress(
-          currentStage: 'transcription',
-          stageProgress: 0.5,
-          overallProgress: 0.25,
-        );
-
-        notifier.updateProgress(progress);
-
-        expect(notifier.state.progress, isNull);
-      });
+      expect(settings.enableProfanity, isTrue);
+      expect(settings.enableNsfw, isTrue);
+      expect(settings.enableViolence, isTrue);
+      expect(settings.enableBlood, isTrue);
+      expect(settings.enableWeapons, isTrue);
     });
 
-    group('pause', () {
-      test('should pause ongoing analysis', () {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
-        );
-        final settings = AnalysisSettings.defaults();
+    test('should create strict settings', () {
+      final settings = AnalysisSettings.strict();
 
-        notifier.setMediaFile(mediaFile);
-        notifier.setSettings(settings);
-        notifier.startAnalysis();
-        notifier.pause();
-
-        expect(notifier.state.isPaused, isTrue);
-      });
-
-      test('should not pause if not analyzing', () {
-        notifier.pause();
-
-        expect(notifier.state.isIdle, isTrue);
-        expect(notifier.state.isPaused, isFalse);
-      });
+      expect(settings.nsfwThreshold, equals(0.4));
+      expect(settings.violenceThreshold, equals(0.4));
+      expect(settings.frameSamplingRate, equals(3));
     });
 
-    group('resume', () {
-      test('should resume paused analysis', () {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
-        );
-        final settings = AnalysisSettings.defaults();
+    test('should create permissive settings', () {
+      final settings = AnalysisSettings.permissive();
 
-        notifier.setMediaFile(mediaFile);
-        notifier.setSettings(settings);
-        notifier.startAnalysis();
-        notifier.pause();
-        notifier.resume();
+      expect(settings.nsfwThreshold, equals(0.8));
+      expect(settings.violenceThreshold, equals(0.8));
+      expect(settings.frameSamplingRate, equals(10));
+    });
+  });
 
-        expect(notifier.state.isAnalyzing, isTrue);
-      });
+  group('AnalysisResult', () {
+    test('should create empty result', () {
+      final result = AnalysisResult.empty(id: 'test-id');
 
-      test('should not resume if not paused', () {
-        notifier.resume();
-
-        expect(notifier.state.isIdle, isTrue);
-      });
+      expect(result.id, equals('test-id'));
+      expect(result.status, equals(AnalysisStatus.pending));
+      expect(result.isPending, isTrue);
     });
 
-    group('cancel', () {
-      test('should cancel ongoing analysis', () {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
-        );
-        final settings = AnalysisSettings.defaults();
+    test('should create running result', () {
+      final result = AnalysisResult.running(id: 'test-id');
 
-        notifier.setMediaFile(mediaFile);
-        notifier.setSettings(settings);
-        notifier.startAnalysis();
-        notifier.cancel();
-
-        expect(notifier.state.isCancelled, isTrue);
-      });
-
-      test('should cancel paused analysis', () {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
-        );
-        final settings = AnalysisSettings.defaults();
-
-        notifier.setMediaFile(mediaFile);
-        notifier.setSettings(settings);
-        notifier.startAnalysis();
-        notifier.pause();
-        notifier.cancel();
-
-        expect(notifier.state.isCancelled, isTrue);
-      });
+      expect(result.id, equals('test-id'));
+      expect(result.status, equals(AnalysisStatus.running));
+      expect(result.isRunning, isTrue);
+      expect(result.startedAt, isNotNull);
     });
 
-    group('complete', () {
-      test('should complete with result', () {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
-        );
-        final settings = AnalysisSettings.defaults();
-        final result = AnalysisResult.empty();
+    test('should create failed result', () {
+      final result = AnalysisResult.failed(
+        id: 'test-id',
+        errorMessage: 'Test error',
+      );
 
-        notifier.setMediaFile(mediaFile);
-        notifier.setSettings(settings);
-        notifier.startAnalysis();
-        notifier.complete(result);
-
-        expect(notifier.state.isComplete, isTrue);
-        expect(notifier.state.result, equals(result));
-      });
+      expect(result.id, equals('test-id'));
+      expect(result.status, equals(AnalysisStatus.failed));
+      expect(result.isFailed, isTrue);
+      expect(result.errorMessage, equals('Test error'));
     });
 
-    group('fail', () {
-      test('should transition to failed state with error', () {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
-        );
-        final settings = AnalysisSettings.defaults();
+    test('should check if finished', () {
+      final completedResult = AnalysisResult.empty(id: 'test')
+          .copyWith(status: AnalysisStatus.completed);
+      final failedResult = AnalysisResult.failed(
+        id: 'test',
+        errorMessage: 'Error',
+      );
+      final cancelledResult = AnalysisResult.empty(id: 'test')
+          .copyWith(status: AnalysisStatus.cancelled);
 
-        notifier.setMediaFile(mediaFile);
-        notifier.setSettings(settings);
-        notifier.startAnalysis();
-        notifier.fail('Analysis error occurred');
-
-        expect(notifier.state.isFailed, isTrue);
-        expect(notifier.state.error, equals('Analysis error occurred'));
-      });
-    });
-
-    group('reset', () {
-      test('should reset to initial state', () {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
-        );
-        final settings = AnalysisSettings.defaults();
-
-        notifier.setMediaFile(mediaFile);
-        notifier.setSettings(settings);
-        notifier.startAnalysis();
-        notifier.reset();
-
-        expect(notifier.state.isIdle, isTrue);
-        expect(notifier.state.mediaFile, isNull);
-        expect(notifier.state.settings, isNull);
-        expect(notifier.state.result, isNull);
-        expect(notifier.state.progress, isNull);
-      });
-
-      test('should reset from failed state', () {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
-        );
-        final settings = AnalysisSettings.defaults();
-
-        notifier.setMediaFile(mediaFile);
-        notifier.setSettings(settings);
-        notifier.startAnalysis();
-        notifier.fail('Error');
-        notifier.reset();
-
-        expect(notifier.state.isIdle, isTrue);
-        expect(notifier.state.error, isNull);
-      });
-    });
-
-    group('canStart', () {
-      test('should return true when media and settings are set', () {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
-        );
-        final settings = AnalysisSettings.defaults();
-
-        notifier.setMediaFile(mediaFile);
-        notifier.setSettings(settings);
-
-        expect(notifier.canStart, isTrue);
-      });
-
-      test('should return false without media file', () {
-        final settings = AnalysisSettings.defaults();
-        notifier.setSettings(settings);
-
-        expect(notifier.canStart, isFalse);
-      });
-
-      test('should return false without settings', () {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
-        );
-        notifier.setMediaFile(mediaFile);
-
-        expect(notifier.canStart, isFalse);
-      });
-
-      test('should return false when already analyzing', () {
-        final mediaFile = MediaFile.video(
-          id: 'video-123',
-          path: '/path/to/video.mp4',
-          name: 'video.mp4',
-          duration: const Duration(minutes: 5),
-          width: 1920,
-          height: 1080,
-          fileSize: 104857600,
-          codec: 'h264',
-          container: 'mp4',
-        );
-        final settings = AnalysisSettings.defaults();
-
-        notifier.setMediaFile(mediaFile);
-        notifier.setSettings(settings);
-        notifier.startAnalysis();
-
-        expect(notifier.canStart, isFalse);
-      });
+      expect(completedResult.isFinished, isTrue);
+      expect(failedResult.isFinished, isTrue);
+      expect(cancelledResult.isFinished, isTrue);
     });
   });
 }

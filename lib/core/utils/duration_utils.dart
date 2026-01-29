@@ -1,10 +1,12 @@
+// ignore_for_file: avoid_classes_with_only_static_members
+
 /// Utility functions for Duration formatting and parsing
 abstract final class DurationUtils {
   /// Standard frame rates for timecode conversion
-  static const double fps24 = 24.0;
-  static const double fps25 = 25.0;
-  static const double fps30 = 30.0;
-  static const double fps60 = 60.0;
+  static const double fps24 = 24;
+  static const double fps25 = 25;
+  static const double fps30 = 30;
+  static const double fps60 = 60;
 
   /// Format a Duration as HH:MM:SS.mmm
   ///
@@ -82,7 +84,7 @@ abstract final class DurationUtils {
   /// Drop-frame timecode is used for 29.97 and 59.94 fps to maintain
   /// sync with wall-clock time.
   static String formatDropFrameTimecode(Duration duration,
-      {double fps = 29.97}) {
+      {double fps = 29.97,}) {
     final isNegative = duration.isNegative;
     final absolute = duration.abs();
 
@@ -94,16 +96,16 @@ abstract final class DurationUtils {
     int frames;
     if (fps > 29 && fps < 30) {
       // 29.97 fps
-      final droppedFrames = 2;
-      final d = (totalFrames ~/ 17982);
+      const droppedFrames = 2;
+      final d = totalFrames ~/ 17982;
       final m = totalFrames % 17982;
       frames = totalFrames +
           (droppedFrames * 9 * d) +
           (droppedFrames * ((m - droppedFrames) ~/ 1798));
     } else if (fps > 59 && fps < 60) {
       // 59.94 fps
-      final droppedFrames = 4;
-      final d = (totalFrames ~/ 35964);
+      const droppedFrames = 4;
+      final d = totalFrames ~/ 35964;
       final m = totalFrames % 35964;
       frames = totalFrames +
           (droppedFrames * 9 * d) +
@@ -153,10 +155,10 @@ abstract final class DurationUtils {
       throw FormatException('Invalid duration format: $input');
     }
 
-    int hours = 0;
-    int minutes = 0;
-    int seconds = 0;
-    int milliseconds = 0;
+    var hours = 0;
+    var minutes = 0;
+    var seconds = 0;
+    var milliseconds = 0;
 
     try {
       // Parse based on number of colon-separated parts

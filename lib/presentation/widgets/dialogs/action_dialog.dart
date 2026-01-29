@@ -1,28 +1,26 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/models/detection.dart';
-import '../../../data/models/modification.dart';
-import '../../themes/app_theme.dart';
+import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/data/models/modification.dart';
+import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 
 /// Dialog for selecting an action for a detection
 class ActionDialog extends StatelessWidget {
-  final Detection detection;
-
   const ActionDialog({
-    super.key,
     required this.detection,
+    super.key,
   });
+
+  final Detection detection;
 
   /// Show the dialog and return the selected modification
   static Future<Modification?> show({
     required BuildContext context,
     required Detection detection,
-  }) {
-    return showModalBottomSheet<Modification>(
+  }) => showModalBottomSheet<Modification>(
       context: context,
       builder: (context) => ActionDialog(detection: detection),
     );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +39,7 @@ class ActionDialog extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
+                    color: color.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(_getIcon(detection.type), color: color),
@@ -131,24 +129,20 @@ class ActionDialog extends StatelessWidget {
     String subtitle,
     IconData icon,
     Modification modification,
-  ) {
-    return ListTile(
+  ) => ListTile(
       leading: Icon(icon),
       title: Text(title),
       subtitle: Text(subtitle),
       onTap: () => Navigator.of(context).pop(modification),
     );
-  }
 
-  IconData _getIcon(ContentType type) {
-    return switch (type) {
+  IconData _getIcon(ContentType type) => switch (type) {
       ContentType.profanity => Icons.mic_off,
       ContentType.nsfw => Icons.visibility_off,
       ContentType.violence => Icons.warning,
       ContentType.blood => Icons.water_drop,
       ContentType.weapons => Icons.gpp_bad,
     };
-  }
 
   String _formatTime(Duration duration) {
     final minutes = duration.inMinutes;

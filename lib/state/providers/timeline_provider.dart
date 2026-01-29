@@ -1,17 +1,10 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-
 import 'package:kidslens_video_editor/data/models/models.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'timeline_provider.g.dart';
 
 /// State for timeline management
 class TimelineState {
-  final UnifiedTimeline? timeline;
-  final Set<String> selectedDetectionIds;
-  final Duration playheadPosition;
-  final double zoomLevel;
-  final bool isPlaying;
-
   const TimelineState({
     this.timeline,
     this.selectedDetectionIds = const {},
@@ -20,21 +13,27 @@ class TimelineState {
     this.isPlaying = false,
   });
 
+  final UnifiedTimeline? timeline;
+  final Set<String> selectedDetectionIds;
+  final Duration playheadPosition;
+  final double zoomLevel;
+  final bool isPlaying;
+
   TimelineState copyWith({
     UnifiedTimeline? timeline,
     Set<String>? selectedDetectionIds,
     Duration? playheadPosition,
     double? zoomLevel,
     bool? isPlaying,
-  }) {
-    return TimelineState(
-      timeline: timeline ?? this.timeline,
-      selectedDetectionIds: selectedDetectionIds ?? this.selectedDetectionIds,
-      playheadPosition: playheadPosition ?? this.playheadPosition,
-      zoomLevel: zoomLevel ?? this.zoomLevel,
-      isPlaying: isPlaying ?? this.isPlaying,
-    );
-  }
+  }) =>
+      TimelineState(
+        timeline: timeline ?? this.timeline,
+        selectedDetectionIds:
+            selectedDetectionIds ?? this.selectedDetectionIds,
+        playheadPosition: playheadPosition ?? this.playheadPosition,
+        zoomLevel: zoomLevel ?? this.zoomLevel,
+        isPlaying: isPlaying ?? this.isPlaying,
+      );
 }
 
 /// Provider for managing timeline state
@@ -82,7 +81,7 @@ class TimelineNotifier extends _$TimelineNotifier {
     final timeline = state.timeline;
     if (timeline != null) {
       // Deselect all currently selected detections
-      UnifiedTimeline updated = timeline;
+      var updated = timeline;
       for (final detectionId in state.selectedDetectionIds) {
         updated = updated.updateDetection(detectionId, isSelected: false);
       }
@@ -150,7 +149,7 @@ class TimelineNotifier extends _$TimelineNotifier {
     state = state.copyWith(zoomLevel: zoom.clamp(0.1, 10.0));
   }
 
-  void setPlaying(bool playing) {
+  void setPlaying({required bool playing}) {
     state = state.copyWith(isPlaying: playing);
   }
 

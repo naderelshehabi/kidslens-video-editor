@@ -15,8 +15,7 @@ void main() {
       int speedRating = 4,
       bool requiresGpu = false,
       String? badge,
-    }) {
-      return ModelInfo(
+    }) => ModelInfo(
         id: id,
         displayName: displayName,
         description: description,
@@ -27,7 +26,6 @@ void main() {
         requiresGpu: requiresGpu,
         badge: badge,
       );
-    }
 
     Widget createModelCard({
       required ModelInfo model,
@@ -38,8 +36,7 @@ void main() {
       VoidCallback? onDownload,
       VoidCallback? onDelete,
       VoidCallback? onSelect,
-    }) {
-      return MaterialApp(
+    }) => MaterialApp(
         home: Scaffold(
           body: SingleChildScrollView(
             child: ModelCard(
@@ -55,37 +52,36 @@ void main() {
           ),
         ),
       );
-    }
 
     group('basic rendering', () {
-      testWidgets('renders model display name', (WidgetTester tester) async {
+      testWidgets('renders model display name', (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(displayName: 'My Model'),
-        ));
+        ),);
 
         expect(find.text('My Model'), findsOneWidget);
       });
 
-      testWidgets('renders model description', (WidgetTester tester) async {
+      testWidgets('renders model description', (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(description: 'Model description text'),
-        ));
+        ),);
 
         expect(find.text('Model description text'), findsOneWidget);
       });
 
-      testWidgets('renders card widget', (WidgetTester tester) async {
+      testWidgets('renders card widget', (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
-        ));
+        ),);
 
         expect(find.byType(Card), findsOneWidget);
       });
 
-      testWidgets('renders size info chip', (WidgetTester tester) async {
+      testWidgets('renders size info chip', (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(sizeBytes: 104857600), // 100 MB
-        ));
+        ),);
 
         // Size should be formatted (e.g., "100 MB")
         expect(find.byIcon(Icons.storage), findsOneWidget);
@@ -93,39 +89,39 @@ void main() {
     });
 
     group('model type icons', () {
-      testWidgets('shows icon for visual model', (WidgetTester tester) async {
+      testWidgets('shows icon for visual model', (tester) async {
         await tester.pumpWidget(createModelCard(
-          model: createTestModel(type: ModelType.visual),
-        ));
+          model: createTestModel(),
+        ),);
 
         // Should have an icon representing the model type
         expect(find.byType(Icon), findsWidgets);
       });
 
-      testWidgets('shows icon for ASR model', (WidgetTester tester) async {
+      testWidgets('shows icon for ASR model', (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(type: ModelType.asr),
-        ));
+        ),);
 
         expect(find.byType(Icon), findsWidgets);
       });
     });
 
     group('GPU requirement', () {
-      testWidgets('shows GPU chip when required', (WidgetTester tester) async {
+      testWidgets('shows GPU chip when required', (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(requiresGpu: true),
-        ));
+        ),);
 
         expect(find.text('GPU'), findsOneWidget);
         expect(find.byIcon(Icons.memory), findsOneWidget);
       });
 
       testWidgets('hides GPU chip when not required',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createModelCard(
-          model: createTestModel(requiresGpu: false),
-        ));
+          model: createTestModel(),
+        ),);
 
         expect(find.text('GPU'), findsNothing);
       });
@@ -133,22 +129,21 @@ void main() {
 
     group('download state', () {
       testWidgets('shows Downloaded chip when downloaded',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
           isDownloaded: true,
-        ));
+        ),);
 
         expect(find.text('Downloaded'), findsOneWidget);
         expect(find.byIcon(Icons.check_circle), findsOneWidget);
       });
 
       testWidgets('hides Downloaded chip when not downloaded',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
-          isDownloaded: false,
-        ));
+        ),);
 
         expect(find.text('Downloaded'), findsNothing);
       });
@@ -156,23 +151,22 @@ void main() {
 
     group('selected state', () {
       testWidgets('shows ACTIVE tag when selected',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
           isDownloaded: true,
           isSelected: true,
-        ));
+        ),);
 
         expect(find.text('ACTIVE'), findsOneWidget);
       });
 
       testWidgets('hides ACTIVE tag when not selected',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
           isDownloaded: true,
-          isSelected: false,
-        ));
+        ),);
 
         expect(find.text('ACTIVE'), findsNothing);
       });
@@ -180,43 +174,43 @@ void main() {
 
     group('downloading state', () {
       testWidgets('shows progress indicator when downloading',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
           isDownloading: true,
           downloadProgress: 0.5,
-        ));
+        ),);
 
         expect(find.byType(LinearProgressIndicator), findsOneWidget);
       });
 
-      testWidgets('shows download percentage', (WidgetTester tester) async {
+      testWidgets('shows download percentage', (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
           isDownloading: true,
           downloadProgress: 0.75,
-        ));
+        ),);
 
         expect(find.textContaining('75.0%'), findsOneWidget);
       });
 
       testWidgets('shows circular progress in action area when downloading',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
           isDownloading: true,
           downloadProgress: 0.5,
-        ));
+        ),);
 
         expect(find.byType(CircularProgressIndicator), findsOneWidget);
       });
 
-      testWidgets('shows downloading text', (WidgetTester tester) async {
+      testWidgets('shows downloading text', (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
           isDownloading: true,
           downloadProgress: 0.5,
-        ));
+        ),);
 
         expect(find.textContaining('Downloading'), findsOneWidget);
       });
@@ -224,37 +218,35 @@ void main() {
 
     group('action buttons', () {
       testWidgets('shows popup menu for downloaded model',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
           isDownloaded: true,
           onSelect: () {},
           onDelete: () {},
-        ));
+        ),);
 
         expect(find.byType(PopupMenuButton<String>), findsOneWidget);
       });
 
       testWidgets('shows download button for non-downloaded model',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
-          isDownloaded: false,
           onDownload: () {},
-        ));
+        ),);
 
         expect(find.byIcon(Icons.download), findsOneWidget);
       });
 
       testWidgets('calls onDownload when download button pressed',
-          (WidgetTester tester) async {
+          (tester) async {
         var downloadCalled = false;
 
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
-          isDownloaded: false,
           onDownload: () => downloadCalled = true,
-        ));
+        ),);
 
         await tester.tap(find.byIcon(Icons.download));
         await tester.pump();
@@ -264,14 +256,14 @@ void main() {
     });
 
     group('interaction', () {
-      testWidgets('is tappable when downloaded', (WidgetTester tester) async {
+      testWidgets('is tappable when downloaded', (tester) async {
         var selectCalled = false;
 
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
           isDownloaded: true,
           onSelect: () => selectCalled = true,
-        ));
+        ),);
 
         await tester.tap(find.byType(InkWell).first);
         await tester.pump();
@@ -280,14 +272,13 @@ void main() {
       });
 
       testWidgets('is not tappable when not downloaded',
-          (WidgetTester tester) async {
+          (tester) async {
         var selectCalled = false;
 
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
-          isDownloaded: false,
           onSelect: () => selectCalled = true,
-        ));
+        ),);
 
         await tester.tap(find.byType(InkWell).first);
         await tester.pump();
@@ -299,14 +290,13 @@ void main() {
 
     group('popup menu', () {
       testWidgets('shows Use Model option when not selected',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
           isDownloaded: true,
-          isSelected: false,
           onSelect: () {},
           onDelete: () {},
-        ));
+        ),);
 
         await tester.tap(find.byType(PopupMenuButton<String>));
         await tester.pumpAndSettle();
@@ -315,14 +305,14 @@ void main() {
       });
 
       testWidgets('hides Use Model option when already selected',
-          (WidgetTester tester) async {
+          (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
           isDownloaded: true,
           isSelected: true,
           onSelect: () {},
           onDelete: () {},
-        ));
+        ),);
 
         await tester.tap(find.byType(PopupMenuButton<String>));
         await tester.pumpAndSettle();
@@ -330,12 +320,12 @@ void main() {
         expect(find.text('Use Model'), findsNothing);
       });
 
-      testWidgets('shows Delete option', (WidgetTester tester) async {
+      testWidgets('shows Delete option', (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
           isDownloaded: true,
           onDelete: () {},
-        ));
+        ),);
 
         await tester.tap(find.byType(PopupMenuButton<String>));
         await tester.pumpAndSettle();
@@ -345,10 +335,10 @@ void main() {
     });
 
     group('layout', () {
-      testWidgets('uses proper card structure', (WidgetTester tester) async {
+      testWidgets('uses proper card structure', (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(),
-        ));
+        ),);
 
         expect(find.byType(Card), findsOneWidget);
         expect(find.byType(InkWell), findsWidgets);
@@ -356,30 +346,30 @@ void main() {
         expect(find.byType(Row), findsWidgets);
       });
 
-      testWidgets('uses Wrap for info chips', (WidgetTester tester) async {
+      testWidgets('uses Wrap for info chips', (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(requiresGpu: true),
           isDownloaded: true,
-        ));
+        ),);
 
         expect(find.byType(Wrap), findsOneWidget);
       });
     });
 
     group('size formatting', () {
-      testWidgets('formats small file sizes', (WidgetTester tester) async {
+      testWidgets('formats small file sizes', (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(sizeBytes: 1024), // 1 KB
-        ));
+        ),);
 
         // Should show size in appropriate format
         expect(find.byIcon(Icons.storage), findsOneWidget);
       });
 
-      testWidgets('formats large file sizes', (WidgetTester tester) async {
+      testWidgets('formats large file sizes', (tester) async {
         await tester.pumpWidget(createModelCard(
           model: createTestModel(sizeBytes: 1073741824), // 1 GB
-        ));
+        ),);
 
         expect(find.byIcon(Icons.storage), findsOneWidget);
       });

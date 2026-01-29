@@ -1,7 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'converters.dart';
-import 'edit_action.dart';
+import 'package:kidslens_video_editor/data/models/converters.dart';
+import 'package:kidslens_video_editor/data/models/edit_action.dart';
 
 part 'detection.freezed.dart';
 part 'detection.g.dart';
@@ -44,8 +44,6 @@ enum DetectionUserStatus {
 /// Represents a detected content issue in the media
 @freezed
 class Detection with _$Detection {
-  const Detection._();
-
   const factory Detection({
     /// Unique identifier for the detection
     required String id,
@@ -87,6 +85,8 @@ class Detection with _$Detection {
     Map<String, dynamic>? metadata,
   }) = _Detection;
 
+  const Detection._();
+
   factory Detection.fromJson(Map<String, dynamic> json) =>
       _$DetectionFromJson(json);
 
@@ -98,20 +98,18 @@ class Detection with _$Detection {
     required Duration endTime,
     required double confidence,
     required String word,
-    String? userNote,
-  }) {
-    return Detection(
-      id: id,
-      mediaId: mediaId,
-      type: ContentType.profanity,
-      startTime: startTime,
-      endTime: endTime,
-      confidence: confidence,
-      description: 'Profanity detected: "$word"',
-      source: 'asr',
-      metadata: {'word': word},
-    );
-  }
+  }) =>
+      Detection(
+        id: id,
+        mediaId: mediaId,
+        type: ContentType.profanity,
+        startTime: startTime,
+        endTime: endTime,
+        confidence: confidence,
+        description: 'Profanity detected: "$word"',
+        source: 'asr',
+        metadata: {'word': word},
+      );
 
   /// Creates a visual content detection (NSFW, violence, etc.)
   factory Detection.visual({
@@ -170,51 +168,42 @@ class Detection with _$Detection {
   bool get isLowConfidence => confidence < 0.7;
 
   /// Checks if this detection overlaps with a time range
-  bool overlapsWithRange(Duration start, Duration end) {
-    return startTime < end && endTime > start;
-  }
+  bool overlapsWithRange(Duration start, Duration end) =>
+      startTime < end && endTime > start;
 
   /// Checks if this detection overlaps with another detection
-  bool overlapsWith(Detection other) {
-    return overlapsWithRange(other.startTime, other.endTime);
-  }
+  bool overlapsWith(Detection other) =>
+      overlapsWithRange(other.startTime, other.endTime);
 
   /// Checks if a timestamp falls within this detection
-  bool containsTime(Duration time) {
-    return time >= startTime && time < endTime;
-  }
+  bool containsTime(Duration time) => time >= startTime && time < endTime;
 
   /// Creates a copy with user confirmation
-  Detection confirm({String? note}) {
-    return copyWith(
-      userStatus: DetectionUserStatus.confirmed,
-      userNote: note ?? userNote,
-    );
-  }
+  Detection confirm({String? note}) => copyWith(
+        userStatus: DetectionUserStatus.confirmed,
+        userNote: note ?? userNote,
+      );
 
   /// Creates a copy with user rejection
-  Detection reject({String? note}) {
-    return copyWith(
-      userStatus: DetectionUserStatus.rejected,
-      userNote: note ?? userNote,
-    );
-  }
+  Detection reject({String? note}) => copyWith(
+        userStatus: DetectionUserStatus.rejected,
+        userNote: note ?? userNote,
+      );
 
   /// Creates a copy with adjusted time range
   Detection adjustTimeRange({
     required Duration newStartTime,
     required Duration newEndTime,
     String? note,
-  }) {
-    return copyWith(
-      startTime: newStartTime,
-      endTime: newEndTime,
-      originalStartTime: originalStartTime ?? startTime,
-      originalEndTime: originalEndTime ?? endTime,
-      userStatus: DetectionUserStatus.adjusted,
-      userNote: note ?? userNote,
-    );
-  }
+  }) =>
+      copyWith(
+        startTime: newStartTime,
+        endTime: newEndTime,
+        originalStartTime: originalStartTime ?? startTime,
+        originalEndTime: originalEndTime ?? endTime,
+        userStatus: DetectionUserStatus.adjusted,
+        userNote: note ?? userNote,
+      );
 
   /// Display name for the content type
   String get typeDisplayName {

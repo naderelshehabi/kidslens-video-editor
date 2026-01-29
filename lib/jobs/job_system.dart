@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'cancellation_token.dart';
+import 'package:kidslens_video_editor/jobs/cancellation_token.dart';
 
 /// Job state machine for long-running operations
 enum JobState {
@@ -15,6 +15,11 @@ enum JobState {
 
 /// Base class for jobs
 abstract class Job<T> {
+  Job({
+    required this.id,
+    CancellationToken? cancellationToken,
+  }) : cancellationToken = cancellationToken ?? CancellationToken();
+
   final String id;
   final CancellationToken cancellationToken;
   final StreamController<JobProgress> _progressController =
@@ -23,11 +28,6 @@ abstract class Job<T> {
   JobState _state = JobState.queued;
   String? _errorMessage;
   T? _result;
-
-  Job({
-    required this.id,
-    CancellationToken? cancellationToken,
-  }) : cancellationToken = cancellationToken ?? CancellationToken();
 
   /// Current state of the job
   JobState get state => _state;
@@ -48,21 +48,21 @@ abstract class Job<T> {
     }
 
     _state = JobState.running;
-    _reportProgress(0.0, 'Starting');
+    _reportProgress(0, 'Starting');
 
     try {
       _result = await execute();
       _state = JobState.completed;
-      _reportProgress(1.0, 'Completed');
+      _reportProgress(1, 'Completed');
       return _result as T;
     } on CancelledException {
       _state = JobState.cancelled;
-      _reportProgress(0.0, 'Cancelled');
+      _reportProgress(0, 'Cancelled');
       rethrow;
     } catch (e) {
       _state = JobState.failed;
       _errorMessage = e.toString();
-      _reportProgress(0.0, 'Failed: $e');
+      _reportProgress(0, 'Failed: $e');
       rethrow;
     } finally {
       await _progressController.close();
@@ -94,7 +94,7 @@ abstract class Job<T> {
   void cancel() {
     cancellationToken.cancel();
     _state = JobState.cancelled;
-    _reportProgress(0.0, 'Cancelled');
+    _reportProgress(0, 'Cancelled');
   }
 
   /// Report progress
@@ -105,7 +105,7 @@ abstract class Job<T> {
         state: _state,
         progress: progress,
         message: message,
-      ));
+      ),);
     }
   }
 
@@ -117,27 +117,27 @@ abstract class Job<T> {
 
 /// Progress information for a job
 class JobProgress {
+  JobProgress({
+    required this.jobId,
+    required this.state,
+    required this.message,
+    this.progress,
+  }) : timestamp = DateTime.now();
+
   final String jobId;
   final JobState state;
   final double? progress;
   final String message;
   final DateTime timestamp;
-
-  JobProgress({
-    required this.jobId,
-    required this.state,
-    this.progress,
-    required this.message,
-  }) : timestamp = DateTime.now();
 }
 
 /// Queue for managing multiple jobs
 class JobQueue {
+  JobQueue({this.maxConcurrent = 1});
+
   final Queue<Job<dynamic>> _queue = Queue();
   final Set<Job<dynamic>> _running = {};
   final int maxConcurrent;
-
-  JobQueue({this.maxConcurrent = 1});
 
   /// Add a job to the queue
   void enqueue(Job<dynamic> job) {

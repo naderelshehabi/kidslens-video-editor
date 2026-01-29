@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../data/models/detection.dart';
-import '../../data/models/modification.dart';
-import '../../data/models/timeline.dart' hide TimelineTrack;
-import '../../state/providers/media_provider.dart';
-import '../../state/providers/timeline_provider.dart';
-import '../themes/app_theme.dart';
-import '../widgets/timeline/timeline_ruler.dart';
-import '../widgets/timeline/timeline_track.dart';
-import 'export_screen.dart';
+import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/data/models/modification.dart';
+import 'package:kidslens_video_editor/data/models/timeline.dart' hide TimelineTrack;
+import 'package:kidslens_video_editor/presentation/screens/export_screen.dart';
+import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
+import 'package:kidslens_video_editor/presentation/widgets/timeline/timeline_ruler.dart';
+import 'package:kidslens_video_editor/presentation/widgets/timeline/timeline_track.dart';
+import 'package:kidslens_video_editor/state/providers/media_provider.dart';
+import 'package:kidslens_video_editor/state/providers/timeline_provider.dart';
 
 /// Timeline editor screen for precise editing
 class TimelineEditorScreen extends ConsumerStatefulWidget {
@@ -21,7 +20,7 @@ class TimelineEditorScreen extends ConsumerStatefulWidget {
 }
 
 class _TimelineEditorScreenState extends ConsumerState<TimelineEditorScreen> {
-  double _zoom = 1.0;
+  double _zoom = 1;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -40,13 +39,13 @@ class _TimelineEditorScreenState extends ConsumerState<TimelineEditorScreen> {
         title: const Text('Timeline Editor'),
         actions: [
           // TODO: Implement undo/redo history if needed
-          IconButton(
-            icon: const Icon(Icons.undo),
+          const IconButton(
+            icon: Icon(Icons.undo),
             onPressed: null, // Undo not implemented yet
             tooltip: 'Undo',
           ),
-          IconButton(
-            icon: const Icon(Icons.redo),
+          const IconButton(
+            icon: Icon(Icons.redo),
             onPressed: null, // Redo not implemented yet
             tooltip: 'Redo',
           ),
@@ -87,8 +86,7 @@ class _TimelineEditorScreenState extends ConsumerState<TimelineEditorScreen> {
     BuildContext context,
     MediaState mediaState,
     TimelineState timelineState,
-  ) {
-    return Container(
+  ) => ColoredBox(
       color: Colors.black,
       child: Stack(
         alignment: Alignment.center,
@@ -121,13 +119,11 @@ class _TimelineEditorScreenState extends ConsumerState<TimelineEditorScreen> {
         ],
       ),
     );
-  }
 
   Widget _buildTransportControls(
     BuildContext context,
     TimelineState timelineState,
-  ) {
-    return Container(
+  ) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -141,12 +137,12 @@ class _TimelineEditorScreenState extends ConsumerState<TimelineEditorScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.fast_rewind),
-            onPressed: () => _skipBackward(),
+            onPressed: _skipBackward,
             tooltip: 'Back 5s',
           ),
           const SizedBox(width: 8),
           FloatingActionButton(
-            onPressed: () => _togglePlayPause(),
+            onPressed: _togglePlayPause,
             child: Icon(
               timelineState.isPlaying ? Icons.pause : Icons.play_arrow,
             ),
@@ -154,7 +150,7 @@ class _TimelineEditorScreenState extends ConsumerState<TimelineEditorScreen> {
           const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.fast_forward),
-            onPressed: () => _skipForward(),
+            onPressed: _skipForward,
             tooltip: 'Forward 5s',
           ),
           IconButton(
@@ -162,7 +158,7 @@ class _TimelineEditorScreenState extends ConsumerState<TimelineEditorScreen> {
             onPressed: () => ref
                 .read(timelineNotifierProvider.notifier)
                 .setPlayheadPosition(
-                    timelineState.timeline?.mediaDuration ?? Duration.zero),
+                    timelineState.timeline?.mediaDuration ?? Duration.zero,),
             tooltip: 'Go to end',
           ),
           const Spacer(),
@@ -181,14 +177,12 @@ class _TimelineEditorScreenState extends ConsumerState<TimelineEditorScreen> {
         ],
       ),
     );
-  }
 
   Widget _buildTimelineArea(
     BuildContext context,
     TimelineState timelineState,
     List<Detection> detections,
-  ) {
-    return Column(
+  ) => Column(
       children: [
         // Timeline ruler
         SizedBox(
@@ -222,7 +216,7 @@ class _TimelineEditorScreenState extends ConsumerState<TimelineEditorScreen> {
                           .where((d) => d.type != ContentType.profanity)
                           .toList(),
                       segments: _getVideoSegments(timelineState),
-                      onTap: (Duration position) => _seekTo(position),
+                      onTap: _seekTo,
                     ),
                   ),
                   const Divider(height: 1),
@@ -238,7 +232,7 @@ class _TimelineEditorScreenState extends ConsumerState<TimelineEditorScreen> {
                           .where((d) => d.type == ContentType.profanity)
                           .toList(),
                       segments: _getAudioSegments(timelineState),
-                      onTap: (Duration position) => _seekTo(position),
+                      onTap: _seekTo,
                     ),
                   ),
                   const Divider(height: 1),
@@ -256,13 +250,11 @@ class _TimelineEditorScreenState extends ConsumerState<TimelineEditorScreen> {
         _buildPlayhead(context, timelineState),
       ],
     );
-  }
 
   Widget _buildDetectionsTrack(
     BuildContext context,
     List<Detection> detections,
-  ) {
-    return Container(
+  ) => ColoredBox(
       color: Theme.of(context).colorScheme.surfaceContainerLowest,
       child: Stack(
         children: [
@@ -293,7 +285,7 @@ class _TimelineEditorScreenState extends ConsumerState<TimelineEditorScreen> {
                   height: 48,
                   decoration: BoxDecoration(
                     color: AppTheme.getDetectionColor(detection.type.name)
-                        .withOpacity(0.5),
+                        .withValues(alpha: 0.5),
                     border: Border.all(
                       color: AppTheme.getDetectionColor(detection.type.name),
                       width: 2,
@@ -319,7 +311,6 @@ class _TimelineEditorScreenState extends ConsumerState<TimelineEditorScreen> {
         ],
       ),
     );
-  }
 
   Widget _buildPlayhead(BuildContext context, TimelineState state) {
     final totalDuration = state.timeline?.mediaDuration ?? Duration.zero;
@@ -354,7 +345,7 @@ class _TimelineEditorScreenState extends ConsumerState<TimelineEditorScreen> {
   void _togglePlayPause() {
     final notifier = ref.read(timelineNotifierProvider.notifier);
     final isPlaying = ref.read(timelineNotifierProvider).isPlaying;
-    notifier.setPlaying(!isPlaying);
+    notifier.setPlaying(playing: !isPlaying);
   }
 
   void _skipForward() {

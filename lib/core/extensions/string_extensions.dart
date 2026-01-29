@@ -18,9 +18,7 @@ extension StringExtensions on String {
   }
   
   /// Convert to title case
-  String get titleCase {
-    return split(' ').map((word) => word.capitalize).join(' ');
-  }
+  String get titleCase => split(' ').map((word) => word.capitalize).join(' ');
   
   /// Truncate string with ellipsis
   String truncate(int maxLength, {String ellipsis = '...'}) {

@@ -2,22 +2,18 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../app.dart';
-import '../../core/constants/supported_formats.dart';
-import '../../data/models/detection.dart';
-import '../../data/models/edit_action.dart';
-import '../../data/models/models.dart';
-import '../../data/models/project.dart';
-import '../../state/providers/analysis_provider.dart';
-import '../../state/providers/playback_provider.dart';
-import '../../state/providers/project_provider.dart';
-import '../../state/providers/service_providers.dart';
-import '../widgets/dialogs/export_dialog.dart';
-import '../widgets/editor/media_bin_panel.dart';
-import '../widgets/editor/preview_panel.dart';
-import '../widgets/editor/timeline_panel.dart';
-import '../widgets/editor/detection_panel.dart';
+import 'package:kidslens_video_editor/app.dart';
+import 'package:kidslens_video_editor/core/constants/supported_formats.dart';
+import 'package:kidslens_video_editor/data/models/models.dart';
+import 'package:kidslens_video_editor/presentation/widgets/dialogs/export_dialog.dart';
+import 'package:kidslens_video_editor/presentation/widgets/editor/detection_panel.dart';
+import 'package:kidslens_video_editor/presentation/widgets/editor/media_bin_panel.dart';
+import 'package:kidslens_video_editor/presentation/widgets/editor/preview_panel.dart';
+import 'package:kidslens_video_editor/presentation/widgets/editor/timeline_panel.dart';
+import 'package:kidslens_video_editor/state/providers/analysis_provider.dart';
+import 'package:kidslens_video_editor/state/providers/playback_provider.dart';
+import 'package:kidslens_video_editor/state/providers/project_provider.dart';
+import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 
 /// Main video editor screen with industry-standard layout
 class EditorScreen extends ConsumerStatefulWidget {
@@ -116,11 +112,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                               media: project.selectedMedia,
                               detections: project.selectedMediaId != null
                                   ? project.detectionsForMedia(
-                                      project.selectedMediaId!)
+                                      project.selectedMediaId!,)
                                   : [],
                               editActions: project.selectedMediaId != null
                                   ? project.editActionsForMedia(
-                                      project.selectedMediaId!)
+                                      project.selectedMediaId!,)
                                   : [],
                               onEditActionUpdated: _onEditActionUpdated,
                               editingBlurActionId: _editingBlurActionId,
@@ -213,7 +209,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         children: [
           // App logo/title
           Icon(Icons.movie_filter_rounded,
-              color: colorScheme.primary, size: 20),
+              color: colorScheme.primary, size: 20,),
           const SizedBox(width: 8),
           Text(
             project.name,
@@ -243,9 +239,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               _MenuItem('Undo', Icons.undo, _undo),
               _MenuItem('Redo', Icons.redo, _redo),
               const _MenuDivider(),
-              _MenuItem('Cut Selection', Icons.content_cut, null),
-              _MenuItem('Mute Selection', Icons.volume_off, null),
-              _MenuItem('Blur Selection', Icons.blur_on, null),
+              const _MenuItem('Cut Selection', Icons.content_cut, null),
+              const _MenuItem('Mute Selection', Icons.volume_off, null),
+              const _MenuItem('Blur Selection', Icons.blur_on, null),
             ],
           ),
 
@@ -254,9 +250,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             label: 'Analysis',
             items: [
               _MenuItem('Start Analysis', Icons.play_arrow, _startAnalysis),
-              _MenuItem('Stop Analysis', Icons.stop, null),
+              const _MenuItem('Stop Analysis', Icons.stop, null),
               const _MenuDivider(),
-              _MenuItem('Analysis Settings', Icons.settings, null),
+              const _MenuItem('Analysis Settings', Icons.settings, null),
             ],
           ),
 
@@ -302,8 +298,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
-  Widget _buildVerticalResizer({required void Function(double) onDrag}) {
-    return MouseRegion(
+  Widget _buildVerticalResizer({required void Function(double) onDrag}) => MouseRegion(
       cursor: SystemMouseCursors.resizeColumn,
       child: GestureDetector(
         onHorizontalDragUpdate: (details) => onDrag(details.delta.dx),
@@ -315,7 +310,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               width: 2,
               height: 40,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(1),
               ),
             ),
@@ -323,10 +318,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildHorizontalResizer({required void Function(double) onDrag}) {
-    return MouseRegion(
+  Widget _buildHorizontalResizer({required void Function(double) onDrag}) => MouseRegion(
       cursor: SystemMouseCursors.resizeRow,
       child: GestureDetector(
         onVerticalDragUpdate: (details) => onDrag(details.delta.dy),
@@ -338,7 +331,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               width: 40,
               height: 2,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(1),
               ),
             ),
@@ -346,10 +339,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ),
       ),
     );
-  }
 
-  Map<ShortcutActivator, VoidCallback> _buildKeyboardShortcuts() {
-    return {
+  Map<ShortcutActivator, VoidCallback> _buildKeyboardShortcuts() => {
       const SingleActivator(LogicalKeyboardKey.keyS, control: true):
           _saveProject,
       const SingleActivator(LogicalKeyboardKey.keyI, control: true):
@@ -358,9 +349,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       const SingleActivator(LogicalKeyboardKey.keyZ, control: true): _undo,
       const SingleActivator(LogicalKeyboardKey.keyY, control: true): _redo,
       const SingleActivator(LogicalKeyboardKey.keyZ,
-          control: true, shift: true): _redo,
+          control: true, shift: true,): _redo,
     };
-  }
 
   void _undo() {
     ref.read(projectNotifierProvider.notifier).undo();
@@ -397,7 +387,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         // Select the first imported file if nothing is selected
         final project = ref.read(projectNotifierProvider).currentProject;
         if (project?.selectedMediaId == null &&
-            project?.mediaFiles.isNotEmpty == true) {
+            (project?.mediaFiles.isNotEmpty ?? false)) {
           ref
               .read(projectNotifierProvider.notifier)
               .selectMedia(project!.mediaFiles.first.id);
@@ -588,14 +578,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
 // Menu components
 class _MenuButton extends StatelessWidget {
+  const _MenuButton({required this.label, required this.items});
+
   final String label;
   final List<_MenuItemBase> items;
 
-  const _MenuButton({required this.label, required this.items});
-
   @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<VoidCallback?>(
+  Widget build(BuildContext context) => PopupMenuButton<VoidCallback?>(
       tooltip: '',
       offset: const Offset(0, 40),
       child: Padding(
@@ -622,17 +611,16 @@ class _MenuButton extends StatelessWidget {
       }).toList(),
       onSelected: (callback) => callback?.call(),
     );
-  }
 }
 
 abstract class _MenuItemBase {}
 
 class _MenuItem implements _MenuItemBase {
+  const _MenuItem(this.label, this.icon, this.onTap);
+
   final String label;
   final IconData icon;
   final VoidCallback? onTap;
-
-  const _MenuItem(this.label, this.icon, this.onTap);
 }
 
 class _MenuDivider implements _MenuItemBase {
@@ -641,15 +629,15 @@ class _MenuDivider implements _MenuItemBase {
 
 /// Dialog for running content analysis
 class _AnalysisDialog extends ConsumerStatefulWidget {
-  final String mediaPath;
-  final String mediaId;
-  final Duration mediaDuration;
-
   const _AnalysisDialog({
     required this.mediaPath,
     required this.mediaId,
     required this.mediaDuration,
   });
+
+  final String mediaPath;
+  final String mediaId;
+  final Duration mediaDuration;
 
   @override
   ConsumerState<_AnalysisDialog> createState() => _AnalysisDialogState();
@@ -776,7 +764,7 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
                     alignment: Alignment.center,
                     child: Column(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.check_circle_outline,
                           size: 48,
                           color: Colors.green,
@@ -807,7 +795,7 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
                         child: Text(
                           analysisState.errorMessage ?? 'Analysis failed',
                           style: TextStyle(
-                              color: theme.colorScheme.onErrorContainer),
+                              color: theme.colorScheme.onErrorContainer,),
                         ),
                       ),
                     ],
@@ -854,15 +842,13 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
   }
 
   Widget _buildCheckbox(
-      String label, bool value, ValueChanged<bool?> onChanged) {
-    return CheckboxListTile(
+      String label, bool value, ValueChanged<bool?> onChanged,) => CheckboxListTile(
       title: Text(label),
       value: value,
       onChanged: onChanged,
       dense: true,
       controlAffinity: ListTileControlAffinity.leading,
     );
-  }
 
   void _startAnalysis() {
     setState(() => _hasStarted = true);

@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:kidslens_video_editor/data/models/project.dart';
 import 'package:path/path.dart' as p;
-
-import '../data/models/project.dart';
 
 /// Service for managing KidsLens Editor project files (.kle)
 class ProjectService {
@@ -78,7 +77,7 @@ class ProjectService {
   Future<Project> loadProject(String projectPath) async {
     final file = File(projectPath);
 
-    if (!await file.exists()) {
+    if (!file.existsSync()) {
       throw ProjectNotFoundException(projectPath);
     }
 
@@ -92,16 +91,15 @@ class ProjectService {
   }
 
   /// Check if a project file exists
-  Future<bool> projectExists(String projectPath) async {
-    return File(projectPath).exists();
-  }
+  Future<bool> projectExists(String projectPath) async =>
+      File(projectPath).existsSync();
 
   /// Get recent projects from a directory
   Future<List<ProjectInfo>> getRecentProjects(String searchDirectory) async {
     final projects = <ProjectInfo>[];
     final dir = Directory(searchDirectory);
 
-    if (!await dir.exists()) {
+    if (!dir.existsSync()) {
       return projects;
     }
 
@@ -114,7 +112,7 @@ class ProjectService {
             path: project.projectPath,
             modifiedAt: project.modifiedAt,
             mediaCount: project.mediaFiles.length,
-          ));
+          ),);
         } catch (_) {
           // Skip invalid project files
         }
@@ -130,7 +128,7 @@ class ProjectService {
   /// Delete a project file
   Future<void> deleteProject(String projectPath) async {
     final file = File(projectPath);
-    if (await file.exists()) {
+    if (file.existsSync()) {
       await file.delete();
     }
   }
@@ -146,33 +144,32 @@ class ProjectService {
   }
 
   /// Sanitize a file name by removing invalid characters
-  String _sanitizeFileName(String name) {
-    return name
-        .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
-        .replaceAll(RegExp(r'\s+'), '_')
-        .toLowerCase();
-  }
+  String _sanitizeFileName(String name) => name
+      .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
+      .replaceAll(RegExp(r'\s+'), '_')
+      .toLowerCase();
 }
 
 /// Basic info about a project for listing
 class ProjectInfo {
-  final String name;
-  final String path;
-  final DateTime modifiedAt;
-  final int mediaCount;
-
   const ProjectInfo({
     required this.name,
     required this.path,
     required this.modifiedAt,
     required this.mediaCount,
   });
+
+  final String name;
+  final String path;
+  final DateTime modifiedAt;
+  final int mediaCount;
 }
 
 /// Exception thrown when a project file is not found
 class ProjectNotFoundException implements Exception {
-  final String path;
   ProjectNotFoundException(this.path);
+
+  final String path;
 
   @override
   String toString() => 'Project not found: $path';
@@ -180,9 +177,10 @@ class ProjectNotFoundException implements Exception {
 
 /// Exception thrown when a project fails to load
 class ProjectLoadException implements Exception {
+  ProjectLoadException(this.path, this.reason);
+
   final String path;
   final String reason;
-  ProjectLoadException(this.path, this.reason);
 
   @override
   String toString() => 'Failed to load project at $path: $reason';

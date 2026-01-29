@@ -15,17 +15,13 @@ class L10n {
   static const defaultLocale = Locale('en');
 
   /// Locale names for display
-  static String getLocaleName(String languageCode) {
-    return switch (languageCode) {
-      'en' => 'English',
-      'es' => 'Español',
-      'ar' => 'العربية',
-      _ => languageCode,
-    };
-  }
+  static String getLocaleName(String languageCode) => switch (languageCode) {
+        'en' => 'English',
+        'es' => 'Español',
+        'ar' => 'العربية',
+        _ => languageCode,
+      };
 
   /// Check if locale is RTL
-  static bool isRtl(String languageCode) {
-    return languageCode == 'ar';
-  }
+  static bool isRtl(String languageCode) => languageCode == 'ar';
 }

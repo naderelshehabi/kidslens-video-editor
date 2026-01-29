@@ -1,12 +1,14 @@
+// ignore_for_file: avoid_classes_with_only_static_members
+
 import 'dart:convert';
 import 'dart:io';
 
 /// Custom ARB (Application Resource Bundle) parser
-class ArbParser {
+abstract final class ArbParser {
   /// Parse ARB file and return translations
   static Future<Map<String, String>> parse(String filePath) async {
     final file = File(filePath);
-    if (!await file.exists()) {
+    if (!file.existsSync()) {
       throw ArbParseException('ARB file not found: $filePath');
     }
 
@@ -88,9 +90,9 @@ class ArbParser {
 
 /// Exception thrown during ARB parsing
 class ArbParseException implements Exception {
-  final String message;
-
   ArbParseException(this.message);
+
+  final String message;
 
   @override
   String toString() => 'ArbParseException: $message';
@@ -98,14 +100,14 @@ class ArbParseException implements Exception {
 
 /// Localization delegate that loads from ARB files
 class AppLocalizationsDelegate {
-  final Map<String, Map<String, String>> _translations = {};
-  final List<String> supportedLocales;
-  final String defaultLocale;
-
   AppLocalizationsDelegate({
     required this.supportedLocales,
     this.defaultLocale = 'en',
   });
+
+  final Map<String, Map<String, String>> _translations = {};
+  final List<String> supportedLocales;
+  final String defaultLocale;
 
   /// Load translations for a locale
   Future<void> load(String locale, String arbContent) async {

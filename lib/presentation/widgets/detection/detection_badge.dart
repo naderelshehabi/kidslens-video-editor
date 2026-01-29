@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 
-import '../../themes/app_theme.dart';
+import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 
 /// Badge showing detection count by type
 class DetectionBadge extends StatelessWidget {
+  const DetectionBadge({
+    required this.type,
+    required this.count,
+    super.key,
+    this.isSelected = false,
+    this.onTap,
+  });
+
   final String type;
   final int count;
   final bool isSelected;
   final VoidCallback? onTap;
-
-  const DetectionBadge({
-    super.key,
-    required this.type,
-    required this.count,
-    this.isSelected = false,
-    this.onTap,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +29,7 @@ class DetectionBadge extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: isSelected ? color : color.withOpacity(0.1),
+            color: isSelected ? color : color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: color,
@@ -58,8 +58,8 @@ class DetectionBadge extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? Colors.white.withOpacity(0.2)
-                      : color.withOpacity(0.2),
+                      ? Colors.white.withValues(alpha: 0.2)
+                      : color.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -78,8 +78,7 @@ class DetectionBadge extends StatelessWidget {
     );
   }
 
-  IconData _getIcon(String type) {
-    return switch (type) {
+  IconData _getIcon(String type) => switch (type) {
       'profanity' => Icons.mic_off,
       'nudity' => Icons.visibility_off,
       'violence' => Icons.warning,
@@ -87,9 +86,6 @@ class DetectionBadge extends StatelessWidget {
       'weapons' => Icons.gpp_bad,
       _ => Icons.error,
     };
-  }
 
-  String _formatType(String type) {
-    return type[0].toUpperCase() + type.substring(1);
-  }
+  String _formatType(String type) => type[0].toUpperCase() + type.substring(1);
 }

@@ -51,18 +51,14 @@ class HardwareInfo with _$HardwareInfo {
       _$HardwareInfoFromJson(json);
 
   /// Creates a basic hardware info with just RAM
-  factory HardwareInfo.basic({required int ramGb}) {
-    return HardwareInfo(
-      availableRamBytes: ramGb * 1024 * 1024 * 1024,
-    );
-  }
+  factory HardwareInfo.basic({required int ramGb}) => HardwareInfo(
+        availableRamBytes: ramGb * 1024 * 1024 * 1024,
+      );
 }
 
 /// Information about an AI model
 @freezed
 class ModelInfo with _$ModelInfo {
-  const ModelInfo._();
-
   const factory ModelInfo({
     /// Unique identifier for the model
     required String id,
@@ -115,6 +111,8 @@ class ModelInfo with _$ModelInfo {
     /// Additional metadata
     Map<String, dynamic>? metadata,
   }) = _ModelInfo;
+
+  const ModelInfo._();
 
   factory ModelInfo.fromJson(Map<String, dynamic> json) =>
       _$ModelInfoFromJson(json);
@@ -244,13 +242,13 @@ class ModelInfo with _$ModelInfo {
       case 4:
         return 0.5; // 2x faster
       case 3:
-        return 1.0; // Real-time
+        return 1; // Real-time
       case 2:
-        return 2.0; // 2x slower
+        return 2; // 2x slower
       case 1:
-        return 4.0; // 4x slower
+        return 4; // 4x slower
       default:
-        return 1.0;
+        return 1;
     }
   }
 }
@@ -266,27 +264,21 @@ extension ModelInfoListExtensions on List<ModelInfo> {
       where((m) => m.type == ModelType.visual).toList();
 
   /// Gets models that meet hardware requirements
-  List<ModelInfo> meetingRequirements(HardwareInfo info) {
-    return where((m) => m.meetsRequirements(info)).toList();
-  }
+  List<ModelInfo> meetingRequirements(HardwareInfo info) =>
+      where((m) => m.meetsRequirements(info)).toList();
 
   /// Gets the recommended model
-  ModelInfo? get recommended {
-    return where((m) => m.isRecommended).firstOrNull;
-  }
+  ModelInfo? get recommended => where((m) => m.isRecommended).firstOrNull;
 
   /// Sorts by accuracy (descending)
-  List<ModelInfo> sortedByAccuracy() {
-    return [...this]..sort((a, b) => b.accuracyPercent.compareTo(a.accuracyPercent));
-  }
+  List<ModelInfo> sortedByAccuracy() =>
+      [...this]..sort((a, b) => b.accuracyPercent.compareTo(a.accuracyPercent));
 
   /// Sorts by speed (descending)
-  List<ModelInfo> sortedBySpeed() {
-    return [...this]..sort((a, b) => b.speedRating.compareTo(a.speedRating));
-  }
+  List<ModelInfo> sortedBySpeed() =>
+      [...this]..sort((a, b) => b.speedRating.compareTo(a.speedRating));
 
   /// Sorts by size (ascending)
-  List<ModelInfo> sortedBySize() {
-    return [...this]..sort((a, b) => a.sizeBytes.compareTo(b.sizeBytes));
-  }
+  List<ModelInfo> sortedBySize() =>
+      [...this]..sort((a, b) => a.sizeBytes.compareTo(b.sizeBytes));
 }

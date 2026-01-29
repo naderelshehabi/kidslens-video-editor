@@ -1,10 +1,10 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/native/bindings/ffmpeg_bindings.dart';
 import 'package:kidslens_video_editor/native/bindings/mms_bindings.dart';
 import 'package:kidslens_video_editor/native/bindings/onnx_bindings.dart';
 import 'package:kidslens_video_editor/native/bindings/whisper_bindings.dart';
 import 'package:kidslens_video_editor/services/analysis_service.dart';
+import 'package:kidslens_video_editor/services/beep_audio_service.dart';
 import 'package:kidslens_video_editor/services/export_service.dart';
 import 'package:kidslens_video_editor/services/media_service.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
@@ -12,47 +12,41 @@ import 'package:kidslens_video_editor/services/profanity_service.dart';
 import 'package:kidslens_video_editor/services/project_service.dart';
 import 'package:kidslens_video_editor/services/sample_analysis_service.dart';
 import 'package:kidslens_video_editor/services/thumbnail_service.dart';
-import 'package:kidslens_video_editor/services/beep_audio_service.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'service_providers.g.dart';
 
 // Native bindings (singletons)
 @Riverpod(keepAlive: true)
-FFmpegBindings ffmpegBindings(FfmpegBindingsRef ref) => FFmpegBindings();
+FFmpegBindings ffmpegBindings(Ref ref) => FFmpegBindings();
 
 @Riverpod(keepAlive: true)
-WhisperBindings whisperBindings(WhisperBindingsRef ref) => WhisperBindings();
+WhisperBindings whisperBindings(Ref ref) => WhisperBindings();
 
 @Riverpod(keepAlive: true)
-MMSBindings mmsBindings(MmsBindingsRef ref) => MMSBindings();
+MMSBindings mmsBindings(Ref ref) => MMSBindings();
 
 @Riverpod(keepAlive: true)
-ONNXBindings onnxBindings(OnnxBindingsRef ref) => ONNXBindings();
+ONNXBindings onnxBindings(Ref ref) => ONNXBindings();
 
 // Services
 @Riverpod(keepAlive: true)
-ProjectService projectService(ProjectServiceRef ref) {
-  return ProjectService();
-}
+ProjectService projectService(Ref ref) => ProjectService();
 
 @Riverpod(keepAlive: true)
-MediaService mediaService(MediaServiceRef ref) {
-  return MediaService(ref.watch(ffmpegBindingsProvider));
-}
+MediaService mediaService(Ref ref) =>
+    MediaService(ref.watch(ffmpegBindingsProvider));
 
 @Riverpod(keepAlive: true)
-ModelManagerService modelManagerService(ModelManagerServiceRef ref) {
-  return ModelManagerService();
-}
+ModelManagerService modelManagerService(Ref ref) =>
+    ModelManagerService();
 
 @Riverpod(keepAlive: true)
-ProfanityService profanityService(ProfanityServiceRef ref) {
-  return ProfanityService();
-}
+ProfanityService profanityService(Ref ref) =>
+    ProfanityService();
 
 @Riverpod(keepAlive: true)
-AnalysisService analysisService(AnalysisServiceRef ref) {
-  return AnalysisService(
+AnalysisService analysisService(Ref ref) => AnalysisService(
     ffmpeg: ref.watch(ffmpegBindingsProvider),
     whisper: ref.watch(whisperBindingsProvider),
     mms: ref.watch(mmsBindingsProvider),
@@ -60,30 +54,24 @@ AnalysisService analysisService(AnalysisServiceRef ref) {
     modelManager: ref.watch(modelManagerServiceProvider),
     profanity: ref.watch(profanityServiceProvider),
   );
-}
 
 @Riverpod(keepAlive: true)
-SampleAnalysisService sampleAnalysisService(SampleAnalysisServiceRef ref) {
-  return SampleAnalysisService(
-    analysisService: ref.watch(analysisServiceProvider),
-    mediaService: ref.watch(mediaServiceProvider),
-  );
-}
+SampleAnalysisService sampleAnalysisService(Ref ref) =>
+    SampleAnalysisService(
+      analysisService: ref.watch(analysisServiceProvider),
+      mediaService: ref.watch(mediaServiceProvider),
+    );
 
 @Riverpod(keepAlive: true)
-ExportService exportService(ExportServiceRef ref) {
-  return ExportService(
+ExportService exportService(Ref ref) => ExportService(
     ffmpeg: ref.watch(ffmpegBindingsProvider),
     mediaService: ref.watch(mediaServiceProvider),
   );
-}
 
 @Riverpod(keepAlive: true)
-ThumbnailService thumbnailService(ThumbnailServiceRef ref) {
-  return ThumbnailService();
-}
+ThumbnailService thumbnailService(Ref ref) =>
+    ThumbnailService();
 
 @Riverpod(keepAlive: true)
-BeepAudioService beepAudioService(BeepAudioServiceRef ref) {
-  return BeepAudioService();
-}
+BeepAudioService beepAudioService(Ref ref) =>
+    BeepAudioService();

@@ -37,9 +37,8 @@ extension DurationExtensions on Duration {
   /// Multiply this duration by a factor
   ///
   /// Example: Duration(seconds: 10) * 2.5 = Duration(seconds: 25)
-  Duration multiply(double factor) {
-    return Duration(microseconds: (inMicroseconds * factor).round());
-  }
+  Duration multiply(double factor) =>
+      Duration(microseconds: (inMicroseconds * factor).round());
 
   /// Divide this duration by a numeric factor
   ///
@@ -218,14 +217,11 @@ extension DurationExtensions on Duration {
   // ============================================================
 
   /// Check if this duration overlaps with another time range
-  bool overlaps(Duration otherStart, Duration otherEnd, Duration thisEnd) {
-    return this < otherEnd && thisEnd > otherStart;
-  }
+  bool overlaps(Duration otherStart, Duration otherEnd, Duration thisEnd) =>
+      this < otherEnd && thisEnd > otherStart;
 
   /// Check if this duration is within a range (inclusive)
-  bool isWithin(Duration start, Duration end) {
-    return this >= start && this <= end;
-  }
+  bool isWithin(Duration start, Duration end) => this >= start && this <= end;
 
   /// Clamp this duration to a range
   Duration clampDuration(Duration min, Duration max) {
@@ -235,23 +231,20 @@ extension DurationExtensions on Duration {
   }
 
   /// Get the distance to another duration
-  Duration distanceTo(Duration other) {
-    return Duration(microseconds: (inMicroseconds - other.inMicroseconds).abs());
-  }
+  Duration distanceTo(Duration other) =>
+      Duration(microseconds: (inMicroseconds - other.inMicroseconds).abs());
 
   // ============================================================
   // Frame Calculations
   // ============================================================
 
   /// Convert duration to frame number at given fps
-  int toFrameNumber({double fps = 24.0}) {
-    return (inMilliseconds * fps / 1000).floor();
-  }
+  int toFrameNumber({double fps = 24.0}) =>
+      (inMilliseconds * fps / 1000).floor();
 
   /// Create a duration from a frame number at given fps
-  static Duration fromFrameNumber(int frame, {double fps = 24.0}) {
-    return Duration(milliseconds: (frame * 1000 / fps).round());
-  }
+  static Duration fromFrameNumber(int frame, {double fps = 24.0}) =>
+      Duration(milliseconds: (frame * 1000 / fps).round());
 
   /// Round duration to nearest frame boundary
   Duration roundToFrame({double fps = 24.0}) {

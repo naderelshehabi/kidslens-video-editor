@@ -19,10 +19,10 @@ void main() {
   group('TimelineSegment', () {
     group('creation', () {
       test('should create a segment with required fields', () {
-        final segment = TimelineSegment(
+        const segment = TimelineSegment(
           id: 'seg-1',
-          start: const Duration(seconds: 10),
-          end: const Duration(seconds: 20),
+          start: Duration(seconds: 10),
+          end: Duration(seconds: 20),
           type: ContentType.nsfw,
           confidence: 0.95,
         );
@@ -37,13 +37,13 @@ void main() {
       });
 
       test('should create with optional modification', () {
-        final segment = TimelineSegment(
+        const segment = TimelineSegment(
           id: 'seg-1',
           start: Duration.zero,
-          end: const Duration(seconds: 5),
+          end: Duration(seconds: 5),
           type: ContentType.profanity,
-          confidence: 1.0,
-          modification: const AudioMute(),
+          confidence: 1,
+          modification: AudioMute(),
         );
 
         expect(segment.modification, isNotNull);
@@ -53,11 +53,12 @@ void main() {
 
     group('TimelineSegment.fromDetection factory', () {
       test('should create segment from detection', () {
-        final detection = Detection(
+        const detection = Detection(
           id: 'det-1',
+          mediaId: 'media-1',
           type: ContentType.violence,
-          startTime: const Duration(minutes: 1),
-          endTime: const Duration(minutes: 1, seconds: 30),
+          startTime: Duration(minutes: 1),
+          endTime: Duration(minutes: 1, seconds: 30),
           confidence: 0.85,
           description: 'Violence detected',
         );
@@ -73,11 +74,12 @@ void main() {
       });
 
       test('should include modification if provided', () {
-        final detection = Detection(
+        const detection = Detection(
           id: 'det-1',
+          mediaId: 'media-1',
           type: ContentType.profanity,
           startTime: Duration.zero,
-          endTime: const Duration(seconds: 2),
+          endTime: Duration(seconds: 2),
           confidence: 0.99,
           description: 'Bad word',
         );
@@ -93,10 +95,10 @@ void main() {
 
     group('computed properties', () {
       test('duration should calculate correctly', () {
-        final segment = TimelineSegment(
+        const segment = TimelineSegment(
           id: 'seg-1',
-          start: const Duration(seconds: 10),
-          end: const Duration(seconds: 25),
+          start: Duration(seconds: 10),
+          end: Duration(seconds: 25),
           type: ContentType.blood,
           confidence: 0.7,
         );
@@ -105,19 +107,19 @@ void main() {
       });
 
       test('hasModification should return correct value', () {
-        final segWithMod = TimelineSegment(
+        const segWithMod = TimelineSegment(
           id: 'seg-1',
           start: Duration.zero,
-          end: const Duration(seconds: 5),
+          end: Duration(seconds: 5),
           type: ContentType.nsfw,
           confidence: 0.9,
-          modification: const VideoBlur(),
+          modification: VideoBlur(),
         );
 
-        final segWithoutMod = TimelineSegment(
+        const segWithoutMod = TimelineSegment(
           id: 'seg-2',
           start: Duration.zero,
-          end: const Duration(seconds: 5),
+          end: Duration(seconds: 5),
           type: ContentType.nsfw,
           confidence: 0.9,
         );
@@ -129,10 +131,10 @@ void main() {
 
     group('overlap detection', () {
       test('overlapsWithRange should detect overlap', () {
-        final segment = TimelineSegment(
+        const segment = TimelineSegment(
           id: 'seg-1',
-          start: const Duration(seconds: 10),
-          end: const Duration(seconds: 20),
+          start: Duration(seconds: 10),
+          end: Duration(seconds: 20),
           type: ContentType.nsfw,
           confidence: 0.9,
         );
@@ -147,7 +149,7 @@ void main() {
 
         expect(
           segment.overlapsWithRange(
-            const Duration(seconds: 0),
+            const Duration(),
             const Duration(seconds: 5),
           ),
           isFalse,
@@ -155,18 +157,18 @@ void main() {
       });
 
       test('overlapsWith should detect overlapping segments', () {
-        final seg1 = TimelineSegment(
+        const seg1 = TimelineSegment(
           id: 'seg-1',
-          start: const Duration(seconds: 10),
-          end: const Duration(seconds: 20),
+          start: Duration(seconds: 10),
+          end: Duration(seconds: 20),
           type: ContentType.nsfw,
           confidence: 0.9,
         );
 
-        final seg2 = TimelineSegment(
+        const seg2 = TimelineSegment(
           id: 'seg-2',
-          start: const Duration(seconds: 15),
-          end: const Duration(seconds: 25),
+          start: Duration(seconds: 15),
+          end: Duration(seconds: 25),
           type: ContentType.violence,
           confidence: 0.8,
         );
@@ -175,10 +177,10 @@ void main() {
       });
 
       test('containsTime should check if time is within segment', () {
-        final segment = TimelineSegment(
+        const segment = TimelineSegment(
           id: 'seg-1',
-          start: const Duration(seconds: 10),
-          end: const Duration(seconds: 20),
+          start: Duration(seconds: 10),
+          end: Duration(seconds: 20),
           type: ContentType.nsfw,
           confidence: 0.9,
         );
@@ -192,15 +194,14 @@ void main() {
 
     group('JSON serialization', () {
       test('should serialize and deserialize correctly', () {
-        final original = TimelineSegment(
+        const original = TimelineSegment(
           id: 'seg-1',
-          start: const Duration(seconds: 30),
-          end: const Duration(seconds: 45),
+          start: Duration(seconds: 30),
+          end: Duration(seconds: 45),
           type: ContentType.weapons,
           confidence: 0.88,
-          modification: const VideoPixelate(blockSize: 24),
+          modification: VideoPixelate(blockSize: 24),
           isSelected: true,
-          isLocked: false,
           detectionId: 'det-123',
         );
 
@@ -224,11 +225,11 @@ void main() {
   group('TimelineTrack', () {
     group('creation', () {
       test('should create a track with required fields', () {
-        final track = TimelineTrack(
+        const track = TimelineTrack(
           id: 'track-1',
           type: TrackType.video,
           name: 'Video Track',
-          segments: const [],
+          segments: [],
         );
 
         expect(track.id, equals('track-1'));
@@ -278,7 +279,7 @@ void main() {
 
     group('computed properties', () {
       test('segmentCount should return correct count', () {
-        final track = TimelineTrack(
+        const track = TimelineTrack(
           id: 'track-1',
           type: TrackType.video,
           name: 'Test',
@@ -286,14 +287,14 @@ void main() {
             TimelineSegment(
               id: 'seg-1',
               start: Duration.zero,
-              end: const Duration(seconds: 5),
+              end: Duration(seconds: 5),
               type: ContentType.nsfw,
               confidence: 0.9,
             ),
             TimelineSegment(
               id: 'seg-2',
-              start: const Duration(seconds: 10),
-              end: const Duration(seconds: 15),
+              start: Duration(seconds: 10),
+              end: Duration(seconds: 15),
               type: ContentType.violence,
               confidence: 0.8,
             ),
@@ -305,7 +306,7 @@ void main() {
 
       test('hasSegments should return correct value', () {
         final emptyTrack = TimelineTrack.video();
-        final trackWithSegments = TimelineTrack(
+        const trackWithSegments = TimelineTrack(
           id: 'track-1',
           type: TrackType.video,
           name: 'Test',
@@ -313,7 +314,7 @@ void main() {
             TimelineSegment(
               id: 'seg-1',
               start: Duration.zero,
-              end: const Duration(seconds: 5),
+              end: Duration(seconds: 5),
               type: ContentType.nsfw,
               confidence: 0.9,
             ),
@@ -327,7 +328,7 @@ void main() {
 
     group('getSegmentsInRange', () {
       test('should return segments overlapping with range', () {
-        final track = TimelineTrack(
+        const track = TimelineTrack(
           id: 'track-1',
           type: TrackType.video,
           name: 'Test',
@@ -335,21 +336,21 @@ void main() {
             TimelineSegment(
               id: 'seg-1',
               start: Duration.zero,
-              end: const Duration(seconds: 10),
+              end: Duration(seconds: 10),
               type: ContentType.nsfw,
               confidence: 0.9,
             ),
             TimelineSegment(
               id: 'seg-2',
-              start: const Duration(seconds: 20),
-              end: const Duration(seconds: 30),
+              start: Duration(seconds: 20),
+              end: Duration(seconds: 30),
               type: ContentType.violence,
               confidence: 0.8,
             ),
             TimelineSegment(
               id: 'seg-3',
-              start: const Duration(seconds: 40),
-              end: const Duration(seconds: 50),
+              start: Duration(seconds: 40),
+              end: Duration(seconds: 50),
               type: ContentType.blood,
               confidence: 0.7,
             ),
@@ -368,7 +369,7 @@ void main() {
 
     group('getSegmentAt', () {
       test('should return segment containing time', () {
-        final track = TimelineTrack(
+        const track = TimelineTrack(
           id: 'track-1',
           type: TrackType.video,
           name: 'Test',
@@ -376,14 +377,14 @@ void main() {
             TimelineSegment(
               id: 'seg-1',
               start: Duration.zero,
-              end: const Duration(seconds: 10),
+              end: Duration(seconds: 10),
               type: ContentType.nsfw,
               confidence: 0.9,
             ),
             TimelineSegment(
               id: 'seg-2',
-              start: const Duration(seconds: 20),
-              end: const Duration(seconds: 30),
+              start: Duration(seconds: 20),
+              end: Duration(seconds: 30),
               type: ContentType.violence,
               confidence: 0.8,
             ),
@@ -400,7 +401,7 @@ void main() {
 
     group('modifiedSegments', () {
       test('should return only segments with modifications', () {
-        final track = TimelineTrack(
+        const track = TimelineTrack(
           id: 'track-1',
           type: TrackType.video,
           name: 'Test',
@@ -408,25 +409,25 @@ void main() {
             TimelineSegment(
               id: 'seg-1',
               start: Duration.zero,
-              end: const Duration(seconds: 5),
+              end: Duration(seconds: 5),
               type: ContentType.nsfw,
               confidence: 0.9,
-              modification: const VideoBlur(),
+              modification: VideoBlur(),
             ),
             TimelineSegment(
               id: 'seg-2',
-              start: const Duration(seconds: 10),
-              end: const Duration(seconds: 15),
+              start: Duration(seconds: 10),
+              end: Duration(seconds: 15),
               type: ContentType.violence,
               confidence: 0.8,
             ),
             TimelineSegment(
               id: 'seg-3',
-              start: const Duration(seconds: 20),
-              end: const Duration(seconds: 25),
+              start: Duration(seconds: 20),
+              end: Duration(seconds: 25),
               type: ContentType.blood,
               confidence: 0.7,
-              modification: const VideoPixelate(),
+              modification: VideoPixelate(),
             ),
           ],
         );
@@ -455,23 +456,23 @@ void main() {
 
   group('TimelineConflict', () {
     test('should create a conflict correctly', () {
-      final seg1 = TimelineSegment(
+      const seg1 = TimelineSegment(
         id: 'seg-1',
-        start: const Duration(seconds: 10),
-        end: const Duration(seconds: 20),
+        start: Duration(seconds: 10),
+        end: Duration(seconds: 20),
         type: ContentType.nsfw,
         confidence: 0.9,
       );
 
-      final seg2 = TimelineSegment(
+      const seg2 = TimelineSegment(
         id: 'seg-2',
-        start: const Duration(seconds: 15),
-        end: const Duration(seconds: 25),
+        start: Duration(seconds: 15),
+        end: Duration(seconds: 25),
         type: ContentType.violence,
         confidence: 0.8,
       );
 
-      final conflict = TimelineConflict(
+      const conflict = TimelineConflict(
         segment1: seg1,
         segment2: seg2,
         conflictType: ConflictType.overlap,
@@ -516,20 +517,22 @@ void main() {
 
     group('UnifiedTimeline.fromDetections factory', () {
       test('should create timeline from detections', () {
-        final detections = [
+        const detections = <Detection>[
           Detection(
             id: 'det-1',
+            mediaId: 'media-1',
             type: ContentType.nsfw,
-            startTime: const Duration(seconds: 10),
-            endTime: const Duration(seconds: 20),
+            startTime: Duration(seconds: 10),
+            endTime: Duration(seconds: 20),
             confidence: 0.9,
             description: 'NSFW',
           ),
           Detection(
             id: 'det-2',
+            mediaId: 'media-1',
             type: ContentType.profanity,
-            startTime: const Duration(seconds: 30),
-            endTime: const Duration(seconds: 32),
+            startTime: Duration(seconds: 30),
+            endTime: Duration(seconds: 32),
             confidence: 0.95,
             description: 'Profanity',
           ),
@@ -559,9 +562,9 @@ void main() {
 
     group('getSegmentsAt', () {
       test('should return segments at specific time', () {
-        final timeline = UnifiedTimeline(
+        const timeline = UnifiedTimeline(
           id: 'timeline-1',
-          mediaDuration: const Duration(minutes: 5),
+          mediaDuration: Duration(minutes: 5),
           tracks: [
             TimelineTrack(
               id: 'video',
@@ -570,8 +573,8 @@ void main() {
               segments: [
                 TimelineSegment(
                   id: 'seg-1',
-                  start: const Duration(seconds: 10),
-                  end: const Duration(seconds: 20),
+                  start: Duration(seconds: 10),
+                  end: Duration(seconds: 20),
                   type: ContentType.nsfw,
                   confidence: 0.9,
                 ),
@@ -584,8 +587,8 @@ void main() {
               segments: [
                 TimelineSegment(
                   id: 'seg-2',
-                  start: const Duration(seconds: 15),
-                  end: const Duration(seconds: 25),
+                  start: Duration(seconds: 15),
+                  end: Duration(seconds: 25),
                   type: ContentType.profanity,
                   confidence: 0.95,
                 ),
@@ -601,9 +604,9 @@ void main() {
 
     group('updateDetection', () {
       test('should update detection properties', () {
-        final timeline = UnifiedTimeline(
+        const timeline = UnifiedTimeline(
           id: 'timeline-1',
-          mediaDuration: const Duration(minutes: 5),
+          mediaDuration: Duration(minutes: 5),
           tracks: [
             TimelineTrack(
               id: 'video',
@@ -612,8 +615,8 @@ void main() {
               segments: [
                 TimelineSegment(
                   id: 'seg-1',
-                  start: const Duration(seconds: 10),
-                  end: const Duration(seconds: 20),
+                  start: Duration(seconds: 10),
+                  end: Duration(seconds: 20),
                   type: ContentType.nsfw,
                   confidence: 0.9,
                   detectionId: 'det-1',
@@ -639,9 +642,9 @@ void main() {
 
     group('addModification', () {
       test('should add modification to segment', () {
-        final timeline = UnifiedTimeline(
+        const timeline = UnifiedTimeline(
           id: 'timeline-1',
-          mediaDuration: const Duration(minutes: 5),
+          mediaDuration: Duration(minutes: 5),
           tracks: [
             TimelineTrack(
               id: 'video',
@@ -650,8 +653,8 @@ void main() {
               segments: [
                 TimelineSegment(
                   id: 'seg-1',
-                  start: const Duration(seconds: 10),
-                  end: const Duration(seconds: 20),
+                  start: Duration(seconds: 10),
+                  end: Duration(seconds: 20),
                   type: ContentType.nsfw,
                   confidence: 0.9,
                 ),
@@ -667,15 +670,15 @@ void main() {
 
         final segment = updated.tracks.first.segments.first;
         expect(segment.modification, isA<VideoBlur>());
-        expect((segment.modification as VideoBlur).intensity, equals(50));
+        expect((segment.modification! as VideoBlur).intensity, equals(50));
       });
     });
 
     group('removeModification', () {
       test('should remove modification from segment', () {
-        final timeline = UnifiedTimeline(
+        const timeline = UnifiedTimeline(
           id: 'timeline-1',
-          mediaDuration: const Duration(minutes: 5),
+          mediaDuration: Duration(minutes: 5),
           tracks: [
             TimelineTrack(
               id: 'video',
@@ -684,11 +687,11 @@ void main() {
               segments: [
                 TimelineSegment(
                   id: 'seg-1',
-                  start: const Duration(seconds: 10),
-                  end: const Duration(seconds: 20),
+                  start: Duration(seconds: 10),
+                  end: Duration(seconds: 20),
                   type: ContentType.nsfw,
                   confidence: 0.9,
-                  modification: const VideoBlur(),
+                  modification: VideoBlur(),
                 ),
               ],
             ),
@@ -704,9 +707,9 @@ void main() {
 
     group('findConflicts', () {
       test('should detect overlapping segments', () {
-        final timeline = UnifiedTimeline(
+        const timeline = UnifiedTimeline(
           id: 'timeline-1',
-          mediaDuration: const Duration(minutes: 5),
+          mediaDuration: Duration(minutes: 5),
           tracks: [
             TimelineTrack(
               id: 'video',
@@ -715,15 +718,15 @@ void main() {
               segments: [
                 TimelineSegment(
                   id: 'seg-1',
-                  start: const Duration(seconds: 10),
-                  end: const Duration(seconds: 25),
+                  start: Duration(seconds: 10),
+                  end: Duration(seconds: 25),
                   type: ContentType.nsfw,
                   confidence: 0.9,
                 ),
                 TimelineSegment(
                   id: 'seg-2',
-                  start: const Duration(seconds: 20),
-                  end: const Duration(seconds: 35),
+                  start: Duration(seconds: 20),
+                  end: Duration(seconds: 35),
                   type: ContentType.violence,
                   confidence: 0.8,
                 ),
@@ -743,9 +746,9 @@ void main() {
 
     group('computed statistics', () {
       test('totalSegmentCount should sum all segments', () {
-        final timeline = UnifiedTimeline(
+        const timeline = UnifiedTimeline(
           id: 'timeline-1',
-          mediaDuration: const Duration(minutes: 5),
+          mediaDuration: Duration(minutes: 5),
           tracks: [
             TimelineTrack(
               id: 'video',
@@ -755,14 +758,14 @@ void main() {
                 TimelineSegment(
                   id: 'seg-1',
                   start: Duration.zero,
-                  end: const Duration(seconds: 5),
+                  end: Duration(seconds: 5),
                   type: ContentType.nsfw,
                   confidence: 0.9,
                 ),
                 TimelineSegment(
                   id: 'seg-2',
-                  start: const Duration(seconds: 10),
-                  end: const Duration(seconds: 15),
+                  start: Duration(seconds: 10),
+                  end: Duration(seconds: 15),
                   type: ContentType.violence,
                   confidence: 0.8,
                 ),
@@ -775,8 +778,8 @@ void main() {
               segments: [
                 TimelineSegment(
                   id: 'seg-3',
-                  start: const Duration(seconds: 20),
-                  end: const Duration(seconds: 22),
+                  start: Duration(seconds: 20),
+                  end: Duration(seconds: 22),
                   type: ContentType.profanity,
                   confidence: 0.95,
                 ),
@@ -789,9 +792,9 @@ void main() {
       });
 
       test('totalModificationCount should count modified segments', () {
-        final timeline = UnifiedTimeline(
+        const timeline = UnifiedTimeline(
           id: 'timeline-1',
-          mediaDuration: const Duration(minutes: 5),
+          mediaDuration: Duration(minutes: 5),
           tracks: [
             TimelineTrack(
               id: 'video',
@@ -801,15 +804,15 @@ void main() {
                 TimelineSegment(
                   id: 'seg-1',
                   start: Duration.zero,
-                  end: const Duration(seconds: 5),
+                  end: Duration(seconds: 5),
                   type: ContentType.nsfw,
                   confidence: 0.9,
-                  modification: const VideoBlur(),
+                  modification: VideoBlur(),
                 ),
                 TimelineSegment(
                   id: 'seg-2',
-                  start: const Duration(seconds: 10),
-                  end: const Duration(seconds: 15),
+                  start: Duration(seconds: 10),
+                  end: Duration(seconds: 15),
                   type: ContentType.violence,
                   confidence: 0.8,
                 ),

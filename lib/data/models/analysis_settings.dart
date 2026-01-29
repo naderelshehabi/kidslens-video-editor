@@ -6,8 +6,6 @@ part 'analysis_settings.g.dart';
 /// Configuration for AI models
 @freezed
 class ModelConfig with _$ModelConfig {
-  const ModelConfig._();
-
   const factory ModelConfig({
     /// ID of the ASR model to use for transcription
     required String asrModelId,
@@ -31,24 +29,21 @@ class ModelConfig with _$ModelConfig {
     @Default(false) bool useFp16,
   }) = _ModelConfig;
 
+  const ModelConfig._();
+
   factory ModelConfig.fromJson(Map<String, dynamic> json) =>
       _$ModelConfigFromJson(json);
 
   /// Creates default model configuration
-  factory ModelConfig.defaults() {
-    return const ModelConfig(
-      asrModelId: 'whisper-base',
-      visualModelId: 'nsfw-mobilenet',
-      asrLanguage: 'en',
-    );
-  }
+  factory ModelConfig.defaults() => const ModelConfig(
+        asrModelId: 'whisper-base',
+        visualModelId: 'nsfw-mobilenet',
+      );
 }
 
 /// Configuration for profanity detection
 @freezed
 class ProfanityConfig with _$ProfanityConfig {
-  const ProfanityConfig._();
-
   const factory ProfanityConfig({
     /// Wordlist IDs to use for detection
     @Default(['english-profanity']) List<String> wordlistIds,
@@ -81,48 +76,37 @@ class ProfanityConfig with _$ProfanityConfig {
     @Default(true) bool useContextAnalysis,
   }) = _ProfanityConfig;
 
+  const ProfanityConfig._();
+
   factory ProfanityConfig.fromJson(Map<String, dynamic> json) =>
       _$ProfanityConfigFromJson(json);
 
   /// Creates default profanity configuration
-  factory ProfanityConfig.defaults() {
-    return const ProfanityConfig();
-  }
+  factory ProfanityConfig.defaults() => const ProfanityConfig();
 
   /// Creates a strict configuration that catches more profanity
-  factory ProfanityConfig.strict() {
-    return const ProfanityConfig(
-      detectLeetspeak: true,
-      detectPhonetic: true,
-      detectFuzzy: true,
-      detectObfuscated: true,
-      fuzzyThreshold: 0.7,
-      minWordLength: 2,
-    );
-  }
+  factory ProfanityConfig.strict() => const ProfanityConfig(
+        fuzzyThreshold: 0.7,
+      );
 
   /// Creates a permissive configuration with fewer false positives
-  factory ProfanityConfig.permissive() {
-    return const ProfanityConfig(
-      detectLeetspeak: true,
-      detectPhonetic: false,
-      detectFuzzy: false,
-      detectObfuscated: true,
-      fuzzyThreshold: 0.9,
-      minWordLength: 3,
-      useContextAnalysis: true,
-    );
-  }
+  factory ProfanityConfig.permissive() => const ProfanityConfig(
+        detectPhonetic: false,
+        detectFuzzy: false,
+        fuzzyThreshold: 0.9,
+        minWordLength: 3,
+      );
 }
 
 /// Complete analysis settings for the video editor
 @freezed
 class AnalysisSettings with _$AnalysisSettings {
-  const AnalysisSettings._();
-
   const factory AnalysisSettings({
     /// Model configuration
     required ModelConfig modelConfig,
+
+    /// Profanity configuration
+    required ProfanityConfig profanityConfig,
 
     /// NSFW detection threshold (0.0 to 1.0)
     @Default(0.6) double nsfwThreshold,
@@ -135,9 +119,6 @@ class AnalysisSettings with _$AnalysisSettings {
 
     /// Weapons detection threshold (0.0 to 1.0)
     @Default(0.6) double weaponsThreshold,
-
-    /// Profanity configuration
-    required ProfanityConfig profanityConfig,
 
     /// Whether NSFW detection is enabled
     @Default(true) bool enableNsfw,
@@ -173,74 +154,59 @@ class AnalysisSettings with _$AnalysisSettings {
     @Default(4) int maxConcurrentAnalyses,
   }) = _AnalysisSettings;
 
+  const AnalysisSettings._();
+
   factory AnalysisSettings.fromJson(Map<String, dynamic> json) =>
       _$AnalysisSettingsFromJson(json);
 
   /// Creates default analysis settings
-  factory AnalysisSettings.defaults() {
-    return AnalysisSettings(
-      modelConfig: ModelConfig.defaults(),
-      profanityConfig: ProfanityConfig.defaults(),
-    );
-  }
+  factory AnalysisSettings.defaults() => AnalysisSettings(
+        modelConfig: ModelConfig.defaults(),
+        profanityConfig: ProfanityConfig.defaults(),
+      );
 
   /// Creates strict settings for maximum detection
-  factory AnalysisSettings.strict() {
-    return AnalysisSettings(
-      modelConfig: ModelConfig.defaults(),
-      nsfwThreshold: 0.4,
-      violenceThreshold: 0.4,
-      bloodThreshold: 0.4,
-      weaponsThreshold: 0.4,
-      profanityConfig: ProfanityConfig.strict(),
-      frameSamplingRate: 3,
-      useSceneDetection: true,
-      minSegmentDurationMs: 300,
-      detectionBufferMs: 200,
-    );
-  }
+  factory AnalysisSettings.strict() => AnalysisSettings(
+        modelConfig: ModelConfig.defaults(),
+        nsfwThreshold: 0.4,
+        violenceThreshold: 0.4,
+        bloodThreshold: 0.4,
+        weaponsThreshold: 0.4,
+        profanityConfig: ProfanityConfig.strict(),
+        frameSamplingRate: 3,
+        minSegmentDurationMs: 300,
+        detectionBufferMs: 200,
+      );
 
   /// Creates permissive settings for fewer false positives
-  factory AnalysisSettings.permissive() {
-    return AnalysisSettings(
-      modelConfig: ModelConfig.defaults(),
-      nsfwThreshold: 0.8,
-      violenceThreshold: 0.8,
-      bloodThreshold: 0.8,
-      weaponsThreshold: 0.8,
-      profanityConfig: ProfanityConfig.permissive(),
-      frameSamplingRate: 10,
-      useSceneDetection: true,
-      minSegmentDurationMs: 1000,
-      detectionBufferMs: 50,
-    );
-  }
+  factory AnalysisSettings.permissive() => AnalysisSettings(
+        modelConfig: ModelConfig.defaults(),
+        nsfwThreshold: 0.8,
+        violenceThreshold: 0.8,
+        bloodThreshold: 0.8,
+        weaponsThreshold: 0.8,
+        profanityConfig: ProfanityConfig.permissive(),
+        frameSamplingRate: 10,
+        minSegmentDurationMs: 1000,
+        detectionBufferMs: 50,
+      );
 
   /// Creates settings for audio-only analysis
-  factory AnalysisSettings.audioOnly() {
-    return AnalysisSettings(
-      modelConfig: ModelConfig.defaults(),
-      profanityConfig: ProfanityConfig.defaults(),
-      enableNsfw: false,
-      enableViolence: false,
-      enableBlood: false,
-      enableWeapons: false,
-      enableProfanity: true,
-    );
-  }
+  factory AnalysisSettings.audioOnly() => AnalysisSettings(
+        modelConfig: ModelConfig.defaults(),
+        profanityConfig: ProfanityConfig.defaults(),
+        enableNsfw: false,
+        enableViolence: false,
+        enableBlood: false,
+        enableWeapons: false,
+      );
 
   /// Creates settings for video-only analysis (no ASR)
-  factory AnalysisSettings.videoOnly() {
-    return AnalysisSettings(
-      modelConfig: ModelConfig.defaults(),
-      profanityConfig: ProfanityConfig.defaults(),
-      enableNsfw: true,
-      enableViolence: true,
-      enableBlood: true,
-      enableWeapons: true,
-      enableProfanity: false,
-    );
-  }
+  factory AnalysisSettings.videoOnly() => AnalysisSettings(
+        modelConfig: ModelConfig.defaults(),
+        profanityConfig: ProfanityConfig.defaults(),
+        enableProfanity: false,
+      );
 
   /// Whether any visual detection is enabled
   bool get hasVisualDetection =>
@@ -281,14 +247,13 @@ class AnalysisSettings with _$AnalysisSettings {
     double? violence,
     double? blood,
     double? weapons,
-  }) {
-    return copyWith(
-      nsfwThreshold: nsfw ?? nsfwThreshold,
-      violenceThreshold: violence ?? violenceThreshold,
-      bloodThreshold: blood ?? bloodThreshold,
-      weaponsThreshold: weapons ?? weaponsThreshold,
-    );
-  }
+  }) =>
+      copyWith(
+        nsfwThreshold: nsfw ?? nsfwThreshold,
+        violenceThreshold: violence ?? violenceThreshold,
+        bloodThreshold: blood ?? bloodThreshold,
+        weaponsThreshold: weapons ?? weaponsThreshold,
+      );
 
   /// Creates a copy with specified detections enabled/disabled
   AnalysisSettings withDetections({
@@ -297,15 +262,14 @@ class AnalysisSettings with _$AnalysisSettings {
     bool? blood,
     bool? weapons,
     bool? profanity,
-  }) {
-    return copyWith(
-      enableNsfw: nsfw ?? enableNsfw,
-      enableViolence: violence ?? enableViolence,
-      enableBlood: blood ?? enableBlood,
-      enableWeapons: weapons ?? enableWeapons,
-      enableProfanity: profanity ?? enableProfanity,
-    );
-  }
+  }) =>
+      copyWith(
+        enableNsfw: nsfw ?? enableNsfw,
+        enableViolence: violence ?? enableViolence,
+        enableBlood: blood ?? enableBlood,
+        enableWeapons: weapons ?? enableWeapons,
+        enableProfanity: profanity ?? enableProfanity,
+      );
 
   /// Validates settings and returns list of issues
   List<String> validate() {

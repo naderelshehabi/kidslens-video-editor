@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../data/models/analysis_result.dart';
-import '../../data/models/analysis_settings.dart';
-import '../../data/models/media_file.dart';
-import '../../state/providers/analysis_provider.dart';
-import '../../state/providers/media_provider.dart';
-import '../widgets/common/progress_card.dart';
-import 'detection_review_screen.dart';
-import 'import_screen.dart';
-import 'settings_screen.dart';
+import 'package:kidslens_video_editor/data/models/analysis_result.dart';
+import 'package:kidslens_video_editor/data/models/analysis_settings.dart';
+import 'package:kidslens_video_editor/data/models/media_file.dart';
+import 'package:kidslens_video_editor/presentation/screens/detection_review_screen.dart';
+import 'package:kidslens_video_editor/presentation/screens/import_screen.dart';
+import 'package:kidslens_video_editor/presentation/screens/settings_screen.dart';
+import 'package:kidslens_video_editor/presentation/widgets/common/progress_card.dart';
+import 'package:kidslens_video_editor/state/providers/analysis_provider.dart';
+import 'package:kidslens_video_editor/state/providers/media_provider.dart';
 
 /// Main home screen of the application
 class HomeScreen extends ConsumerWidget {
@@ -174,8 +173,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStartAnalysisButton(BuildContext context, WidgetRef ref) {
-    return Card(
+  Widget _buildStartAnalysisButton(BuildContext context, WidgetRef ref) => Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -211,10 +209,8 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildCompletedActions(BuildContext context, WidgetRef ref) {
-    return Card(
+  Widget _buildCompletedActions(BuildContext context, WidgetRef ref) => Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -255,7 +251,6 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
 
   void _importMedia(BuildContext context) {
     Navigator.of(context).push(
@@ -286,7 +281,9 @@ class HomeScreen extends ConsumerWidget {
     if (media != null) {
       ref.read(analysisNotifierProvider.notifier).startAnalysis(
             mediaPath: media.path,
+            mediaId: media.id,
             settings: AnalysisSettings.defaults(),
+            mediaDuration: media.duration,
           );
     }
   }
@@ -298,13 +295,12 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _MediaInfoCard extends StatelessWidget {
-  final MediaFile media;
-
   const _MediaInfoCard({required this.media});
 
+  final MediaFile media;
+
   @override
-  Widget build(BuildContext context) {
-    return Card(
+  Widget build(BuildContext context) => Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -341,7 +337,6 @@ class _MediaInfoCard extends StatelessWidget {
         ),
       ),
     );
-  }
 
   String _formatDuration(Duration duration) {
     final hours = duration.inHours;

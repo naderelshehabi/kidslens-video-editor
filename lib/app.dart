@@ -69,7 +69,7 @@ class _WelcomeScreenState extends ConsumerState<_WelcomeScreen> {
     }
 
     return Scaffold(
-      body: Container(
+      body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -98,7 +98,7 @@ class _WelcomeScreenState extends ConsumerState<_WelcomeScreen> {
                       return Icon(
                         Icons.movie_filter_rounded,
                         size: 350,
-                        color: colorScheme.primary.withOpacity(0.3),
+                        color: colorScheme.primary.withValues(alpha: 0.3),
                       );
                     },
                   ),
@@ -291,6 +291,10 @@ class _WelcomeScreenState extends ConsumerState<_WelcomeScreen> {
 
   Future<void> _showNewProjectDialog(BuildContext context) async {
     setState(() => _isLoading = true);
+    
+    // Capture context-dependent values before async operations
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final errorColor = Theme.of(context).colorScheme.error;
 
     try {
       // Open native file save dialog
@@ -311,7 +315,7 @@ class _WelcomeScreenState extends ConsumerState<_WelcomeScreen> {
       final initialTitle = fileName
               .endsWith('.${ProjectService.projectExtension}')
           ? fileName.substring(
-              0, fileName.length - '.${ProjectService.projectExtension}'.length)
+              0, fileName.length - '.${ProjectService.projectExtension}'.length,)
           : fileName;
 
       // Show dialog to allow editing the title
@@ -319,60 +323,67 @@ class _WelcomeScreenState extends ConsumerState<_WelcomeScreen> {
 
       if (!mounted) return;
 
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Project Title'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _projectNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Project Title',
-                  hintText: 'Enter a display name for your project',
+      // Schedule the dialog to run in the next frame to avoid BuildContext async gap
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogCtx) => AlertDialog(
+            title: const Text('Project Title'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _projectNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Project Title',
+                    hintText: 'Enter a display name for your project',
+                  ),
+                  autofocus: true,
+                  onSubmitted: (_) => Navigator.of(dialogCtx).pop(true),
                 ),
-                autofocus: true,
-                onSubmitted: (_) => Navigator.of(context).pop(true),
+                const SizedBox(height: 8),
+                Text(
+                  'File: $fileName',
+                  style: Theme.of(dialogCtx).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(dialogCtx).colorScheme.outline,
+                      ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogCtx).pop(false),
+                child: const Text('Cancel'),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'File: $fileName',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogCtx).pop(true),
+                child: const Text('Create'),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Create'),
-            ),
-          ],
+        );
+
+        if ((confirmed ?? false) && _projectNameController.text.isNotEmpty) {
+          await _createProject(
+            name: _projectNameController.text,
+            filePath: result,
+          );
+        }
+        
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to create project: $e'),
+          backgroundColor: errorColor,
         ),
       );
-
-      if (confirmed == true && _projectNameController.text.isNotEmpty) {
-        await _createProject(
-          name: _projectNameController.text,
-          filePath: result,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to create project: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
-    } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -407,7 +418,6 @@ class _WelcomeScreenState extends ConsumerState<_WelcomeScreen> {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: [ProjectService.projectExtension],
-        allowMultiple: false,
         dialogTitle: 'Open KidsLens Project',
       );
 

@@ -14,15 +14,15 @@ enum SampleStrategy {
 
 /// Service for running analysis on a sample segment
 class SampleAnalysisService {
-  static const Duration sampleDuration = Duration(seconds: 5);
-
-  final AnalysisService analysisService;
-  final MediaService mediaService;
-
   SampleAnalysisService({
     required this.analysisService,
     required this.mediaService,
   });
+
+  static const Duration sampleDuration = Duration(seconds: 5);
+
+  final AnalysisService analysisService;
+  final MediaService mediaService;
 
   /// Extract a representative sample offset from the media
   Future<Duration> selectSampleOffset(
@@ -46,8 +46,8 @@ class SampleAnalysisService {
       case SampleStrategy.random:
         final maxOffset = media.duration - sampleDuration;
         if (maxOffset <= Duration.zero) return Duration.zero;
-        final randomMs = (DateTime.now().millisecondsSinceEpoch %
-            maxOffset.inMilliseconds);
+        final randomMs = DateTime.now().millisecondsSinceEpoch %
+            maxOffset.inMilliseconds;
         return Duration(milliseconds: randomMs);
       case SampleStrategy.detectInteresting:
         return _detectInterestingOffset(media);
@@ -88,14 +88,6 @@ class SampleAnalysisService {
 
 /// Result of sample analysis
 class SampleAnalysisResult {
-  final Duration sampleOffset;
-  final Duration sampleDuration;
-  final AnalysisSettings settingsUsed;
-  final int profanityCount;
-  final int nudityCount;
-  final int violenceCount;
-  final bool hasContent;
-
   const SampleAnalysisResult({
     required this.sampleOffset,
     required this.sampleDuration,
@@ -104,4 +96,12 @@ class SampleAnalysisResult {
     required this.nudityCount,
     required this.violenceCount,
   }) : hasContent = profanityCount > 0 || nudityCount > 0 || violenceCount > 0;
+
+  final Duration sampleOffset;
+  final Duration sampleDuration;
+  final AnalysisSettings settingsUsed;
+  final int profanityCount;
+  final int nudityCount;
+  final int violenceCount;
+  final bool hasContent;
 }

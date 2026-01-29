@@ -1,11 +1,23 @@
 import 'dart:ui';
-import 'package:flutter/material.dart';
-import 'package:flutter/gestures.dart';
 
-import '../../../data/models/edit_action.dart';
+import 'package:flutter/material.dart';
+import 'package:kidslens_video_editor/data/models/edit_action.dart';
 
 /// A blur region overlay with draggable handles for editing blur areas
 class BlurRegionOverlay extends StatefulWidget {
+  const BlurRegionOverlay({
+    required this.blurAction,
+    required this.videoSize,
+    super.key,
+    this.isSelected = false,
+    this.isEditing = false,
+    this.onBoundingBoxChanged,
+    this.onIntensityChanged,
+    this.onSelected,
+    this.onHandleAdded,
+    this.onHandleRemoved,
+  });
+
   final EditAction blurAction;
   final Size videoSize;
   final bool isSelected;
@@ -15,19 +27,6 @@ class BlurRegionOverlay extends StatefulWidget {
   final VoidCallback? onSelected;
   final void Function(Offset position)? onHandleAdded;
   final void Function(int handleIndex)? onHandleRemoved;
-  
-  const BlurRegionOverlay({
-    super.key,
-    required this.blurAction,
-    required this.videoSize,
-    this.isSelected = false,
-    this.isEditing = false,
-    this.onBoundingBoxChanged,
-    this.onIntensityChanged,
-    this.onSelected,
-    this.onHandleAdded,
-    this.onHandleRemoved,
-  });
 
   @override
   State<BlurRegionOverlay> createState() => _BlurRegionOverlayState();
@@ -76,29 +75,25 @@ class _BlurRegionOverlayState extends State<BlurRegionOverlay> {
     }
   }
 
-  Offset _normalizedToPixel(Offset normalized) {
-    return Offset(
+  Offset _normalizedToPixel(Offset normalized) => Offset(
       normalized.dx * widget.videoSize.width,
       normalized.dy * widget.videoSize.height,
     );
-  }
 
-  Offset _pixelToNormalized(Offset pixel) {
-    return Offset(
+  Offset _pixelToNormalized(Offset pixel) => Offset(
       (pixel.dx / widget.videoSize.width).clamp(0.0, 1.0),
       (pixel.dy / widget.videoSize.height).clamp(0.0, 1.0),
     );
-  }
 
   BoundingBox _handlesToBoundingBox() {
     if (_handles.isEmpty) {
       return const BoundingBox(left: 0, top: 0, width: 1, height: 1);
     }
 
-    double minX = _handles.first.dx;
-    double maxX = _handles.first.dx;
-    double minY = _handles.first.dy;
-    double maxY = _handles.first.dy;
+    var minX = _handles.first.dx;
+    var maxX = _handles.first.dx;
+    var minY = _handles.first.dy;
+    var maxY = _handles.first.dy;
 
     for (final handle in _handles) {
       if (handle.dx < minX) minX = handle.dx;
@@ -158,7 +153,7 @@ class _BlurRegionOverlayState extends State<BlurRegionOverlay> {
     );
 
     setState(() {
-      for (int i = 0; i < _handles.length; i++) {
+      for (var i = 0; i < _handles.length; i++) {
         final newX = (_dragStartHandles![i].dx + normalizedDelta.dx).clamp(0.0, 1.0);
         final newY = (_dragStartHandles![i].dy + normalizedDelta.dy).clamp(0.0, 1.0);
         _handles[i] = Offset(newX, newY);
@@ -183,10 +178,10 @@ class _BlurRegionOverlayState extends State<BlurRegionOverlay> {
     final normalized = _pixelToNormalized(position);
     
     // Find the two closest handles to insert between
-    int insertIndex = 0;
-    double minDistance = double.infinity;
+    var insertIndex = 0;
+    var minDistance = double.infinity;
     
-    for (int i = 0; i < _handles.length; i++) {
+    for (var i = 0; i < _handles.length; i++) {
       final current = _handles[i];
       final next = _handles[(i + 1) % _handles.length];
       
@@ -328,7 +323,7 @@ class _BlurRegionOverlayState extends State<BlurRegionOverlay> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
+                  color: Colors.black.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -342,8 +337,6 @@ class _BlurRegionOverlayState extends State<BlurRegionOverlay> {
                     Expanded(
                       child: Slider(
                         value: widget.blurAction.blurIntensity.clamp(0.0, 1.0),
-                        min: 0.0,
-                        max: 1.0,
                         divisions: 20,
                         activeColor: Colors.blue,
                         inactiveColor: Colors.white30,
@@ -368,9 +361,9 @@ class _BlurRegionOverlayState extends State<BlurRegionOverlay> {
 
 /// Custom clipper for polygon shapes
 class _PolygonClipper extends CustomClipper<Path> {
-  final List<Offset> handles;
-
   _PolygonClipper(this.handles);
+
+  final List<Offset> handles;
 
   @override
   Path getClip(Size size) {
@@ -378,7 +371,7 @@ class _PolygonClipper extends CustomClipper<Path> {
     if (handles.isEmpty) return path;
 
     path.moveTo(handles.first.dx, handles.first.dy);
-    for (int i = 1; i < handles.length; i++) {
+    for (var i = 1; i < handles.length; i++) {
       path.lineTo(handles[i].dx, handles[i].dy);
     }
     path.close();
@@ -387,35 +380,33 @@ class _PolygonClipper extends CustomClipper<Path> {
   }
 
   @override
-  bool shouldReclip(_PolygonClipper oldClipper) {
-    return oldClipper.handles != handles;
-  }
+  bool shouldReclip(_PolygonClipper oldClipper) => oldClipper.handles != handles;
 }
 
 /// Custom painter for polygon outline
 class _PolygonPainter extends CustomPainter {
-  final List<Offset> handles;
-  final bool isEditing;
-  final bool isSelected;
-
   _PolygonPainter({
     required this.handles,
     required this.isEditing,
     required this.isSelected,
   });
 
+  final List<Offset> handles;
+  final bool isEditing;
+  final bool isSelected;
+
   @override
   void paint(Canvas canvas, Size size) {
     if (handles.isEmpty) return;
 
     final paint = Paint()
-      ..color = isEditing ? Colors.blue : Colors.blue.withOpacity(0.7)
+      ..color = isEditing ? Colors.blue : Colors.blue.withValues(alpha: 0.7)
       ..style = PaintingStyle.stroke
       ..strokeWidth = isEditing ? 3 : 2;
 
-    final path = Path();
-    path.moveTo(handles.first.dx, handles.first.dy);
-    for (int i = 1; i < handles.length; i++) {
+    final path = Path()
+      ..moveTo(handles.first.dx, handles.first.dy);
+    for (var i = 1; i < handles.length; i++) {
       path.lineTo(handles[i].dx, handles[i].dy);
     }
     path.close();
@@ -434,18 +425,16 @@ class _PolygonPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_PolygonPainter oldDelegate) {
-    return oldDelegate.handles != handles ||
+  bool shouldRepaint(_PolygonPainter oldDelegate) => oldDelegate.handles != handles ||
         oldDelegate.isEditing != isEditing ||
         oldDelegate.isSelected != isSelected;
-  }
 }
 
 /// Custom painter for polygon hit area (for drag detection)
 class _PolygonHitAreaPainter extends CustomPainter {
-  final List<Offset> handles;
-
   _PolygonHitAreaPainter({required this.handles});
+
+  final List<Offset> handles;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -453,17 +442,15 @@ class _PolygonHitAreaPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_PolygonHitAreaPainter oldDelegate) {
-    return oldDelegate.handles != handles;
-  }
+  bool shouldRepaint(_PolygonHitAreaPainter oldDelegate) => oldDelegate.handles != handles;
 
   @override
   bool? hitTest(Offset position) {
     if (handles.isEmpty) return false;
 
-    final path = Path();
-    path.moveTo(handles.first.dx, handles.first.dy);
-    for (int i = 1; i < handles.length; i++) {
+    final path = Path()
+      ..moveTo(handles.first.dx, handles.first.dy);
+    for (var i = 1; i < handles.length; i++) {
       path.lineTo(handles[i].dx, handles[i].dy);
     }
     path.close();
@@ -474,16 +461,16 @@ class _PolygonHitAreaPainter extends CustomPainter {
 
 /// Simple blur overlay for displaying blur effects during playback (non-editable)
 class SimpleBlurOverlay extends StatelessWidget {
-  final BoundingBox? boundingBox;
-  final double intensity;
-  final Size videoSize;
-
   const SimpleBlurOverlay({
+    required this.videoSize,
     super.key,
     this.boundingBox,
     this.intensity = 1.0,
-    required this.videoSize,
   });
+
+  final BoundingBox? boundingBox;
+  final double intensity;
+  final Size videoSize;
 
   @override
   Widget build(BuildContext context) {

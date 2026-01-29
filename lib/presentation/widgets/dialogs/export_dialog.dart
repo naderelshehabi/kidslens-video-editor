@@ -4,15 +4,14 @@ import 'dart:io' hide ContentType;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/data/models/edit_action.dart';
+import 'package:kidslens_video_editor/data/models/media_file.dart';
+import 'package:kidslens_video_editor/data/models/modification.dart';
+import 'package:kidslens_video_editor/data/models/timeline.dart';
+import 'package:kidslens_video_editor/services/export_service.dart';
+import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 import 'package:path/path.dart' as p;
-
-import '../../../data/models/detection.dart';
-import '../../../data/models/edit_action.dart';
-import '../../../data/models/media_file.dart';
-import '../../../data/models/modification.dart';
-import '../../../data/models/timeline.dart';
-import '../../../services/export_service.dart';
-import '../../../state/providers/service_providers.dart';
 
 /// Format options for export
 enum ExportFormat {
@@ -33,25 +32,24 @@ enum ExportQuality {
 
 /// Comprehensive export dialog with format, quality, and progress
 class ExportDialog extends ConsumerStatefulWidget {
+  const ExportDialog({
+    required this.media,
+    required this.editActions,
+    super.key,
+  });
+
   /// The media file to export
   final MediaFile media;
 
   /// Edit actions to apply during export
   final List<EditAction> editActions;
 
-  const ExportDialog({
-    super.key,
-    required this.media,
-    required this.editActions,
-  });
-
   /// Show the export dialog
   static Future<bool?> show({
     required BuildContext context,
     required MediaFile media,
     required List<EditAction> editActions,
-  }) {
-    return showDialog<bool>(
+  }) => showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) => ExportDialog(
@@ -59,7 +57,6 @@ class ExportDialog extends ConsumerStatefulWidget {
         editActions: editActions,
       ),
     );
-  }
 
   @override
   ConsumerState<ExportDialog> createState() => _ExportDialogState();
@@ -99,15 +96,13 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
     _outputPath = p.join(directory, '${baseName}_exported$extension');
   }
 
-  String _getFileExtension(ExportFormat format) {
-    return switch (format) {
+  String _getFileExtension(ExportFormat format) => switch (format) {
       ExportFormat.mp4H264 => '.mp4',
       ExportFormat.mp4H265 => '.mp4',
       ExportFormat.webm => '.webm',
       ExportFormat.mov => '.mov',
       ExportFormat.audioOnly => '.aac',
     };
-  }
 
   void _updateOutputExtension() {
     final extension = _getFileExtension(_format);
@@ -144,7 +139,7 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
               ? 'Export Complete'
               : _isExporting
                   ? 'Exporting...'
-                  : 'Export Video'),
+                  : 'Export Video',),
         ],
       ),
       content: SizedBox(
@@ -242,14 +237,13 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
           _buildSection(
             title: 'Output Format',
             child: DropdownButtonFormField<ExportFormat>(
-              value: _format,
+              initialValue: _format,
               decoration: const InputDecoration(
                 isDense: true,
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
-              items: ExportFormat.values.map((format) {
-                return DropdownMenuItem(
+              items: ExportFormat.values.map((format) => DropdownMenuItem(
                   value: format,
                   child: Row(
                     children: [
@@ -258,8 +252,7 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
                       Text(_formatName(format)),
                     ],
                   ),
-                );
-              }).toList(),
+                ),).toList(),
               onChanged: (value) {
                 if (value != null) {
                   setState(() {
@@ -283,13 +276,11 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
           _buildSection(
             title: 'Quality',
             child: SegmentedButton<ExportQuality>(
-              segments: ExportQuality.values.map((quality) {
-                return ButtonSegment(
+              segments: ExportQuality.values.map((quality) => ButtonSegment(
                   value: quality,
                   label: Text(_qualityName(quality)),
                   icon: Icon(_qualityIcon(quality), size: 16),
-                );
-              }).toList(),
+                ),).toList(),
               selected: {_quality},
               onSelectionChanged: (selection) {
                 setState(() => _quality = selection.first);
@@ -345,7 +336,7 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (_isComplete && _errorMessage == null) ...[
-          Icon(
+          const Icon(
             Icons.check_circle,
             size: 64,
             color: Colors.green,
@@ -515,8 +506,8 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
 
       // Create output directory if needed
       final outputDir = Directory(p.dirname(_outputPath));
-      if (!await outputDir.exists()) {
-        await outputDir.create(recursive: true);
+      if (!outputDir.existsSync()) {
+        outputDir.createSync(recursive: true);
       }
 
       _exportSubscription = exportService
@@ -568,7 +559,7 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
     Navigator.of(context).pop(false);
   }
 
-  void _openFileLocation() async {
+  Future<void> _openFileLocation() async {
     // Open the folder containing the exported file
     final directory = p.dirname(_outputPath);
     if (Platform.isWindows) {
@@ -597,7 +588,7 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
         start: action.startTime,
         end: action.endTime,
         type: _actionToContentType(action),
-        confidence: 1.0,
+        confidence: 1,
         modification: modification,
       );
 
@@ -619,12 +610,10 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
   }
 
   /// Convert EditAction to Modification
-  Modification? _actionToModification(EditAction action) {
-    return switch (action.type) {
+  Modification? _actionToModification(EditAction action) => switch (action.type) {
       EditActionType.mute => const Modification.audioMute(),
       EditActionType.beep => Modification.audioBeep(
           frequency: action.beepFrequency.round(),
-          volume: 0.5,
         ),
       EditActionType.blur => Modification.videoBlur(
           intensity: (action.blurIntensity * 100).round().clamp(1, 100),
@@ -632,18 +621,15 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
       EditActionType.cut => const Modification.videoSkip(),
       EditActionType.skip => const Modification.videoSkip(),
     };
-  }
 
   /// Convert EditAction type to ContentType for segment
-  ContentType _actionToContentType(EditAction action) {
-    return switch (action.type) {
+  ContentType _actionToContentType(EditAction action) => switch (action.type) {
       EditActionType.mute => ContentType.profanity,
       EditActionType.beep => ContentType.profanity,
       EditActionType.blur => ContentType.nsfw,
       EditActionType.cut => ContentType.violence,
       EditActionType.skip => ContentType.violence,
     };
-  }
 
   /// Build ExportSettings based on selected format and quality
   ExportSettings _createExportSettings() {
@@ -702,18 +688,15 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
   }
 
   // Helper methods for formatting and icons
-  String _formatName(ExportFormat format) {
-    return switch (format) {
+  String _formatName(ExportFormat format) => switch (format) {
       ExportFormat.mp4H264 => 'MP4 (H.264)',
       ExportFormat.mp4H265 => 'MP4 (H.265/HEVC)',
       ExportFormat.webm => 'WebM (VP9)',
       ExportFormat.mov => 'MOV (ProRes)',
       ExportFormat.audioOnly => 'Audio Only (AAC)',
     };
-  }
 
-  String _formatDescription(ExportFormat format) {
-    return switch (format) {
+  String _formatDescription(ExportFormat format) => switch (format) {
       ExportFormat.mp4H264 =>
         'Most compatible format. Works on all devices and platforms.',
       ExportFormat.mp4H265 =>
@@ -724,65 +707,52 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
         'High quality for editing. Large file size, Mac/iOS focused.',
       ExportFormat.audioOnly => 'Extract audio only, no video.',
     };
-  }
 
-  IconData _getFormatIcon(ExportFormat format) {
-    return switch (format) {
+  IconData _getFormatIcon(ExportFormat format) => switch (format) {
       ExportFormat.mp4H264 => Icons.video_file,
       ExportFormat.mp4H265 => Icons.video_file,
       ExportFormat.webm => Icons.web,
       ExportFormat.mov => Icons.movie,
       ExportFormat.audioOnly => Icons.audio_file,
     };
-  }
 
-  String _qualityName(ExportQuality quality) {
-    return switch (quality) {
+  String _qualityName(ExportQuality quality) => switch (quality) {
       ExportQuality.low => 'Low',
       ExportQuality.medium => 'Medium',
       ExportQuality.high => 'High',
       ExportQuality.lossless => 'Lossless',
     };
-  }
 
-  IconData _qualityIcon(ExportQuality quality) {
-    return switch (quality) {
+  IconData _qualityIcon(ExportQuality quality) => switch (quality) {
       ExportQuality.low => Icons.sd,
       ExportQuality.medium => Icons.hd,
       ExportQuality.high => Icons.four_k,
       ExportQuality.lossless => Icons.high_quality,
     };
-  }
 
-  String _qualityDescription(ExportQuality quality) {
-    return switch (quality) {
+  String _qualityDescription(ExportQuality quality) => switch (quality) {
       ExportQuality.low =>
         'Smaller file size, lower quality. Good for sharing.',
       ExportQuality.medium => 'Balanced quality and file size.',
       ExportQuality.high => 'High quality, larger file size.',
       ExportQuality.lossless => 'No quality loss, very large file size.',
     };
-  }
 
-  IconData _getIconForActionType(EditActionType type) {
-    return switch (type) {
+  IconData _getIconForActionType(EditActionType type) => switch (type) {
       EditActionType.mute => Icons.volume_off,
       EditActionType.beep => Icons.notifications_active,
       EditActionType.blur => Icons.blur_on,
       EditActionType.cut => Icons.content_cut,
       EditActionType.skip => Icons.skip_next,
     };
-  }
 
-  Color _getColorForActionType(EditActionType type) {
-    return switch (type) {
+  Color _getColorForActionType(EditActionType type) => switch (type) {
       EditActionType.mute => Colors.orange,
       EditActionType.beep => Colors.purple,
       EditActionType.blur => Colors.blue,
       EditActionType.cut => Colors.red,
       EditActionType.skip => Colors.grey,
     };
-  }
 
   String _formatDuration(Duration d) {
     final hours = d.inHours;

@@ -2,22 +2,21 @@ import 'package:flutter/material.dart';
 
 /// Playhead indicator for the timeline
 class Playhead extends StatelessWidget {
+  const Playhead({
+    required this.currentPosition,
+    required this.totalDuration,
+    required this.height,
+    super.key,
+    this.onSeek,
+  });
+
   final Duration currentPosition;
   final Duration totalDuration;
   final double height;
   final ValueChanged<Duration>? onSeek;
 
-  const Playhead({
-    super.key,
-    required this.currentPosition,
-    required this.totalDuration,
-    required this.height,
-    this.onSeek,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
+  Widget build(BuildContext context) => LayoutBuilder(
       builder: (context, constraints) {
         final progress = totalDuration.inMilliseconds > 0
             ? currentPosition.inMilliseconds / totalDuration.inMilliseconds
@@ -58,7 +57,7 @@ class Playhead extends StatelessWidget {
                 color: Theme.of(context)
                     .colorScheme
                     .surfaceContainerHighest
-                    .withOpacity(0.5),
+                    .withValues(alpha: 0.5),
               ),
               // Progress
               Positioned(
@@ -68,7 +67,7 @@ class Playhead extends StatelessWidget {
                 width: position,
                 child: Container(
                   color:
-                      Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                 ),
               ),
               // Playhead
@@ -107,5 +106,4 @@ class Playhead extends StatelessWidget {
         );
       },
     );
-  }
 }

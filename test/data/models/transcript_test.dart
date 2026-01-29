@@ -7,10 +7,10 @@ void main() {
   group('TranscriptWord', () {
     group('creation', () {
       test('should create a word with required fields', () {
-        final word = TranscriptWord(
+        const word = TranscriptWord(
           word: 'hello',
-          startTime: const Duration(seconds: 1),
-          endTime: const Duration(seconds: 2),
+          startTime: Duration(seconds: 1),
+          endTime: Duration(seconds: 2),
           confidence: 0.95,
         );
 
@@ -23,10 +23,10 @@ void main() {
 
     group('computed properties', () {
       test('duration should calculate correctly', () {
-        final word = TranscriptWord(
+        const word = TranscriptWord(
           word: 'test',
-          startTime: const Duration(milliseconds: 500),
-          endTime: const Duration(milliseconds: 800),
+          startTime: Duration(milliseconds: 500),
+          endTime: Duration(milliseconds: 800),
           confidence: 0.9,
         );
 
@@ -34,10 +34,10 @@ void main() {
       });
 
       test('isHighConfidence should return true for >= 0.9', () {
-        final high = TranscriptWord(
+        const high = TranscriptWord(
           word: 'confident',
           startTime: Duration.zero,
-          endTime: const Duration(milliseconds: 200),
+          endTime: Duration(milliseconds: 200),
           confidence: 0.92,
         );
 
@@ -45,10 +45,10 @@ void main() {
       });
 
       test('isLowConfidence should return true for < 0.7', () {
-        final low = TranscriptWord(
+        const low = TranscriptWord(
           word: 'uncertain',
           startTime: Duration.zero,
-          endTime: const Duration(milliseconds: 200),
+          endTime: Duration(milliseconds: 200),
           confidence: 0.65,
         );
 
@@ -56,10 +56,10 @@ void main() {
       });
 
       test('should return false for medium confidence', () {
-        final medium = TranscriptWord(
+        const medium = TranscriptWord(
           word: 'okay',
           startTime: Duration.zero,
-          endTime: const Duration(milliseconds: 200),
+          endTime: Duration(milliseconds: 200),
           confidence: 0.8,
         );
 
@@ -70,10 +70,10 @@ void main() {
 
     group('JSON serialization', () {
       test('should serialize to JSON correctly', () {
-        final word = TranscriptWord(
+        const word = TranscriptWord(
           word: 'testing',
-          startTime: const Duration(seconds: 5),
-          endTime: const Duration(seconds: 6),
+          startTime: Duration(seconds: 5),
+          endTime: Duration(seconds: 6),
           confidence: 0.88,
         );
 
@@ -105,10 +105,10 @@ void main() {
       });
 
       test('should round-trip through JSON correctly', () {
-        final original = TranscriptWord(
+        const original = TranscriptWord(
           word: 'roundtrip',
-          startTime: const Duration(seconds: 15, milliseconds: 500),
-          endTime: const Duration(seconds: 16, milliseconds: 200),
+          startTime: Duration(seconds: 15, milliseconds: 500),
+          endTime: Duration(seconds: 16, milliseconds: 200),
           confidence: 0.99,
         );
 
@@ -126,17 +126,17 @@ void main() {
 
     group('equality', () {
       test('should be equal when all fields match', () {
-        final word1 = TranscriptWord(
+        const word1 = TranscriptWord(
           word: 'same',
-          startTime: const Duration(seconds: 1),
-          endTime: const Duration(seconds: 2),
+          startTime: Duration(seconds: 1),
+          endTime: Duration(seconds: 2),
           confidence: 0.9,
         );
 
-        final word2 = TranscriptWord(
+        const word2 = TranscriptWord(
           word: 'same',
-          startTime: const Duration(seconds: 1),
-          endTime: const Duration(seconds: 2),
+          startTime: Duration(seconds: 1),
+          endTime: Duration(seconds: 2),
           confidence: 0.9,
         );
 
@@ -144,17 +144,17 @@ void main() {
       });
 
       test('should not be equal when fields differ', () {
-        final word1 = TranscriptWord(
+        const word1 = TranscriptWord(
           word: 'different',
-          startTime: const Duration(seconds: 1),
-          endTime: const Duration(seconds: 2),
+          startTime: Duration(seconds: 1),
+          endTime: Duration(seconds: 2),
           confidence: 0.9,
         );
 
-        final word2 = TranscriptWord(
+        const word2 = TranscriptWord(
           word: 'other',
-          startTime: const Duration(seconds: 1),
-          endTime: const Duration(seconds: 2),
+          startTime: Duration(seconds: 1),
+          endTime: Duration(seconds: 2),
           confidence: 0.9,
         );
 
@@ -168,22 +168,22 @@ void main() {
 
     setUp(() {
       sampleWords = [
-        TranscriptWord(
+        const TranscriptWord(
           word: 'Hello',
           startTime: Duration.zero,
-          endTime: const Duration(milliseconds: 300),
+          endTime: Duration(milliseconds: 300),
           confidence: 0.95,
         ),
-        TranscriptWord(
+        const TranscriptWord(
           word: 'world',
-          startTime: const Duration(milliseconds: 300),
-          endTime: const Duration(milliseconds: 600),
+          startTime: Duration(milliseconds: 300),
+          endTime: Duration(milliseconds: 600),
           confidence: 0.92,
         ),
-        TranscriptWord(
+        const TranscriptWord(
           word: 'today',
-          startTime: const Duration(milliseconds: 600),
-          endTime: const Duration(milliseconds: 900),
+          startTime: Duration(milliseconds: 600),
+          endTime: Duration(milliseconds: 900),
           confidence: 0.88,
         ),
       ];
@@ -209,12 +209,12 @@ void main() {
 
     group('computed properties', () {
       test('duration should calculate correctly', () {
-        final segment = TranscriptSegment(
+        const segment = TranscriptSegment(
           id: 'seg-1',
-          startTime: const Duration(seconds: 10),
-          endTime: const Duration(seconds: 15),
+          startTime: Duration(seconds: 10),
+          endTime: Duration(seconds: 15),
           text: 'Test segment',
-          words: const [],
+          words: [],
         );
 
         expect(segment.duration, equals(const Duration(seconds: 5)));
@@ -234,12 +234,12 @@ void main() {
       });
 
       test('averageConfidence should return 0 for empty words', () {
-        final segment = TranscriptSegment(
+        const segment = TranscriptSegment(
           id: 'seg-1',
           startTime: Duration.zero,
-          endTime: const Duration(seconds: 1),
+          endTime: Duration(seconds: 1),
           text: '',
-          words: const [],
+          words: [],
         );
 
         expect(segment.averageConfidence, equals(0.0));
@@ -296,12 +296,12 @@ void main() {
 
     group('overlapsWithRange', () {
       test('should detect overlapping range', () {
-        final segment = TranscriptSegment(
+        const segment = TranscriptSegment(
           id: 'seg-1',
-          startTime: const Duration(seconds: 10),
-          endTime: const Duration(seconds: 20),
+          startTime: Duration(seconds: 10),
+          endTime: Duration(seconds: 20),
           text: 'Test',
-          words: const [],
+          words: [],
         );
 
         expect(
@@ -314,12 +314,12 @@ void main() {
       });
 
       test('should not detect non-overlapping range', () {
-        final segment = TranscriptSegment(
+        const segment = TranscriptSegment(
           id: 'seg-1',
-          startTime: const Duration(seconds: 10),
-          endTime: const Duration(seconds: 20),
+          startTime: Duration(seconds: 10),
+          endTime: Duration(seconds: 20),
           text: 'Test',
-          words: const [],
+          words: [],
         );
 
         expect(
@@ -361,54 +361,54 @@ void main() {
 
     setUp(() {
       sampleSegments = [
-        TranscriptSegment(
+        const TranscriptSegment(
           id: 'seg-1',
           startTime: Duration.zero,
-          endTime: const Duration(seconds: 5),
+          endTime: Duration(seconds: 5),
           text: 'First sentence here',
           words: [
             TranscriptWord(
               word: 'First',
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 1),
+              endTime: Duration(seconds: 1),
               confidence: 0.9,
             ),
             TranscriptWord(
               word: 'sentence',
-              startTime: const Duration(seconds: 1),
-              endTime: const Duration(seconds: 2),
+              startTime: Duration(seconds: 1),
+              endTime: Duration(seconds: 2),
               confidence: 0.85,
             ),
             TranscriptWord(
               word: 'here',
-              startTime: const Duration(seconds: 2),
-              endTime: const Duration(seconds: 3),
+              startTime: Duration(seconds: 2),
+              endTime: Duration(seconds: 3),
               confidence: 0.92,
             ),
           ],
         ),
-        TranscriptSegment(
+        const TranscriptSegment(
           id: 'seg-2',
-          startTime: const Duration(seconds: 5),
-          endTime: const Duration(seconds: 10),
+          startTime: Duration(seconds: 5),
+          endTime: Duration(seconds: 10),
           text: 'Second sentence there',
           words: [
             TranscriptWord(
               word: 'Second',
-              startTime: const Duration(seconds: 5),
-              endTime: const Duration(seconds: 6),
+              startTime: Duration(seconds: 5),
+              endTime: Duration(seconds: 6),
               confidence: 0.88,
             ),
             TranscriptWord(
               word: 'sentence',
-              startTime: const Duration(seconds: 6),
-              endTime: const Duration(seconds: 7),
+              startTime: Duration(seconds: 6),
+              endTime: Duration(seconds: 7),
               confidence: 0.94,
             ),
             TranscriptWord(
               word: 'there',
-              startTime: const Duration(seconds: 7),
-              endTime: const Duration(seconds: 8),
+              startTime: Duration(seconds: 7),
+              endTime: Duration(seconds: 8),
               confidence: 0.87,
             ),
           ],
@@ -490,7 +490,7 @@ void main() {
         );
 
         // Average of all 6 word confidences
-        final expectedAvg = (0.9 + 0.85 + 0.92 + 0.88 + 0.94 + 0.87) / 6;
+        const expectedAvg = (0.9 + 0.85 + 0.92 + 0.88 + 0.94 + 0.87) / 6;
         expect(transcript.overallConfidence, closeTo(expectedAvg, 0.001));
       });
 
@@ -670,13 +670,13 @@ void main() {
 
     group('equality', () {
       test('should be equal when all fields match', () {
-        final transcript1 = Transcript(
-          segments: const [],
+        const transcript1 = Transcript(
+          segments: [],
           language: 'en',
         );
 
-        final transcript2 = Transcript(
-          segments: const [],
+        const transcript2 = Transcript(
+          segments: [],
           language: 'en',
         );
 

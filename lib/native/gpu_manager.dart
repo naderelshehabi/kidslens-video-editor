@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
-import '../data/models/gpu_info.dart';
+import 'package:kidslens_video_editor/data/models/gpu_info.dart';
 
 /// Detect GPU capabilities and select optimal acceleration
 class GPUAccelerationManager {
@@ -92,14 +92,12 @@ class GPUAccelerationManager {
     }
   }
 
-  AcceleratorInfo _cpuFallback() {
-    return const AcceleratorInfo(
-      type: AcceleratorType.cpu,
-      name: 'CPU (No GPU acceleration)',
-      vramMB: 0,
-      recommendedBatchSize: 1,
-    );
-  }
+  AcceleratorInfo _cpuFallback() => const AcceleratorInfo(
+        type: AcceleratorType.cpu,
+        name: 'CPU (No GPU acceleration)',
+        vramMB: 0,
+        recommendedBatchSize: 1,
+      );
 
   int _calculateOptimalBatch(int vramMB) {
     // Assuming ~200MB per batch item for typical models

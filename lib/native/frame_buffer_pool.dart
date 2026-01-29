@@ -1,10 +1,15 @@
 import 'dart:async';
 import 'dart:collection';
 
-import '../services/media_service.dart';
+import 'package:kidslens_video_editor/services/media_service.dart';
 
 /// Memory-bounded frame buffer for video analysis
 class FrameBufferPool {
+  FrameBufferPool({
+    required Resolution resolution,
+  })  : _maxFrames = _calculateMaxFrames(resolution),
+        _frameSize = resolution.width * resolution.height * 3;
+
   static const int maxFrames4K = 30; // ~750MB for 4K
   static const int maxFramesHD = 60; // ~120MB for 1080p
   static const int maxFramesSD = 120; // ~30MB for 480p
@@ -16,11 +21,6 @@ class FrameBufferPool {
   final int _frameSize;
 
   int _allocatedCount = 0;
-
-  FrameBufferPool({
-    required Resolution resolution,
-  })  : _maxFrames = _calculateMaxFrames(resolution),
-        _frameSize = resolution.width * resolution.height * 3;
 
   static int _calculateMaxFrames(Resolution res) {
     final pixels = res.width * res.height;
@@ -117,8 +117,7 @@ class FrameBufferPool {
 
     // Cancel all waiters
     while (_waiters.isNotEmpty) {
-      final waiter = _waiters.removeFirst();
-      waiter.completeError(
+      _waiters.removeFirst().completeError(
         FrameBufferDisposedException('Frame buffer pool was disposed'),
       );
     }
@@ -127,6 +126,12 @@ class FrameBufferPool {
 
 /// A pooled frame buffer
 class PooledFrame {
+  PooledFrame({
+    required this.id,
+    required this.data,
+    required this.pool,
+  });
+
   final int id;
   final List<int> data;
   final FrameBufferPool pool;
@@ -136,12 +141,6 @@ class PooledFrame {
   int frameNumber = 0;
   Duration timestamp = Duration.zero;
 
-  PooledFrame({
-    required this.id,
-    required this.data,
-    required this.pool,
-  });
-
   /// Release this frame back to the pool
   void release() {
     pool.release(this);
@@ -150,8 +149,9 @@ class PooledFrame {
 
 /// Exception thrown when frame buffer acquisition times out
 class FrameBufferTimeoutException implements Exception {
-  final String message;
   FrameBufferTimeoutException(this.message);
+
+  final String message;
 
   @override
   String toString() => 'FrameBufferTimeoutException: $message';
@@ -159,8 +159,9 @@ class FrameBufferTimeoutException implements Exception {
 
 /// Exception thrown when frame buffer pool is disposed
 class FrameBufferDisposedException implements Exception {
-  final String message;
   FrameBufferDisposedException(this.message);
+
+  final String message;
 
   @override
   String toString() => 'FrameBufferDisposedException: $message';

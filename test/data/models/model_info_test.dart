@@ -20,7 +20,7 @@ void main() {
   group('HardwareInfo', () {
     group('creation', () {
       test('should create with required fields', () {
-        final info = HardwareInfo(
+        const info = HardwareInfo(
           availableRamBytes: 8 * 1024 * 1024 * 1024, // 8 GB
         );
 
@@ -34,7 +34,7 @@ void main() {
       });
 
       test('should create with all optional fields', () {
-        final info = HardwareInfo(
+        const info = HardwareInfo(
           availableRamBytes: 16 * 1024 * 1024 * 1024,
           availableVramBytes: 8 * 1024 * 1024 * 1024,
           hasGpu: true,
@@ -42,7 +42,6 @@ void main() {
           cpuCores: 8,
           supportsAvx2: true,
           supportsCuda: true,
-          supportsMetal: false,
           operatingSystem: 'Windows 11',
         );
 
@@ -66,7 +65,7 @@ void main() {
 
     group('JSON serialization', () {
       test('should serialize and deserialize correctly', () {
-        final original = HardwareInfo(
+        const original = HardwareInfo(
           availableRamBytes: 32 * 1024 * 1024 * 1024,
           availableVramBytes: 12 * 1024 * 1024 * 1024,
           hasGpu: true,
@@ -93,7 +92,7 @@ void main() {
   group('ModelInfo', () {
     group('creation', () {
       test('should create with required fields', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'whisper-base',
           displayName: 'Whisper Base',
           description: 'Base ASR model',
@@ -111,7 +110,7 @@ void main() {
       });
 
       test('should have sensible defaults for optional fields', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'test-model',
           displayName: 'Test Model',
           description: 'Test',
@@ -130,7 +129,7 @@ void main() {
 
     group('sizeFormatted', () {
       test('should format bytes correctly', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'tiny',
           displayName: 'Tiny',
           description: 'Tiny model',
@@ -144,7 +143,7 @@ void main() {
       });
 
       test('should format kilobytes correctly', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'small',
           displayName: 'Small',
           description: 'Small model',
@@ -158,7 +157,7 @@ void main() {
       });
 
       test('should format megabytes correctly', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'medium',
           displayName: 'Medium',
           description: 'Medium model',
@@ -188,7 +187,7 @@ void main() {
 
     group('minRamFormatted', () {
       test('should return "No minimum" when minRamBytes is 0', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'no-req',
           displayName: 'No Requirements',
           description: 'Test',
@@ -196,14 +195,13 @@ void main() {
           sizeBytes: 100 * 1024 * 1024,
           accuracyPercent: 80,
           speedRating: 4,
-          minRamBytes: 0,
         );
 
         expect(model.minRamFormatted, equals('No minimum'));
       });
 
       test('should format RAM requirement in GB', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'high-req',
           displayName: 'High Requirements',
           description: 'Test',
@@ -248,7 +246,7 @@ void main() {
 
     group('accuracyDescription', () {
       test('should return Excellent for >= 95%', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'excellent',
           displayName: 'Excellent',
           description: 'Test',
@@ -262,7 +260,7 @@ void main() {
       });
 
       test('should return Very Good for 90-94%', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'very-good',
           displayName: 'Very Good',
           description: 'Test',
@@ -276,7 +274,7 @@ void main() {
       });
 
       test('should return Good for 80-89%', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'good',
           displayName: 'Good',
           description: 'Test',
@@ -290,7 +288,7 @@ void main() {
       });
 
       test('should return Fair for 70-79%', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'fair',
           displayName: 'Fair',
           description: 'Test',
@@ -304,7 +302,7 @@ void main() {
       });
 
       test('should return Basic for < 70%', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'basic',
           displayName: 'Basic',
           description: 'Test',
@@ -320,7 +318,7 @@ void main() {
 
     group('type checks', () {
       test('isAsrModel should return true for ASR type', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'asr-model',
           displayName: 'ASR Model',
           description: 'Test',
@@ -335,7 +333,7 @@ void main() {
       });
 
       test('isVisualModel should return true for visual type', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'visual-model',
           displayName: 'Visual Model',
           description: 'Test',
@@ -352,7 +350,7 @@ void main() {
 
     group('badge checks', () {
       test('hasBadge should return true when badge is set', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'test',
           displayName: 'Test',
           description: 'Test',
@@ -367,7 +365,7 @@ void main() {
       });
 
       test('hasBadge should return false when badge is null', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'test',
           displayName: 'Test',
           description: 'Test',
@@ -381,7 +379,7 @@ void main() {
       });
 
       test('isRecommended should detect recommended badge', () {
-        final recommended = ModelInfo(
+        const recommended = ModelInfo(
           id: 'recommended',
           displayName: 'Recommended Model',
           description: 'Test',
@@ -394,7 +392,7 @@ void main() {
 
         expect(recommended.isRecommended, isTrue);
 
-        final notRecommended = ModelInfo(
+        const notRecommended = ModelInfo(
           id: 'not-recommended',
           displayName: 'Not Recommended',
           description: 'Test',
@@ -411,7 +409,7 @@ void main() {
 
     group('meetsRequirements', () {
       test('should return true when hardware meets all requirements', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'demanding',
           displayName: 'Demanding Model',
           description: 'Test',
@@ -425,7 +423,7 @@ void main() {
           requiresAvx2: true,
         );
 
-        final goodHardware = HardwareInfo(
+        const goodHardware = HardwareInfo(
           availableRamBytes: 16 * 1024 * 1024 * 1024,
           availableVramBytes: 8 * 1024 * 1024 * 1024,
           hasGpu: true,
@@ -436,7 +434,7 @@ void main() {
       });
 
       test('should return false when RAM is insufficient', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'test',
           displayName: 'Test',
           description: 'Test',
@@ -453,7 +451,7 @@ void main() {
       });
 
       test('should return false when GPU is required but not available', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'gpu-model',
           displayName: 'GPU Model',
           description: 'Test',
@@ -470,7 +468,7 @@ void main() {
       });
 
       test('should return false when AVX2 is required but not supported', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'avx2-model',
           displayName: 'AVX2 Model',
           description: 'Test',
@@ -489,7 +487,7 @@ void main() {
 
     group('getUnmetRequirements', () {
       test('should return empty list when all requirements met', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'simple',
           displayName: 'Simple Model',
           description: 'Test',
@@ -505,7 +503,7 @@ void main() {
       });
 
       test('should list all unmet requirements', () {
-        final model = ModelInfo(
+        const model = ModelInfo(
           id: 'demanding',
           displayName: 'Demanding',
           description: 'Test',
@@ -558,7 +556,7 @@ void main() {
 
     group('JSON serialization', () {
       test('should serialize and deserialize correctly', () {
-        final original = ModelInfo(
+        const original = ModelInfo(
           id: 'whisper-medium',
           displayName: 'Whisper Medium',
           description: 'Medium-sized ASR model',
@@ -599,7 +597,7 @@ void main() {
 
     setUp(() {
       models = [
-        ModelInfo(
+        const ModelInfo(
           id: 'asr-1',
           displayName: 'ASR 1',
           description: 'Test',
@@ -608,7 +606,7 @@ void main() {
           accuracyPercent: 85,
           speedRating: 4,
         ),
-        ModelInfo(
+        const ModelInfo(
           id: 'asr-2',
           displayName: 'ASR 2',
           description: 'Test',
@@ -618,7 +616,7 @@ void main() {
           speedRating: 2,
           badge: 'Recommended',
         ),
-        ModelInfo(
+        const ModelInfo(
           id: 'visual-1',
           displayName: 'Visual 1',
           description: 'Test',
@@ -664,14 +662,14 @@ void main() {
     });
 
     test('meetingRequirements should filter by hardware', () {
-      final hardwareWithGpu = HardwareInfo(
+      const hardwareWithGpu = HardwareInfo(
         availableRamBytes: 16 * 1024 * 1024 * 1024,
         hasGpu: true,
       );
 
       final demanding = [
         ...models,
-        ModelInfo(
+        const ModelInfo(
           id: 'gpu-only',
           displayName: 'GPU Only',
           description: 'Test',

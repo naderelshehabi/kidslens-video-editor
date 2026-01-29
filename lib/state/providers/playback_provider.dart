@@ -1,7 +1,6 @@
+import 'package:kidslens_video_editor/data/models/edit_action.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-
-import '../../data/models/edit_action.dart';
 
 part 'playback_provider.g.dart';
 
@@ -17,6 +16,19 @@ enum AudioEffectState {
 
 /// Centralized playback state shared between timeline and preview panel
 class PlaybackState {
+  const PlaybackState({
+    this.position = Duration.zero,
+    this.duration = Duration.zero,
+    this.isPlaying = false,
+    this.userVolume = 1.0,
+    this.audioEffectState = AudioEffectState.none,
+    this.beepFrequency = 1000,
+    this.playbackSpeed = 1.0,
+    this.selectionStart,
+    this.selectionEnd,
+    this.player,
+  });
+
   final Duration position;
   final Duration duration;
   final bool isPlaying;
@@ -31,19 +43,6 @@ class PlaybackState {
   final Duration? selectionEnd;
   final Player? player;
 
-  const PlaybackState({
-    this.position = Duration.zero,
-    this.duration = Duration.zero,
-    this.isPlaying = false,
-    this.userVolume = 1.0,
-    this.audioEffectState = AudioEffectState.none,
-    this.beepFrequency = 1000,
-    this.playbackSpeed = 1.0,
-    this.selectionStart,
-    this.selectionEnd,
-    this.player,
-  });
-
   PlaybackState copyWith({
     Duration? position,
     Duration? duration,
@@ -56,20 +55,21 @@ class PlaybackState {
     Duration? selectionEnd,
     Player? player,
     bool clearSelection = false,
-  }) {
-    return PlaybackState(
-      position: position ?? this.position,
-      duration: duration ?? this.duration,
-      isPlaying: isPlaying ?? this.isPlaying,
-      userVolume: userVolume ?? this.userVolume,
-      audioEffectState: audioEffectState ?? this.audioEffectState,
-      beepFrequency: beepFrequency ?? this.beepFrequency,
-      playbackSpeed: playbackSpeed ?? this.playbackSpeed,
-      selectionStart: clearSelection ? null : (selectionStart ?? this.selectionStart),
-      selectionEnd: clearSelection ? null : (selectionEnd ?? this.selectionEnd),
-      player: player ?? this.player,
-    );
-  }
+  }) =>
+      PlaybackState(
+        position: position ?? this.position,
+        duration: duration ?? this.duration,
+        isPlaying: isPlaying ?? this.isPlaying,
+        userVolume: userVolume ?? this.userVolume,
+        audioEffectState: audioEffectState ?? this.audioEffectState,
+        beepFrequency: beepFrequency ?? this.beepFrequency,
+        playbackSpeed: playbackSpeed ?? this.playbackSpeed,
+        selectionStart:
+            clearSelection ? null : (selectionStart ?? this.selectionStart),
+        selectionEnd:
+            clearSelection ? null : (selectionEnd ?? this.selectionEnd),
+        player: player ?? this.player,
+      );
 
   /// Check if there is a valid selection
   bool get hasSelection => 
@@ -112,7 +112,7 @@ class PlaybackNotifier extends _$PlaybackNotifier {
   }
 
   /// Update playing state from player stream
-  void updatePlaying(bool isPlaying) {
+  void updatePlaying({required bool isPlaying}) {
     // When playback stops, reset audio effect state
     if (!isPlaying) {
       state = state.copyWith(
@@ -138,28 +138,28 @@ class PlaybackNotifier extends _$PlaybackNotifier {
 
   /// Seek to a specific position
   Future<void> seek(Duration position) async {
-    state.player?.seek(position);
+    await state.player?.seek(position);
     state = state.copyWith(position: position);
   }
 
   /// Play or pause
   Future<void> playOrPause() async {
-    state.player?.playOrPause();
+    await state.player?.playOrPause();
   }
 
   /// Play
   Future<void> play() async {
-    state.player?.play();
+    await state.player?.play();
   }
 
   /// Pause
   Future<void> pause() async {
-    state.player?.pause();
+    await state.player?.pause();
   }
 
   /// Stop
   Future<void> stop() async {
-    state.player?.stop();
+    await state.player?.stop();
   }
 
   /// Set user volume (0.0 to 1.0) - this is independent of mute/beep effects
@@ -183,7 +183,7 @@ class PlaybackNotifier extends _$PlaybackNotifier {
 
   /// Set playback speed
   Future<void> setPlaybackSpeed(double speed) async {
-    state.player?.setRate(speed);
+    await state.player?.setRate(speed);
     state = state.copyWith(playbackSpeed: speed);
   }
 
@@ -227,7 +227,6 @@ class PlaybackNotifier extends _$PlaybackNotifier {
       type: type,
       startTime: state.selectionStart!,
       endTime: state.selectionEnd!,
-      enabled: true,
       boundingBox: boundingBox,
       detectionId: detectionId,
       createdAt: DateTime.now(),

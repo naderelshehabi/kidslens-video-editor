@@ -2,14 +2,13 @@
 //
 // This test verifies that the app can launch without crashing.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kidslens_video_editor/app.dart';
 
 void main() {
   testWidgets('App smoke test - launches successfully',
-      (WidgetTester tester) async {
+      (tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(
       const ProviderScope(
@@ -22,7 +21,7 @@ void main() {
   });
 
   testWidgets('App smoke test - shows welcome message',
-      (WidgetTester tester) async {
+      (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: KidsLensApp(),
@@ -34,7 +33,7 @@ void main() {
   });
 
   testWidgets('App smoke test - shows import buttons',
-      (WidgetTester tester) async {
+      (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: KidsLensApp(),

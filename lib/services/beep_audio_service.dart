@@ -49,7 +49,7 @@ class BeepAudioService {
       // Create player for beep
       _beepPlayer = Player();
       await _beepPlayer!.setPlaylistMode(PlaylistMode.loop);
-      await _beepPlayer!.open(Media(beepPath), play: true);
+      await _beepPlayer!.open(Media(beepPath));
       
       _isPlaying = true;
       _currentFrequency = frequency;
@@ -99,7 +99,7 @@ class BeepAudioService {
     if (_cachedBeepPaths.containsKey(frequency)) {
       final cachedPath = _cachedBeepPaths[frequency]!;
       final file = File(cachedPath);
-      if (await file.exists()) {
+      if (file.existsSync()) {
         return cachedPath;
       }
       // Cached file was deleted, remove from cache
@@ -158,43 +158,45 @@ class BeepAudioService {
     var offset = 0;
     
     // RIFF header
-    buffer.setUint8(offset++, 0x52); // R
-    buffer.setUint8(offset++, 0x49); // I
-    buffer.setUint8(offset++, 0x46); // F
-    buffer.setUint8(offset++, 0x46); // F
-    buffer.setUint32(offset, fileSize, Endian.little);
+    buffer
+      ..setUint8(offset++, 0x52) // R
+      ..setUint8(offset++, 0x49) // I
+      ..setUint8(offset++, 0x46) // F
+      ..setUint8(offset++, 0x46) // F
+      ..setUint32(offset, fileSize, Endian.little);
     offset += 4;
-    buffer.setUint8(offset++, 0x57); // W
-    buffer.setUint8(offset++, 0x41); // A
-    buffer.setUint8(offset++, 0x56); // V
-    buffer.setUint8(offset++, 0x45); // E
-    
-    // fmt subchunk
-    buffer.setUint8(offset++, 0x66); // f
-    buffer.setUint8(offset++, 0x6D); // m
-    buffer.setUint8(offset++, 0x74); // t
-    buffer.setUint8(offset++, 0x20); // (space)
-    buffer.setUint32(offset, 16, Endian.little); // Subchunk1Size
+    // WAVE and fmt subchunk
+    buffer
+      ..setUint8(offset++, 0x57) // W
+      ..setUint8(offset++, 0x41) // A
+      ..setUint8(offset++, 0x56) // V
+      ..setUint8(offset++, 0x45) // E
+      ..setUint8(offset++, 0x66) // f
+      ..setUint8(offset++, 0x6D) // m
+      ..setUint8(offset++, 0x74) // t
+      ..setUint8(offset++, 0x20) // (space)
+      ..setUint32(offset, 16, Endian.little); // Subchunk1Size
     offset += 4;
-    buffer.setUint16(offset, 1, Endian.little); // AudioFormat (PCM)
-    offset += 2;
-    buffer.setUint16(offset, 1, Endian.little); // NumChannels (mono)
-    offset += 2;
-    buffer.setUint32(offset, sampleRate, Endian.little); // SampleRate
+    buffer
+      ..setUint16(offset, 1, Endian.little) // AudioFormat (PCM)
+      ..setUint16(offset + 2, 1, Endian.little); // NumChannels (mono)
     offset += 4;
-    buffer.setUint32(offset, sampleRate * 2, Endian.little); // ByteRate
+    buffer
+      ..setUint32(offset, sampleRate, Endian.little) // SampleRate
+      ..setUint32(offset + 4, sampleRate * 2, Endian.little); // ByteRate
+    offset += 8;
+    buffer
+      ..setUint16(offset, 2, Endian.little) // BlockAlign
+      ..setUint16(offset + 2, 16, Endian.little); // BitsPerSample
     offset += 4;
-    buffer.setUint16(offset, 2, Endian.little); // BlockAlign
-    offset += 2;
-    buffer.setUint16(offset, 16, Endian.little); // BitsPerSample
-    offset += 2;
     
     // data subchunk
-    buffer.setUint8(offset++, 0x64); // d
-    buffer.setUint8(offset++, 0x61); // a
-    buffer.setUint8(offset++, 0x74); // t
-    buffer.setUint8(offset++, 0x61); // a
-    buffer.setUint32(offset, dataSize, Endian.little); // Subchunk2Size
+    buffer
+      ..setUint8(offset++, 0x64) // d
+      ..setUint8(offset++, 0x61) // a
+      ..setUint8(offset++, 0x74) // t
+      ..setUint8(offset++, 0x61) // a
+      ..setUint32(offset, dataSize, Endian.little); // Subchunk2Size
     offset += 4;
     
     // Audio data
@@ -221,7 +223,7 @@ class BeepAudioService {
     for (final path in _cachedBeepPaths.values) {
       try {
         final file = File(path);
-        if (await file.exists()) {
+        if (file.existsSync()) {
           await file.delete();
         }
       } catch (e) {

@@ -1,11 +1,12 @@
 import 'dart:ffi';
 import 'dart:io';
 
-import '../../data/models/transcript.dart';
-import '../resource_manager.dart';
+import 'package:kidslens_video_editor/data/models/transcript.dart';
+import 'package:kidslens_video_editor/native/resource_manager.dart';
 
 /// FFI bindings for whisper.cpp
 class WhisperBindings extends NativeResource {
+  // ignore: unused_field - Will be used when FFI is fully implemented
   DynamicLibrary? _lib;
   bool _initialized = false;
 
@@ -46,19 +47,19 @@ class WhisperBindings extends NativeResource {
     final detectedLanguage = language ?? 'en';
     return Transcript(
       segments: [
-        TranscriptSegment(
+        const TranscriptSegment(
           id: 'segment_0',
           text: 'Placeholder transcription',
           startTime: Duration.zero,
-          endTime: const Duration(seconds: 5),
+          endTime: Duration(seconds: 5),
           words: [
-            const TranscriptWord(
+            TranscriptWord(
               word: 'Placeholder',
               startTime: Duration.zero,
               endTime: Duration(milliseconds: 500),
               confidence: 0.95,
             ),
-            const TranscriptWord(
+            TranscriptWord(
               word: 'transcription',
               startTime: Duration(milliseconds: 500),
               endTime: Duration(seconds: 1),
@@ -98,8 +99,9 @@ class WhisperBindings extends NativeResource {
 
 /// Exception thrown when Whisper initialization fails
 class WhisperInitializationException implements Exception {
-  final String message;
   WhisperInitializationException(this.message);
+
+  final String message;
 
   @override
   String toString() => 'WhisperInitializationException: $message';

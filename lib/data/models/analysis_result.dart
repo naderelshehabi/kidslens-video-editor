@@ -1,10 +1,10 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'converters.dart';
-import 'frame_analysis_result.dart';
-import 'profanity_match.dart';
-import 'timeline.dart';
-import 'transcript.dart';
+import 'package:kidslens_video_editor/data/models/converters.dart';
+import 'package:kidslens_video_editor/data/models/frame_analysis_result.dart';
+import 'package:kidslens_video_editor/data/models/profanity_match.dart';
+import 'package:kidslens_video_editor/data/models/timeline.dart';
+import 'package:kidslens_video_editor/data/models/transcript.dart';
 
 part 'analysis_result.freezed.dart';
 part 'analysis_result.g.dart';
@@ -36,8 +36,6 @@ enum AnalysisStatus {
 /// Progress information for an ongoing analysis
 @freezed
 class AnalysisProgress with _$AnalysisProgress {
-  const AnalysisProgress._();
-
   const factory AnalysisProgress({
     /// Current step name (e.g., 'Transcribing', 'Analyzing frames')
     required String stepName,
@@ -61,22 +59,22 @@ class AnalysisProgress with _$AnalysisProgress {
     int? totalItems,
   }) = _AnalysisProgress;
 
+  const AnalysisProgress._();
+
   factory AnalysisProgress.fromJson(Map<String, dynamic> json) =>
       _$AnalysisProgressFromJson(json);
 
   /// Creates initial progress
-  factory AnalysisProgress.initial() {
-    return const AnalysisProgress(
-      stepName: 'Starting',
-      currentStep: 0,
-      totalSteps: 4,
-      stepProgress: 0.0,
-    );
-  }
+  factory AnalysisProgress.initial() => const AnalysisProgress(
+        stepName: 'Starting',
+        currentStep: 0,
+        totalSteps: 4,
+        stepProgress: 0,
+      );
 
   /// Overall progress (0.0 to 1.0)
   double get overallProgress {
-    if (totalSteps == 0) return 0.0;
+    if (totalSteps == 0) return 0;
     final stepContribution = 1.0 / totalSteps;
     final completedSteps = (currentStep - 1) * stepContribution;
     final currentStepContribution = stepProgress * stepContribution;
@@ -107,8 +105,6 @@ class AnalysisProgress with _$AnalysisProgress {
 /// Complete result of video analysis
 @freezed
 class AnalysisResult with _$AnalysisResult {
-  const AnalysisResult._();
-
   const factory AnalysisResult({
     /// Unique identifier for this analysis
     required String id,
@@ -150,32 +146,31 @@ class AnalysisResult with _$AnalysisResult {
     Map<String, dynamic>? settings,
   }) = _AnalysisResult;
 
+  const AnalysisResult._();
+
   factory AnalysisResult.fromJson(Map<String, dynamic> json) =>
       _$AnalysisResultFromJson(json);
 
   /// Creates an empty/pending analysis result
-  factory AnalysisResult.empty({required String id, String? mediaFileId}) {
-    return AnalysisResult(
-      id: id,
-      status: AnalysisStatus.pending,
-      mediaFileId: mediaFileId,
-    );
-  }
+  factory AnalysisResult.empty({required String id, String? mediaFileId}) =>
+      AnalysisResult(
+        id: id,
+        mediaFileId: mediaFileId,
+      );
 
   /// Creates a running analysis result
   factory AnalysisResult.running({
     required String id,
     String? mediaFileId,
     AnalysisProgress? progress,
-  }) {
-    return AnalysisResult(
-      id: id,
-      status: AnalysisStatus.running,
-      startedAt: DateTime.now(),
-      mediaFileId: mediaFileId,
-      progress: progress ?? AnalysisProgress.initial(),
-    );
-  }
+  }) =>
+      AnalysisResult(
+        id: id,
+        status: AnalysisStatus.running,
+        startedAt: DateTime.now(),
+        mediaFileId: mediaFileId,
+        progress: progress ?? AnalysisProgress.initial(),
+      );
 
   /// Creates a failed analysis result
   factory AnalysisResult.failed({
@@ -183,16 +178,15 @@ class AnalysisResult with _$AnalysisResult {
     required String errorMessage,
     String? mediaFileId,
     DateTime? startedAt,
-  }) {
-    return AnalysisResult(
-      id: id,
-      status: AnalysisStatus.failed,
-      errorMessage: errorMessage,
-      mediaFileId: mediaFileId,
-      startedAt: startedAt,
-      completedAt: DateTime.now(),
-    );
-  }
+  }) =>
+      AnalysisResult(
+        id: id,
+        status: AnalysisStatus.failed,
+        errorMessage: errorMessage,
+        mediaFileId: mediaFileId,
+        startedAt: startedAt,
+        completedAt: DateTime.now(),
+      );
 
   /// Whether analysis is pending
   bool get isPending => status == AnalysisStatus.pending;
@@ -236,56 +230,49 @@ class AnalysisResult with _$AnalysisResult {
   }
 
   /// Gets profanity matches that are not false positives
-  List<ProfanityMatch> get validProfanityMatches {
-    return profanityMatches.where((m) => !m.isFalsePositive).toList();
-  }
+  List<ProfanityMatch> get validProfanityMatches =>
+      profanityMatches.where((m) => !m.isFalsePositive).toList();
 
   /// Gets frame results with NSFW content at threshold
-  List<FrameAnalysisResult> getNsfwFrames(double threshold) {
-    return frameResults.where((f) => f.hasNsfwAt(threshold)).toList();
-  }
+  List<FrameAnalysisResult> getNsfwFrames(double threshold) =>
+      frameResults.where((f) => f.hasNsfwAt(threshold)).toList();
 
   /// Gets frame results with violence at threshold
-  List<FrameAnalysisResult> getViolenceFrames(double threshold) {
-    return frameResults.where((f) => f.hasViolenceAt(threshold)).toList();
-  }
+  List<FrameAnalysisResult> getViolenceFrames(double threshold) =>
+      frameResults.where((f) => f.hasViolenceAt(threshold)).toList();
 
   /// Gets frame results with blood at threshold
-  List<FrameAnalysisResult> getBloodFrames(double threshold) {
-    return frameResults.where((f) => f.hasBloodAt(threshold)).toList();
-  }
+  List<FrameAnalysisResult> getBloodFrames(double threshold) =>
+      frameResults.where((f) => f.hasBloodAt(threshold)).toList();
 
   /// Gets frame results with weapons at threshold
-  List<FrameAnalysisResult> getWeaponsFrames(double threshold) {
-    return frameResults.where((f) => f.hasWeaponsAt(threshold)).toList();
-  }
+  List<FrameAnalysisResult> getWeaponsFrames(double threshold) =>
+      frameResults.where((f) => f.hasWeaponsAt(threshold)).toList();
 
   /// Summary statistics for the analysis
-  Map<String, int> get detectionSummary {
-    return {
-      'profanity': validProfanityCount,
-      'nsfw': timeline?.tracks
-              .expand((t) => t.segments)
-              .where((s) => s.type.name == 'nsfw')
-              .length ??
-          0,
-      'violence': timeline?.tracks
-              .expand((t) => t.segments)
-              .where((s) => s.type.name == 'violence')
-              .length ??
-          0,
-      'blood': timeline?.tracks
-              .expand((t) => t.segments)
-              .where((s) => s.type.name == 'blood')
-              .length ??
-          0,
-      'weapons': timeline?.tracks
-              .expand((t) => t.segments)
-              .where((s) => s.type.name == 'weapons')
-              .length ??
-          0,
-    };
-  }
+  Map<String, int> get detectionSummary => {
+        'profanity': validProfanityCount,
+        'nsfw': timeline?.tracks
+                .expand((t) => t.segments)
+                .where((s) => s.type.name == 'nsfw')
+                .length ??
+            0,
+        'violence': timeline?.tracks
+                .expand((t) => t.segments)
+                .where((s) => s.type.name == 'violence')
+                .length ??
+            0,
+        'blood': timeline?.tracks
+                .expand((t) => t.segments)
+                .where((s) => s.type.name == 'blood')
+                .length ??
+            0,
+        'weapons': timeline?.tracks
+                .expand((t) => t.segments)
+                .where((s) => s.type.name == 'weapons')
+                .length ??
+            0,
+      };
 
   /// Processing time formatted as string
   String get processingTimeFormatted {
@@ -319,16 +306,13 @@ class AnalysisResult with _$AnalysisResult {
   }
 
   /// Creates a cancelled result
-  AnalysisResult cancel() {
-    return copyWith(
-      status: AnalysisStatus.cancelled,
-      completedAt: DateTime.now(),
-      progress: null,
-    );
-  }
+  AnalysisResult cancel() => copyWith(
+        status: AnalysisStatus.cancelled,
+        completedAt: DateTime.now(),
+        progress: null,
+      );
 
   /// Updates progress
-  AnalysisResult withProgress(AnalysisProgress newProgress) {
-    return copyWith(progress: newProgress);
-  }
+  AnalysisResult withProgress(AnalysisProgress newProgress) =>
+      copyWith(progress: newProgress);
 }

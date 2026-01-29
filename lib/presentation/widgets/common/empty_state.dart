@@ -2,24 +2,23 @@ import 'package:flutter/material.dart';
 
 /// Widget for displaying empty states
 class EmptyState extends StatelessWidget {
+  const EmptyState({
+    required this.icon,
+    required this.title,
+    super.key,
+    this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
   final IconData icon;
   final String title;
   final String? message;
   final String? actionLabel;
   final VoidCallback? onAction;
 
-  const EmptyState({
-    super.key,
-    required this.icon,
-    required this.title,
-    this.message,
-    this.actionLabel,
-    this.onAction,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Center(
+  Widget build(BuildContext context) => Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
@@ -57,5 +56,4 @@ class EmptyState extends StatelessWidget {
         ),
       ),
     );
-  }
 }

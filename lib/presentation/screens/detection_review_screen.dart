@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../data/models/detection.dart';
-import '../../state/providers/analysis_provider.dart';
-import '../../state/providers/timeline_provider.dart';
-import '../themes/app_theme.dart';
-import 'export_screen.dart';
-import 'timeline_editor_screen.dart';
+import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/presentation/screens/export_screen.dart';
+import 'package:kidslens_video_editor/presentation/screens/timeline_editor_screen.dart';
+import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
+import 'package:kidslens_video_editor/state/providers/analysis_provider.dart';
+import 'package:kidslens_video_editor/state/providers/timeline_provider.dart';
 
 /// Screen for reviewing detected content
 class DetectionReviewScreen extends ConsumerStatefulWidget {
@@ -26,15 +25,13 @@ class _DetectionReviewScreenState extends ConsumerState<DetectionReviewScreen> {
     final analysisState = ref.watch(analysisNotifierProvider);
     final detections = analysisState.result?.timeline?.detections ?? [];
 
-    // Filter detections
-    var filteredDetections = detections.where((d) {
+    // Filter detections, sorted by start time
+    final filteredDetections = detections.where((d) {
       if (!_showDismissed && d.isRejected) return false;
       if (_selectedType != null && d.type.name != _selectedType) return false;
       return true;
-    }).toList();
-
-    // Sort by start time
-    filteredDetections.sort((a, b) => a.startTime.compareTo(b.startTime));
+    }).toList()
+      ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
     return Scaffold(
       appBar: AppBar(
@@ -92,7 +89,7 @@ class _DetectionReviewScreenState extends ConsumerState<DetectionReviewScreen> {
                       child: FilterChip(
                         label: Text(_formatType(type.name)),
                         selected: _selectedType == type.name,
-                        selectedColor: AppTheme.getDetectionColor(type.name).withOpacity(0.3),
+                        selectedColor: AppTheme.getDetectionColor(type.name).withValues(alpha: 0.3),
                         onSelected: (_) => setState(() {
                           _selectedType = _selectedType == type.name ? null : type.name;
                         }),
@@ -145,8 +142,7 @@ class _DetectionReviewScreenState extends ConsumerState<DetectionReviewScreen> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
-    return Center(
+  Widget _buildEmptyState(BuildContext context) => Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -170,13 +166,11 @@ class _DetectionReviewScreenState extends ConsumerState<DetectionReviewScreen> {
         ],
       ),
     );
-  }
 
   Widget _buildDetectionList(
     BuildContext context,
     List<Detection> detections,
-  ) {
-    return ListView.builder(
+  ) => ListView.builder(
       padding: const EdgeInsets.all(8),
       itemCount: detections.length,
       itemBuilder: (context, index) {
@@ -189,10 +183,8 @@ class _DetectionReviewScreenState extends ConsumerState<DetectionReviewScreen> {
         );
       },
     );
-  }
 
-  Widget _buildBottomBar(BuildContext context) {
-    return SafeArea(
+  Widget _buildBottomBar(BuildContext context) => SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -216,11 +208,8 @@ class _DetectionReviewScreenState extends ConsumerState<DetectionReviewScreen> {
         ),
       ),
     );
-  }
 
-  String _formatType(String type) {
-    return type[0].toUpperCase() + type.substring(1);
-  }
+  String _formatType(String type) => type[0].toUpperCase() + type.substring(1);
 
   void _dismissDetection(Detection detection) {
     ref.read(timelineNotifierProvider.notifier).rejectDetection(detection.id);
@@ -252,19 +241,18 @@ class _DetectionReviewScreenState extends ConsumerState<DetectionReviewScreen> {
 }
 
 class _SummaryChip extends StatelessWidget {
-  final String label;
-  final int count;
-  final Color color;
-
   const _SummaryChip({
     required this.label,
     required this.count,
     required this.color,
   });
 
+  final String label;
+  final int count;
+  final Color color;
+
   @override
-  Widget build(BuildContext context) {
-    return Row(
+  Widget build(BuildContext context) => Row(
       children: [
         Container(
           width: 8,
@@ -278,21 +266,20 @@ class _SummaryChip extends StatelessWidget {
         Text('$label: $count'),
       ],
     );
-  }
 }
 
 class _DetectionCard extends StatelessWidget {
-  final Detection detection;
-  final VoidCallback onDismiss;
-  final VoidCallback onRestore;
-  final VoidCallback onJumpTo;
-
   const _DetectionCard({
     required this.detection,
     required this.onDismiss,
     required this.onRestore,
     required this.onJumpTo,
   });
+
+  final Detection detection;
+  final VoidCallback onDismiss;
+  final VoidCallback onRestore;
+  final VoidCallback onJumpTo;
 
   @override
   Widget build(BuildContext context) {
@@ -329,7 +316,7 @@ class _DetectionCard extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: color.withOpacity(0.2),
+                              color: color.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -350,7 +337,7 @@ class _DetectionCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        detection.description ?? 'Detection at ${_formatTime(detection.startTime)}',
+                        detection.description,
                         style: Theme.of(context).textTheme.bodyMedium,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,

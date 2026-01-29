@@ -69,9 +69,9 @@ sealed class Result<T, E> {
 
 /// Success result
 class Success<T, E> extends Result<T, E> {
-  final T value;
-
   const Success(this.value);
+
+  final T value;
 
   @override
   bool operator ==(Object other) =>
@@ -86,9 +86,9 @@ class Success<T, E> extends Result<T, E> {
 
 /// Failure result
 class Failure<T, E> extends Result<T, E> {
-  final E error;
-
   const Failure(this.error);
+
+  final E error;
 
   @override
   bool operator ==(Object other) =>

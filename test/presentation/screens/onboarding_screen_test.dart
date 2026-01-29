@@ -4,38 +4,36 @@ import 'package:kidslens_video_editor/presentation/screens/onboarding_screen.dar
 
 void main() {
   group('OnboardingScreen', () {
-    Widget createOnboardingScreen({required VoidCallback onComplete}) {
-      return MaterialApp(
+    Widget createOnboardingScreen({required VoidCallback onComplete}) => MaterialApp(
         home: OnboardingScreen(onComplete: onComplete),
       );
-    }
 
-    testWidgets('renders first page on start', (WidgetTester tester) async {
+    testWidgets('renders first page on start', (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       expect(find.text('Welcome to KidsLens'), findsOneWidget);
       expect(
         find.text(
-            'Make your videos safe for all audiences by detecting and removing inappropriate content.'),
+            'Make your videos safe for all audiences by detecting and removing inappropriate content.',),
         findsOneWidget,
       );
     });
 
     testWidgets('renders Skip button on first page',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       expect(find.text('Skip'), findsOneWidget);
     });
 
     testWidgets('renders Next button on first page',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       expect(find.text('Next'), findsOneWidget);
     });
 
-    testWidgets('renders page indicators', (WidgetTester tester) async {
+    testWidgets('renders page indicators', (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       // Should have 4 page indicators
@@ -44,7 +42,7 @@ void main() {
     });
 
     testWidgets('navigates to second page on Next tap',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       await tester.tap(find.text('Next'));
@@ -53,13 +51,13 @@ void main() {
       expect(find.text('AI-Powered Analysis'), findsOneWidget);
       expect(
         find.text(
-            'Our advanced AI models detect profanity, nudity, violence, and other sensitive content automatically.'),
+            'Our advanced AI models detect profanity, nudity, violence, and other sensitive content automatically.',),
         findsOneWidget,
       );
     });
 
     testWidgets('shows Back button on second page',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       await tester.tap(find.text('Next'));
@@ -68,7 +66,7 @@ void main() {
       expect(find.text('Back'), findsOneWidget);
     });
 
-    testWidgets('navigates back on Back tap', (WidgetTester tester) async {
+    testWidgets('navigates back on Back tap', (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       // Go to second page
@@ -82,7 +80,7 @@ void main() {
       expect(find.text('Welcome to KidsLens'), findsOneWidget);
     });
 
-    testWidgets('navigates to third page', (WidgetTester tester) async {
+    testWidgets('navigates to third page', (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       // Navigate to third page
@@ -94,12 +92,12 @@ void main() {
       expect(find.text('100% Private'), findsOneWidget);
       expect(
         find.text(
-            'All processing happens locally on your device. Your videos never leave your computer.'),
+            'All processing happens locally on your device. Your videos never leave your computer.',),
         findsOneWidget,
       );
     });
 
-    testWidgets('navigates to fourth (last) page', (WidgetTester tester) async {
+    testWidgets('navigates to fourth (last) page', (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       // Navigate to last page
@@ -113,13 +111,13 @@ void main() {
       expect(find.text('Smart Editing'), findsOneWidget);
       expect(
         find.text(
-            'Automatically mute, blur, or cut detected content. Review and customize before exporting.'),
+            'Automatically mute, blur, or cut detected content. Review and customize before exporting.',),
         findsOneWidget,
       );
     });
 
     testWidgets('shows Get Started button on last page',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       // Navigate to last page
@@ -135,12 +133,12 @@ void main() {
     });
 
     testWidgets('calls onComplete when Get Started is tapped',
-        (WidgetTester tester) async {
+        (tester) async {
       var completeCalled = false;
 
       await tester.pumpWidget(createOnboardingScreen(
         onComplete: () => completeCalled = true,
-      ));
+      ),);
 
       // Navigate to last page
       await tester.tap(find.text('Next'));
@@ -158,12 +156,12 @@ void main() {
     });
 
     testWidgets('calls onComplete when Skip is tapped',
-        (WidgetTester tester) async {
+        (tester) async {
       var completeCalled = false;
 
       await tester.pumpWidget(createOnboardingScreen(
         onComplete: () => completeCalled = true,
-      ));
+      ),);
 
       await tester.tap(find.text('Skip'));
       await tester.pumpAndSettle();
@@ -171,7 +169,7 @@ void main() {
       expect(completeCalled, isTrue);
     });
 
-    testWidgets('swipe left advances page', (WidgetTester tester) async {
+    testWidgets('swipe left advances page', (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       // Swipe left with larger distance
@@ -181,7 +179,7 @@ void main() {
       expect(find.text('AI-Powered Analysis'), findsOneWidget);
     });
 
-    testWidgets('swipe right goes back', (WidgetTester tester) async {
+    testWidgets('swipe right goes back', (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       // Go to second page using button
@@ -196,7 +194,7 @@ void main() {
     });
 
     testWidgets('displays correct icons for each page',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       // First page - visibility icon
@@ -219,7 +217,7 @@ void main() {
     });
 
     testWidgets('current page indicator is wider',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       // The current page indicator should be 24 pixels wide
@@ -228,14 +226,14 @@ void main() {
     });
 
     testWidgets('FilledButton is used for Next/Get Started',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       expect(find.byType(FilledButton), findsOneWidget);
     });
 
     testWidgets('TextButton is used for Skip/Back',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createOnboardingScreen(onComplete: () {}));
 
       final textButtons = find.byType(TextButton);

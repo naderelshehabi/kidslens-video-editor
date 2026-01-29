@@ -1,18 +1,10 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-
 import 'package:kidslens_video_editor/data/models/models.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'settings_provider.g.dart';
 
 /// Application settings state
 class SettingsState {
-  final AnalysisSettings analysisSettings;
-  final String? selectedLanguage;
-  final bool useDarkTheme;
-  final bool showOnboarding;
-  final String? modelCachePath;
-  final String? exportPath;
-
   SettingsState({
     AnalysisSettings? analysisSettings,
     this.selectedLanguage,
@@ -22,6 +14,13 @@ class SettingsState {
     this.exportPath,
   }) : analysisSettings = analysisSettings ?? AnalysisSettings.defaults();
 
+  final AnalysisSettings analysisSettings;
+  final String? selectedLanguage;
+  final bool useDarkTheme;
+  final bool showOnboarding;
+  final String? modelCachePath;
+  final String? exportPath;
+
   SettingsState copyWith({
     AnalysisSettings? analysisSettings,
     String? selectedLanguage,
@@ -29,16 +28,15 @@ class SettingsState {
     bool? showOnboarding,
     String? modelCachePath,
     String? exportPath,
-  }) {
-    return SettingsState(
-      analysisSettings: analysisSettings ?? this.analysisSettings,
-      selectedLanguage: selectedLanguage ?? this.selectedLanguage,
-      useDarkTheme: useDarkTheme ?? this.useDarkTheme,
-      showOnboarding: showOnboarding ?? this.showOnboarding,
-      modelCachePath: modelCachePath ?? this.modelCachePath,
-      exportPath: exportPath ?? this.exportPath,
-    );
-  }
+  }) =>
+      SettingsState(
+        analysisSettings: analysisSettings ?? this.analysisSettings,
+        selectedLanguage: selectedLanguage ?? this.selectedLanguage,
+        useDarkTheme: useDarkTheme ?? this.useDarkTheme,
+        showOnboarding: showOnboarding ?? this.showOnboarding,
+        modelCachePath: modelCachePath ?? this.modelCachePath,
+        exportPath: exportPath ?? this.exportPath,
+      );
 }
 
 /// Provider for managing application settings
@@ -55,7 +53,7 @@ class SettingsNotifier extends _$SettingsNotifier {
     state = state.copyWith(selectedLanguage: language);
   }
 
-  void setDarkTheme(bool useDark) {
+  void setDarkTheme({required bool useDark}) {
     state = state.copyWith(useDarkTheme: useDark);
   }
 

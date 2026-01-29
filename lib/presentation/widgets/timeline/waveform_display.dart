@@ -5,22 +5,22 @@ import 'package:flutter/material.dart';
 
 /// Widget displaying audio waveform
 class WaveformDisplay extends StatelessWidget {
+  const WaveformDisplay({
+    required this.duration,
+    required this.currentPosition,
+    required this.zoom,
+    super.key,
+    this.waveformData,
+    this.color,
+    this.playedColor,
+  });
+
   final Float32List? waveformData;
   final Duration duration;
   final Duration currentPosition;
   final double zoom;
   final Color? color;
   final Color? playedColor;
-
-  const WaveformDisplay({
-    super.key,
-    this.waveformData,
-    required this.duration,
-    required this.currentPosition,
-    required this.zoom,
-    this.color,
-    this.playedColor,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -40,23 +40,14 @@ class WaveformDisplay extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaceholder(BuildContext context) {
-    return CustomPaint(
+  Widget _buildPlaceholder(BuildContext context) => CustomPaint(
       painter: _PlaceholderWaveformPainter(
-        color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
       ),
     );
-  }
 }
 
 class _WaveformPainter extends CustomPainter {
-  final Float32List waveformData;
-  final Duration duration;
-  final Duration currentPosition;
-  final double zoom;
-  final Color color;
-  final Color playedColor;
-
   _WaveformPainter({
     required this.waveformData,
     required this.duration,
@@ -65,6 +56,13 @@ class _WaveformPainter extends CustomPainter {
     required this.color,
     required this.playedColor,
   });
+
+  final Float32List waveformData;
+  final Duration duration;
+  final Duration currentPosition;
+  final double zoom;
+  final Color color;
+  final Color playedColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -103,17 +101,15 @@ class _WaveformPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _WaveformPainter oldDelegate) {
-    return oldDelegate.currentPosition != currentPosition ||
+  bool shouldRepaint(covariant _WaveformPainter oldDelegate) => oldDelegate.currentPosition != currentPosition ||
         oldDelegate.zoom != zoom;
-  }
 }
 
 class _PlaceholderWaveformPainter extends CustomPainter {
+  _PlaceholderWaveformPainter({required this.color});
+
   final Color color;
   final math.Random _random = math.Random(42);
-
-  _PlaceholderWaveformPainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {

@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_classes_with_only_static_members
+
 /// Supported media formats
 abstract final class SupportedFormats {
   /// Supported video container formats
@@ -21,17 +23,14 @@ abstract final class SupportedFormats {
   ];
   
   /// Check if a file extension is a supported video format
-  static bool isVideoFormat(String extension) {
-    return videoContainers.contains(extension.toLowerCase());
-  }
+  static bool isVideoFormat(String extension) =>
+      videoContainers.contains(extension.toLowerCase());
   
   /// Check if a file extension is a supported audio format
-  static bool isAudioFormat(String extension) {
-    return audioFormats.contains(extension.toLowerCase());
-  }
+  static bool isAudioFormat(String extension) =>
+      audioFormats.contains(extension.toLowerCase());
   
   /// Check if a file extension is a supported media format
-  static bool isMediaFormat(String extension) {
-    return isVideoFormat(extension) || isAudioFormat(extension);
-  }
+  static bool isMediaFormat(String extension) =>
+      isVideoFormat(extension) || isAudioFormat(extension);
 }

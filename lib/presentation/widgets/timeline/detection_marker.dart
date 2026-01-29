@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/models/detection.dart';
-import '../../themes/app_theme.dart';
+import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 
 /// Marker widget for a detection on the timeline
 class DetectionMarker extends StatelessWidget {
+  const DetectionMarker({
+    required this.detection,
+    required this.zoom,
+    super.key,
+    this.onTap,
+    this.onDismiss,
+    this.onAction,
+  });
+
   final Detection detection;
   final double zoom;
   final VoidCallback? onTap;
   final VoidCallback? onDismiss;
   final VoidCallback? onAction;
-
-  const DetectionMarker({
-    super.key,
-    required this.detection,
-    required this.zoom,
-    this.onTap,
-    this.onDismiss,
-    this.onAction,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +34,7 @@ class DetectionMarker extends StatelessWidget {
         child: Container(
           width: width.clamp(24.0, double.infinity),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.3),
+            color: color.withValues(alpha: 0.3),
             border: Border.all(color: color, width: 2),
             borderRadius: BorderRadius.circular(4),
           ),
@@ -79,13 +79,11 @@ class DetectionMarker extends StatelessWidget {
     );
   }
 
-  IconData _getIcon(ContentType type) {
-    return switch (type) {
+  IconData _getIcon(ContentType type) => switch (type) {
       ContentType.profanity => Icons.mic_off,
       ContentType.nsfw => Icons.visibility_off,
       ContentType.violence => Icons.warning,
       ContentType.blood => Icons.water_drop,
       ContentType.weapons => Icons.gpp_bad,
     };
-  }
 }

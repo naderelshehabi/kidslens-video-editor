@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -105,7 +104,7 @@ class ThumbnailService {
 
         if (result.exitCode == 0) {
           final file = File(outputPath);
-          if (await file.exists()) {
+          if (file.existsSync()) {
             final bytes = await file.readAsBytes();
             thumbnails.add(bytes);
             await file.delete(); // Clean up
@@ -165,12 +164,14 @@ class ThumbnailService {
     return null;
   }
 
+  // Generate placeholder thumbnails - returns list of valid PNG bytes
+  // Use a cached minimal PNG for sync generation
   List<Uint8List> _generatePlaceholderThumbnails(
-      int count, int width, int height) {
-    // Generate placeholder thumbnails - returns list of valid PNG bytes
-    // Use a cached minimal PNG for sync generation
-    return List.generate(count, (i) => _generateMinimalPng(width, height, i));
-  }
+    int count,
+    int width,
+    int height,
+  ) =>
+      List.generate(count, (i) => _generateMinimalPng(width, height, i));
 
   /// Generate a minimal valid PNG image with a solid color
   /// This creates a proper PNG that can be decoded by ui.instantiateImageCodec
@@ -188,11 +189,10 @@ class ThumbnailService {
 
   /// Create a minimal valid 1x1 PNG with the given RGB color
   /// Uses a pre-verified valid PNG structure
-  Uint8List _createMinimalPng(int r, int g, int b) {
-    // Return a pre-built valid gray PNG
-    // This is a verified working 1x1 gray PNG
-    return _getValidPlaceholderPng(r, g, b);
-  }
+  // Return a pre-built valid gray PNG
+  // This is a verified working 1x1 gray PNG
+  Uint8List _createMinimalPng(int r, int g, int b) =>
+      _getValidPlaceholderPng(r, g, b);
 
   /// Returns a valid 8x8 PNG placeholder image
   /// Uses proper PNG encoding that dart:ui can decode
@@ -226,22 +226,21 @@ class ThumbnailService {
   }
 
   int _hueToRgb(int hue) {
-    hue = hue % 360;
-    if (hue < 60) return ((hue / 60) * 128 + 64).toInt();
-    if (hue < 180) return 192;
-    if (hue < 240) return (((240 - hue) / 60) * 128 + 64).toInt();
+    final normalizedHue = hue % 360;
+    if (normalizedHue < 60) return ((normalizedHue / 60) * 128 + 64).toInt();
+    if (normalizedHue < 180) return 192;
+    if (normalizedHue < 240) return (((240 - normalizedHue) / 60) * 128 + 64).toInt();
     return 64;
   }
 
   Future<Uint8List> _generatePlaceholderThumbnail(
-      int width, int height, int index) async {
-    // Use dart:ui to create a proper PNG image asynchronously
-    return _createPngWithDartUi(width, height, index);
-  }
+      int width, int height, int index,) async =>
+      // Use dart:ui to create a proper PNG image asynchronously
+      _createPngWithDartUi(width, height, index);
 
   /// Create a valid PNG using dart:ui for async placeholder generation
   Future<Uint8List> _createPngWithDartUi(
-      int width, int height, int index) async {
+      int width, int height, int index,) async {
     try {
       final recorder = ui.PictureRecorder();
       final canvas = ui.Canvas(recorder);
@@ -264,22 +263,23 @@ class ThumbnailService {
 
       // Draw a subtle film icon pattern
       final iconPaint = ui.Paint()
-        ..color = ui.Color.fromARGB(60, 255, 255, 255)
+        ..color = const ui.Color.fromARGB(60, 255, 255, 255)
         ..style = ui.PaintingStyle.fill;
 
       // Draw simple film strip holes
       final holeSize = height * 0.15;
       final holeSpacing = height * 0.3;
       for (var y = holeSpacing; y < height - holeSize; y += holeSpacing) {
-        canvas.drawRect(
-          ui.Rect.fromLTWH(2, y, holeSize * 0.6, holeSize),
-          iconPaint,
-        );
-        canvas.drawRect(
-          ui.Rect.fromLTWH(
-              width - holeSize * 0.6 - 2, y, holeSize * 0.6, holeSize),
-          iconPaint,
-        );
+        canvas
+          ..drawRect(
+            ui.Rect.fromLTWH(2, y, holeSize * 0.6, holeSize),
+            iconPaint,
+          )
+          ..drawRect(
+            ui.Rect.fromLTWH(
+                width - holeSize * 0.6 - 2, y, holeSize * 0.6, holeSize,),
+            iconPaint,
+          );
       }
 
       final picture = recorder.endRecording();

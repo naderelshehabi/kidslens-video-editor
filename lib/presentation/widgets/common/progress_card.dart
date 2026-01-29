@@ -2,6 +2,20 @@ import 'package:flutter/material.dart';
 
 /// Card showing progress with status
 class ProgressCard extends StatelessWidget {
+  const ProgressCard({
+    required this.title,
+    required this.progress,
+    super.key,
+    this.subtitle,
+    this.status,
+    this.icon,
+    this.onCancel,
+    this.onPause,
+    this.onResume,
+    this.isPaused = false,
+    this.estimatedTimeRemaining,
+  });
+
   final String title;
   final String? subtitle;
   final double progress;
@@ -13,23 +27,8 @@ class ProgressCard extends StatelessWidget {
   final bool isPaused;
   final Duration? estimatedTimeRemaining;
 
-  const ProgressCard({
-    super.key,
-    required this.title,
-    this.subtitle,
-    required this.progress,
-    this.status,
-    this.icon,
-    this.onCancel,
-    this.onPause,
-    this.onResume,
-    this.isPaused = false,
-    this.estimatedTimeRemaining,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Card(
+  Widget build(BuildContext context) => Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -95,7 +94,6 @@ class ProgressCard extends StatelessWidget {
         ),
       ),
     );
-  }
 
   String _formatDuration(Duration duration) {
     if (duration.inHours > 0) {

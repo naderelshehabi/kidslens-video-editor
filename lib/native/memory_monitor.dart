@@ -133,7 +133,7 @@ class MemoryMonitor {
 
   /// Get current memory usage percentage
   double get memoryUsageRatio {
-    if (_totalMemoryMB == 0) return 0.0;
+    if (_totalMemoryMB == 0) return 0;
     return 1.0 - (_availableMemoryMB / _totalMemoryMB);
   }
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/models/detection.dart';
-import '../../../data/models/edit_action.dart';
+import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/data/models/edit_action.dart';
 
 /// Filter mode for detection list
 enum DetectionFilterMode {
@@ -12,17 +12,7 @@ enum DetectionFilterMode {
 
 /// Right panel showing detections and allowing actions
 class DetectionPanel extends StatefulWidget {
-  final List<Detection> detections;
-  final List<EditAction> editActions;
-  final void Function(Detection) onSeekToDetection;
-  final void Function(Detection, EditActionType) onApplyAction;
-  final void Function(Detection) onRejectDetection;
-  final void Function(Detection) onAcceptDetection;
-  final void Function(EditAction) onToggleEditAction;
-  final void Function(EditAction) onRemoveEditAction;
-
   const DetectionPanel({
-    super.key,
     required this.detections,
     required this.editActions,
     required this.onSeekToDetection,
@@ -31,7 +21,17 @@ class DetectionPanel extends StatefulWidget {
     required this.onAcceptDetection,
     required this.onToggleEditAction,
     required this.onRemoveEditAction,
+    super.key,
   });
+
+  final List<Detection> detections;
+  final List<EditAction> editActions;
+  final void Function(Detection) onSeekToDetection;
+  final void Function(Detection, EditActionType) onApplyAction;
+  final void Function(Detection) onRejectDetection;
+  final void Function(Detection) onAcceptDetection;
+  final void Function(EditAction) onToggleEditAction;
+  final void Function(EditAction) onRemoveEditAction;
 
   @override
   State<DetectionPanel> createState() => _DetectionPanelState();
@@ -74,7 +74,7 @@ class _DetectionPanelState extends State<DetectionPanel>
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
+    return ColoredBox(
       color: colorScheme.surfaceContainerLow,
       child: Column(
         children: [
@@ -100,7 +100,7 @@ class _DetectionPanelState extends State<DetectionPanel>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh,
         border: Border(
@@ -197,7 +197,7 @@ class _DetectionPanelState extends State<DetectionPanel>
                 selected: {_filterMode},
                 onSelectionChanged: (value) => setState(() => _filterMode = value.first),
                 showSelectedIcon: false,
-                style: ButtonStyle(
+                style: const ButtonStyle(
                   visualDensity: VisualDensity.compact,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
@@ -205,7 +205,7 @@ class _DetectionPanelState extends State<DetectionPanel>
               const SizedBox(height: 8),
               // Type filter dropdown
               DropdownButtonFormField<ContentType?>(
-                value: _filterType,
+                initialValue: _filterType,
                 decoration: const InputDecoration(
                   labelText: 'Filter by type',
                   isDense: true,
@@ -217,7 +217,6 @@ class _DetectionPanelState extends State<DetectionPanel>
                 ),
                 items: [
                   const DropdownMenuItem(
-                    value: null,
                     child: Text('All types', style: TextStyle(fontSize: 12)),
                   ),
                   ...ContentType.values.map((type) => DropdownMenuItem(
@@ -226,7 +225,7 @@ class _DetectionPanelState extends State<DetectionPanel>
                       _contentTypeName(type),
                       style: const TextStyle(fontSize: 12),
                     ),
-                  )),
+                  ),),
                 ],
                 onChanged: (value) => setState(() => _filterType = value),
                 style: const TextStyle(fontSize: 12),
@@ -241,8 +240,7 @@ class _DetectionPanelState extends State<DetectionPanel>
               ? _buildEmptyDetections(context)
               : ListView.builder(
                   itemCount: filteredDetections.length,
-                  itemBuilder: (context, index) {
-                    return _DetectionTile(
+                  itemBuilder: (context, index) => _DetectionTile(
                       detection: filteredDetections[index],
                       onSeek: () => widget.onSeekToDetection(
                         filteredDetections[index],
@@ -257,8 +255,7 @@ class _DetectionPanelState extends State<DetectionPanel>
                       onAccept: () => widget.onAcceptDetection(
                         filteredDetections[index],
                       ),
-                    );
-                  },
+                    ),
                 ),
         ),
         
@@ -379,23 +376,19 @@ class _DetectionPanelState extends State<DetectionPanel>
     );
   }
 
-  List<Detection> _getFilteredDetections() {
-    return widget.detections.where((d) {
+  List<Detection> _getFilteredDetections() => widget.detections.where((d) {
       // Apply filter mode
       switch (_filterMode) {
         case DetectionFilterMode.active:
           if (d.isRejected) return false;
-          break;
         case DetectionFilterMode.rejected:
           if (!d.isRejected) return false;
-          break;
         case DetectionFilterMode.all:
           break;
       }
       if (_filterType != null && d.type != _filterType) return false;
       return true;
     }).toList();
-  }
 
   void _applyAllSuggested() {
     for (final detection in widget.detections) {
@@ -407,12 +400,6 @@ class _DetectionPanelState extends State<DetectionPanel>
 }
 
 class _DetectionTile extends StatelessWidget {
-  final Detection detection;
-  final VoidCallback onSeek;
-  final void Function(EditActionType) onApplyAction;
-  final VoidCallback onReject;
-  final VoidCallback onAccept;
-
   const _DetectionTile({
     required this.detection,
     required this.onSeek,
@@ -420,6 +407,12 @@ class _DetectionTile extends StatelessWidget {
     required this.onReject,
     required this.onAccept,
   });
+
+  final Detection detection;
+  final VoidCallback onSeek;
+  final void Function(EditActionType) onApplyAction;
+  final VoidCallback onReject;
+  final VoidCallback onAccept;
 
   @override
   Widget build(BuildContext context) {
@@ -449,7 +442,7 @@ class _DetectionTile extends StatelessWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: _getTypeColor(detection.type).withOpacity(0.2),
+                        color: _getTypeColor(detection.type).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Row(
@@ -621,9 +614,7 @@ class _DetectionTile extends StatelessWidget {
     }
   }
 
-  String _formatTimeRange(Duration start, Duration end) {
-    return '${_formatDuration(start)} - ${_formatDuration(end)}';
-  }
+  String _formatTimeRange(Duration start, Duration end) => '${_formatDuration(start)} - ${_formatDuration(end)}';
 
   String _formatDuration(Duration d) {
     final m = d.inMinutes % 60;
@@ -633,11 +624,6 @@ class _DetectionTile extends StatelessWidget {
 }
 
 class _ActionChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
   const _ActionChip({
     required this.icon,
     required this.label,
@@ -645,15 +631,19 @@ class _ActionChip extends StatelessWidget {
     required this.onTap,
   });
 
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
+  Widget build(BuildContext context) => InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          border: Border.all(color: color.withOpacity(0.5)),
+          border: Border.all(color: color.withValues(alpha: 0.5)),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -669,19 +659,18 @@ class _ActionChip extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class _EditActionTile extends StatelessWidget {
-  final EditAction action;
-  final VoidCallback onToggle;
-  final VoidCallback onRemove;
-
   const _EditActionTile({
     required this.action,
     required this.onToggle,
     required this.onRemove,
   });
+
+  final EditAction action;
+  final VoidCallback onToggle;
+  final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -708,7 +697,7 @@ class _EditActionTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: _getActionColor(action.type).withOpacity(0.2),
+                color: _getActionColor(action.type).withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -788,9 +777,7 @@ class _EditActionTile extends StatelessWidget {
     }
   }
 
-  String _formatTimeRange(Duration start, Duration end) {
-    return '${_formatDuration(start)} - ${_formatDuration(end)}';
-  }
+  String _formatTimeRange(Duration start, Duration end) => '${_formatDuration(start)} - ${_formatDuration(end)}';
 
   String _formatDuration(Duration d) {
     final m = d.inMinutes % 60;

@@ -49,13 +49,11 @@ class AppTheme {
 
   /// Light theme - Cheerful coral/teal palette for family-friendly editing
   /// Inspired by popular kids apps with warm, inviting colors
-  static ThemeData get lightTheme {
-    return ThemeData(
+  static ThemeData get lightTheme => ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryColor,
-        brightness: Brightness.light,
         primary: primaryColor,
         secondary: secondaryColor,
         tertiary: tertiaryColor,
@@ -99,15 +97,13 @@ class AppTheme {
         ),
       ),
       sliderTheme: const SliderThemeData(
-        showValueIndicator: ShowValueIndicator.always,
+        showValueIndicator: ShowValueIndicator.onDrag,
       ),
     );
-  }
 
   /// Dark theme - Cheerful coral/teal palette for family-friendly editing
   /// Uses lighter variants for better visibility on dark backgrounds
-  static ThemeData get darkTheme {
-    return ThemeData(
+  static ThemeData get darkTheme => ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: ColorScheme.fromSeed(
@@ -156,10 +152,9 @@ class AppTheme {
         ),
       ),
       sliderTheme: const SliderThemeData(
-        showValueIndicator: ShowValueIndicator.always,
+        showValueIndicator: ShowValueIndicator.onDrag,
       ),
     );
-  }
 
   /// Get color for detection type
   /// Returns child-friendly colors that are distinct but not scary
@@ -184,9 +179,7 @@ class AppTheme {
   }
 
   /// Get a lighter variant of detection color for backgrounds
-  static Color getDetectionColorLight(String type) {
-    return getDetectionColor(type).withOpacity(0.2);
-  }
+  static Color getDetectionColorLight(String type) => getDetectionColor(type).withValues(alpha: 0.2);
 
   /// Get text color for detection badges (ensures accessibility)
   static Color getDetectionTextColor(String type) {

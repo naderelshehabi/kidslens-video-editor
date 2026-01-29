@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kidslens_video_editor/presentation/widgets/common/progress_card.dart';
+import 'package:kidslens_video_editor/services/export_service.dart';
+import 'package:kidslens_video_editor/state/providers/media_provider.dart';
+import 'package:kidslens_video_editor/state/providers/service_providers.dart';
+import 'package:kidslens_video_editor/state/providers/timeline_provider.dart';
 import 'package:path/path.dart' as p;
-
-import '../../services/export_service.dart';
-import '../../state/providers/media_provider.dart';
-import '../../state/providers/service_providers.dart';
-import '../../state/providers/timeline_provider.dart';
-import '../widgets/common/progress_card.dart';
 
 /// Format options for export
 enum ExportFormat {
@@ -58,17 +57,14 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       appBar: AppBar(
         title: const Text('Export'),
       ),
       body: _isExporting ? _buildExportProgress() : _buildExportSettings(),
     );
-  }
 
-  Widget _buildExportSettings() {
-    return SingleChildScrollView(
+  Widget _buildExportSettings() => SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -109,10 +105,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildFormatSection() {
-    return Card(
+  Widget _buildFormatSection() => Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -124,17 +118,15 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<ExportFormat>(
-              value: _format,
+              initialValue: _format,
               decoration: const InputDecoration(
                 labelText: 'Format',
                 prefixIcon: Icon(Icons.video_file),
               ),
-              items: ExportFormat.values.map((format) {
-                return DropdownMenuItem(
+              items: ExportFormat.values.map((format) => DropdownMenuItem(
                   value: format,
                   child: Text(_formatName(format)),
-                );
-              }).toList(),
+                ),).toList(),
               onChanged: (value) {
                 if (value != null) setState(() => _format = value);
               },
@@ -150,10 +142,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildQualitySection() {
-    return Card(
+  Widget _buildQualitySection() => Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -165,13 +155,11 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             ),
             const SizedBox(height: 16),
             SegmentedButton<ExportQuality>(
-              segments: ExportQuality.values.map((quality) {
-                return ButtonSegment(
+              segments: ExportQuality.values.map((quality) => ButtonSegment(
                   value: quality,
                   label: Text(_qualityName(quality)),
                   icon: Icon(_qualityIcon(quality)),
-                );
-              }).toList(),
+                ),).toList(),
               selected: {_quality},
               onSelectionChanged: (selection) {
                 setState(() => _quality = selection.first);
@@ -188,10 +176,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildOutputSection() {
-    return Card(
+  Widget _buildOutputSection() => Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -219,10 +205,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildExportButton() {
-    return FilledButton.icon(
+  Widget _buildExportButton() => FilledButton.icon(
       onPressed: _startExport,
       icon: const Icon(Icons.download),
       label: const Padding(
@@ -230,10 +214,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         child: Text('Start Export'),
       ),
     );
-  }
 
-  Widget _buildExportProgress() {
-    return Padding(
+  Widget _buildExportProgress() => Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -266,20 +248,16 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         ],
       ),
     );
-  }
 
-  String _formatName(ExportFormat format) {
-    return switch (format) {
+  String _formatName(ExportFormat format) => switch (format) {
       ExportFormat.mp4H264 => 'MP4 (H.264)',
       ExportFormat.mp4H265 => 'MP4 (H.265/HEVC)',
       ExportFormat.webm => 'WebM (VP9)',
       ExportFormat.mov => 'MOV (ProRes)',
       ExportFormat.audioOnly => 'Audio Only (AAC)',
     };
-  }
 
-  String _formatDescription(ExportFormat format) {
-    return switch (format) {
+  String _formatDescription(ExportFormat format) => switch (format) {
       ExportFormat.mp4H264 =>
         'Most compatible format. Works on all devices and platforms.',
       ExportFormat.mp4H265 =>
@@ -289,34 +267,27 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         'High quality for editing. Large file size, Mac/iOS focused.',
       ExportFormat.audioOnly => 'Extract audio only, no video.',
     };
-  }
 
-  String _qualityName(ExportQuality quality) {
-    return switch (quality) {
+  String _qualityName(ExportQuality quality) => switch (quality) {
       ExportQuality.low => 'Low',
       ExportQuality.medium => 'Medium',
       ExportQuality.high => 'High',
       ExportQuality.lossless => 'Lossless',
     };
-  }
 
-  IconData _qualityIcon(ExportQuality quality) {
-    return switch (quality) {
+  IconData _qualityIcon(ExportQuality quality) => switch (quality) {
       ExportQuality.low => Icons.sd,
       ExportQuality.medium => Icons.hd,
       ExportQuality.high => Icons.four_k,
       ExportQuality.lossless => Icons.high_quality,
     };
-  }
 
-  String _qualityDescription(ExportQuality quality) {
-    return switch (quality) {
+  String _qualityDescription(ExportQuality quality) => switch (quality) {
       ExportQuality.low => 'Smaller file size, lower quality. Good for sharing.',
       ExportQuality.medium => 'Balanced quality and file size.',
       ExportQuality.high => 'High quality, larger file size.',
       ExportQuality.lossless => 'No quality loss, very large file size.',
     };
-  }
 
   Future<void> _selectOutputPath() async {
     // TODO: Implement file picker for output path

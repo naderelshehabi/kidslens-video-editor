@@ -28,7 +28,7 @@ void main() {
   group('AnalysisProgress', () {
     group('creation', () {
       test('should create with required fields', () {
-        final progress = AnalysisProgress(
+        const progress = AnalysisProgress(
           stepName: 'Transcribing',
           currentStep: 1,
           totalSteps: 4,
@@ -42,7 +42,7 @@ void main() {
       });
 
       test('should include optional fields', () {
-        final progress = AnalysisProgress(
+        const progress = AnalysisProgress(
           stepName: 'Analyzing frames',
           currentStep: 2,
           totalSteps: 4,
@@ -71,7 +71,7 @@ void main() {
 
     group('overallProgress', () {
       test('should calculate overall progress correctly', () {
-        final progress = AnalysisProgress(
+        const progress = AnalysisProgress(
           stepName: 'Step 2',
           currentStep: 2,
           totalSteps: 4,
@@ -84,7 +84,7 @@ void main() {
       });
 
       test('should return 0 when totalSteps is 0', () {
-        final progress = AnalysisProgress(
+        const progress = AnalysisProgress(
           stepName: 'Test',
           currentStep: 1,
           totalSteps: 0,
@@ -95,25 +95,25 @@ void main() {
       });
 
       test('should clamp to 0-1 range', () {
-        final completed = AnalysisProgress(
+        const completed = AnalysisProgress(
           stepName: 'Complete',
           currentStep: 4,
           totalSteps: 4,
-          stepProgress: 1.0,
+          stepProgress: 1,
         );
 
-        expect(progress.overallProgress, lessThanOrEqualTo(1.0));
-        expect(progress.overallProgress, greaterThanOrEqualTo(0.0));
+        expect(completed.overallProgress, lessThanOrEqualTo(1.0));
+        expect(completed.overallProgress, greaterThanOrEqualTo(0.0));
       });
     });
 
     group('overallPercentage', () {
       test('should return percentage as integer', () {
-        final progress = AnalysisProgress(
+        const progress = AnalysisProgress(
           stepName: 'Test',
           currentStep: 2,
           totalSteps: 4,
-          stepProgress: 0.0,
+          stepProgress: 0,
         );
 
         expect(progress.overallPercentage, equals(25));
@@ -122,18 +122,18 @@ void main() {
 
     group('estimatedTimeFormatted', () {
       test('should return "Calculating..." when null', () {
-        final progress = AnalysisProgress(
+        const progress = AnalysisProgress(
           stepName: 'Test',
           currentStep: 1,
           totalSteps: 4,
-          stepProgress: 0.0,
+          stepProgress: 0,
         );
 
         expect(progress.estimatedTimeFormatted, equals('Calculating...'));
       });
 
       test('should format seconds correctly', () {
-        final progress = AnalysisProgress(
+        const progress = AnalysisProgress(
           stepName: 'Test',
           currentStep: 1,
           totalSteps: 4,
@@ -145,7 +145,7 @@ void main() {
       });
 
       test('should format minutes and seconds correctly', () {
-        final progress = AnalysisProgress(
+        const progress = AnalysisProgress(
           stepName: 'Test',
           currentStep: 1,
           totalSteps: 4,
@@ -159,7 +159,7 @@ void main() {
 
     group('itemProgressDescription', () {
       test('should return empty string when items are null', () {
-        final progress = AnalysisProgress(
+        const progress = AnalysisProgress(
           stepName: 'Test',
           currentStep: 1,
           totalSteps: 4,
@@ -170,7 +170,7 @@ void main() {
       });
 
       test('should format items correctly', () {
-        final progress = AnalysisProgress(
+        const progress = AnalysisProgress(
           stepName: 'Test',
           currentStep: 1,
           totalSteps: 4,
@@ -185,7 +185,7 @@ void main() {
 
     group('JSON serialization', () {
       test('should serialize and deserialize correctly', () {
-        final original = AnalysisProgress(
+        const original = AnalysisProgress(
           stepName: 'Detecting profanity',
           currentStep: 3,
           totalSteps: 4,
@@ -215,7 +215,7 @@ void main() {
   group('AnalysisResult', () {
     group('creation', () {
       test('should create with required fields', () {
-        final result = AnalysisResult(id: 'analysis-1');
+        const result = AnalysisResult(id: 'analysis-1');
 
         expect(result.id, equals('analysis-1'));
         expect(result.status, equals(AnalysisStatus.pending));
@@ -262,12 +262,12 @@ void main() {
 
     group('status checks', () {
       test('isPending should return true for pending status', () {
-        final result = AnalysisResult(id: 'test');
+        const result = AnalysisResult(id: 'test');
         expect(result.isPending, isTrue);
       });
 
       test('isRunning should return true for running status', () {
-        final result = AnalysisResult(
+        const result = AnalysisResult(
           id: 'test',
           status: AnalysisStatus.running,
         );
@@ -275,7 +275,7 @@ void main() {
       });
 
       test('isCompleted should return true for completed status', () {
-        final result = AnalysisResult(
+        const result = AnalysisResult(
           id: 'test',
           status: AnalysisStatus.completed,
         );
@@ -283,7 +283,7 @@ void main() {
       });
 
       test('isFailed should return true for failed status', () {
-        final result = AnalysisResult(
+        const result = AnalysisResult(
           id: 'test',
           status: AnalysisStatus.failed,
         );
@@ -291,7 +291,7 @@ void main() {
       });
 
       test('isCancelled should return true for cancelled status', () {
-        final result = AnalysisResult(
+        const result = AnalysisResult(
           id: 'test',
           status: AnalysisStatus.cancelled,
         );
@@ -300,21 +300,21 @@ void main() {
 
       test('isFinished should return true for terminal states', () {
         expect(
-          AnalysisResult(id: 'test', status: AnalysisStatus.completed)
+          const AnalysisResult(id: 'test', status: AnalysisStatus.completed)
               .isFinished,
           isTrue,
         );
         expect(
-          AnalysisResult(id: 'test', status: AnalysisStatus.failed).isFinished,
+          const AnalysisResult(id: 'test', status: AnalysisStatus.failed).isFinished,
           isTrue,
         );
         expect(
-          AnalysisResult(id: 'test', status: AnalysisStatus.cancelled)
+          const AnalysisResult(id: 'test', status: AnalysisStatus.cancelled)
               .isFinished,
           isTrue,
         );
         expect(
-          AnalysisResult(id: 'test', status: AnalysisStatus.running).isFinished,
+          const AnalysisResult(id: 'test', status: AnalysisStatus.running).isFinished,
           isFalse,
         );
       });
@@ -326,7 +326,7 @@ void main() {
           id: 'test',
           transcript: Transcript.empty(),
         );
-        final withoutTranscript = AnalysisResult(id: 'test');
+        const withoutTranscript = AnalysisResult(id: 'test');
 
         expect(withTranscript.hasTranscript, isTrue);
         expect(withoutTranscript.hasTranscript, isFalse);
@@ -335,21 +335,21 @@ void main() {
 
     group('profanity counts', () {
       test('profanityCount should return total count', () {
-        final word = TranscriptWord(
+        const word = TranscriptWord(
           word: 'test',
           startTime: Duration.zero,
-          endTime: const Duration(seconds: 1),
+          endTime: Duration(seconds: 1),
           confidence: 0.9,
         );
 
-        final result = AnalysisResult(
+        const result = AnalysisResult(
           id: 'test',
           profanityMatches: [
             ProfanityMatch(
               id: 'match-1',
               word: word,
               matchedProfanity: 'test',
-              confidence: 1.0,
+              confidence: 1,
               type: MatchType.exact,
             ),
             ProfanityMatch(
@@ -366,21 +366,21 @@ void main() {
       });
 
       test('validProfanityCount should exclude false positives', () {
-        final word = TranscriptWord(
+        const word = TranscriptWord(
           word: 'test',
           startTime: Duration.zero,
-          endTime: const Duration(seconds: 1),
+          endTime: Duration(seconds: 1),
           confidence: 0.9,
         );
 
-        final result = AnalysisResult(
+        const result = AnalysisResult(
           id: 'test',
           profanityMatches: [
             ProfanityMatch(
               id: 'match-1',
               word: word,
               matchedProfanity: 'test',
-              confidence: 1.0,
+              confidence: 1,
               type: MatchType.exact,
             ),
             ProfanityMatch(
@@ -400,22 +400,22 @@ void main() {
 
     group('processingTimeFormatted', () {
       test('should return "Unknown" when null', () {
-        final result = AnalysisResult(id: 'test');
+        const result = AnalysisResult(id: 'test');
         expect(result.processingTimeFormatted, equals('Unknown'));
       });
 
       test('should format seconds correctly', () {
-        final result = AnalysisResult(
+        const result = AnalysisResult(
           id: 'test',
-          processingTime: const Duration(seconds: 45),
+          processingTime: Duration(seconds: 45),
         );
         expect(result.processingTimeFormatted, equals('45s'));
       });
 
       test('should format minutes and seconds correctly', () {
-        final result = AnalysisResult(
+        const result = AnalysisResult(
           id: 'test',
-          processingTime: const Duration(minutes: 2, seconds: 30),
+          processingTime: Duration(minutes: 2, seconds: 30),
         );
         expect(result.processingTimeFormatted, equals('2m 30s'));
       });
@@ -442,7 +442,7 @@ void main() {
       });
 
       test('cancel should update status', () {
-        final result = AnalysisResult(
+        const result = AnalysisResult(
           id: 'test',
           status: AnalysisStatus.running,
         );
@@ -455,12 +455,12 @@ void main() {
       });
 
       test('withProgress should update progress', () {
-        final result = AnalysisResult(
+        const result = AnalysisResult(
           id: 'test',
           status: AnalysisStatus.running,
         );
 
-        final progress = AnalysisProgress(
+        const progress = AnalysisProgress(
           stepName: 'Processing',
           currentStep: 2,
           totalSteps: 4,
@@ -476,7 +476,7 @@ void main() {
 
     group('JSON serialization', () {
       test('should serialize basic result', () {
-        final result = AnalysisResult(
+        const result = AnalysisResult(
           id: 'json-test',
           status: AnalysisStatus.completed,
         );
@@ -502,10 +502,10 @@ void main() {
       });
 
       test('should round-trip through JSON', () {
-        final original = AnalysisResult(
+        const original = AnalysisResult(
           id: 'roundtrip',
           status: AnalysisStatus.completed,
-          processingTime: const Duration(minutes: 5),
+          processingTime: Duration(minutes: 5),
           mediaFileId: 'media-file-1',
         );
 

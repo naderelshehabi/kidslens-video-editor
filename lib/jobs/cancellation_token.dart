@@ -88,8 +88,9 @@ class CancellationToken {
 
 /// Exception thrown when an operation is cancelled
 class CancelledException implements Exception {
-  final String message;
   CancelledException([this.message = 'Operation was cancelled']);
+
+  final String message;
 
   @override
   String toString() => 'CancelledException: $message';

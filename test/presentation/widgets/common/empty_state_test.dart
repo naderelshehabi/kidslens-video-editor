@@ -10,8 +10,7 @@ void main() {
       String? message,
       String? actionLabel,
       VoidCallback? onAction,
-    }) {
-      return MaterialApp(
+    }) => MaterialApp(
         home: Scaffold(
           body: EmptyState(
             icon: icon,
@@ -22,87 +21,83 @@ void main() {
           ),
         ),
       );
-    }
 
-    testWidgets('renders icon', (WidgetTester tester) async {
+    testWidgets('renders icon', (tester) async {
       await tester.pumpWidget(createEmptyState(
         icon: Icons.inbox,
         title: 'No items',
-      ));
+      ),);
 
       expect(find.byIcon(Icons.inbox), findsOneWidget);
     });
 
-    testWidgets('renders title', (WidgetTester tester) async {
+    testWidgets('renders title', (tester) async {
       await tester.pumpWidget(createEmptyState(
         icon: Icons.inbox,
         title: 'No items found',
-      ));
+      ),);
 
       expect(find.text('No items found'), findsOneWidget);
     });
 
-    testWidgets('renders message when provided', (WidgetTester tester) async {
+    testWidgets('renders message when provided', (tester) async {
       await tester.pumpWidget(createEmptyState(
         icon: Icons.inbox,
         title: 'No items',
         message: 'Add some items to get started',
-      ));
+      ),);
 
       expect(find.text('Add some items to get started'), findsOneWidget);
     });
 
     testWidgets('does not render message when null',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createEmptyState(
         icon: Icons.inbox,
         title: 'No items',
-        message: null,
-      ));
+      ),);
 
       // Only title should be present, no message text
       expect(find.text('No items'), findsOneWidget);
     });
 
     testWidgets('renders action button when provided',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createEmptyState(
         icon: Icons.inbox,
         title: 'No items',
         actionLabel: 'Add Item',
         onAction: () {},
-      ));
+      ),);
 
       expect(find.text('Add Item'), findsOneWidget);
       expect(find.byType(ElevatedButton), findsOneWidget);
     });
 
     testWidgets('does not render action button when label is null',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createEmptyState(
         icon: Icons.inbox,
         title: 'No items',
-        actionLabel: null,
         onAction: () {},
-      ));
+      ),);
 
       expect(find.byType(ElevatedButton), findsNothing);
     });
 
     testWidgets('does not render action button when onAction is null',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createEmptyState(
         icon: Icons.inbox,
         title: 'No items',
         actionLabel: 'Add Item',
-        onAction: null,
-      ));
+      ),);
 
       expect(find.byType(ElevatedButton), findsNothing);
     });
 
     testWidgets('calls onAction when button tapped',
-        (WidgetTester tester) async {
+        (tester) async {
       var actionCalled = false;
 
       await tester.pumpWidget(createEmptyState(
@@ -110,7 +105,7 @@ void main() {
         title: 'No items',
         actionLabel: 'Add Item',
         onAction: () => actionCalled = true,
-      ));
+      ),);
 
       await tester.tap(find.text('Add Item'));
       await tester.pump();
@@ -118,31 +113,31 @@ void main() {
       expect(actionCalled, isTrue);
     });
 
-    testWidgets('is centered in parent', (WidgetTester tester) async {
+    testWidgets('is centered in parent', (tester) async {
       await tester.pumpWidget(createEmptyState(
         icon: Icons.inbox,
         title: 'No items',
-      ));
+      ),);
 
       expect(find.byType(Center), findsWidgets);
     });
 
-    testWidgets('icon has correct size', (WidgetTester tester) async {
+    testWidgets('icon has correct size', (tester) async {
       await tester.pumpWidget(createEmptyState(
         icon: Icons.inbox,
         title: 'No items',
-      ));
+      ),);
 
       final iconWidget = tester.widget<Icon>(find.byIcon(Icons.inbox));
       expect(iconWidget.size, equals(64));
     });
 
-    testWidgets('text is centered', (WidgetTester tester) async {
+    testWidgets('text is centered', (tester) async {
       await tester.pumpWidget(createEmptyState(
         icon: Icons.inbox,
         title: 'No items',
         message: 'Test message',
-      ));
+      ),);
 
       final titleText = tester.widget<Text>(find.text('No items'));
       expect(titleText.textAlign, equals(TextAlign.center));
@@ -152,12 +147,12 @@ void main() {
     });
 
     testWidgets('renders video library icon for media empty state',
-        (WidgetTester tester) async {
+        (tester) async {
       await tester.pumpWidget(createEmptyState(
         icon: Icons.video_library_outlined,
         title: 'No Media Loaded',
         message: 'Import a video or audio file to start analyzing content.',
-      ));
+      ),);
 
       expect(find.byIcon(Icons.video_library_outlined), findsOneWidget);
       expect(find.text('No Media Loaded'), findsOneWidget);
@@ -167,19 +162,19 @@ void main() {
       );
     });
 
-    testWidgets('handles long title text', (WidgetTester tester) async {
+    testWidgets('handles long title text', (tester) async {
       const longTitle =
           'This is a very long title that should wrap properly across multiple lines';
 
       await tester.pumpWidget(createEmptyState(
         icon: Icons.inbox,
         title: longTitle,
-      ));
+      ),);
 
       expect(find.text(longTitle), findsOneWidget);
     });
 
-    testWidgets('handles long message text', (WidgetTester tester) async {
+    testWidgets('handles long message text', (tester) async {
       const longMessage =
           'This is a very long message that explains in detail what the user '
           'should do next. It should wrap properly and remain readable even '
@@ -189,12 +184,12 @@ void main() {
         icon: Icons.inbox,
         title: 'Empty',
         message: longMessage,
-      ));
+      ),);
 
       expect(find.text(longMessage), findsOneWidget);
     });
 
-    testWidgets('renders with different icons', (WidgetTester tester) async {
+    testWidgets('renders with different icons', (tester) async {
       final icons = [
         Icons.search_off,
         Icons.folder_open,
@@ -206,17 +201,17 @@ void main() {
         await tester.pumpWidget(createEmptyState(
           icon: icon,
           title: 'Empty State',
-        ));
+        ),);
 
         expect(find.byIcon(icon), findsOneWidget);
       }
     });
 
-    testWidgets('has proper padding', (WidgetTester tester) async {
+    testWidgets('has proper padding', (tester) async {
       await tester.pumpWidget(createEmptyState(
         icon: Icons.inbox,
         title: 'No items',
-      ));
+      ),);
 
       final padding = tester.widget<Padding>(
         find.ancestor(

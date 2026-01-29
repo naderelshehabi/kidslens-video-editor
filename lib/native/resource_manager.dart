@@ -2,13 +2,12 @@ import 'dart:async';
 
 /// Manages all native FFI resources with deterministic cleanup
 class NativeResourceManager {
-  static final NativeResourceManager instance = NativeResourceManager._();
   NativeResourceManager._();
 
+  static final NativeResourceManager instance = NativeResourceManager._();
+
   final Map<int, WeakReference<NativeResource>> _resources = {};
-  final Finalizer<int> _finalizer = Finalizer((id) {
-    instance._cleanupResource(id);
-  });
+  final Finalizer<int> _finalizer = Finalizer(instance._cleanupResource);
 
   int _nextId = 0;
 

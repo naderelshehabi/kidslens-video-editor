@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'converters.dart';
+import 'package:kidslens_video_editor/data/models/converters.dart';
 
 part 'frame_analysis_result.freezed.dart';
 part 'frame_analysis_result.g.dart';
@@ -8,8 +8,6 @@ part 'frame_analysis_result.g.dart';
 /// Result of NSFW classification for a frame
 @freezed
 class NsfwResult with _$NsfwResult {
-  const NsfwResult._();
-
   const factory NsfwResult({
     /// Probability of pornographic content
     required double porn,
@@ -27,19 +25,19 @@ class NsfwResult with _$NsfwResult {
     required double neutral,
   }) = _NsfwResult;
 
+  const NsfwResult._();
+
   factory NsfwResult.fromJson(Map<String, dynamic> json) =>
       _$NsfwResultFromJson(json);
 
   /// Creates a safe/neutral result
-  factory NsfwResult.safe() {
-    return const NsfwResult(
-      porn: 0.0,
-      sexy: 0.0,
-      hentai: 0.0,
-      drawings: 0.0,
-      neutral: 1.0,
-    );
-  }
+  factory NsfwResult.safe() => const NsfwResult(
+        porn: 0,
+        sexy: 0,
+        hentai: 0,
+        drawings: 0,
+        neutral: 1,
+      );
 
   /// Maximum NSFW score (highest of porn, sexy, hentai)
   double get maxNsfwScore => [porn, sexy, hentai].reduce((a, b) => a > b ? a : b);
@@ -75,8 +73,6 @@ class NsfwResult with _$NsfwResult {
 /// Result of violence classification for a frame
 @freezed
 class ViolenceResult with _$ViolenceResult {
-  const ViolenceResult._();
-
   const factory ViolenceResult({
     /// Probability of violent content
     required double violent,
@@ -85,16 +81,16 @@ class ViolenceResult with _$ViolenceResult {
     required double nonViolent,
   }) = _ViolenceResult;
 
+  const ViolenceResult._();
+
   factory ViolenceResult.fromJson(Map<String, dynamic> json) =>
       _$ViolenceResultFromJson(json);
 
   /// Creates a non-violent result
-  factory ViolenceResult.safe() {
-    return const ViolenceResult(
-      violent: 0.0,
-      nonViolent: 1.0,
-    );
-  }
+  factory ViolenceResult.safe() => const ViolenceResult(
+        violent: 0,
+        nonViolent: 1,
+      );
 
   /// Whether this frame is considered violent at a given threshold
   bool isViolentAtThreshold(double threshold) => violent >= threshold;
@@ -106,8 +102,6 @@ class ViolenceResult with _$ViolenceResult {
 /// Result of blood/gore detection for a frame
 @freezed
 class BloodResult with _$BloodResult {
-  const BloodResult._();
-
   const factory BloodResult({
     /// Probability of blood/gore presence
     required double score,
@@ -116,13 +110,13 @@ class BloodResult with _$BloodResult {
     List<BloodRegion>? regions,
   }) = _BloodResult;
 
+  const BloodResult._();
+
   factory BloodResult.fromJson(Map<String, dynamic> json) =>
       _$BloodResultFromJson(json);
 
   /// Creates a safe result with no blood detected
-  factory BloodResult.safe() {
-    return const BloodResult(score: 0.0);
-  }
+  factory BloodResult.safe() => const BloodResult(score: 0);
 
   /// Whether blood is detected at a given threshold
   bool isDetectedAtThreshold(double threshold) => score >= threshold;
@@ -158,8 +152,6 @@ class BloodRegion with _$BloodRegion {
 /// Result of weapons detection for a frame
 @freezed
 class WeaponsResult with _$WeaponsResult {
-  const WeaponsResult._();
-
   const factory WeaponsResult({
     /// Probability of weapon presence
     required double score,
@@ -168,13 +160,13 @@ class WeaponsResult with _$WeaponsResult {
     List<DetectedWeapon>? weapons,
   }) = _WeaponsResult;
 
+  const WeaponsResult._();
+
   factory WeaponsResult.fromJson(Map<String, dynamic> json) =>
       _$WeaponsResultFromJson(json);
 
   /// Creates a safe result with no weapons detected
-  factory WeaponsResult.safe() {
-    return const WeaponsResult(score: 0.0);
-  }
+  factory WeaponsResult.safe() => const WeaponsResult(score: 0);
 
   /// Whether weapons are detected at a given threshold
   bool isDetectedAtThreshold(double threshold) => score >= threshold;
@@ -216,8 +208,6 @@ class DetectedWeapon with _$DetectedWeapon {
 /// Complete analysis result for a single video frame
 @freezed
 class FrameAnalysisResult with _$FrameAnalysisResult {
-  const FrameAnalysisResult._();
-
   const factory FrameAnalysisResult({
     /// Frame number in the video
     required int frameNumber,
@@ -225,14 +215,14 @@ class FrameAnalysisResult with _$FrameAnalysisResult {
     /// Timestamp of the frame in the video
     @DurationConverter() required Duration timestamp,
 
-    /// Whether this frame is a scene change
-    @Default(false) bool isSceneChange,
-
     /// NSFW classification result
     required NsfwResult nsfw,
 
     /// Violence classification result
     required ViolenceResult violence,
+
+    /// Whether this frame is a scene change
+    @Default(false) bool isSceneChange,
 
     /// Blood/gore detection result (optional)
     BloodResult? blood,
@@ -247,6 +237,8 @@ class FrameAnalysisResult with _$FrameAnalysisResult {
     String? frameHash,
   }) = _FrameAnalysisResult;
 
+  const FrameAnalysisResult._();
+
   factory FrameAnalysisResult.fromJson(Map<String, dynamic> json) =>
       _$FrameAnalysisResultFromJson(json);
 
@@ -255,17 +247,16 @@ class FrameAnalysisResult with _$FrameAnalysisResult {
     required int frameNumber,
     required Duration timestamp,
     bool isSceneChange = false,
-  }) {
-    return FrameAnalysisResult(
-      frameNumber: frameNumber,
-      timestamp: timestamp,
-      isSceneChange: isSceneChange,
-      nsfw: NsfwResult.safe(),
-      violence: ViolenceResult.safe(),
-      blood: BloodResult.safe(),
-      weapons: WeaponsResult.safe(),
-    );
-  }
+  }) =>
+      FrameAnalysisResult(
+        frameNumber: frameNumber,
+        timestamp: timestamp,
+        isSceneChange: isSceneChange,
+        nsfw: NsfwResult.safe(),
+        violence: ViolenceResult.safe(),
+        blood: BloodResult.safe(),
+        weapons: WeaponsResult.safe(),
+      );
 
   /// Whether this frame has any NSFW content at threshold
   bool hasNsfwAt(double threshold) => nsfw.isNsfwAtThreshold(threshold);
@@ -287,12 +278,11 @@ class FrameAnalysisResult with _$FrameAnalysisResult {
     double violenceThreshold = 0.5,
     double bloodThreshold = 0.5,
     double weaponsThreshold = 0.5,
-  }) {
-    return !hasNsfwAt(nsfwThreshold) &&
-        !hasViolenceAt(violenceThreshold) &&
-        !hasBloodAt(bloodThreshold) &&
-        !hasWeaponsAt(weaponsThreshold);
-  }
+  }) =>
+      !hasNsfwAt(nsfwThreshold) &&
+      !hasViolenceAt(violenceThreshold) &&
+      !hasBloodAt(bloodThreshold) &&
+      !hasWeaponsAt(weaponsThreshold);
 
   /// Gets all detection scores above threshold
   Map<String, double> getDetectionsAboveThreshold({
@@ -334,32 +324,26 @@ class FrameAnalysisResult with _$FrameAnalysisResult {
 /// Extension for working with lists of frame analysis results
 extension FrameAnalysisResultListExtensions on List<FrameAnalysisResult> {
   /// Gets all frames with NSFW content at threshold
-  List<FrameAnalysisResult> withNsfwAt(double threshold) {
-    return where((f) => f.hasNsfwAt(threshold)).toList();
-  }
+  List<FrameAnalysisResult> withNsfwAt(double threshold) =>
+      where((f) => f.hasNsfwAt(threshold)).toList();
 
   /// Gets all frames with violence at threshold
-  List<FrameAnalysisResult> withViolenceAt(double threshold) {
-    return where((f) => f.hasViolenceAt(threshold)).toList();
-  }
+  List<FrameAnalysisResult> withViolenceAt(double threshold) =>
+      where((f) => f.hasViolenceAt(threshold)).toList();
 
   /// Gets all frames with blood at threshold
-  List<FrameAnalysisResult> withBloodAt(double threshold) {
-    return where((f) => f.hasBloodAt(threshold)).toList();
-  }
+  List<FrameAnalysisResult> withBloodAt(double threshold) =>
+      where((f) => f.hasBloodAt(threshold)).toList();
 
   /// Gets all frames with weapons at threshold
-  List<FrameAnalysisResult> withWeaponsAt(double threshold) {
-    return where((f) => f.hasWeaponsAt(threshold)).toList();
-  }
+  List<FrameAnalysisResult> withWeaponsAt(double threshold) =>
+      where((f) => f.hasWeaponsAt(threshold)).toList();
 
   /// Gets all scene change frames
-  List<FrameAnalysisResult> get sceneChanges {
-    return where((f) => f.isSceneChange).toList();
-  }
+  List<FrameAnalysisResult> get sceneChanges =>
+      where((f) => f.isSceneChange).toList();
 
   /// Gets frames in a time range
-  List<FrameAnalysisResult> inTimeRange(Duration start, Duration end) {
-    return where((f) => f.timestamp >= start && f.timestamp < end).toList();
-  }
+  List<FrameAnalysisResult> inTimeRange(Duration start, Duration end) =>
+      where((f) => f.timestamp >= start && f.timestamp < end).toList();
 }

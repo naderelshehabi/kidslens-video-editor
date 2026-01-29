@@ -2,12 +2,6 @@ import 'package:flutter/material.dart';
 
 /// Video player widget for displaying media
 class VideoPlayerWidget extends StatefulWidget {
-  final String? mediaPath;
-  final Duration currentPosition;
-  final bool isPlaying;
-  final VoidCallback? onPlayPause;
-  final ValueChanged<Duration>? onSeek;
-
   const VideoPlayerWidget({
     super.key,
     this.mediaPath,
@@ -16,6 +10,12 @@ class VideoPlayerWidget extends StatefulWidget {
     this.onPlayPause,
     this.onSeek,
   });
+
+  final String? mediaPath;
+  final Duration currentPosition;
+  final bool isPlaying;
+  final VoidCallback? onPlayPause;
+  final ValueChanged<Duration>? onSeek;
 
   @override
   State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
@@ -36,9 +36,9 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         alignment: Alignment.center,
         children: [
           // Video frame placeholder
-          Container(
+          const ColoredBox(
             color: Colors.black,
-            child: const Center(
+            child: Center(
               child: Icon(
                 Icons.movie,
                 size: 64,
@@ -54,8 +54,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     );
   }
 
-  Widget _buildPlaceholder(BuildContext context) {
-    return Container(
+  Widget _buildPlaceholder(BuildContext context) => ColoredBox(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Center(
         child: Column(
@@ -77,13 +76,11 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         ),
       ),
     );
-  }
 
-  Widget _buildControlsOverlay() {
-    return AnimatedOpacity(
+  Widget _buildControlsOverlay() => AnimatedOpacity(
       opacity: _showControls ? 1.0 : 0.0,
       duration: const Duration(milliseconds: 200),
-      child: Container(
+      child: ColoredBox(
         color: Colors.black38,
         child: Center(
           child: IconButton(
@@ -97,5 +94,4 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         ),
       ),
     );
-  }
 }

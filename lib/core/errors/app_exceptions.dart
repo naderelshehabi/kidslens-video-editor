@@ -1,16 +1,17 @@
+import 'package:flutter/foundation.dart';
 import 'package:kidslens_video_editor/data/models/gpu_info.dart';
 
 /// Base class for all KidsLens exceptions
 sealed class KidsLensException implements Exception {
-  final String message;
-  final String? technicalDetails;
-  final bool isRetryable;
-
   const KidsLensException(
     this.message, {
     this.technicalDetails,
     this.isRetryable = false,
   });
+
+  final String message;
+  final String? technicalDetails;
+  final bool isRetryable;
 
   /// User-friendly error message
   String get userMessage;
@@ -19,20 +20,21 @@ sealed class KidsLensException implements Exception {
   String get remediation;
 
   @override
-  String toString() => '$runtimeType: $message';
+  String toString() =>
+      '${objectRuntimeType(this, 'KidsLensException')}: $message';
 }
 
 /// Exception for model download failures
 class ModelDownloadException extends KidsLensException {
-  final String modelId;
-  final int? httpStatusCode;
-
   const ModelDownloadException(
     this.modelId, {
     String message = 'Failed to download model',
     String? technicalDetails,
     this.httpStatusCode,
   }) : super(message, technicalDetails: technicalDetails, isRetryable: true);
+
+  final String modelId;
+  final int? httpStatusCode;
 
   @override
   String get userMessage => 'Could not download the $modelId model.';
@@ -43,13 +45,13 @@ class ModelDownloadException extends KidsLensException {
 
 /// Exception for GPU initialization failures
 class GPUInitializationException extends KidsLensException {
-  final AcceleratorType attemptedType;
-
   const GPUInitializationException(
     this.attemptedType, {
     String message = 'GPU initialization failed',
     String? technicalDetails,
   }) : super(message, technicalDetails: technicalDetails, isRetryable: true);
+
+  final AcceleratorType attemptedType;
 
   @override
   String get userMessage =>
@@ -62,14 +64,14 @@ class GPUInitializationException extends KidsLensException {
 
 /// Exception for unsupported media formats
 class UnsupportedMediaException extends KidsLensException {
-  final String? codec;
-  final String? container;
-
   const UnsupportedMediaException({
     this.codec,
     this.container,
     String message = 'Unsupported media format',
   }) : super(message, isRetryable: false);
+
+  final String? codec;
+  final String? container;
 
   @override
   String get userMessage =>
@@ -82,12 +84,12 @@ class UnsupportedMediaException extends KidsLensException {
 
 /// Exception for corrupted media files
 class CorruptedMediaException extends KidsLensException {
-  final String? probeError;
-
   const CorruptedMediaException({
     this.probeError,
     String message = 'Media file appears corrupted',
   }) : super(message, isRetryable: false);
+
+  final String? probeError;
 
   @override
   String get userMessage => 'The media file could not be read properly.';
@@ -99,14 +101,14 @@ class CorruptedMediaException extends KidsLensException {
 
 /// Exception for out of memory conditions
 class OutOfMemoryException extends KidsLensException {
-  final int requiredMB;
-  final int availableMB;
-
   const OutOfMemoryException({
     required this.requiredMB,
     required this.availableMB,
     String message = 'Not enough memory',
   }) : super(message, isRetryable: true);
+
+  final int requiredMB;
+  final int availableMB;
 
   @override
   String get userMessage =>
@@ -119,14 +121,14 @@ class OutOfMemoryException extends KidsLensException {
 
 /// Exception for insufficient disk space
 class InsufficientDiskSpaceException extends KidsLensException {
-  final int requiredMB;
-  final int availableMB;
-
   const InsufficientDiskSpaceException({
     required this.requiredMB,
     required this.availableMB,
     String message = 'Not enough disk space',
   }) : super(message, isRetryable: true);
+
+  final int requiredMB;
+  final int availableMB;
 
   @override
   String get userMessage =>
@@ -138,13 +140,13 @@ class InsufficientDiskSpaceException extends KidsLensException {
 
 /// Exception for analysis failures
 class AnalysisException extends KidsLensException {
-  final String phase;
-
   const AnalysisException(
-    String message, {
+    super.message, {
     this.phase = 'unknown',
-    String? technicalDetails,
-  }) : super(message, technicalDetails: technicalDetails, isRetryable: true);
+    super.technicalDetails,
+  }) : super(isRetryable: true);
+
+  final String phase;
 
   @override
   String get userMessage => 'Analysis failed during $phase phase.';
@@ -157,9 +159,9 @@ class AnalysisException extends KidsLensException {
 /// Exception for export failures
 class ExportException extends KidsLensException {
   const ExportException(
-    String message, {
-    String? technicalDetails,
-  }) : super(message, technicalDetails: technicalDetails, isRetryable: true);
+    super.message, {
+    super.technicalDetails,
+  }) : super(isRetryable: true);
 
   @override
   String get userMessage => 'Failed to export the modified video.';
@@ -171,13 +173,13 @@ class ExportException extends KidsLensException {
 
 /// Exception for native library initialization
 class NativeLibraryException extends KidsLensException {
-  final String libraryName;
-
   const NativeLibraryException(
     this.libraryName, {
     String message = 'Failed to load native library',
     String? technicalDetails,
   }) : super(message, technicalDetails: technicalDetails, isRetryable: false);
+
+  final String libraryName;
 
   @override
   String get userMessage => 'Could not load $libraryName.';
@@ -189,13 +191,13 @@ class NativeLibraryException extends KidsLensException {
 
 /// Exception for model validation failures
 class ModelValidationException extends KidsLensException {
-  final String modelId;
-
   const ModelValidationException(
     this.modelId, {
     String message = 'Model validation failed',
     String? technicalDetails,
   }) : super(message, technicalDetails: technicalDetails, isRetryable: true);
+
+  final String modelId;
 
   @override
   String get userMessage => 'The model $modelId appears to be corrupted.';
@@ -206,12 +208,12 @@ class ModelValidationException extends KidsLensException {
 
 /// Exception for permission denied
 class PermissionDeniedException extends KidsLensException {
-  final String resource;
-
   const PermissionDeniedException(
     this.resource, {
     String message = 'Permission denied',
   }) : super(message, isRetryable: false);
+
+  final String resource;
 
   @override
   String get userMessage => 'Cannot access $resource.';

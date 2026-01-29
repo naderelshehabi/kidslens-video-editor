@@ -1,22 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/models/model_info.dart';
-import '../../themes/app_theme.dart';
+import 'package:kidslens_video_editor/data/models/model_info.dart';
+import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 
 /// Card widget for displaying model information
 class ModelCard extends StatelessWidget {
-  final ModelInfo model;
-  final bool isDownloaded;
-  final bool isSelected;
-  final bool isDownloading;
-  final double? downloadProgress;
-  final VoidCallback? onDownload;
-  final VoidCallback? onDelete;
-  final VoidCallback? onSelect;
-
   const ModelCard({
-    super.key,
     required this.model,
+    super.key,
     this.isDownloaded = false,
     this.isSelected = false,
     this.isDownloading = false,
@@ -26,9 +17,17 @@ class ModelCard extends StatelessWidget {
     this.onSelect,
   });
 
+  final ModelInfo model;
+  final bool isDownloaded;
+  final bool isSelected;
+  final bool isDownloading;
+  final double? downloadProgress;
+  final VoidCallback? onDownload;
+  final VoidCallback? onDelete;
+  final VoidCallback? onSelect;
+
   @override
-  Widget build(BuildContext context) {
-    return Card(
+  Widget build(BuildContext context) => Card(
       child: InkWell(
         onTap: isDownloaded ? onSelect : null,
         borderRadius: BorderRadius.circular(12),
@@ -105,13 +104,11 @@ class ModelCard extends StatelessWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildActiveTag(BuildContext context) {
-    return Container(
+  Widget _buildActiveTag(BuildContext context) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: AppTheme.successColor.withOpacity(0.2),
+        color: AppTheme.successColor.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(4),
       ),
       child: const Text(
@@ -123,7 +120,6 @@ class ModelCard extends StatelessWidget {
         ),
       ),
     );
-  }
 
   Widget _buildActionButton(BuildContext context) {
     if (isDownloading) {
@@ -183,9 +179,9 @@ class ModelCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: chipColor.withOpacity(0.1),
+        color: chipColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: chipColor.withOpacity(0.3)),
+        border: Border.all(color: chipColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -201,12 +197,10 @@ class ModelCard extends StatelessWidget {
     );
   }
 
-  IconData _getTypeIcon(ModelType type) {
-    return switch (type) {
+  IconData _getTypeIcon(ModelType type) => switch (type) {
       ModelType.asr => Icons.mic,
       ModelType.visual => Icons.image,
     };
-  }
 
   String _formatSize(int bytes) {
     if (bytes < 1024) return '$bytes B';

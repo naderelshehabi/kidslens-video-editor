@@ -8,28 +8,25 @@ class AboutScreen extends StatelessWidget {
   static const String _buildNumber = '1';
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('About'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildAppInfo(context),
-          const SizedBox(height: 24),
-          _buildFeatures(context),
-          const SizedBox(height: 24),
-          _buildCredits(context),
-          const SizedBox(height: 24),
-          _buildLegalSection(context),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(
+          title: const Text('About'),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildAppInfo(context),
+            const SizedBox(height: 24),
+            _buildFeatures(context),
+            const SizedBox(height: 24),
+            _buildCredits(context),
+            const SizedBox(height: 24),
+            _buildLegalSection(context),
+          ],
+        ),
+      );
 
-  Widget _buildAppInfo(BuildContext context) {
-    return Card(
+  Widget _buildAppInfo(BuildContext context) => Card(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -68,10 +65,8 @@ class AboutScreen extends StatelessWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildFeatures(BuildContext context) {
-    return Card(
+  Widget _buildFeatures(BuildContext context) => Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -82,27 +77,27 @@ class AboutScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
-            _FeatureItem(
+            const _FeatureItem(
               icon: Icons.mic_off,
               title: 'Profanity Detection',
               description: 'AI-powered audio analysis to detect profane language',
             ),
-            _FeatureItem(
+            const _FeatureItem(
               icon: Icons.visibility_off,
               title: 'Visual Content Analysis',
               description: 'Detect nudity, violence, and other sensitive content',
             ),
-            _FeatureItem(
+            const _FeatureItem(
               icon: Icons.edit,
               title: 'Smart Editing',
               description: 'Automatic muting, blurring, or cutting of detected content',
             ),
-            _FeatureItem(
+            const _FeatureItem(
               icon: Icons.language,
               title: 'Multi-Language Support',
               description: 'English, Spanish, Arabic and more languages',
             ),
-            _FeatureItem(
+            const _FeatureItem(
               icon: Icons.computer,
               title: '100% Offline Processing',
               description: 'All AI processing happens locally on your device',
@@ -111,10 +106,8 @@ class AboutScreen extends StatelessWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildCredits(BuildContext context) {
-    return Card(
+  Widget _buildCredits(BuildContext context) => Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -125,22 +118,22 @@ class AboutScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
-            _CreditItem(
+            const _CreditItem(
               name: 'whisper.cpp',
               description: 'Speech recognition',
               license: 'MIT License',
             ),
-            _CreditItem(
+            const _CreditItem(
               name: 'FFmpeg',
               description: 'Media processing',
               license: 'LGPL/GPL License',
             ),
-            _CreditItem(
+            const _CreditItem(
               name: 'ONNX Runtime',
               description: 'AI model inference',
               license: 'MIT License',
             ),
-            _CreditItem(
+            const _CreditItem(
               name: 'Meta MMS',
               description: 'Language identification',
               license: 'CC-BY-NC 4.0',
@@ -149,10 +142,8 @@ class AboutScreen extends StatelessWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildLegalSection(BuildContext context) {
-    return Card(
+  Widget _buildLegalSection(BuildContext context) => Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -187,7 +178,6 @@ class AboutScreen extends StatelessWidget {
         ),
       ),
     );
-  }
 
   void _showLicenses(BuildContext context) {
     showLicensePage(
@@ -226,19 +216,18 @@ class AboutScreen extends StatelessWidget {
 }
 
 class _FeatureItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String description;
-
   const _FeatureItem({
     required this.icon,
     required this.title,
     required this.description,
   });
 
+  final IconData icon;
+  final String title;
+  final String description;
+
   @override
-  Widget build(BuildContext context) {
-    return Padding(
+  Widget build(BuildContext context) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,23 +259,21 @@ class _FeatureItem extends StatelessWidget {
         ],
       ),
     );
-  }
 }
 
 class _CreditItem extends StatelessWidget {
-  final String name;
-  final String description;
-  final String license;
-
   const _CreditItem({
     required this.name,
     required this.description,
     required this.license,
   });
 
+  final String name;
+  final String description;
+  final String license;
+
   @override
-  Widget build(BuildContext context) {
-    return Padding(
+  Widget build(BuildContext context) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
@@ -319,5 +306,4 @@ class _CreditItem extends StatelessWidget {
         ],
       ),
     );
-  }
 }

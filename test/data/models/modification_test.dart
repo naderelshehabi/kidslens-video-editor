@@ -201,8 +201,7 @@ void main() {
           const VideoSkip(),
         ];
 
-        final results = modifications.map((mod) {
-          return switch (mod) {
+        final results = modifications.map((mod) => switch (mod) {
             AudioMute() => 'mute',
             AudioBeep() => 'beep',
             AudioReplace() => 'replace',
@@ -210,8 +209,7 @@ void main() {
             VideoPixelate() => 'pixelate',
             VideoBlackBox() => 'blackbox',
             VideoSkip() => 'skip',
-          };
-        }).toList();
+          },).toList();
 
         expect(results, equals([
           'mute',
@@ -221,7 +219,7 @@ void main() {
           'pixelate',
           'blackbox',
           'skip',
-        ]));
+        ]),);
       });
 
       test('should extract values in pattern matching', () {
@@ -230,7 +228,6 @@ void main() {
         final result = switch (mod) {
           AudioBeep(:final frequency, :final volume) =>
             'freq=$frequency, vol=$volume',
-          _ => 'other',
         };
 
         expect(result, equals('freq=880, vol=0.6'));
@@ -315,16 +312,16 @@ void main() {
 
     group('equality', () {
       test('should be equal when all fields match', () {
-        const mod1 = AudioBeep(frequency: 1000, volume: 0.5);
-        const mod2 = AudioBeep(frequency: 1000, volume: 0.5);
+        const mod1 = AudioBeep();
+        const mod2 = AudioBeep();
 
         expect(mod1, equals(mod2));
         expect(mod1.hashCode, equals(mod2.hashCode));
       });
 
       test('should not be equal when fields differ', () {
-        const mod1 = AudioBeep(frequency: 1000, volume: 0.5);
-        const mod2 = AudioBeep(frequency: 500, volume: 0.5);
+        const mod1 = AudioBeep();
+        const mod2 = AudioBeep(frequency: 500);
 
         expect(mod1, isNot(equals(mod2)));
       });
@@ -339,7 +336,7 @@ void main() {
 
     group('copyWith', () {
       test('should copy AudioBeep with modified fields', () {
-        const original = AudioBeep(frequency: 1000, volume: 0.5);
+        const original = AudioBeep();
         final copy = original.copyWith(frequency: 2000);
 
         expect(copy.frequency, equals(2000));
@@ -347,14 +344,14 @@ void main() {
       });
 
       test('should copy VideoBlur with modified intensity', () {
-        const original = VideoBlur(intensity: 20);
+        const original = VideoBlur();
         final copy = original.copyWith(intensity: 60);
 
         expect(copy.intensity, equals(60));
       });
 
       test('should copy VideoBlackBox with modified fields', () {
-        const original = VideoBlackBox(color: '#000000', opacity: 1.0);
+        const original = VideoBlackBox();
         final copy = original.copyWith(color: '#FF0000', opacity: 0.5);
 
         expect(copy.color, equals('#FF0000'));

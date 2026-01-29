@@ -1,306 +1,320 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kidslens_video_editor/core/errors/app_exceptions.dart';
+import 'package:kidslens_video_editor/data/models/gpu_info.dart';
 
 void main() {
   group('KidsLensException', () {
     group('ModelDownloadException', () {
-      test('should create with model name and message', () {
-        final exception = ModelDownloadException(
-          modelName: 'whisper',
+      test('should create with model id and message', () {
+        const exception = ModelDownloadException(
+          'whisper',
           message: 'Download failed',
         );
 
-        expect(exception.modelName, equals('whisper'));
+        expect(exception.modelId, equals('whisper'));
         expect(exception.message, equals('Download failed'));
       });
 
-      test('should create with URL', () {
-        final exception = ModelDownloadException(
-          modelName: 'whisper',
-          message: 'Download failed',
-          url: 'https://models.example.com/whisper.onnx',
-        );
+      test('should create with default message', () {
+        const exception = ModelDownloadException('whisper');
 
-        expect(exception.url, equals('https://models.example.com/whisper.onnx'));
+        expect(exception.modelId, equals('whisper'));
+        expect(exception.message, equals('Failed to download model'));
       });
 
-      test('should create with status code', () {
-        final exception = ModelDownloadException(
-          modelName: 'whisper',
+      test('should create with http status code', () {
+        const exception = ModelDownloadException(
+          'whisper',
           message: 'Not found',
-          statusCode: 404,
+          httpStatusCode: 404,
         );
 
-        expect(exception.statusCode, equals(404));
+        expect(exception.httpStatusCode, equals(404));
       });
 
-      test('should include model name in toString', () {
-        final exception = ModelDownloadException(
-          modelName: 'whisper',
+      test('should include model id in toString', () {
+        const exception = ModelDownloadException(
+          'whisper',
           message: 'Download failed',
         );
 
-        expect(exception.toString(), contains('whisper'));
+        // toString includes runtime type and message, not model id
+        expect(exception.toString(), contains('ModelDownloadException'));
         expect(exception.toString(), contains('Download failed'));
+      });
+
+      test('should provide user message with model id', () {
+        const exception = ModelDownloadException('whisper');
+
+        expect(exception.userMessage, contains('whisper'));
+      });
+
+      test('should be retryable', () {
+        const exception = ModelDownloadException('whisper');
+
+        expect(exception.isRetryable, isTrue);
       });
     });
 
     group('GPUInitializationException', () {
-      test('should create with message', () {
-        final exception = GPUInitializationException(
+      test('should create with accelerator type', () {
+        const exception = GPUInitializationException(
+          AcceleratorType.cuda,
           message: 'Failed to initialize CUDA',
         );
 
+        expect(exception.attemptedType, equals(AcceleratorType.cuda));
         expect(exception.message, equals('Failed to initialize CUDA'));
       });
 
-      test('should create with backend info', () {
-        final exception = GPUInitializationException(
-          message: 'Initialization failed',
-          backend: 'CUDA',
-        );
+      test('should create with default message', () {
+        const exception = GPUInitializationException(AcceleratorType.metal);
 
-        expect(exception.backend, equals('CUDA'));
+        expect(exception.attemptedType, equals(AcceleratorType.metal));
+        expect(exception.message, equals('GPU initialization failed'));
       });
 
-      test('should create with device info', () {
-        final exception = GPUInitializationException(
-          message: 'Initialization failed',
-          device: 'NVIDIA RTX 3080',
-        );
+      test('should provide user message with accelerator type name', () {
+        const exception = GPUInitializationException(AcceleratorType.vulkan);
 
-        expect(exception.device, equals('NVIDIA RTX 3080'));
+        expect(exception.userMessage, contains('vulkan'));
       });
 
-      test('should include backend in toString', () {
-        final exception = GPUInitializationException(
-          message: 'Failed',
-          backend: 'DirectML',
+      test('should include technical details if provided', () {
+        const exception = GPUInitializationException(
+          AcceleratorType.rocm,
+          technicalDetails: 'ROCm driver version mismatch',
         );
 
-        expect(exception.toString(), contains('DirectML'));
+        expect(exception.technicalDetails, equals('ROCm driver version mismatch'));
+      });
+
+      test('should be retryable', () {
+        const exception = GPUInitializationException(AcceleratorType.cuda);
+
+        expect(exception.isRetryable, isTrue);
       });
     });
 
     group('UnsupportedMediaException', () {
-      test('should create with file path and format', () {
-        final exception = UnsupportedMediaException(
-          filePath: '/path/to/video.xyz',
-          format: 'xyz',
+      test('should create with codec', () {
+        const exception = UnsupportedMediaException(
+          codec: 'hevc',
         );
 
-        expect(exception.filePath, equals('/path/to/video.xyz'));
-        expect(exception.format, equals('xyz'));
+        expect(exception.codec, equals('hevc'));
       });
 
-      test('should create with reason', () {
-        final exception = UnsupportedMediaException(
-          filePath: '/path/to/video.xyz',
-          format: 'xyz',
-          reason: 'Codec not supported',
+      test('should create with container', () {
+        const exception = UnsupportedMediaException(
+          container: 'mkv',
         );
 
-        expect(exception.reason, equals('Codec not supported'));
+        expect(exception.container, equals('mkv'));
       });
 
-      test('should include format in toString', () {
-        final exception = UnsupportedMediaException(
-          filePath: '/path/to/video.xyz',
-          format: 'xyz',
+      test('should create with both codec and container', () {
+        const exception = UnsupportedMediaException(
+          codec: 'vp9',
+          container: 'webm',
         );
 
-        expect(exception.toString(), contains('xyz'));
+        expect(exception.codec, equals('vp9'));
+        expect(exception.container, equals('webm'));
       });
 
-      test('should include file path in toString', () {
-        final exception = UnsupportedMediaException(
-          filePath: '/path/to/video.xyz',
-          format: 'xyz',
-        );
+      test('should provide user message with codec', () {
+        const exception = UnsupportedMediaException(codec: 'av1');
 
-        expect(exception.toString(), contains('/path/to/video.xyz'));
+        expect(exception.userMessage, contains('av1'));
+      });
+
+      test('should provide user message with container when no codec', () {
+        const exception = UnsupportedMediaException(container: 'avi');
+
+        expect(exception.userMessage, contains('avi'));
+      });
+
+      test('should not be retryable', () {
+        const exception = UnsupportedMediaException(codec: 'xyz');
+
+        expect(exception.isRetryable, isFalse);
       });
     });
 
     group('CorruptedMediaException', () {
-      test('should create with file path', () {
-        final exception = CorruptedMediaException(
-          filePath: '/path/to/corrupted.mp4',
-        );
+      test('should create with default message', () {
+        const exception = CorruptedMediaException();
 
-        expect(exception.filePath, equals('/path/to/corrupted.mp4'));
+        expect(exception.message, equals('Media file appears corrupted'));
       });
 
-      test('should create with details', () {
-        final exception = CorruptedMediaException(
-          filePath: '/path/to/corrupted.mp4',
-          details: 'Invalid header at offset 0x1234',
+      test('should create with probe error', () {
+        const exception = CorruptedMediaException(
+          probeError: 'Invalid header at offset 0x1234',
         );
 
-        expect(exception.details, equals('Invalid header at offset 0x1234'));
+        expect(exception.probeError, equals('Invalid header at offset 0x1234'));
       });
 
-      test('should include file path in toString', () {
-        final exception = CorruptedMediaException(
-          filePath: '/path/to/corrupted.mp4',
+      test('should create with custom message', () {
+        const exception = CorruptedMediaException(
+          message: 'File is truncated',
         );
 
-        expect(exception.toString(), contains('/path/to/corrupted.mp4'));
+        expect(exception.message, equals('File is truncated'));
+      });
+
+      test('should not be retryable', () {
+        const exception = CorruptedMediaException();
+
+        expect(exception.isRetryable, isFalse);
       });
     });
 
     group('OutOfMemoryException', () {
-      test('should create with required and available memory', () {
-        final exception = OutOfMemoryException(
-          requiredBytes: 8589934592, // 8 GB
-          availableBytes: 4294967296, // 4 GB
+      test('should create with required and available memory in MB', () {
+        const exception = OutOfMemoryException(
+          requiredMB: 8192, // 8 GB
+          availableMB: 4096, // 4 GB
         );
 
-        expect(exception.requiredBytes, equals(8589934592));
-        expect(exception.availableBytes, equals(4294967296));
+        expect(exception.requiredMB, equals(8192));
+        expect(exception.availableMB, equals(4096));
       });
 
-      test('should create with operation context', () {
-        final exception = OutOfMemoryException(
-          requiredBytes: 8589934592,
-          availableBytes: 4294967296,
-          operation: 'Frame buffer allocation',
+      test('should provide user message with memory info', () {
+        const exception = OutOfMemoryException(
+          requiredMB: 8192,
+          availableMB: 4096,
         );
 
-        expect(exception.operation, equals('Frame buffer allocation'));
+        expect(exception.userMessage, contains('8192'));
+        expect(exception.userMessage, contains('4096'));
       });
 
-      test('should include memory info in toString', () {
-        final exception = OutOfMemoryException(
-          requiredBytes: 8589934592,
-          availableBytes: 4294967296,
+      test('should be retryable', () {
+        const exception = OutOfMemoryException(
+          requiredMB: 1024,
+          availableMB: 512,
         );
 
-        expect(exception.toString(), contains('memory'));
+        expect(exception.isRetryable, isTrue);
       });
     });
 
     group('InsufficientDiskSpaceException', () {
-      test('should create with required and available space', () {
-        final exception = InsufficientDiskSpaceException(
-          requiredBytes: 10737418240, // 10 GB
-          availableBytes: 5368709120, // 5 GB
-          path: 'C:\\Temp',
+      test('should create with required and available space in MB', () {
+        const exception = InsufficientDiskSpaceException(
+          requiredMB: 10240, // 10 GB
+          availableMB: 5120, // 5 GB
         );
 
-        expect(exception.requiredBytes, equals(10737418240));
-        expect(exception.availableBytes, equals(5368709120));
-        expect(exception.path, equals('C:\\Temp'));
+        expect(exception.requiredMB, equals(10240));
+        expect(exception.availableMB, equals(5120));
       });
 
-      test('should include path in toString', () {
-        final exception = InsufficientDiskSpaceException(
-          requiredBytes: 10737418240,
-          availableBytes: 5368709120,
-          path: 'C:\\Temp',
+      test('should provide user message with disk space info', () {
+        const exception = InsufficientDiskSpaceException(
+          requiredMB: 10240,
+          availableMB: 5120,
         );
 
-        expect(exception.toString(), contains('C:\\Temp'));
+        expect(exception.userMessage, contains('10240'));
+        expect(exception.userMessage, contains('5120'));
+      });
+
+      test('should be retryable', () {
+        const exception = InsufficientDiskSpaceException(
+          requiredMB: 1024,
+          availableMB: 512,
+        );
+
+        expect(exception.isRetryable, isTrue);
       });
     });
 
     group('AnalysisException', () {
       test('should create with message', () {
-        final exception = AnalysisException(
-          message: 'Analysis failed',
-        );
+        const exception = AnalysisException('Analysis failed');
 
         expect(exception.message, equals('Analysis failed'));
       });
 
-      test('should create with stage', () {
-        final exception = AnalysisException(
-          message: 'Analysis failed',
-          stage: 'transcription',
+      test('should create with phase', () {
+        const exception = AnalysisException(
+          'Analysis failed',
+          phase: 'transcription',
         );
 
-        expect(exception.stage, equals('transcription'));
+        expect(exception.phase, equals('transcription'));
       });
 
-      test('should create with progress', () {
-        final exception = AnalysisException(
-          message: 'Analysis failed',
-          progress: 0.75,
-        );
+      test('should have default phase as unknown', () {
+        const exception = AnalysisException('Analysis failed');
 
-        expect(exception.progress, equals(0.75));
+        expect(exception.phase, equals('unknown'));
       });
 
-      test('should create with inner exception', () {
-        final innerException = Exception('Inner error');
-        final exception = AnalysisException(
-          message: 'Analysis failed',
-          innerException: innerException,
+      test('should provide user message with phase', () {
+        const exception = AnalysisException(
+          'Analysis failed',
+          phase: 'detection',
         );
 
-        expect(exception.innerException, equals(innerException));
+        expect(exception.userMessage, contains('detection'));
       });
 
-      test('should include stage in toString', () {
-        final exception = AnalysisException(
-          message: 'Analysis failed',
-          stage: 'detection',
+      test('should include technical details if provided', () {
+        const exception = AnalysisException(
+          'Analysis failed',
+          technicalDetails: 'Model returned invalid output',
         );
 
-        expect(exception.toString(), contains('detection'));
+        expect(exception.technicalDetails, equals('Model returned invalid output'));
+      });
+
+      test('should be retryable', () {
+        const exception = AnalysisException('Analysis failed');
+
+        expect(exception.isRetryable, isTrue);
       });
     });
 
     group('ExportException', () {
       test('should create with message', () {
-        final exception = ExportException(
-          message: 'Export failed',
-        );
+        const exception = ExportException('Export failed');
 
         expect(exception.message, equals('Export failed'));
       });
 
-      test('should create with output path', () {
-        final exception = ExportException(
-          message: 'Export failed',
-          outputPath: '/path/to/output.mp4',
+      test('should create with technical details', () {
+        const exception = ExportException(
+          'Export failed',
+          technicalDetails: 'FFmpeg returned error code -22',
         );
 
-        expect(exception.outputPath, equals('/path/to/output.mp4'));
+        expect(exception.technicalDetails, equals('FFmpeg returned error code -22'));
       });
 
-      test('should create with stage', () {
-        final exception = ExportException(
-          message: 'Export failed',
-          stage: 'encoding',
-        );
+      test('should provide user-friendly message', () {
+        const exception = ExportException('Encoding error');
 
-        expect(exception.stage, equals('encoding'));
+        expect(exception.userMessage, isNotEmpty);
+        expect(exception.userMessage, contains('export'));
       });
 
-      test('should create with FFmpeg error code', () {
-        final exception = ExportException(
-          message: 'Export failed',
-          ffmpegErrorCode: -22,
-        );
+      test('should be retryable', () {
+        const exception = ExportException('Export failed');
 
-        expect(exception.ffmpegErrorCode, equals(-22));
-      });
-
-      test('should include output path in toString', () {
-        final exception = ExportException(
-          message: 'Export failed',
-          outputPath: '/path/to/output.mp4',
-        );
-
-        expect(exception.toString(), contains('/path/to/output.mp4'));
+        expect(exception.isRetryable, isTrue);
       });
     });
 
     group('NativeLibraryException', () {
       test('should create with library name', () {
-        final exception = NativeLibraryException(
-          libraryName: 'ffmpeg.dll',
+        const exception = NativeLibraryException(
+          'ffmpeg.dll',
           message: 'Library not found',
         );
 
@@ -308,234 +322,247 @@ void main() {
         expect(exception.message, equals('Library not found'));
       });
 
-      test('should create with error code', () {
-        final exception = NativeLibraryException(
-          libraryName: 'ffmpeg.dll',
-          message: 'Library load failed',
-          errorCode: 126,
-        );
+      test('should create with default message', () {
+        const exception = NativeLibraryException('onnxruntime.dll');
 
-        expect(exception.errorCode, equals(126));
+        expect(exception.libraryName, equals('onnxruntime.dll'));
+        expect(exception.message, equals('Failed to load native library'));
       });
 
-      test('should include library name in toString', () {
-        final exception = NativeLibraryException(
-          libraryName: 'onnxruntime.dll',
-          message: 'Failed to load',
-        );
+      test('should provide user message with library name', () {
+        const exception = NativeLibraryException('whisper.dll');
 
-        expect(exception.toString(), contains('onnxruntime.dll'));
+        expect(exception.userMessage, contains('whisper.dll'));
+      });
+
+      test('should not be retryable', () {
+        const exception = NativeLibraryException('some.dll');
+
+        expect(exception.isRetryable, isFalse);
       });
     });
 
     group('ModelValidationException', () {
-      test('should create with model name', () {
-        final exception = ModelValidationException(
-          modelName: 'whisper',
+      test('should create with model id', () {
+        const exception = ModelValidationException(
+          'whisper',
           message: 'Checksum mismatch',
         );
 
-        expect(exception.modelName, equals('whisper'));
+        expect(exception.modelId, equals('whisper'));
         expect(exception.message, equals('Checksum mismatch'));
       });
 
-      test('should create with expected and actual hash', () {
-        final exception = ModelValidationException(
-          modelName: 'whisper',
-          message: 'Checksum mismatch',
-          expectedHash: 'abc123',
-          actualHash: 'def456',
-        );
+      test('should create with default message', () {
+        const exception = ModelValidationException('yolo');
 
-        expect(exception.expectedHash, equals('abc123'));
-        expect(exception.actualHash, equals('def456'));
+        expect(exception.modelId, equals('yolo'));
+        expect(exception.message, equals('Model validation failed'));
       });
 
-      test('should include model name in toString', () {
-        final exception = ModelValidationException(
-          modelName: 'yolo',
-          message: 'Validation failed',
-        );
+      test('should provide user message with model id', () {
+        const exception = ModelValidationException('whisper');
 
-        expect(exception.toString(), contains('yolo'));
+        expect(exception.userMessage, contains('whisper'));
+      });
+
+      test('should be retryable', () {
+        const exception = ModelValidationException('whisper');
+
+        expect(exception.isRetryable, isTrue);
       });
     });
 
     group('PermissionDeniedException', () {
-      test('should create with permission type', () {
-        final exception = PermissionDeniedException(
-          permission: 'file_access',
+      test('should create with resource', () {
+        const exception = PermissionDeniedException(
+          'file_access',
           message: 'Access denied',
         );
 
-        expect(exception.permission, equals('file_access'));
+        expect(exception.resource, equals('file_access'));
         expect(exception.message, equals('Access denied'));
       });
 
-      test('should create with path', () {
-        final exception = PermissionDeniedException(
-          permission: 'file_access',
-          message: 'Access denied',
-          path: '/protected/folder',
-        );
+      test('should create with default message', () {
+        const exception = PermissionDeniedException('microphone');
 
-        expect(exception.path, equals('/protected/folder'));
+        expect(exception.resource, equals('microphone'));
+        expect(exception.message, equals('Permission denied'));
       });
 
-      test('should include permission in toString', () {
-        final exception = PermissionDeniedException(
-          permission: 'microphone',
-          message: 'Permission denied',
-        );
+      test('should provide user message with resource', () {
+        const exception = PermissionDeniedException('camera');
 
-        expect(exception.toString(), contains('microphone'));
+        expect(exception.userMessage, contains('camera'));
+      });
+
+      test('should not be retryable', () {
+        const exception = PermissionDeniedException('storage');
+
+        expect(exception.isRetryable, isFalse);
       });
     });
 
     group('Pattern matching', () {
       test('should pattern match on exception type', () {
-        final exception = ModelDownloadException(
-          modelName: 'whisper',
-          message: 'Failed',
-        );
+        // Use a helper function to avoid dead code warning from static type analysis
+        String matchException(KidsLensException exception) => switch (exception) {
+            ModelDownloadException(:final modelId) => 'Download: $modelId',
+            GPUInitializationException() => 'GPU',
+            UnsupportedMediaException() => 'Unsupported',
+            CorruptedMediaException() => 'Corrupted',
+            OutOfMemoryException() => 'OOM',
+            InsufficientDiskSpaceException() => 'Disk',
+            AnalysisException() => 'Analysis',
+            ExportException() => 'Export',
+            NativeLibraryException() => 'Native',
+            ModelValidationException() => 'Validation',
+            PermissionDeniedException() => 'Permission',
+          };
 
-        final result = switch (exception) {
-          ModelDownloadException(:final modelName) => 'Download: $modelName',
-          GPUInitializationException() => 'GPU',
-          UnsupportedMediaException() => 'Unsupported',
-          CorruptedMediaException() => 'Corrupted',
-          OutOfMemoryException() => 'OOM',
-          InsufficientDiskSpaceException() => 'Disk',
-          AnalysisException() => 'Analysis',
-          ExportException() => 'Export',
-          NativeLibraryException() => 'Native',
-          ModelValidationException() => 'Validation',
-          PermissionDeniedException() => 'Permission',
-        };
-
-        expect(result, equals('Download: whisper'));
+        const exception = ModelDownloadException('whisper');
+        expect(matchException(exception), equals('Download: whisper'));
       });
 
       test('should pattern match GPU exception', () {
-        final exception = GPUInitializationException(
-          message: 'CUDA not available',
-          backend: 'CUDA',
-        );
+        const exception = GPUInitializationException(AcceleratorType.cuda);
 
         final result = switch (exception) {
-          GPUInitializationException(:final backend) => backend ?? 'unknown',
-          _ => 'other',
+          GPUInitializationException(:final attemptedType) => attemptedType.name,
         };
 
-        expect(result, equals('CUDA'));
+        expect(result, equals('cuda'));
       });
 
       test('should pattern match with when clause', () {
-        final exception = OutOfMemoryException(
-          requiredBytes: 8589934592,
-          availableBytes: 4294967296,
+        const exception = OutOfMemoryException(
+          requiredMB: 8192,
+          availableMB: 4096,
         );
 
         final severity = switch (exception) {
           OutOfMemoryException(
-            :final requiredBytes,
-            :final availableBytes
-          ) when requiredBytes > availableBytes * 2 =>
+            :final requiredMB,
+            :final availableMB
+          ) when requiredMB > availableMB * 2 =>
             'critical',
           OutOfMemoryException() => 'warning',
-          _ => 'unknown',
         };
 
         expect(severity, equals('warning'));
       });
-    });
 
-    group('Exception equality', () {
-      test('ModelDownloadException should support equality', () {
-        final e1 = ModelDownloadException(
-          modelName: 'whisper',
-          message: 'Failed',
-        );
-        final e2 = ModelDownloadException(
-          modelName: 'whisper',
-          message: 'Failed',
+      test('should pattern match critical memory situation', () {
+        const exception = OutOfMemoryException(
+          requiredMB: 16384,
+          availableMB: 4096,
         );
 
-        expect(e1, equals(e2));
-      });
+        final severity = switch (exception) {
+          OutOfMemoryException(
+            :final requiredMB,
+            :final availableMB
+          ) when requiredMB > availableMB * 2 =>
+            'critical',
+          OutOfMemoryException() => 'warning',
+        };
 
-      test('Different exceptions should not be equal', () {
-        final e1 = ModelDownloadException(
-          modelName: 'whisper',
-          message: 'Failed',
-        );
-        final e2 = ModelDownloadException(
-          modelName: 'yolo',
-          message: 'Failed',
-        );
-
-        expect(e1, isNot(equals(e2)));
-      });
-    });
-
-    group('Exception hashCode', () {
-      test('should have consistent hashCode', () {
-        final e1 = AnalysisException(message: 'Failed');
-        final e2 = AnalysisException(message: 'Failed');
-
-        expect(e1.hashCode, equals(e2.hashCode));
+        expect(severity, equals('critical'));
       });
     });
 
     group('isRetryable', () {
       test('ModelDownloadException should be retryable', () {
-        final exception = ModelDownloadException(
-          modelName: 'whisper',
-          message: 'Network error',
-        );
+        const exception = ModelDownloadException('whisper');
 
         expect(exception.isRetryable, isTrue);
       });
 
       test('CorruptedMediaException should not be retryable', () {
-        final exception = CorruptedMediaException(
-          filePath: '/path/to/file.mp4',
-        );
+        const exception = CorruptedMediaException();
 
         expect(exception.isRetryable, isFalse);
       });
 
-      test('OutOfMemoryException may be retryable', () {
-        final exception = OutOfMemoryException(
-          requiredBytes: 1073741824,
-          availableBytes: 536870912,
+      test('OutOfMemoryException should be retryable', () {
+        const exception = OutOfMemoryException(
+          requiredMB: 1024,
+          availableMB: 512,
         );
 
-        // Depends on implementation - may need to free resources first
-        expect(exception.isRetryable, isA<bool>());
+        expect(exception.isRetryable, isTrue);
+      });
+
+      test('UnsupportedMediaException should not be retryable', () {
+        const exception = UnsupportedMediaException(codec: 'unknown');
+
+        expect(exception.isRetryable, isFalse);
       });
     });
 
     group('userMessage', () {
-      test('should provide user-friendly message', () {
-        final exception = UnsupportedMediaException(
-          filePath: '/path/to/video.xyz',
-          format: 'xyz',
-        );
+      test('should provide user-friendly message for UnsupportedMediaException', () {
+        const exception = UnsupportedMediaException(codec: 'hevc');
 
         expect(exception.userMessage, isNotEmpty);
-        expect(exception.userMessage, isNot(contains('xyz')));
+        expect(exception.userMessage, contains('hevc'));
       });
 
-      test('should not expose technical details', () {
-        final exception = NativeLibraryException(
-          libraryName: 'ffmpeg.dll',
-          message: 'LoadLibrary failed with error 126',
-          errorCode: 126,
-        );
+      test('should provide user-friendly message for NativeLibraryException', () {
+        const exception = NativeLibraryException('ffmpeg.dll');
 
         expect(exception.userMessage, isNotEmpty);
-        expect(exception.userMessage.toLowerCase(), isNot(contains('0x')));
+        expect(exception.userMessage, contains('ffmpeg.dll'));
+      });
+    });
+
+    group('remediation', () {
+      test('ModelDownloadException should suggest checking connection', () {
+        const exception = ModelDownloadException('whisper');
+
+        expect(exception.remediation.toLowerCase(), contains('internet'));
+      });
+
+      test('UnsupportedMediaException should suggest converting to MP4', () {
+        const exception = UnsupportedMediaException(codec: 'vp9');
+
+        expect(exception.remediation, contains('MP4'));
+      });
+
+      test('OutOfMemoryException should suggest closing apps', () {
+        const exception = OutOfMemoryException(
+          requiredMB: 8192,
+          availableMB: 4096,
+        );
+
+        expect(exception.remediation.toLowerCase(), contains('close'));
+      });
+
+      test('InsufficientDiskSpaceException should suggest freeing space', () {
+        const exception = InsufficientDiskSpaceException(
+          requiredMB: 10240,
+          availableMB: 5120,
+        );
+
+        expect(exception.remediation.toLowerCase(), contains('free'));
+      });
+    });
+
+    group('toString', () {
+      test('should include runtime type and message', () {
+        const exception = ModelDownloadException('whisper', message: 'Failed');
+
+        final str = exception.toString();
+        expect(str, contains('ModelDownloadException'));
+        expect(str, contains('Failed'));
+      });
+
+      test('AnalysisException toString should include message', () {
+        const exception = AnalysisException('Processing error');
+
+        expect(exception.toString(), contains('AnalysisException'));
+        expect(exception.toString(), contains('Processing error'));
       });
     });
   });

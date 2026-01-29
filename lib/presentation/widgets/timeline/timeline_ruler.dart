@@ -2,22 +2,22 @@ import 'package:flutter/material.dart';
 
 /// Timeline ruler showing time markers
 class TimelineRuler extends StatelessWidget {
-  final Duration duration;
-  final double zoom;
-  final ScrollController scrollController;
-
   const TimelineRuler({
-    super.key,
     required this.duration,
     required this.zoom,
     required this.scrollController,
+    super.key,
   });
+
+  final Duration duration;
+  final double zoom;
+  final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context) {
     final width = duration.inMilliseconds * zoom / 10;
 
-    return Container(
+    return ColoredBox(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: SingleChildScrollView(
         controller: scrollController,
@@ -39,17 +39,17 @@ class TimelineRuler extends StatelessWidget {
 }
 
 class _TimelineRulerPainter extends CustomPainter {
-  final Duration duration;
-  final double zoom;
-  final Color textColor;
-  final Color lineColor;
-
   _TimelineRulerPainter({
     required this.duration,
     required this.zoom,
     required this.textColor,
     required this.lineColor,
   });
+
+  final Duration duration;
+  final double zoom;
+  final Color textColor;
+  final Color lineColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -77,15 +77,16 @@ class _TimelineRulerPainter extends CustomPainter {
 
       // Draw time label
       final label = _formatTime(seconds);
-      textPainter.text = TextSpan(
-        text: label,
-        style: TextStyle(color: textColor, fontSize: 10),
-      );
-      textPainter.layout();
-      textPainter.paint(
-        canvas,
-        Offset(x - textPainter.width / 2, 4),
-      );
+      textPainter
+        ..text = TextSpan(
+          text: label,
+          style: TextStyle(color: textColor, fontSize: 10),
+        )
+        ..layout()
+        ..paint(
+          canvas,
+          Offset(x - textPainter.width / 2, 4),
+        );
 
       // Draw minor ticks
       if (intervalSeconds >= 5) {
@@ -95,7 +96,7 @@ class _TimelineRulerPainter extends CustomPainter {
             canvas.drawLine(
               Offset(minorX, size.height - 8),
               Offset(minorX, size.height),
-              paint..color = lineColor.withOpacity(0.5),
+              paint..color = lineColor.withValues(alpha: 0.5),
             );
           }
         }
@@ -119,9 +120,7 @@ class _TimelineRulerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _TimelineRulerPainter oldDelegate) {
-    return oldDelegate.duration != duration ||
+  bool shouldRepaint(covariant _TimelineRulerPainter oldDelegate) => oldDelegate.duration != duration ||
         oldDelegate.zoom != zoom ||
         oldDelegate.textColor != textColor;
-  }
 }

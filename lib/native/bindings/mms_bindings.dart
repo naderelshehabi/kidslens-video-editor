@@ -1,11 +1,12 @@
 import 'dart:ffi';
 import 'dart:io';
 
-import '../../data/models/transcript.dart';
-import '../resource_manager.dart';
+import 'package:kidslens_video_editor/data/models/transcript.dart';
+import 'package:kidslens_video_editor/native/resource_manager.dart';
 
 /// FFI bindings for Meta MMS (Massively Multilingual Speech)
 class MMSBindings extends NativeResource {
+  // ignore: unused_field - Will be used when FFI is fully implemented
   DynamicLibrary? _lib;
   bool _initialized = false;
 
@@ -45,25 +46,25 @@ class MMSBindings extends NativeResource {
     final detectedLanguage = language ?? 'en';
     return Transcript(
       segments: [
-        TranscriptSegment(
+        const TranscriptSegment(
           id: 'segment_0',
           text: 'Placeholder MMS transcription',
           startTime: Duration.zero,
-          endTime: const Duration(seconds: 5),
+          endTime: Duration(seconds: 5),
           words: [
-            const TranscriptWord(
+            TranscriptWord(
               word: 'Placeholder',
               startTime: Duration.zero,
               endTime: Duration(milliseconds: 500),
               confidence: 0.90,
             ),
-            const TranscriptWord(
+            TranscriptWord(
               word: 'MMS',
               startTime: Duration(milliseconds: 500),
               endTime: Duration(milliseconds: 750),
               confidence: 0.88,
             ),
-            const TranscriptWord(
+            TranscriptWord(
               word: 'transcription',
               startTime: Duration(milliseconds: 750),
               endTime: Duration(seconds: 1),
@@ -111,8 +112,9 @@ class MMSBindings extends NativeResource {
 
 /// Exception thrown when MMS initialization fails
 class MMSInitializationException implements Exception {
-  final String message;
   MMSInitializationException(this.message);
+
+  final String message;
 
   @override
   String toString() => 'MMSInitializationException: $message';

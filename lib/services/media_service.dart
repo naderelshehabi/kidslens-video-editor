@@ -5,14 +5,14 @@ import 'package:kidslens_video_editor/native/bindings/ffmpeg_bindings.dart';
 
 /// Service for media file operations
 class MediaService {
-  final FFmpegBindings _ffmpeg;
-
   MediaService(this._ffmpeg);
+
+  final FFmpegBindings _ffmpeg;
 
   /// Import a media file and extract metadata
   Future<MediaFile> importMedia(String path) async {
     final file = File(path);
-    if (!await file.exists()) {
+    if (!file.existsSync()) {
       throw MediaFileNotFoundException(path);
     }
 
@@ -35,9 +35,8 @@ class MediaService {
   }
 
   /// Extract audio track from video file
-  Future<String> extractAudio(String videoPath, String outputPath) async {
-    return _ffmpeg.extractAudio(videoPath, outputPath);
-  }
+  Future<String> extractAudio(String videoPath, String outputPath) async =>
+      _ffmpeg.extractAudio(videoPath, outputPath);
 
   /// Extract frames from video at specified FPS
   Stream<FrameData> extractFrames(
@@ -45,19 +44,16 @@ class MediaService {
     double fps = 2.0,
     int? startFrame,
     int? endFrame,
-  }) {
-    return _ffmpeg.extractFrames(
+  }) => _ffmpeg.extractFrames(
       videoPath,
       fps: fps,
       startFrame: startFrame,
       endFrame: endFrame,
     );
-  }
 
   /// Generate thumbnail for a video
-  Future<String> generateThumbnail(String videoPath, String outputPath) async {
-    return _ffmpeg.generateThumbnail(videoPath, outputPath);
-  }
+  Future<String> generateThumbnail(String videoPath, String outputPath) async =>
+      _ffmpeg.generateThumbnail(videoPath, outputPath);
 
   /// Get the duration of a media file
   Future<Duration> getDuration(String path) async {
@@ -78,8 +74,9 @@ class MediaService {
 
 /// Exception thrown when a media file is not found
 class MediaFileNotFoundException implements Exception {
-  final String path;
   MediaFileNotFoundException(this.path);
+
+  final String path;
 
   @override
   String toString() => 'Media file not found: $path';
@@ -87,12 +84,6 @@ class MediaFileNotFoundException implements Exception {
 
 /// Represents extracted frame data
 class FrameData {
-  final int frameNumber;
-  final Duration timestamp;
-  final List<int> rgbData;
-  final int width;
-  final int height;
-
   FrameData({
     required this.frameNumber,
     required this.timestamp,
@@ -100,25 +91,24 @@ class FrameData {
     required this.width,
     required this.height,
   });
+
+  final int frameNumber;
+  final Duration timestamp;
+  final List<int> rgbData;
+  final int width;
+  final int height;
 }
 
 /// Resolution of a video file
 class Resolution {
+  const Resolution({required this.width, required this.height});
+
   final int width;
   final int height;
-
-  const Resolution({required this.width, required this.height});
 }
 
 /// Metadata extracted from a media file
 class MediaMetadata {
-  final Duration duration;
-  final int fileSizeBytes;
-  final Resolution resolution;
-  final double frameRate;
-  final String? videoCodec;
-  final String? audioCodec;
-
   const MediaMetadata({
     required this.duration,
     required this.fileSizeBytes,
@@ -127,4 +117,11 @@ class MediaMetadata {
     this.videoCodec,
     this.audioCodec,
   });
+
+  final Duration duration;
+  final int fileSizeBytes;
+  final Resolution resolution;
+  final double frameRate;
+  final String? videoCodec;
+  final String? audioCodec;
 }

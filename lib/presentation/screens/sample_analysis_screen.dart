@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../data/models/detection.dart';
-import '../../state/providers/media_provider.dart';
-import '../themes/app_theme.dart';
+import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
+import 'package:kidslens_video_editor/state/providers/media_provider.dart';
 
 /// Screen for sample/preview analysis results
 class SampleAnalysisScreen extends ConsumerWidget {
-  final List<Detection> detections;
-  final Duration sampleDuration;
-
   const SampleAnalysisScreen({
-    super.key,
     required this.detections,
     required this.sampleDuration,
+    super.key,
   });
+
+  final List<Detection> detections;
+  final Duration sampleDuration;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -42,8 +41,7 @@ class SampleAnalysisScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSampleInfo(BuildContext context, MediaState mediaState) {
-    return Container(
+  Widget _buildSampleInfo(BuildContext context, MediaState mediaState) => Container(
       padding: const EdgeInsets.all(16),
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Row(
@@ -69,8 +67,8 @@ class SampleAnalysisScreen extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: detections.isEmpty
-                  ? AppTheme.successColor.withOpacity(0.2)
-                  : AppTheme.warningColor.withOpacity(0.2),
+                  ? AppTheme.successColor.withValues(alpha: 0.2)
+                  : AppTheme.warningColor.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
@@ -86,14 +84,12 @@ class SampleAnalysisScreen extends ConsumerWidget {
         ],
       ),
     );
-  }
 
-  Widget _buildNoDetections(BuildContext context) {
-    return Center(
+  Widget _buildNoDetections(BuildContext context) => Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
+          const Icon(
             Icons.check_circle,
             size: 64,
             color: AppTheme.successColor,
@@ -111,7 +107,6 @@ class SampleAnalysisScreen extends ConsumerWidget {
         ],
       ),
     );
-  }
 
   Widget _buildDetectionsList(BuildContext context) {
     // Group by type
@@ -157,7 +152,7 @@ class SampleAnalysisScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
+            color: color.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
@@ -173,8 +168,7 @@ class SampleAnalysisScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDetectionItem(BuildContext context, Detection detection) {
-    return Card(
+  Widget _buildDetectionItem(BuildContext context, Detection detection) => Card(
       child: ListTile(
         leading: Icon(
           _getDetectionIcon(detection.type.name),
@@ -190,10 +184,8 @@ class SampleAnalysisScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildActions(BuildContext context, WidgetRef ref) {
-    return SafeArea(
+  Widget _buildActions(BuildContext context, WidgetRef ref) => SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -218,10 +210,8 @@ class SampleAnalysisScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
 
-  IconData _getDetectionIcon(String type) {
-    return switch (type) {
+  IconData _getDetectionIcon(String type) => switch (type) {
       'profanity' => Icons.mic_off,
       'nudity' => Icons.visibility_off,
       'violence' => Icons.warning,
@@ -229,7 +219,6 @@ class SampleAnalysisScreen extends ConsumerWidget {
       'weapons' => Icons.gpp_bad,
       _ => Icons.error,
     };
-  }
 
   String _formatTime(Duration duration) {
     final minutes = duration.inMinutes;

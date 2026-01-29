@@ -36,11 +36,12 @@ void main() {
   group('Detection', () {
     group('creation', () {
       test('should create a detection with all required fields', () {
-        final detection = Detection(
+        const detection = Detection(
           id: 'det-1',
+          mediaId: 'media-1',
           type: ContentType.nsfw,
-          startTime: const Duration(seconds: 10),
-          endTime: const Duration(seconds: 15),
+          startTime: Duration(seconds: 10),
+          endTime: Duration(seconds: 15),
           confidence: 0.95,
           description: 'NSFW content detected',
         );
@@ -55,11 +56,12 @@ void main() {
       });
 
       test('should have pending status by default', () {
-        final detection = Detection(
+        const detection = Detection(
           id: 'det-1',
+          mediaId: 'media-1',
           type: ContentType.violence,
           startTime: Duration.zero,
-          endTime: const Duration(seconds: 5),
+          endTime: Duration(seconds: 5),
           confidence: 0.8,
           description: 'Violence detected',
         );
@@ -72,6 +74,7 @@ void main() {
       test('should create a profanity detection with correct defaults', () {
         final detection = Detection.profanity(
           id: 'prof-1',
+          mediaId: 'media-1',
           startTime: const Duration(seconds: 30),
           endTime: const Duration(seconds: 31),
           confidence: 0.99,
@@ -89,6 +92,7 @@ void main() {
       test('should create a visual detection with default description', () {
         final detection = Detection.visual(
           id: 'vis-1',
+          mediaId: 'media-1',
           type: ContentType.violence,
           startTime: const Duration(minutes: 1),
           endTime: const Duration(minutes: 1, seconds: 5),
@@ -103,6 +107,7 @@ void main() {
       test('should use provided description if given', () {
         final detection = Detection.visual(
           id: 'vis-2',
+          mediaId: 'media-1',
           type: ContentType.blood,
           startTime: Duration.zero,
           endTime: const Duration(seconds: 10),
@@ -116,11 +121,12 @@ void main() {
 
     group('computed properties', () {
       test('duration should calculate correctly', () {
-        final detection = Detection(
+        const detection = Detection(
           id: 'det-1',
+          mediaId: 'media-1',
           type: ContentType.nsfw,
-          startTime: const Duration(seconds: 10),
-          endTime: const Duration(seconds: 25),
+          startTime: Duration(seconds: 10),
+          endTime: Duration(seconds: 25),
           confidence: 0.9,
           description: 'Test',
         );
@@ -130,25 +136,26 @@ void main() {
 
       group('review status checks', () {
         test('isReviewed should return false for pending', () {
-          final detection = Detection(
+          const detection = Detection(
             id: 'det-1',
+            mediaId: 'media-1',
             type: ContentType.nsfw,
             startTime: Duration.zero,
-            endTime: const Duration(seconds: 5),
+            endTime: Duration(seconds: 5),
             confidence: 0.9,
             description: 'Test',
-            userStatus: DetectionUserStatus.pending,
           );
 
           expect(detection.isReviewed, isFalse);
         });
 
         test('isReviewed should return true for confirmed', () {
-          final detection = Detection(
+          const detection = Detection(
             id: 'det-1',
+            mediaId: 'media-1',
             type: ContentType.nsfw,
             startTime: Duration.zero,
-            endTime: const Duration(seconds: 5),
+            endTime: Duration(seconds: 5),
             confidence: 0.9,
             description: 'Test',
             userStatus: DetectionUserStatus.confirmed,
@@ -159,11 +166,12 @@ void main() {
         });
 
         test('isRejected should return true for rejected status', () {
-          final detection = Detection(
+          const detection = Detection(
             id: 'det-1',
+            mediaId: 'media-1',
             type: ContentType.nsfw,
             startTime: Duration.zero,
-            endTime: const Duration(seconds: 5),
+            endTime: Duration(seconds: 5),
             confidence: 0.9,
             description: 'Test',
             userStatus: DetectionUserStatus.rejected,
@@ -173,11 +181,12 @@ void main() {
         });
 
         test('isAdjusted should return true for adjusted status', () {
-          final detection = Detection(
+          const detection = Detection(
             id: 'det-1',
+            mediaId: 'media-1',
             type: ContentType.nsfw,
             startTime: Duration.zero,
-            endTime: const Duration(seconds: 5),
+            endTime: Duration(seconds: 5),
             confidence: 0.9,
             description: 'Test',
             userStatus: DetectionUserStatus.adjusted,
@@ -189,11 +198,12 @@ void main() {
 
       group('detection type checks', () {
         test('isAudioDetection should return true for profanity', () {
-          final detection = Detection(
+          const detection = Detection(
             id: 'det-1',
+            mediaId: 'media-1',
             type: ContentType.profanity,
             startTime: Duration.zero,
-            endTime: const Duration(seconds: 1),
+            endTime: Duration(seconds: 1),
             confidence: 0.9,
             description: 'Test',
           );
@@ -211,6 +221,7 @@ void main() {
           ]) {
             final detection = Detection(
               id: 'det-1',
+              mediaId: 'media-1',
               type: type,
               startTime: Duration.zero,
               endTime: const Duration(seconds: 1),
@@ -226,11 +237,12 @@ void main() {
 
       group('confidence checks', () {
         test('isHighConfidence should return true for >= 0.9', () {
-          final high = Detection(
+          const high = Detection(
             id: 'det-1',
+            mediaId: 'media-1',
             type: ContentType.nsfw,
             startTime: Duration.zero,
-            endTime: const Duration(seconds: 1),
+            endTime: Duration(seconds: 1),
             confidence: 0.9,
             description: 'Test',
           );
@@ -239,11 +251,12 @@ void main() {
         });
 
         test('isLowConfidence should return true for < 0.7', () {
-          final low = Detection(
+          const low = Detection(
             id: 'det-1',
+            mediaId: 'media-1',
             type: ContentType.nsfw,
             startTime: Duration.zero,
-            endTime: const Duration(seconds: 1),
+            endTime: Duration(seconds: 1),
             confidence: 0.65,
             description: 'Test',
           );
@@ -255,11 +268,12 @@ void main() {
       group('typeDisplayName', () {
         test('should return correct display names', () {
           expect(
-            Detection(
+            const Detection(
               id: 'id',
+              mediaId: 'media-1',
               type: ContentType.nsfw,
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 1),
+              endTime: Duration(seconds: 1),
               confidence: 0.9,
               description: 'Test',
             ).typeDisplayName,
@@ -267,11 +281,12 @@ void main() {
           );
 
           expect(
-            Detection(
+            const Detection(
               id: 'id',
+              mediaId: 'media-1',
               type: ContentType.violence,
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 1),
+              endTime: Duration(seconds: 1),
               confidence: 0.9,
               description: 'Test',
             ).typeDisplayName,
@@ -279,11 +294,12 @@ void main() {
           );
 
           expect(
-            Detection(
+            const Detection(
               id: 'id',
+              mediaId: 'media-1',
               type: ContentType.blood,
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 1),
+              endTime: Duration(seconds: 1),
               confidence: 0.9,
               description: 'Test',
             ).typeDisplayName,
@@ -291,11 +307,12 @@ void main() {
           );
 
           expect(
-            Detection(
+            const Detection(
               id: 'id',
+              mediaId: 'media-1',
               type: ContentType.profanity,
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 1),
+              endTime: Duration(seconds: 1),
               confidence: 0.9,
               description: 'Test',
             ).typeDisplayName,
@@ -303,11 +320,12 @@ void main() {
           );
 
           expect(
-            Detection(
+            const Detection(
               id: 'id',
+              mediaId: 'media-1',
               type: ContentType.weapons,
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 1),
+              endTime: Duration(seconds: 1),
               confidence: 0.9,
               description: 'Test',
             ).typeDisplayName,
@@ -319,11 +337,12 @@ void main() {
 
     group('overlap detection', () {
       test('overlapsWithRange should detect overlapping ranges', () {
-        final detection = Detection(
+        const detection = Detection(
           id: 'det-1',
+          mediaId: 'media-1',
           type: ContentType.nsfw,
-          startTime: const Duration(seconds: 10),
-          endTime: const Duration(seconds: 20),
+          startTime: Duration(seconds: 10),
+          endTime: Duration(seconds: 20),
           confidence: 0.9,
           description: 'Test',
         );
@@ -340,7 +359,7 @@ void main() {
         // Non-overlapping range (before)
         expect(
           detection.overlapsWithRange(
-            const Duration(seconds: 0),
+            const Duration(),
             const Duration(seconds: 10),
           ),
           isFalse,
@@ -357,20 +376,22 @@ void main() {
       });
 
       test('overlapsWith should detect overlapping detections', () {
-        final det1 = Detection(
+        const det1 = Detection(
           id: 'det-1',
+          mediaId: 'media-1',
           type: ContentType.nsfw,
-          startTime: const Duration(seconds: 10),
-          endTime: const Duration(seconds: 20),
+          startTime: Duration(seconds: 10),
+          endTime: Duration(seconds: 20),
           confidence: 0.9,
           description: 'Test',
         );
 
-        final det2 = Detection(
+        const det2 = Detection(
           id: 'det-2',
+          mediaId: 'media-1',
           type: ContentType.violence,
-          startTime: const Duration(seconds: 15),
-          endTime: const Duration(seconds: 25),
+          startTime: Duration(seconds: 15),
+          endTime: Duration(seconds: 25),
           confidence: 0.8,
           description: 'Test',
         );
@@ -380,11 +401,12 @@ void main() {
       });
 
       test('containsTime should check if time is within detection', () {
-        final detection = Detection(
+        const detection = Detection(
           id: 'det-1',
+          mediaId: 'media-1',
           type: ContentType.nsfw,
-          startTime: const Duration(seconds: 10),
-          endTime: const Duration(seconds: 20),
+          startTime: Duration(seconds: 10),
+          endTime: Duration(seconds: 20),
           confidence: 0.9,
           description: 'Test',
         );
@@ -398,11 +420,12 @@ void main() {
 
     group('user actions', () {
       test('confirm should set status to confirmed', () {
-        final detection = Detection(
+        const detection = Detection(
           id: 'det-1',
+          mediaId: 'media-1',
           type: ContentType.nsfw,
           startTime: Duration.zero,
-          endTime: const Duration(seconds: 5),
+          endTime: Duration(seconds: 5),
           confidence: 0.9,
           description: 'Test',
         );
@@ -414,11 +437,12 @@ void main() {
       });
 
       test('reject should set status to rejected', () {
-        final detection = Detection(
+        const detection = Detection(
           id: 'det-1',
+          mediaId: 'media-1',
           type: ContentType.nsfw,
           startTime: Duration.zero,
-          endTime: const Duration(seconds: 5),
+          endTime: Duration(seconds: 5),
           confidence: 0.9,
           description: 'Test',
         );
@@ -430,11 +454,12 @@ void main() {
       });
 
       test('adjustTimeRange should update times and set adjusted status', () {
-        final detection = Detection(
+        const detection = Detection(
           id: 'det-1',
+          mediaId: 'media-1',
           type: ContentType.nsfw,
-          startTime: const Duration(seconds: 10),
-          endTime: const Duration(seconds: 20),
+          startTime: Duration(seconds: 10),
+          endTime: Duration(seconds: 20),
           confidence: 0.9,
           description: 'Test',
         );
@@ -454,11 +479,12 @@ void main() {
 
     group('JSON serialization', () {
       test('should serialize to JSON correctly', () {
-        final detection = Detection(
+        const detection = Detection(
           id: 'det-1',
+          mediaId: 'media-1',
           type: ContentType.violence,
-          startTime: const Duration(seconds: 30),
-          endTime: const Duration(seconds: 45),
+          startTime: Duration(seconds: 30),
+          endTime: Duration(seconds: 45),
           confidence: 0.87,
           description: 'Violence detected',
           userStatus: DetectionUserStatus.confirmed,
@@ -480,6 +506,7 @@ void main() {
       test('should deserialize from JSON correctly', () {
         final json = {
           'id': 'json-det',
+          'mediaId': 'media-1',
           'type': 'blood',
           'startTime': 60000000,
           'endTime': 75000000,
@@ -500,6 +527,7 @@ void main() {
       test('should round-trip through JSON correctly', () {
         final original = Detection.visual(
           id: 'roundtrip-det',
+          mediaId: 'media-1',
           type: ContentType.weapons,
           startTime: const Duration(minutes: 5),
           endTime: const Duration(minutes: 5, seconds: 10),

@@ -2,21 +2,21 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import 'app_exceptions.dart';
+import 'package:kidslens_video_editor/core/errors/app_exceptions.dart';
 
 /// Error handler with retry logic and logging
 class ErrorHandler {
+  ErrorHandler({
+    this.onLog,
+    this.onError,
+  });
+
   static const int defaultMaxRetries = 3;
   static const Duration defaultRetryDelay = Duration(seconds: 2);
 
   final void Function(String message, {Object? error, StackTrace? stackTrace})?
       onLog;
   final void Function(KidsLensException exception)? onError;
-
-  ErrorHandler({
-    this.onLog,
-    this.onError,
-  });
 
   /// Execute an operation with retry logic
   Future<T> withRetry<T>(
@@ -130,17 +130,17 @@ class ErrorHandler {
 
 /// Result of error handling
 class ErrorResult {
-  final String userMessage;
-  final String remediation;
-  final bool isRetryable;
-  final Object originalError;
-
   const ErrorResult({
     required this.userMessage,
     required this.remediation,
     required this.isRetryable,
     required this.originalError,
   });
+
+  final String userMessage;
+  final String remediation;
+  final bool isRetryable;
+  final Object originalError;
 }
 
 /// Global error handler instance
