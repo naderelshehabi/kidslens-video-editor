@@ -1,0 +1,52 @@
+# Spanish Profanity Wordlist
+# Censored versions for content filter compliance
+# One word per line
+c*brón
+c*brones
+c*ño
+c*ñazo
+cag*da
+cag*do
+cag*r
+car*jo
+ch*nga
+ch*ngada
+ch*ngado
+ch*ngar
+ch*ngo
+coj*nes
+coj*nudo
+cul*
+cul*azo
+cul*ón
+estúp*do
+gili*ollas
+h*jo de p*ta
+h*joputa
+h*jop*ta
+id**ta
+imb*cil
+j*der
+m*erda
+m*erdas
+m*erd*so
+m*ricón
+m*l nacido
+mald*to
+mam*n
+p*ja
+p*llas
+p*ndejo
+p*ndejos
+p*ta
+p*tas
+p*tiza
+p*to
+p*tos
+pend*jo
+pen*ejo
+put*
+put*
+put*da
+p*to
+ver*a

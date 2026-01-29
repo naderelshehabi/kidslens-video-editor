@@ -5,8 +5,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kidslens_video_editor/app.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() {
+    // Mock SharedPreferences to skip onboarding and show welcome screen
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+  });
+
   testWidgets('App smoke test - launches successfully',
       (tester) async {
     // Build our app and trigger a frame.
@@ -16,11 +22,14 @@ void main() {
       ),
     );
 
-    // Verify that the app title is displayed
+    // Wait for SharedPreferences to load and widget tree to settle
+    await tester.pumpAndSettle();
+
+    // Verify that the app title is displayed in the welcome screen
     expect(find.text('KidsLens Video Editor'), findsOneWidget);
   });
 
-  testWidgets('App smoke test - shows welcome message',
+  testWidgets('App smoke test - shows welcome subtitle',
       (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
@@ -28,11 +37,14 @@ void main() {
       ),
     );
 
-    // Verify welcome message is shown
-    expect(find.text('Welcome to KidsLens'), findsOneWidget);
+    // Wait for SharedPreferences to load and widget tree to settle
+    await tester.pumpAndSettle();
+
+    // Verify welcome subtitle is shown
+    expect(find.text('Create safe media for the whole family'), findsOneWidget);
   });
 
-  testWidgets('App smoke test - shows import buttons',
+  testWidgets('App smoke test - shows project buttons',
       (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
@@ -40,7 +52,10 @@ void main() {
       ),
     );
 
-    // Verify import buttons exist
+    // Wait for SharedPreferences to load and widget tree to settle
+    await tester.pumpAndSettle();
+
+    // Verify project buttons exist
     expect(find.text('New Project'), findsOneWidget);
     expect(find.text('Open Project'), findsOneWidget);
   });

@@ -31,12 +31,16 @@ Map<String, dynamic> _$$ArtifactMediaInfoImplToJson(
 _$AnalysisArtifactImpl _$$AnalysisArtifactImplFromJson(
         Map<String, dynamic> json) =>
     _$AnalysisArtifactImpl(
-      version: (json['version'] as num?)?.toInt() ?? 1,
       mediaHash: json['mediaHash'] as String,
       mediaInfo:
           ArtifactMediaInfo.fromJson(json['mediaInfo'] as Map<String, dynamic>),
       settingsUsed: AnalysisSettings.fromJson(
           json['settingsUsed'] as Map<String, dynamic>),
+      timeline:
+          UnifiedTimeline.fromJson(json['timeline'] as Map<String, dynamic>),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      status: $enumDecode(_$AnalysisStatusEnumMap, json['status']),
+      version: (json['version'] as num?)?.toInt() ?? 1,
       transcript: json['transcript'] == null
           ? null
           : Transcript.fromJson(json['transcript'] as Map<String, dynamic>),
@@ -49,30 +53,26 @@ _$AnalysisArtifactImpl _$$AnalysisArtifactImplFromJson(
                   FrameAnalysisResult.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
-      timeline:
-          UnifiedTimeline.fromJson(json['timeline'] as Map<String, dynamic>),
-      createdAt: DateTime.parse(json['createdAt'] as String),
       completedAt: json['completedAt'] == null
           ? null
           : DateTime.parse(json['completedAt'] as String),
-      status: $enumDecode(_$AnalysisStatusEnumMap, json['status']),
       errorMessage: json['errorMessage'] as String?,
     );
 
 Map<String, dynamic> _$$AnalysisArtifactImplToJson(
         _$AnalysisArtifactImpl instance) =>
     <String, dynamic>{
-      'version': instance.version,
       'mediaHash': instance.mediaHash,
       'mediaInfo': instance.mediaInfo,
       'settingsUsed': instance.settingsUsed,
+      'timeline': instance.timeline,
+      'createdAt': instance.createdAt.toIso8601String(),
+      'status': _$AnalysisStatusEnumMap[instance.status]!,
+      'version': instance.version,
       'transcript': instance.transcript,
       'profanityMatches': instance.profanityMatches,
       'frameResults': instance.frameResults,
-      'timeline': instance.timeline,
-      'createdAt': instance.createdAt.toIso8601String(),
       'completedAt': instance.completedAt?.toIso8601String(),
-      'status': _$AnalysisStatusEnumMap[instance.status]!,
       'errorMessage': instance.errorMessage,
     };
 

@@ -12,9 +12,9 @@ _$AcceleratorInfoImpl _$$AcceleratorInfoImplFromJson(
       type: $enumDecode(_$AcceleratorTypeEnumMap, json['type']),
       name: json['name'] as String,
       vramMB: (json['vramMB'] as num).toInt(),
+      recommendedBatchSize: (json['recommendedBatchSize'] as num).toInt(),
       computeCapability: json['computeCapability'] as String?,
       isAppleSilicon: json['isAppleSilicon'] as bool? ?? false,
-      recommendedBatchSize: (json['recommendedBatchSize'] as num).toInt(),
     );
 
 Map<String, dynamic> _$$AcceleratorInfoImplToJson(
@@ -23,9 +23,9 @@ Map<String, dynamic> _$$AcceleratorInfoImplToJson(
       'type': _$AcceleratorTypeEnumMap[instance.type]!,
       'name': instance.name,
       'vramMB': instance.vramMB,
+      'recommendedBatchSize': instance.recommendedBatchSize,
       'computeCapability': instance.computeCapability,
       'isAppleSilicon': instance.isAppleSilicon,
-      'recommendedBatchSize': instance.recommendedBatchSize,
     };
 
 const _$AcceleratorTypeEnumMap = {

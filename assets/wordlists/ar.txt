@@ -1,0 +1,41 @@
+# Arabic Profanity Wordlist
+# Censored versions for content filter compliance
+# One word per line
+# Note: Arabic script with partial censoring
+ك*س
+ط*ز
+ش*مطة
+ع*هرة
+ز**ي
+خ*را
+خ*رى
+ز*ب
+ز*بي
+ق*حبة
+ق*حب
+م*تناك
+م*تناكة
+ي*عن
+ع*ص
+ن**ك
+ن**كة
+ا*ن ش*مطة
+ا*ن ق*حبة
+ك*سمك
+ا*رص
+ع*رص
+ع*رة
+منيوك*
+منيوك*ة
+خ*ول
+ش*ذ
+ا*ن ك*ب
+ل*وط
+ل*وطي
+ل*عين
+م*نيك
+يل*ن
+يل*ن أبوك
+يل*ن أمك
+أ*ير
+خ*ي

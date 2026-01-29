@@ -1,0 +1,3 @@
+# Turkish Profanity Wordlist
+# Placeholder - add terms as needed
+# One word per line

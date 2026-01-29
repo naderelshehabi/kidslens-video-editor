@@ -15,6 +15,9 @@ _$ModelConfigImpl _$$ModelConfigImplFromJson(Map<String, dynamic> json) =>
       cpuThreads: (json['cpuThreads'] as num?)?.toInt() ?? 4,
       batchSize: (json['batchSize'] as num?)?.toInt() ?? 8,
       useFp16: json['useFp16'] as bool? ?? false,
+      translateToEnglish: json['translateToEnglish'] as bool? ?? false,
+      wordLevelTimestamps: json['wordLevelTimestamps'] as bool? ?? false,
+      beamSize: (json['beamSize'] as num?)?.toInt() ?? 3,
     );
 
 Map<String, dynamic> _$$ModelConfigImplToJson(_$ModelConfigImpl instance) =>
@@ -26,6 +29,9 @@ Map<String, dynamic> _$$ModelConfigImplToJson(_$ModelConfigImpl instance) =>
       'cpuThreads': instance.cpuThreads,
       'batchSize': instance.batchSize,
       'useFp16': instance.useFp16,
+      'translateToEnglish': instance.translateToEnglish,
+      'wordLevelTimestamps': instance.wordLevelTimestamps,
+      'beamSize': instance.beamSize,
     };
 
 _$ProfanityConfigImpl _$$ProfanityConfigImplFromJson(
@@ -72,12 +78,12 @@ _$AnalysisSettingsImpl _$$AnalysisSettingsImplFromJson(
     _$AnalysisSettingsImpl(
       modelConfig:
           ModelConfig.fromJson(json['modelConfig'] as Map<String, dynamic>),
+      profanityConfig: ProfanityConfig.fromJson(
+          json['profanityConfig'] as Map<String, dynamic>),
       nsfwThreshold: (json['nsfwThreshold'] as num?)?.toDouble() ?? 0.6,
       violenceThreshold: (json['violenceThreshold'] as num?)?.toDouble() ?? 0.6,
       bloodThreshold: (json['bloodThreshold'] as num?)?.toDouble() ?? 0.6,
       weaponsThreshold: (json['weaponsThreshold'] as num?)?.toDouble() ?? 0.6,
-      profanityConfig: ProfanityConfig.fromJson(
-          json['profanityConfig'] as Map<String, dynamic>),
       enableNsfw: json['enableNsfw'] as bool? ?? true,
       enableViolence: json['enableViolence'] as bool? ?? true,
       enableBlood: json['enableBlood'] as bool? ?? true,
@@ -97,11 +103,11 @@ Map<String, dynamic> _$$AnalysisSettingsImplToJson(
         _$AnalysisSettingsImpl instance) =>
     <String, dynamic>{
       'modelConfig': instance.modelConfig,
+      'profanityConfig': instance.profanityConfig,
       'nsfwThreshold': instance.nsfwThreshold,
       'violenceThreshold': instance.violenceThreshold,
       'bloodThreshold': instance.bloodThreshold,
       'weaponsThreshold': instance.weaponsThreshold,
-      'profanityConfig': instance.profanityConfig,
       'enableNsfw': instance.enableNsfw,
       'enableViolence': instance.enableViolence,
       'enableBlood': instance.enableBlood,

@@ -10,12 +10,12 @@ _$EditActionImpl _$$EditActionImplFromJson(Map<String, dynamic> json) =>
     _$EditActionImpl(
       id: json['id'] as String,
       mediaId: json['mediaId'] as String,
-      detectionId: json['detectionId'] as String?,
       type: $enumDecode(_$EditActionTypeEnumMap, json['type']),
       startTime: const DurationConverter()
           .fromJson((json['startTime'] as num).toInt()),
       endTime:
           const DurationConverter().fromJson((json['endTime'] as num).toInt()),
+      detectionId: json['detectionId'] as String?,
       enabled: json['enabled'] as bool? ?? true,
       blurIntensity: (json['blurIntensity'] as num?)?.toDouble() ?? 1.0,
       boundingBox: json['boundingBox'] == null
@@ -31,10 +31,10 @@ Map<String, dynamic> _$$EditActionImplToJson(_$EditActionImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
       'mediaId': instance.mediaId,
-      'detectionId': instance.detectionId,
       'type': _$EditActionTypeEnumMap[instance.type]!,
       'startTime': const DurationConverter().toJson(instance.startTime),
       'endTime': const DurationConverter().toJson(instance.endTime),
+      'detectionId': instance.detectionId,
       'enabled': instance.enabled,
       'blurIntensity': instance.blurIntensity,
       'boundingBox': instance.boundingBox,

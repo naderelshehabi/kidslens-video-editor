@@ -23,9 +23,9 @@ mixin _$AcceleratorInfo {
   AcceleratorType get type => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   int get vramMB => throw _privateConstructorUsedError;
+  int get recommendedBatchSize => throw _privateConstructorUsedError;
   String? get computeCapability => throw _privateConstructorUsedError;
   bool get isAppleSilicon => throw _privateConstructorUsedError;
-  int get recommendedBatchSize => throw _privateConstructorUsedError;
 
   /// Serializes this AcceleratorInfo to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -47,9 +47,9 @@ abstract class $AcceleratorInfoCopyWith<$Res> {
       {AcceleratorType type,
       String name,
       int vramMB,
+      int recommendedBatchSize,
       String? computeCapability,
-      bool isAppleSilicon,
-      int recommendedBatchSize});
+      bool isAppleSilicon});
 }
 
 /// @nodoc
@@ -70,9 +70,9 @@ class _$AcceleratorInfoCopyWithImpl<$Res, $Val extends AcceleratorInfo>
     Object? type = null,
     Object? name = null,
     Object? vramMB = null,
+    Object? recommendedBatchSize = null,
     Object? computeCapability = freezed,
     Object? isAppleSilicon = null,
-    Object? recommendedBatchSize = null,
   }) {
     return _then(_value.copyWith(
       type: null == type
@@ -87,6 +87,10 @@ class _$AcceleratorInfoCopyWithImpl<$Res, $Val extends AcceleratorInfo>
           ? _value.vramMB
           : vramMB // ignore: cast_nullable_to_non_nullable
               as int,
+      recommendedBatchSize: null == recommendedBatchSize
+          ? _value.recommendedBatchSize
+          : recommendedBatchSize // ignore: cast_nullable_to_non_nullable
+              as int,
       computeCapability: freezed == computeCapability
           ? _value.computeCapability
           : computeCapability // ignore: cast_nullable_to_non_nullable
@@ -95,10 +99,6 @@ class _$AcceleratorInfoCopyWithImpl<$Res, $Val extends AcceleratorInfo>
           ? _value.isAppleSilicon
           : isAppleSilicon // ignore: cast_nullable_to_non_nullable
               as bool,
-      recommendedBatchSize: null == recommendedBatchSize
-          ? _value.recommendedBatchSize
-          : recommendedBatchSize // ignore: cast_nullable_to_non_nullable
-              as int,
     ) as $Val);
   }
 }
@@ -115,9 +115,9 @@ abstract class _$$AcceleratorInfoImplCopyWith<$Res>
       {AcceleratorType type,
       String name,
       int vramMB,
+      int recommendedBatchSize,
       String? computeCapability,
-      bool isAppleSilicon,
-      int recommendedBatchSize});
+      bool isAppleSilicon});
 }
 
 /// @nodoc
@@ -136,9 +136,9 @@ class __$$AcceleratorInfoImplCopyWithImpl<$Res>
     Object? type = null,
     Object? name = null,
     Object? vramMB = null,
+    Object? recommendedBatchSize = null,
     Object? computeCapability = freezed,
     Object? isAppleSilicon = null,
-    Object? recommendedBatchSize = null,
   }) {
     return _then(_$AcceleratorInfoImpl(
       type: null == type
@@ -153,6 +153,10 @@ class __$$AcceleratorInfoImplCopyWithImpl<$Res>
           ? _value.vramMB
           : vramMB // ignore: cast_nullable_to_non_nullable
               as int,
+      recommendedBatchSize: null == recommendedBatchSize
+          ? _value.recommendedBatchSize
+          : recommendedBatchSize // ignore: cast_nullable_to_non_nullable
+              as int,
       computeCapability: freezed == computeCapability
           ? _value.computeCapability
           : computeCapability // ignore: cast_nullable_to_non_nullable
@@ -161,10 +165,6 @@ class __$$AcceleratorInfoImplCopyWithImpl<$Res>
           ? _value.isAppleSilicon
           : isAppleSilicon // ignore: cast_nullable_to_non_nullable
               as bool,
-      recommendedBatchSize: null == recommendedBatchSize
-          ? _value.recommendedBatchSize
-          : recommendedBatchSize // ignore: cast_nullable_to_non_nullable
-              as int,
     ));
   }
 }
@@ -176,9 +176,9 @@ class _$AcceleratorInfoImpl implements _AcceleratorInfo {
       {required this.type,
       required this.name,
       required this.vramMB,
+      required this.recommendedBatchSize,
       this.computeCapability,
-      this.isAppleSilicon = false,
-      required this.recommendedBatchSize});
+      this.isAppleSilicon = false});
 
   factory _$AcceleratorInfoImpl.fromJson(Map<String, dynamic> json) =>
       _$$AcceleratorInfoImplFromJson(json);
@@ -190,16 +190,16 @@ class _$AcceleratorInfoImpl implements _AcceleratorInfo {
   @override
   final int vramMB;
   @override
+  final int recommendedBatchSize;
+  @override
   final String? computeCapability;
   @override
   @JsonKey()
   final bool isAppleSilicon;
-  @override
-  final int recommendedBatchSize;
 
   @override
   String toString() {
-    return 'AcceleratorInfo(type: $type, name: $name, vramMB: $vramMB, computeCapability: $computeCapability, isAppleSilicon: $isAppleSilicon, recommendedBatchSize: $recommendedBatchSize)';
+    return 'AcceleratorInfo(type: $type, name: $name, vramMB: $vramMB, recommendedBatchSize: $recommendedBatchSize, computeCapability: $computeCapability, isAppleSilicon: $isAppleSilicon)';
   }
 
   @override
@@ -210,18 +210,18 @@ class _$AcceleratorInfoImpl implements _AcceleratorInfo {
             (identical(other.type, type) || other.type == type) &&
             (identical(other.name, name) || other.name == name) &&
             (identical(other.vramMB, vramMB) || other.vramMB == vramMB) &&
+            (identical(other.recommendedBatchSize, recommendedBatchSize) ||
+                other.recommendedBatchSize == recommendedBatchSize) &&
             (identical(other.computeCapability, computeCapability) ||
                 other.computeCapability == computeCapability) &&
             (identical(other.isAppleSilicon, isAppleSilicon) ||
-                other.isAppleSilicon == isAppleSilicon) &&
-            (identical(other.recommendedBatchSize, recommendedBatchSize) ||
-                other.recommendedBatchSize == recommendedBatchSize));
+                other.isAppleSilicon == isAppleSilicon));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, type, name, vramMB,
-      computeCapability, isAppleSilicon, recommendedBatchSize);
+      recommendedBatchSize, computeCapability, isAppleSilicon);
 
   /// Create a copy of AcceleratorInfo
   /// with the given fields replaced by the non-null parameter values.
@@ -245,9 +245,9 @@ abstract class _AcceleratorInfo implements AcceleratorInfo {
       {required final AcceleratorType type,
       required final String name,
       required final int vramMB,
+      required final int recommendedBatchSize,
       final String? computeCapability,
-      final bool isAppleSilicon,
-      required final int recommendedBatchSize}) = _$AcceleratorInfoImpl;
+      final bool isAppleSilicon}) = _$AcceleratorInfoImpl;
 
   factory _AcceleratorInfo.fromJson(Map<String, dynamic> json) =
       _$AcceleratorInfoImpl.fromJson;
@@ -259,11 +259,11 @@ abstract class _AcceleratorInfo implements AcceleratorInfo {
   @override
   int get vramMB;
   @override
+  int get recommendedBatchSize;
+  @override
   String? get computeCapability;
   @override
   bool get isAppleSilicon;
-  @override
-  int get recommendedBatchSize;
 
   /// Create a copy of AcceleratorInfo
   /// with the given fields replaced by the non-null parameter values.

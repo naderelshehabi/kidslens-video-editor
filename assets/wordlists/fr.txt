@@ -1,0 +1,48 @@
+# French Profanity Wordlist
+# Censored versions for content filter compliance
+# One word per line
+b*rdel
+b*te
+b*aise
+b*iser
+br*nlette
+c*nnard
+c*nnasse
+c*nne
+c*ul
+c*uilles
+c*ouille
+ch*er
+ch*eur
+ch*euse
+con
+conne
+connard
+connasse
+enc*lé
+enc*ler
+enc*lée
+f*ck
+f*tus
+f*urnée
+g*ueule
+id**t
+m*rde
+m*rdeux
+m*rdeuse
+n*gro
+n*que
+p*dé
+p*dale
+p*tain
+p*te
+p*tasse
+p*tin
+s*laud
+s*laude
+s*lope
+s*lop
+ta g*eule
+t*fion
+tr*u du c*l
+v*che

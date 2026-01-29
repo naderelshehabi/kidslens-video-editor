@@ -41,6 +41,15 @@ mixin _$ModelConfig {
   /// Whether to use half-precision (FP16) for faster inference
   bool get useFp16 => throw _privateConstructorUsedError;
 
+  /// Whether to translate non-English speech to English
+  bool get translateToEnglish => throw _privateConstructorUsedError;
+
+  /// Whether to generate word-level timestamps (slower but more precise)
+  bool get wordLevelTimestamps => throw _privateConstructorUsedError;
+
+  /// Beam search size for ASR decoding (1-5, higher = more accurate but slower)
+  int get beamSize => throw _privateConstructorUsedError;
+
   /// Serializes this ModelConfig to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -64,7 +73,10 @@ abstract class $ModelConfigCopyWith<$Res> {
       bool useGpu,
       int cpuThreads,
       int batchSize,
-      bool useFp16});
+      bool useFp16,
+      bool translateToEnglish,
+      bool wordLevelTimestamps,
+      int beamSize});
 }
 
 /// @nodoc
@@ -89,6 +101,9 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
     Object? cpuThreads = null,
     Object? batchSize = null,
     Object? useFp16 = null,
+    Object? translateToEnglish = null,
+    Object? wordLevelTimestamps = null,
+    Object? beamSize = null,
   }) {
     return _then(_value.copyWith(
       asrModelId: null == asrModelId
@@ -119,6 +134,18 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
           ? _value.useFp16
           : useFp16 // ignore: cast_nullable_to_non_nullable
               as bool,
+      translateToEnglish: null == translateToEnglish
+          ? _value.translateToEnglish
+          : translateToEnglish // ignore: cast_nullable_to_non_nullable
+              as bool,
+      wordLevelTimestamps: null == wordLevelTimestamps
+          ? _value.wordLevelTimestamps
+          : wordLevelTimestamps // ignore: cast_nullable_to_non_nullable
+              as bool,
+      beamSize: null == beamSize
+          ? _value.beamSize
+          : beamSize // ignore: cast_nullable_to_non_nullable
+              as int,
     ) as $Val);
   }
 }
@@ -138,7 +165,10 @@ abstract class _$$ModelConfigImplCopyWith<$Res>
       bool useGpu,
       int cpuThreads,
       int batchSize,
-      bool useFp16});
+      bool useFp16,
+      bool translateToEnglish,
+      bool wordLevelTimestamps,
+      int beamSize});
 }
 
 /// @nodoc
@@ -161,6 +191,9 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
     Object? cpuThreads = null,
     Object? batchSize = null,
     Object? useFp16 = null,
+    Object? translateToEnglish = null,
+    Object? wordLevelTimestamps = null,
+    Object? beamSize = null,
   }) {
     return _then(_$ModelConfigImpl(
       asrModelId: null == asrModelId
@@ -191,6 +224,18 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
           ? _value.useFp16
           : useFp16 // ignore: cast_nullable_to_non_nullable
               as bool,
+      translateToEnglish: null == translateToEnglish
+          ? _value.translateToEnglish
+          : translateToEnglish // ignore: cast_nullable_to_non_nullable
+              as bool,
+      wordLevelTimestamps: null == wordLevelTimestamps
+          ? _value.wordLevelTimestamps
+          : wordLevelTimestamps // ignore: cast_nullable_to_non_nullable
+              as bool,
+      beamSize: null == beamSize
+          ? _value.beamSize
+          : beamSize // ignore: cast_nullable_to_non_nullable
+              as int,
     ));
   }
 }
@@ -205,7 +250,10 @@ class _$ModelConfigImpl extends _ModelConfig {
       this.useGpu = true,
       this.cpuThreads = 4,
       this.batchSize = 8,
-      this.useFp16 = false})
+      this.useFp16 = false,
+      this.translateToEnglish = false,
+      this.wordLevelTimestamps = false,
+      this.beamSize = 3})
       : super._();
 
   factory _$ModelConfigImpl.fromJson(Map<String, dynamic> json) =>
@@ -244,9 +292,24 @@ class _$ModelConfigImpl extends _ModelConfig {
   @JsonKey()
   final bool useFp16;
 
+  /// Whether to translate non-English speech to English
+  @override
+  @JsonKey()
+  final bool translateToEnglish;
+
+  /// Whether to generate word-level timestamps (slower but more precise)
+  @override
+  @JsonKey()
+  final bool wordLevelTimestamps;
+
+  /// Beam search size for ASR decoding (1-5, higher = more accurate but slower)
+  @override
+  @JsonKey()
+  final int beamSize;
+
   @override
   String toString() {
-    return 'ModelConfig(asrModelId: $asrModelId, visualModelId: $visualModelId, asrLanguage: $asrLanguage, useGpu: $useGpu, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16)';
+    return 'ModelConfig(asrModelId: $asrModelId, visualModelId: $visualModelId, asrLanguage: $asrLanguage, useGpu: $useGpu, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16, translateToEnglish: $translateToEnglish, wordLevelTimestamps: $wordLevelTimestamps, beamSize: $beamSize)';
   }
 
   @override
@@ -265,13 +328,29 @@ class _$ModelConfigImpl extends _ModelConfig {
                 other.cpuThreads == cpuThreads) &&
             (identical(other.batchSize, batchSize) ||
                 other.batchSize == batchSize) &&
-            (identical(other.useFp16, useFp16) || other.useFp16 == useFp16));
+            (identical(other.useFp16, useFp16) || other.useFp16 == useFp16) &&
+            (identical(other.translateToEnglish, translateToEnglish) ||
+                other.translateToEnglish == translateToEnglish) &&
+            (identical(other.wordLevelTimestamps, wordLevelTimestamps) ||
+                other.wordLevelTimestamps == wordLevelTimestamps) &&
+            (identical(other.beamSize, beamSize) ||
+                other.beamSize == beamSize));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, asrModelId, visualModelId,
-      asrLanguage, useGpu, cpuThreads, batchSize, useFp16);
+  int get hashCode => Object.hash(
+      runtimeType,
+      asrModelId,
+      visualModelId,
+      asrLanguage,
+      useGpu,
+      cpuThreads,
+      batchSize,
+      useFp16,
+      translateToEnglish,
+      wordLevelTimestamps,
+      beamSize);
 
   /// Create a copy of ModelConfig
   /// with the given fields replaced by the non-null parameter values.
@@ -297,7 +376,10 @@ abstract class _ModelConfig extends ModelConfig {
       final bool useGpu,
       final int cpuThreads,
       final int batchSize,
-      final bool useFp16}) = _$ModelConfigImpl;
+      final bool useFp16,
+      final bool translateToEnglish,
+      final bool wordLevelTimestamps,
+      final int beamSize}) = _$ModelConfigImpl;
   const _ModelConfig._() : super._();
 
   factory _ModelConfig.fromJson(Map<String, dynamic> json) =
@@ -330,6 +412,18 @@ abstract class _ModelConfig extends ModelConfig {
   /// Whether to use half-precision (FP16) for faster inference
   @override
   bool get useFp16;
+
+  /// Whether to translate non-English speech to English
+  @override
+  bool get translateToEnglish;
+
+  /// Whether to generate word-level timestamps (slower but more precise)
+  @override
+  bool get wordLevelTimestamps;
+
+  /// Beam search size for ASR decoding (1-5, higher = more accurate but slower)
+  @override
+  int get beamSize;
 
   /// Create a copy of ModelConfig
   /// with the given fields replaced by the non-null parameter values.
@@ -796,6 +890,9 @@ mixin _$AnalysisSettings {
   /// Model configuration
   ModelConfig get modelConfig => throw _privateConstructorUsedError;
 
+  /// Profanity configuration
+  ProfanityConfig get profanityConfig => throw _privateConstructorUsedError;
+
   /// NSFW detection threshold (0.0 to 1.0)
   double get nsfwThreshold => throw _privateConstructorUsedError;
 
@@ -807,9 +904,6 @@ mixin _$AnalysisSettings {
 
   /// Weapons detection threshold (0.0 to 1.0)
   double get weaponsThreshold => throw _privateConstructorUsedError;
-
-  /// Profanity configuration
-  ProfanityConfig get profanityConfig => throw _privateConstructorUsedError;
 
   /// Whether NSFW detection is enabled
   bool get enableNsfw => throw _privateConstructorUsedError;
@@ -862,11 +956,11 @@ abstract class $AnalysisSettingsCopyWith<$Res> {
   @useResult
   $Res call(
       {ModelConfig modelConfig,
+      ProfanityConfig profanityConfig,
       double nsfwThreshold,
       double violenceThreshold,
       double bloodThreshold,
       double weaponsThreshold,
-      ProfanityConfig profanityConfig,
       bool enableNsfw,
       bool enableViolence,
       bool enableBlood,
@@ -899,11 +993,11 @@ class _$AnalysisSettingsCopyWithImpl<$Res, $Val extends AnalysisSettings>
   @override
   $Res call({
     Object? modelConfig = null,
+    Object? profanityConfig = null,
     Object? nsfwThreshold = null,
     Object? violenceThreshold = null,
     Object? bloodThreshold = null,
     Object? weaponsThreshold = null,
-    Object? profanityConfig = null,
     Object? enableNsfw = null,
     Object? enableViolence = null,
     Object? enableBlood = null,
@@ -921,6 +1015,10 @@ class _$AnalysisSettingsCopyWithImpl<$Res, $Val extends AnalysisSettings>
           ? _value.modelConfig
           : modelConfig // ignore: cast_nullable_to_non_nullable
               as ModelConfig,
+      profanityConfig: null == profanityConfig
+          ? _value.profanityConfig
+          : profanityConfig // ignore: cast_nullable_to_non_nullable
+              as ProfanityConfig,
       nsfwThreshold: null == nsfwThreshold
           ? _value.nsfwThreshold
           : nsfwThreshold // ignore: cast_nullable_to_non_nullable
@@ -937,10 +1035,6 @@ class _$AnalysisSettingsCopyWithImpl<$Res, $Val extends AnalysisSettings>
           ? _value.weaponsThreshold
           : weaponsThreshold // ignore: cast_nullable_to_non_nullable
               as double,
-      profanityConfig: null == profanityConfig
-          ? _value.profanityConfig
-          : profanityConfig // ignore: cast_nullable_to_non_nullable
-              as ProfanityConfig,
       enableNsfw: null == enableNsfw
           ? _value.enableNsfw
           : enableNsfw // ignore: cast_nullable_to_non_nullable
@@ -1019,11 +1113,11 @@ abstract class _$$AnalysisSettingsImplCopyWith<$Res>
   @useResult
   $Res call(
       {ModelConfig modelConfig,
+      ProfanityConfig profanityConfig,
       double nsfwThreshold,
       double violenceThreshold,
       double bloodThreshold,
       double weaponsThreshold,
-      ProfanityConfig profanityConfig,
       bool enableNsfw,
       bool enableViolence,
       bool enableBlood,
@@ -1056,11 +1150,11 @@ class __$$AnalysisSettingsImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? modelConfig = null,
+    Object? profanityConfig = null,
     Object? nsfwThreshold = null,
     Object? violenceThreshold = null,
     Object? bloodThreshold = null,
     Object? weaponsThreshold = null,
-    Object? profanityConfig = null,
     Object? enableNsfw = null,
     Object? enableViolence = null,
     Object? enableBlood = null,
@@ -1078,6 +1172,10 @@ class __$$AnalysisSettingsImplCopyWithImpl<$Res>
           ? _value.modelConfig
           : modelConfig // ignore: cast_nullable_to_non_nullable
               as ModelConfig,
+      profanityConfig: null == profanityConfig
+          ? _value.profanityConfig
+          : profanityConfig // ignore: cast_nullable_to_non_nullable
+              as ProfanityConfig,
       nsfwThreshold: null == nsfwThreshold
           ? _value.nsfwThreshold
           : nsfwThreshold // ignore: cast_nullable_to_non_nullable
@@ -1094,10 +1192,6 @@ class __$$AnalysisSettingsImplCopyWithImpl<$Res>
           ? _value.weaponsThreshold
           : weaponsThreshold // ignore: cast_nullable_to_non_nullable
               as double,
-      profanityConfig: null == profanityConfig
-          ? _value.profanityConfig
-          : profanityConfig // ignore: cast_nullable_to_non_nullable
-              as ProfanityConfig,
       enableNsfw: null == enableNsfw
           ? _value.enableNsfw
           : enableNsfw // ignore: cast_nullable_to_non_nullable
@@ -1151,11 +1245,11 @@ class __$$AnalysisSettingsImplCopyWithImpl<$Res>
 class _$AnalysisSettingsImpl extends _AnalysisSettings {
   const _$AnalysisSettingsImpl(
       {required this.modelConfig,
+      required this.profanityConfig,
       this.nsfwThreshold = 0.6,
       this.violenceThreshold = 0.6,
       this.bloodThreshold = 0.6,
       this.weaponsThreshold = 0.6,
-      required this.profanityConfig,
       this.enableNsfw = true,
       this.enableViolence = true,
       this.enableBlood = true,
@@ -1176,6 +1270,10 @@ class _$AnalysisSettingsImpl extends _AnalysisSettings {
   @override
   final ModelConfig modelConfig;
 
+  /// Profanity configuration
+  @override
+  final ProfanityConfig profanityConfig;
+
   /// NSFW detection threshold (0.0 to 1.0)
   @override
   @JsonKey()
@@ -1195,10 +1293,6 @@ class _$AnalysisSettingsImpl extends _AnalysisSettings {
   @override
   @JsonKey()
   final double weaponsThreshold;
-
-  /// Profanity configuration
-  @override
-  final ProfanityConfig profanityConfig;
 
   /// Whether NSFW detection is enabled
   @override
@@ -1257,7 +1351,7 @@ class _$AnalysisSettingsImpl extends _AnalysisSettings {
 
   @override
   String toString() {
-    return 'AnalysisSettings(modelConfig: $modelConfig, nsfwThreshold: $nsfwThreshold, violenceThreshold: $violenceThreshold, bloodThreshold: $bloodThreshold, weaponsThreshold: $weaponsThreshold, profanityConfig: $profanityConfig, enableNsfw: $enableNsfw, enableViolence: $enableViolence, enableBlood: $enableBlood, enableWeapons: $enableWeapons, enableProfanity: $enableProfanity, frameSamplingRate: $frameSamplingRate, useSceneDetection: $useSceneDetection, minSegmentDurationMs: $minSegmentDurationMs, mergeAdjacentDetections: $mergeAdjacentDetections, detectionBufferMs: $detectionBufferMs, maxConcurrentAnalyses: $maxConcurrentAnalyses)';
+    return 'AnalysisSettings(modelConfig: $modelConfig, profanityConfig: $profanityConfig, nsfwThreshold: $nsfwThreshold, violenceThreshold: $violenceThreshold, bloodThreshold: $bloodThreshold, weaponsThreshold: $weaponsThreshold, enableNsfw: $enableNsfw, enableViolence: $enableViolence, enableBlood: $enableBlood, enableWeapons: $enableWeapons, enableProfanity: $enableProfanity, frameSamplingRate: $frameSamplingRate, useSceneDetection: $useSceneDetection, minSegmentDurationMs: $minSegmentDurationMs, mergeAdjacentDetections: $mergeAdjacentDetections, detectionBufferMs: $detectionBufferMs, maxConcurrentAnalyses: $maxConcurrentAnalyses)';
   }
 
   @override
@@ -1267,6 +1361,8 @@ class _$AnalysisSettingsImpl extends _AnalysisSettings {
             other is _$AnalysisSettingsImpl &&
             (identical(other.modelConfig, modelConfig) ||
                 other.modelConfig == modelConfig) &&
+            (identical(other.profanityConfig, profanityConfig) ||
+                other.profanityConfig == profanityConfig) &&
             (identical(other.nsfwThreshold, nsfwThreshold) ||
                 other.nsfwThreshold == nsfwThreshold) &&
             (identical(other.violenceThreshold, violenceThreshold) ||
@@ -1275,8 +1371,6 @@ class _$AnalysisSettingsImpl extends _AnalysisSettings {
                 other.bloodThreshold == bloodThreshold) &&
             (identical(other.weaponsThreshold, weaponsThreshold) ||
                 other.weaponsThreshold == weaponsThreshold) &&
-            (identical(other.profanityConfig, profanityConfig) ||
-                other.profanityConfig == profanityConfig) &&
             (identical(other.enableNsfw, enableNsfw) ||
                 other.enableNsfw == enableNsfw) &&
             (identical(other.enableViolence, enableViolence) ||
@@ -1307,11 +1401,11 @@ class _$AnalysisSettingsImpl extends _AnalysisSettings {
   int get hashCode => Object.hash(
       runtimeType,
       modelConfig,
+      profanityConfig,
       nsfwThreshold,
       violenceThreshold,
       bloodThreshold,
       weaponsThreshold,
-      profanityConfig,
       enableNsfw,
       enableViolence,
       enableBlood,
@@ -1344,11 +1438,11 @@ class _$AnalysisSettingsImpl extends _AnalysisSettings {
 abstract class _AnalysisSettings extends AnalysisSettings {
   const factory _AnalysisSettings(
       {required final ModelConfig modelConfig,
+      required final ProfanityConfig profanityConfig,
       final double nsfwThreshold,
       final double violenceThreshold,
       final double bloodThreshold,
       final double weaponsThreshold,
-      required final ProfanityConfig profanityConfig,
       final bool enableNsfw,
       final bool enableViolence,
       final bool enableBlood,
@@ -1369,6 +1463,10 @@ abstract class _AnalysisSettings extends AnalysisSettings {
   @override
   ModelConfig get modelConfig;
 
+  /// Profanity configuration
+  @override
+  ProfanityConfig get profanityConfig;
+
   /// NSFW detection threshold (0.0 to 1.0)
   @override
   double get nsfwThreshold;
@@ -1384,10 +1482,6 @@ abstract class _AnalysisSettings extends AnalysisSettings {
   /// Weapons detection threshold (0.0 to 1.0)
   @override
   double get weaponsThreshold;
-
-  /// Profanity configuration
-  @override
-  ProfanityConfig get profanityConfig;
 
   /// Whether NSFW detection is enabled
   @override

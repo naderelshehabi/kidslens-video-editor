@@ -7,22 +7,46 @@ import 'package:kidslens_video_editor/native/resource_manager.dart';
 import 'package:kidslens_video_editor/services/media_service.dart';
 
 /// FFmpeg bindings - uses system FFmpeg command-line tool
+/// 
+/// Supports both bundled FFmpeg binaries (preferred) and system-installed FFmpeg.
+/// Bundled binaries are located in native/ffmpeg/binaries/{platform}/ relative
+/// to the application executable.
 class FFmpegBindings extends NativeResource {
   bool _initialized = false;
   bool _initializationAttempted = false;
   String? _ffmpegPath;
   String? _ffprobePath;
   Duration? _lastProbedDuration;
+  bool _usingBundledBinaries = false;
+
+  /// Whether using bundled FFmpeg binaries (vs system-installed)
+  bool get isUsingBundledBinaries => _usingBundledBinaries;
 
   /// Initialize FFmpeg bindings by finding FFmpeg on the system
+  /// 
+  /// First checks for bundled binaries relative to the executable,
+  /// then falls back to system-installed FFmpeg.
   Future<void> initialize() async {
     if (_initialized || _initializationAttempted) return;
     _initializationAttempted = true;
 
     try {
+      // First, try to find bundled FFmpeg binaries
+      final bundledPath = await _getBundledFFmpegPath();
+      if (bundledPath != null) {
+        _ffmpegPath = bundledPath;
+        _ffprobePath = await _getBundledFFprobePath();
+        _usingBundledBinaries = true;
+        _initialized = true;
+        debugPrint('Using bundled FFmpeg at: $_ffmpegPath');
+        return;
+      }
+
+      // Fall back to system FFmpeg
       _ffmpegPath = await _findExecutable('ffmpeg');
       _ffprobePath = await _findExecutable('ffprobe');
       _initialized = _ffmpegPath != null;
+      _usingBundledBinaries = false;
       
       if (_initialized) {
         debugPrint('FFmpeg found at: $_ffmpegPath');
@@ -34,7 +58,165 @@ class FFmpegBindings extends NativeResource {
     }
   }
 
-  /// Find an executable on the system
+  /// Get the path to bundled FFmpeg binary if it exists
+  /// 
+  /// Bundled binaries are stored in:
+  /// - Windows: {exe_dir}/data/flutter_assets/native/ffmpeg/binaries/windows-{arch}/ffmpeg.exe
+  /// - macOS: {app_bundle}/Contents/Frameworks/native/ffmpeg/binaries/macos-universal/ffmpeg
+  /// - Linux: {exe_dir}/data/flutter_assets/native/ffmpeg/binaries/linux-{arch}/ffmpeg
+  /// 
+  /// Also checks for binaries relative to the project root for development mode.
+  Future<String?> _getBundledFFmpegPath() async {
+    final paths = _getBundledBinaryPaths('ffmpeg');
+    
+    for (final path in paths) {
+      final file = File(path);
+      if (file.existsSync()) {
+        // Verify the binary works
+        try {
+          final result = await Process.run(
+            path,
+            ['-version'],
+            runInShell: Platform.isWindows,
+          );
+          if (result.exitCode == 0) {
+            return path;
+          }
+        } catch (_) {
+          continue;
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  /// Get the path to bundled FFprobe binary if it exists
+  Future<String?> _getBundledFFprobePath() async {
+    final paths = _getBundledBinaryPaths('ffprobe');
+    
+    for (final path in paths) {
+      final file = File(path);
+      if (file.existsSync()) {
+        try {
+          final result = await Process.run(
+            path,
+            ['-version'],
+            runInShell: Platform.isWindows,
+          );
+          if (result.exitCode == 0) {
+            return path;
+          }
+        } catch (_) {
+          continue;
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  /// Get list of possible bundled binary paths for a given executable name
+  List<String> _getBundledBinaryPaths(String execName) {
+    final paths = <String>[];
+    final exePath = Platform.resolvedExecutable;
+    final exeDir = File(exePath).parent.path;
+    
+    if (Platform.isWindows) {
+      final binaryName = '$execName.exe';
+      final arch = _getWindowsArch();
+      
+      // Release mode: relative to executable
+      paths
+        ..add('$exeDir\\data\\flutter_assets\\native\\ffmpeg\\binaries\\windows-$arch\\$binaryName')
+        ..add('$exeDir\\native\\ffmpeg\\binaries\\windows-$arch\\$binaryName');
+      
+      // Development mode: relative to project root
+      // In debug, exeDir is build/windows/x64/runner/Debug or Release
+      final projectRoot = _findProjectRoot(exeDir);
+      if (projectRoot != null) {
+        paths.add('$projectRoot\\native\\ffmpeg\\binaries\\windows-$arch\\$binaryName');
+      }
+    } else if (Platform.isMacOS) {
+      final binaryName = execName;
+      
+      // Release mode: inside app bundle
+      // Executable is at MyApp.app/Contents/MacOS/MyApp
+      final contentsDir = File(exePath).parent.parent.path;
+      paths
+        ..add('$contentsDir/Frameworks/native/ffmpeg/binaries/macos-universal/$binaryName')
+        ..add('$contentsDir/Resources/native/ffmpeg/binaries/macos-universal/$binaryName');
+      
+      // Development mode
+      final projectRoot = _findProjectRoot(exeDir);
+      if (projectRoot != null) {
+        paths.add('$projectRoot/native/ffmpeg/binaries/macos-universal/$binaryName');
+      }
+    } else if (Platform.isLinux) {
+      final binaryName = execName;
+      final arch = _getLinuxArch();
+      
+      // Release mode: relative to executable
+      paths
+        ..add('$exeDir/data/flutter_assets/native/ffmpeg/binaries/linux-$arch/$binaryName')
+        ..add('$exeDir/native/ffmpeg/binaries/linux-$arch/$binaryName')
+        ..add('$exeDir/lib/native/ffmpeg/binaries/linux-$arch/$binaryName');
+      
+      // Development mode
+      final projectRoot = _findProjectRoot(exeDir);
+      if (projectRoot != null) {
+        paths.add('$projectRoot/native/ffmpeg/binaries/linux-$arch/$binaryName');
+      }
+    }
+    
+    return paths;
+  }
+
+  /// Get Windows architecture string
+  String _getWindowsArch() {
+    final arch = Platform.environment['PROCESSOR_ARCHITECTURE'] ?? '';
+    if (arch.toLowerCase().contains('arm')) {
+      return 'arm64';
+    }
+    return 'x64';
+  }
+
+  /// Get Linux architecture string
+  String _getLinuxArch() {
+    try {
+      final result = Process.runSync('uname', ['-m']);
+      final arch = result.stdout.toString().trim();
+      if (arch == 'aarch64' || arch == 'arm64') {
+        return 'arm64';
+      }
+    } catch (_) {}
+    return 'x64';
+  }
+
+  /// Find project root directory by looking for pubspec.yaml
+  String? _findProjectRoot(String startDir) {
+    var current = Directory(startDir);
+    
+    // Walk up the directory tree looking for pubspec.yaml
+    for (var i = 0; i < 10; i++) {
+      final pubspec = File('${current.path}${Platform.pathSeparator}pubspec.yaml');
+      if (pubspec.existsSync()) {
+        return current.path;
+      }
+      
+      final parent = current.parent;
+      if (parent.path == current.path) {
+        break; // Reached root
+      }
+      current = parent;
+    }
+    
+    return null;
+  }
+
+  /// Find an executable on the system PATH
+  /// 
+  /// This is called as a fallback when bundled binaries are not found.
   Future<String?> _findExecutable(String name) async {
     final possiblePaths = <String>[
       name, // In PATH
@@ -43,14 +225,20 @@ class FFmpegBindings extends NativeResource {
         'C:\\ffmpeg\\bin\\$name.exe',
         'C:\\Program Files\\ffmpeg\\bin\\$name.exe',
         'C:\\Program Files (x86)\\ffmpeg\\bin\\$name.exe',
+        // Common installation locations
+        '${Platform.environment['LOCALAPPDATA']}\\Programs\\ffmpeg\\bin\\$name.exe',
+        '${Platform.environment['USERPROFILE']}\\ffmpeg\\bin\\$name.exe',
       ],
       if (Platform.isMacOS) ...[
         '/usr/local/bin/$name',
         '/opt/homebrew/bin/$name',
+        '/opt/local/bin/$name', // MacPorts
       ],
       if (Platform.isLinux) ...[
         '/usr/bin/$name',
         '/usr/local/bin/$name',
+        '/snap/bin/$name', // Snap packages
+        '${Platform.environment['HOME']}/.local/bin/$name',
       ],
     ];
 
@@ -518,6 +706,7 @@ class FFmpegBindings extends NativeResource {
     _ffprobePath = null;
     _initialized = false;
     _initializationAttempted = false;
+    _usingBundledBinaries = false;
   }
 }
 

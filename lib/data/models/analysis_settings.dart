@@ -27,6 +27,15 @@ class ModelConfig with _$ModelConfig {
 
     /// Whether to use half-precision (FP16) for faster inference
     @Default(false) bool useFp16,
+
+    /// Whether to translate non-English speech to English
+    @Default(false) bool translateToEnglish,
+
+    /// Whether to generate word-level timestamps (slower but more precise)
+    @Default(false) bool wordLevelTimestamps,
+
+    /// Beam search size for ASR decoding (1-5, higher = more accurate but slower)
+    @Default(3) int beamSize,
   }) = _ModelConfig;
 
   const ModelConfig._();

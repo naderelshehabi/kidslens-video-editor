@@ -110,10 +110,10 @@ _$FrameAnalysisResultImpl _$$FrameAnalysisResultImplFromJson(
       frameNumber: (json['frameNumber'] as num).toInt(),
       timestamp: const DurationConverter()
           .fromJson((json['timestamp'] as num).toInt()),
-      isSceneChange: json['isSceneChange'] as bool? ?? false,
       nsfw: NsfwResult.fromJson(json['nsfw'] as Map<String, dynamic>),
       violence:
           ViolenceResult.fromJson(json['violence'] as Map<String, dynamic>),
+      isSceneChange: json['isSceneChange'] as bool? ?? false,
       blood: json['blood'] == null
           ? null
           : BloodResult.fromJson(json['blood'] as Map<String, dynamic>),
@@ -129,9 +129,9 @@ Map<String, dynamic> _$$FrameAnalysisResultImplToJson(
     <String, dynamic>{
       'frameNumber': instance.frameNumber,
       'timestamp': const DurationConverter().toJson(instance.timestamp),
-      'isSceneChange': instance.isSceneChange,
       'nsfw': instance.nsfw,
       'violence': instance.violence,
+      'isSceneChange': instance.isSceneChange,
       'blood': instance.blood,
       'weapons': instance.weapons,
       'processingTimeMs': instance.processingTimeMs,

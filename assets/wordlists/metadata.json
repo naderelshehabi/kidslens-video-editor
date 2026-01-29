@@ -1,0 +1,33 @@
+{
+  "languages": [
+    {"code": "en", "name": "English", "rtl": false},
+    {"code": "es", "name": "Spanish", "rtl": false},
+    {"code": "fr", "name": "French", "rtl": false},
+    {"code": "de", "name": "German", "rtl": false},
+    {"code": "it", "name": "Italian", "rtl": false},
+    {"code": "pt", "name": "Portuguese", "rtl": false},
+    {"code": "nl", "name": "Dutch", "rtl": false},
+    {"code": "ru", "name": "Russian", "rtl": false},
+    {"code": "ar", "name": "Arabic", "rtl": true},
+    {"code": "he", "name": "Hebrew", "rtl": true},
+    {"code": "zh", "name": "Chinese", "rtl": false},
+    {"code": "ja", "name": "Japanese", "rtl": false},
+    {"code": "ko", "name": "Korean", "rtl": false},
+    {"code": "hi", "name": "Hindi", "rtl": false},
+    {"code": "bn", "name": "Bengali", "rtl": false},
+    {"code": "ur", "name": "Urdu", "rtl": true},
+    {"code": "ta", "name": "Tamil", "rtl": false},
+    {"code": "te", "name": "Telugu", "rtl": false},
+    {"code": "th", "name": "Thai", "rtl": false},
+    {"code": "vi", "name": "Vietnamese", "rtl": false},
+    {"code": "id", "name": "Indonesian", "rtl": false},
+    {"code": "ms", "name": "Malay", "rtl": false},
+    {"code": "tr", "name": "Turkish", "rtl": false},
+    {"code": "pl", "name": "Polish", "rtl": false},
+    {"code": "sv", "name": "Swedish", "rtl": false},
+    {"code": "no", "name": "Norwegian", "rtl": false},
+    {"code": "da", "name": "Danish", "rtl": false},
+    {"code": "fi", "name": "Finnish", "rtl": false},
+    {"code": "el", "name": "Greek", "rtl": false}
+  ]
+}

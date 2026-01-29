@@ -1,0 +1,50 @@
+# German Profanity Wordlist
+# Censored versions for content filter compliance
+# One word per line
+*rsch
+*rschloch
+*rschgeige
+*rschgesicht
+bl*dmann
+bl*dian
+d*mmkopf
+d*recksack
+d*recksau
+d*pp
+f*ck
+f*cken
+f*tze
+f*tzengesicht
+h*re
+h*rensohn
+h*lle
+id**t
+k*cke
+k*cken
+leck m*ch
+m*st
+m*stkerl
+m*sthaufen
+n*tte
+p*mmel
+p*sse
+p*ssen
+s*u
+s*ubär
+s*ck
+s*cker
+s*cken
+sch*iße
+sch*iß
+sch*mpf
+schw*nz
+schw*nzlutscher
+schw*chtel
+sp*st
+sp*sti
+tr*ttel
+v*llid**t
+v*rfickt
+v*rdammt
+w*chser
+w*chserin

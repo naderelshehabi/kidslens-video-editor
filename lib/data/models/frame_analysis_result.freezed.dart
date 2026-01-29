@@ -1393,14 +1393,14 @@ mixin _$FrameAnalysisResult {
   @DurationConverter()
   Duration get timestamp => throw _privateConstructorUsedError;
 
-  /// Whether this frame is a scene change
-  bool get isSceneChange => throw _privateConstructorUsedError;
-
   /// NSFW classification result
   NsfwResult get nsfw => throw _privateConstructorUsedError;
 
   /// Violence classification result
   ViolenceResult get violence => throw _privateConstructorUsedError;
+
+  /// Whether this frame is a scene change
+  bool get isSceneChange => throw _privateConstructorUsedError;
 
   /// Blood/gore detection result (optional)
   BloodResult? get blood => throw _privateConstructorUsedError;
@@ -1433,9 +1433,9 @@ abstract class $FrameAnalysisResultCopyWith<$Res> {
   $Res call(
       {int frameNumber,
       @DurationConverter() Duration timestamp,
-      bool isSceneChange,
       NsfwResult nsfw,
       ViolenceResult violence,
+      bool isSceneChange,
       BloodResult? blood,
       WeaponsResult? weapons,
       int? processingTimeMs,
@@ -1464,9 +1464,9 @@ class _$FrameAnalysisResultCopyWithImpl<$Res, $Val extends FrameAnalysisResult>
   $Res call({
     Object? frameNumber = null,
     Object? timestamp = null,
-    Object? isSceneChange = null,
     Object? nsfw = null,
     Object? violence = null,
+    Object? isSceneChange = null,
     Object? blood = freezed,
     Object? weapons = freezed,
     Object? processingTimeMs = freezed,
@@ -1481,10 +1481,6 @@ class _$FrameAnalysisResultCopyWithImpl<$Res, $Val extends FrameAnalysisResult>
           ? _value.timestamp
           : timestamp // ignore: cast_nullable_to_non_nullable
               as Duration,
-      isSceneChange: null == isSceneChange
-          ? _value.isSceneChange
-          : isSceneChange // ignore: cast_nullable_to_non_nullable
-              as bool,
       nsfw: null == nsfw
           ? _value.nsfw
           : nsfw // ignore: cast_nullable_to_non_nullable
@@ -1493,6 +1489,10 @@ class _$FrameAnalysisResultCopyWithImpl<$Res, $Val extends FrameAnalysisResult>
           ? _value.violence
           : violence // ignore: cast_nullable_to_non_nullable
               as ViolenceResult,
+      isSceneChange: null == isSceneChange
+          ? _value.isSceneChange
+          : isSceneChange // ignore: cast_nullable_to_non_nullable
+              as bool,
       blood: freezed == blood
           ? _value.blood
           : blood // ignore: cast_nullable_to_non_nullable
@@ -1572,9 +1572,9 @@ abstract class _$$FrameAnalysisResultImplCopyWith<$Res>
   $Res call(
       {int frameNumber,
       @DurationConverter() Duration timestamp,
-      bool isSceneChange,
       NsfwResult nsfw,
       ViolenceResult violence,
+      bool isSceneChange,
       BloodResult? blood,
       WeaponsResult? weapons,
       int? processingTimeMs,
@@ -1605,9 +1605,9 @@ class __$$FrameAnalysisResultImplCopyWithImpl<$Res>
   $Res call({
     Object? frameNumber = null,
     Object? timestamp = null,
-    Object? isSceneChange = null,
     Object? nsfw = null,
     Object? violence = null,
+    Object? isSceneChange = null,
     Object? blood = freezed,
     Object? weapons = freezed,
     Object? processingTimeMs = freezed,
@@ -1622,10 +1622,6 @@ class __$$FrameAnalysisResultImplCopyWithImpl<$Res>
           ? _value.timestamp
           : timestamp // ignore: cast_nullable_to_non_nullable
               as Duration,
-      isSceneChange: null == isSceneChange
-          ? _value.isSceneChange
-          : isSceneChange // ignore: cast_nullable_to_non_nullable
-              as bool,
       nsfw: null == nsfw
           ? _value.nsfw
           : nsfw // ignore: cast_nullable_to_non_nullable
@@ -1634,6 +1630,10 @@ class __$$FrameAnalysisResultImplCopyWithImpl<$Res>
           ? _value.violence
           : violence // ignore: cast_nullable_to_non_nullable
               as ViolenceResult,
+      isSceneChange: null == isSceneChange
+          ? _value.isSceneChange
+          : isSceneChange // ignore: cast_nullable_to_non_nullable
+              as bool,
       blood: freezed == blood
           ? _value.blood
           : blood // ignore: cast_nullable_to_non_nullable
@@ -1660,9 +1660,9 @@ class _$FrameAnalysisResultImpl extends _FrameAnalysisResult {
   const _$FrameAnalysisResultImpl(
       {required this.frameNumber,
       @DurationConverter() required this.timestamp,
-      this.isSceneChange = false,
       required this.nsfw,
       required this.violence,
+      this.isSceneChange = false,
       this.blood,
       this.weapons,
       this.processingTimeMs,
@@ -1681,11 +1681,6 @@ class _$FrameAnalysisResultImpl extends _FrameAnalysisResult {
   @DurationConverter()
   final Duration timestamp;
 
-  /// Whether this frame is a scene change
-  @override
-  @JsonKey()
-  final bool isSceneChange;
-
   /// NSFW classification result
   @override
   final NsfwResult nsfw;
@@ -1693,6 +1688,11 @@ class _$FrameAnalysisResultImpl extends _FrameAnalysisResult {
   /// Violence classification result
   @override
   final ViolenceResult violence;
+
+  /// Whether this frame is a scene change
+  @override
+  @JsonKey()
+  final bool isSceneChange;
 
   /// Blood/gore detection result (optional)
   @override
@@ -1712,7 +1712,7 @@ class _$FrameAnalysisResultImpl extends _FrameAnalysisResult {
 
   @override
   String toString() {
-    return 'FrameAnalysisResult(frameNumber: $frameNumber, timestamp: $timestamp, isSceneChange: $isSceneChange, nsfw: $nsfw, violence: $violence, blood: $blood, weapons: $weapons, processingTimeMs: $processingTimeMs, frameHash: $frameHash)';
+    return 'FrameAnalysisResult(frameNumber: $frameNumber, timestamp: $timestamp, nsfw: $nsfw, violence: $violence, isSceneChange: $isSceneChange, blood: $blood, weapons: $weapons, processingTimeMs: $processingTimeMs, frameHash: $frameHash)';
   }
 
   @override
@@ -1724,11 +1724,11 @@ class _$FrameAnalysisResultImpl extends _FrameAnalysisResult {
                 other.frameNumber == frameNumber) &&
             (identical(other.timestamp, timestamp) ||
                 other.timestamp == timestamp) &&
-            (identical(other.isSceneChange, isSceneChange) ||
-                other.isSceneChange == isSceneChange) &&
             (identical(other.nsfw, nsfw) || other.nsfw == nsfw) &&
             (identical(other.violence, violence) ||
                 other.violence == violence) &&
+            (identical(other.isSceneChange, isSceneChange) ||
+                other.isSceneChange == isSceneChange) &&
             (identical(other.blood, blood) || other.blood == blood) &&
             (identical(other.weapons, weapons) || other.weapons == weapons) &&
             (identical(other.processingTimeMs, processingTimeMs) ||
@@ -1739,17 +1739,8 @@ class _$FrameAnalysisResultImpl extends _FrameAnalysisResult {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      frameNumber,
-      timestamp,
-      isSceneChange,
-      nsfw,
-      violence,
-      blood,
-      weapons,
-      processingTimeMs,
-      frameHash);
+  int get hashCode => Object.hash(runtimeType, frameNumber, timestamp, nsfw,
+      violence, isSceneChange, blood, weapons, processingTimeMs, frameHash);
 
   /// Create a copy of FrameAnalysisResult
   /// with the given fields replaced by the non-null parameter values.
@@ -1772,9 +1763,9 @@ abstract class _FrameAnalysisResult extends FrameAnalysisResult {
   const factory _FrameAnalysisResult(
       {required final int frameNumber,
       @DurationConverter() required final Duration timestamp,
-      final bool isSceneChange,
       required final NsfwResult nsfw,
       required final ViolenceResult violence,
+      final bool isSceneChange,
       final BloodResult? blood,
       final WeaponsResult? weapons,
       final int? processingTimeMs,
@@ -1793,10 +1784,6 @@ abstract class _FrameAnalysisResult extends FrameAnalysisResult {
   @DurationConverter()
   Duration get timestamp;
 
-  /// Whether this frame is a scene change
-  @override
-  bool get isSceneChange;
-
   /// NSFW classification result
   @override
   NsfwResult get nsfw;
@@ -1804,6 +1791,10 @@ abstract class _FrameAnalysisResult extends FrameAnalysisResult {
   /// Violence classification result
   @override
   ViolenceResult get violence;
+
+  /// Whether this frame is a scene change
+  @override
+  bool get isSceneChange;
 
   /// Blood/gore detection result (optional)
   @override

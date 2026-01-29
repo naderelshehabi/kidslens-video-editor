@@ -6,7 +6,7 @@ part of 'media_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$mediaNotifierHash() => r'cc006b4a0cc8d260290572daa9a11d4dfb10a86e';
+String _$mediaNotifierHash() => r'cc964193d7c35f006b8983fa9ab26d7ecdb76631';
 
 /// Provider for managing media state
 ///

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/app.dart';
 import 'package:kidslens_video_editor/core/constants/supported_formats.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
+import 'package:kidslens_video_editor/presentation/screens/analysis_settings/analysis_settings_screen.dart';
 import 'package:kidslens_video_editor/presentation/widgets/dialogs/export_dialog.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/detection_panel.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/media_bin_panel.dart';
@@ -244,9 +245,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               _MenuItem('Undo', Icons.undo, _undo),
               _MenuItem('Redo', Icons.redo, _redo),
               const _MenuDivider(),
-              const _MenuItem('Cut Selection', Icons.content_cut, null),
-              const _MenuItem('Mute Selection', Icons.volume_off, null),
-              const _MenuItem('Blur Selection', Icons.blur_on, null),
+              _MenuItem('Cut Selection', Icons.content_cut, _cutSelection),
+              _MenuItem('Mute Selection', Icons.volume_off, _muteSelection),
+              _MenuItem('Blur Selection', Icons.blur_on, _blurSelection),
             ],
           ),
 
@@ -255,9 +256,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             label: 'Analysis',
             items: [
               _MenuItem('Start Analysis', Icons.play_arrow, _startAnalysis),
-              const _MenuItem('Stop Analysis', Icons.stop, null),
+              _MenuItem('Stop Analysis', Icons.stop, _stopAnalysis),
               const _MenuDivider(),
-              const _MenuItem('Analysis Settings', Icons.settings, null),
+              _MenuItem(
+                  'Analysis Settings', Icons.settings, _openAnalysisSettings,),
             ],
           ),
 
@@ -265,23 +267,32 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           _MenuButton(
             label: 'Help',
             items: [
-              _MenuItem('About KidsLens', Icons.info_outline,
-                  () => _showAboutDialog(context)),
-              _MenuItem('Keyboard Shortcuts', Icons.keyboard,
-                  () => _showShortcutsDialog(context)),
-              const _MenuDivider(),
-              _MenuItem('Privacy Policy', Icons.privacy_tip,
-                  () => _showPrivacyDialog(context)),
               _MenuItem(
-                  'Open Source Licenses',
-                  Icons.description,
-                  () => showLicensePage(
-                        context: context,
-                        applicationName: 'KidsLens Video Editor',
-                        applicationVersion: '1.0.0',
-                        applicationLegalese:
-                            '© 2024 KidsLens. All rights reserved.',
-                      )),
+                'About KidsLens',
+                Icons.info_outline,
+                () => _showAboutDialog(context),
+              ),
+              _MenuItem(
+                'Keyboard Shortcuts',
+                Icons.keyboard,
+                () => _showShortcutsDialog(context),
+              ),
+              const _MenuDivider(),
+              _MenuItem(
+                'Privacy Policy',
+                Icons.privacy_tip,
+                () => _showPrivacyDialog(context),
+              ),
+              _MenuItem(
+                'Open Source Licenses',
+                Icons.description,
+                () => showLicensePage(
+                  context: context,
+                  applicationName: 'KidsLens Video Editor',
+                  applicationVersion: '1.0.0',
+                  applicationLegalese: '© 2024 KidsLens. All rights reserved.',
+                ),
+              ),
             ],
           ),
 
@@ -553,7 +564,126 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   void _togglePlayback() {
-    // TODO: Implement playback toggle
+    ref.read(playbackNotifierProvider.notifier).playOrPause();
+  }
+
+  void _cutSelection() {
+    final playbackState = ref.read(playbackNotifierProvider);
+    final project = ref.read(projectNotifierProvider).currentProject;
+
+    if (project == null || project.selectedMediaId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a media file first')),
+      );
+      return;
+    }
+
+    if (!playbackState.hasSelection) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Please make a selection on the timeline first (use I and O keys)',),),
+      );
+      return;
+    }
+
+    ref.read(projectNotifierProvider.notifier).addEditAction(
+          project.selectedMediaId!,
+          playbackState.selectionStart!,
+          playbackState.selectionEnd!,
+          EditActionType.cut,
+        );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Cut action added to selection')),
+    );
+  }
+
+  void _muteSelection() {
+    final playbackState = ref.read(playbackNotifierProvider);
+    final project = ref.read(projectNotifierProvider).currentProject;
+
+    if (project == null || project.selectedMediaId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a media file first')),
+      );
+      return;
+    }
+
+    if (!playbackState.hasSelection) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Please make a selection on the timeline first (use I and O keys)',),),
+      );
+      return;
+    }
+
+    ref.read(projectNotifierProvider.notifier).addEditAction(
+          project.selectedMediaId!,
+          playbackState.selectionStart!,
+          playbackState.selectionEnd!,
+          EditActionType.mute,
+        );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Mute action added to selection')),
+    );
+  }
+
+  void _blurSelection() {
+    final playbackState = ref.read(playbackNotifierProvider);
+    final project = ref.read(projectNotifierProvider).currentProject;
+
+    if (project == null || project.selectedMediaId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a media file first')),
+      );
+      return;
+    }
+
+    if (!playbackState.hasSelection) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Please make a selection on the timeline first (use I and O keys)',),),
+      );
+      return;
+    }
+
+    ref.read(projectNotifierProvider.notifier).addEditAction(
+          project.selectedMediaId!,
+          playbackState.selectionStart!,
+          playbackState.selectionEnd!,
+          EditActionType.blur,
+        );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Blur action added to selection')),
+    );
+  }
+
+  void _stopAnalysis() {
+    final analysisState = ref.read(analysisNotifierProvider);
+
+    if (analysisState.status == AnalysisStatus.running) {
+      ref.read(analysisNotifierProvider.notifier).cancel();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Analysis cancelled')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No analysis is currently running')),
+      );
+    }
+  }
+
+  void _openAnalysisSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => const AnalysisSettingsScreen(),
+      ),
+    );
   }
 
   void _onSeek(Duration position) {
@@ -621,8 +751,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.movie_filter_rounded,
-                color: Theme.of(context).colorScheme.primary),
+            Icon(
+              Icons.movie_filter_rounded,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             const SizedBox(width: 12),
             const Text('About KidsLens'),
           ],
@@ -670,11 +802,20 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               const SizedBox(height: 8),
               _buildFeatureRow(context, Icons.mic_off, 'Profanity Detection'),
               _buildFeatureRow(
-                  context, Icons.visibility_off, 'Visual Content Analysis'),
+                context,
+                Icons.visibility_off,
+                'Visual Content Analysis',
+              ),
               _buildFeatureRow(
-                  context, Icons.edit, 'Smart Editing (Mute, Blur, Cut)'),
+                context,
+                Icons.edit,
+                'Smart Editing (Mute, Blur, Cut)',
+              ),
               _buildFeatureRow(
-                  context, Icons.computer, '100% Offline Processing'),
+                context,
+                Icons.computer,
+                '100% Offline Processing',
+              ),
               const SizedBox(height: 24),
               Text(
                 'Open Source Credits',
@@ -750,7 +891,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   Widget _buildShortcutRow(
-          BuildContext context, String shortcut, String action) =>
+    BuildContext context,
+    String shortcut,
+    String action,
+  ) =>
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(
@@ -771,8 +915,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             ),
             const SizedBox(width: 16),
             Expanded(
-                child: Text(action,
-                    style: Theme.of(context).textTheme.bodyMedium)),
+              child: Text(
+                action,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
           ],
         ),
       );
@@ -1186,7 +1333,6 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
             child: Slider(
               value: value,
               min: 0.1,
-              max: 1.0,
               divisions: 9,
               onChanged: enabled ? onChanged : null,
             ),

@@ -944,7 +944,7 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
             AnimatedOpacity(
               opacity: _showControls ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 200),
-              child: Container(
+              child: DecoratedBox(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
@@ -1002,7 +1002,7 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                                   final position = widget.player?.state.position ?? Duration.zero;
                                   widget.player?.seek(Duration(
                                     milliseconds: math.max(0, position.inMilliseconds - 10000),
-                                  ));
+                                  ),);
                                 },
                               ),
                               const SizedBox(width: 24),
@@ -1025,7 +1025,7 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                                       duration.inMilliseconds,
                                       position.inMilliseconds + 10000,
                                     ),
-                                  ));
+                                  ),);
                                 },
                               ),
                             ],
@@ -1038,8 +1038,7 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                       // Bottom controls with timeline
                       StreamBuilder<Duration>(
                         stream: widget.player?.stream.position,
-                        builder: (context, positionSnapshot) {
-                          return StreamBuilder<Duration>(
+                        builder: (context, positionSnapshot) => StreamBuilder<Duration>(
                             stream: widget.player?.stream.duration,
                             builder: (context, durationSnapshot) {
                               final position = positionSnapshot.data ?? Duration.zero;
@@ -1065,7 +1064,7 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                                         onChanged: (value) {
                                           widget.player?.seek(Duration(
                                             milliseconds: (value * duration.inMilliseconds).round(),
-                                          ));
+                                          ),);
                                         },
                                       ),
                                     ),
@@ -1086,8 +1085,7 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                                 ),
                               );
                             },
-                          );
-                        },
+                          ),
                       ),
                     ],
                   ),

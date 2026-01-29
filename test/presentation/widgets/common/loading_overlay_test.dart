@@ -105,12 +105,12 @@ void main() {
         child: const Text('Child Content'),
       ),);
 
-      // Find the container with the dark overlay color
-      final container = find.byWidgetPredicate(
+      // Find the ColoredBox with the dark overlay color
+      final coloredBox = find.byWidgetPredicate(
         (widget) =>
-            widget is Container && widget.color == Colors.black54,
+            widget is ColoredBox && widget.color == Colors.black54,
       );
-      expect(container, findsOneWidget);
+      expect(coloredBox, findsOneWidget);
     });
 
     testWidgets('no overlay when not loading', (tester) async {
@@ -119,11 +119,11 @@ void main() {
         child: const Text('Child Content'),
       ),);
 
-      final container = find.byWidgetPredicate(
+      final coloredBox = find.byWidgetPredicate(
         (widget) =>
-            widget is Container && widget.color == Colors.black54,
+            widget is ColoredBox && widget.color == Colors.black54,
       );
-      expect(container, findsNothing);
+      expect(coloredBox, findsNothing);
     });
 
     testWidgets('shows card for loading content', (tester) async {

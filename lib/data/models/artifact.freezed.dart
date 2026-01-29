@@ -311,9 +311,6 @@ AnalysisArtifact _$AnalysisArtifactFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$AnalysisArtifact {
-  /// Version of the artifact format
-  int get version => throw _privateConstructorUsedError;
-
   /// SHA-256 hash of the source media file
   String get mediaHash => throw _privateConstructorUsedError;
 
@@ -322,6 +319,18 @@ mixin _$AnalysisArtifact {
 
   /// Settings used for this analysis
   AnalysisSettings get settingsUsed => throw _privateConstructorUsedError;
+
+  /// Unified timeline with all detections and modifications
+  UnifiedTimeline get timeline => throw _privateConstructorUsedError;
+
+  /// When the analysis was started
+  DateTime get createdAt => throw _privateConstructorUsedError;
+
+  /// Current status of the analysis
+  AnalysisStatus get status => throw _privateConstructorUsedError;
+
+  /// Version of the artifact format
+  int get version => throw _privateConstructorUsedError;
 
   /// Transcript if ASR was performed
   Transcript? get transcript => throw _privateConstructorUsedError;
@@ -334,17 +343,8 @@ mixin _$AnalysisArtifact {
   List<FrameAnalysisResult> get frameResults =>
       throw _privateConstructorUsedError;
 
-  /// Unified timeline with all detections and modifications
-  UnifiedTimeline get timeline => throw _privateConstructorUsedError;
-
-  /// When the analysis was started
-  DateTime get createdAt => throw _privateConstructorUsedError;
-
   /// When the analysis was completed
   DateTime? get completedAt => throw _privateConstructorUsedError;
-
-  /// Current status of the analysis
-  AnalysisStatus get status => throw _privateConstructorUsedError;
 
   /// Error message if failed
   String? get errorMessage => throw _privateConstructorUsedError;
@@ -366,23 +366,23 @@ abstract class $AnalysisArtifactCopyWith<$Res> {
       _$AnalysisArtifactCopyWithImpl<$Res, AnalysisArtifact>;
   @useResult
   $Res call(
-      {int version,
-      String mediaHash,
+      {String mediaHash,
       ArtifactMediaInfo mediaInfo,
       AnalysisSettings settingsUsed,
+      UnifiedTimeline timeline,
+      DateTime createdAt,
+      AnalysisStatus status,
+      int version,
       Transcript? transcript,
       List<ProfanityMatch> profanityMatches,
       List<FrameAnalysisResult> frameResults,
-      UnifiedTimeline timeline,
-      DateTime createdAt,
       DateTime? completedAt,
-      AnalysisStatus status,
       String? errorMessage});
 
   $ArtifactMediaInfoCopyWith<$Res> get mediaInfo;
   $AnalysisSettingsCopyWith<$Res> get settingsUsed;
-  $TranscriptCopyWith<$Res>? get transcript;
   $UnifiedTimelineCopyWith<$Res> get timeline;
+  $TranscriptCopyWith<$Res>? get transcript;
 }
 
 /// @nodoc
@@ -400,24 +400,20 @@ class _$AnalysisArtifactCopyWithImpl<$Res, $Val extends AnalysisArtifact>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? version = null,
     Object? mediaHash = null,
     Object? mediaInfo = null,
     Object? settingsUsed = null,
+    Object? timeline = null,
+    Object? createdAt = null,
+    Object? status = null,
+    Object? version = null,
     Object? transcript = freezed,
     Object? profanityMatches = null,
     Object? frameResults = null,
-    Object? timeline = null,
-    Object? createdAt = null,
     Object? completedAt = freezed,
-    Object? status = null,
     Object? errorMessage = freezed,
   }) {
     return _then(_value.copyWith(
-      version: null == version
-          ? _value.version
-          : version // ignore: cast_nullable_to_non_nullable
-              as int,
       mediaHash: null == mediaHash
           ? _value.mediaHash
           : mediaHash // ignore: cast_nullable_to_non_nullable
@@ -430,6 +426,22 @@ class _$AnalysisArtifactCopyWithImpl<$Res, $Val extends AnalysisArtifact>
           ? _value.settingsUsed
           : settingsUsed // ignore: cast_nullable_to_non_nullable
               as AnalysisSettings,
+      timeline: null == timeline
+          ? _value.timeline
+          : timeline // ignore: cast_nullable_to_non_nullable
+              as UnifiedTimeline,
+      createdAt: null == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      status: null == status
+          ? _value.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as AnalysisStatus,
+      version: null == version
+          ? _value.version
+          : version // ignore: cast_nullable_to_non_nullable
+              as int,
       transcript: freezed == transcript
           ? _value.transcript
           : transcript // ignore: cast_nullable_to_non_nullable
@@ -442,22 +454,10 @@ class _$AnalysisArtifactCopyWithImpl<$Res, $Val extends AnalysisArtifact>
           ? _value.frameResults
           : frameResults // ignore: cast_nullable_to_non_nullable
               as List<FrameAnalysisResult>,
-      timeline: null == timeline
-          ? _value.timeline
-          : timeline // ignore: cast_nullable_to_non_nullable
-              as UnifiedTimeline,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
       completedAt: freezed == completedAt
           ? _value.completedAt
           : completedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as AnalysisStatus,
       errorMessage: freezed == errorMessage
           ? _value.errorMessage
           : errorMessage // ignore: cast_nullable_to_non_nullable
@@ -489,13 +489,9 @@ class _$AnalysisArtifactCopyWithImpl<$Res, $Val extends AnalysisArtifact>
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
-  $TranscriptCopyWith<$Res>? get transcript {
-    if (_value.transcript == null) {
-      return null;
-    }
-
-    return $TranscriptCopyWith<$Res>(_value.transcript!, (value) {
-      return _then(_value.copyWith(transcript: value) as $Val);
+  $UnifiedTimelineCopyWith<$Res> get timeline {
+    return $UnifiedTimelineCopyWith<$Res>(_value.timeline, (value) {
+      return _then(_value.copyWith(timeline: value) as $Val);
     });
   }
 
@@ -503,9 +499,13 @@ class _$AnalysisArtifactCopyWithImpl<$Res, $Val extends AnalysisArtifact>
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
-  $UnifiedTimelineCopyWith<$Res> get timeline {
-    return $UnifiedTimelineCopyWith<$Res>(_value.timeline, (value) {
-      return _then(_value.copyWith(timeline: value) as $Val);
+  $TranscriptCopyWith<$Res>? get transcript {
+    if (_value.transcript == null) {
+      return null;
+    }
+
+    return $TranscriptCopyWith<$Res>(_value.transcript!, (value) {
+      return _then(_value.copyWith(transcript: value) as $Val);
     });
   }
 }
@@ -519,17 +519,17 @@ abstract class _$$AnalysisArtifactImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {int version,
-      String mediaHash,
+      {String mediaHash,
       ArtifactMediaInfo mediaInfo,
       AnalysisSettings settingsUsed,
+      UnifiedTimeline timeline,
+      DateTime createdAt,
+      AnalysisStatus status,
+      int version,
       Transcript? transcript,
       List<ProfanityMatch> profanityMatches,
       List<FrameAnalysisResult> frameResults,
-      UnifiedTimeline timeline,
-      DateTime createdAt,
       DateTime? completedAt,
-      AnalysisStatus status,
       String? errorMessage});
 
   @override
@@ -537,9 +537,9 @@ abstract class _$$AnalysisArtifactImplCopyWith<$Res>
   @override
   $AnalysisSettingsCopyWith<$Res> get settingsUsed;
   @override
-  $TranscriptCopyWith<$Res>? get transcript;
-  @override
   $UnifiedTimelineCopyWith<$Res> get timeline;
+  @override
+  $TranscriptCopyWith<$Res>? get transcript;
 }
 
 /// @nodoc
@@ -555,24 +555,20 @@ class __$$AnalysisArtifactImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? version = null,
     Object? mediaHash = null,
     Object? mediaInfo = null,
     Object? settingsUsed = null,
+    Object? timeline = null,
+    Object? createdAt = null,
+    Object? status = null,
+    Object? version = null,
     Object? transcript = freezed,
     Object? profanityMatches = null,
     Object? frameResults = null,
-    Object? timeline = null,
-    Object? createdAt = null,
     Object? completedAt = freezed,
-    Object? status = null,
     Object? errorMessage = freezed,
   }) {
     return _then(_$AnalysisArtifactImpl(
-      version: null == version
-          ? _value.version
-          : version // ignore: cast_nullable_to_non_nullable
-              as int,
       mediaHash: null == mediaHash
           ? _value.mediaHash
           : mediaHash // ignore: cast_nullable_to_non_nullable
@@ -585,6 +581,22 @@ class __$$AnalysisArtifactImplCopyWithImpl<$Res>
           ? _value.settingsUsed
           : settingsUsed // ignore: cast_nullable_to_non_nullable
               as AnalysisSettings,
+      timeline: null == timeline
+          ? _value.timeline
+          : timeline // ignore: cast_nullable_to_non_nullable
+              as UnifiedTimeline,
+      createdAt: null == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      status: null == status
+          ? _value.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as AnalysisStatus,
+      version: null == version
+          ? _value.version
+          : version // ignore: cast_nullable_to_non_nullable
+              as int,
       transcript: freezed == transcript
           ? _value.transcript
           : transcript // ignore: cast_nullable_to_non_nullable
@@ -597,22 +609,10 @@ class __$$AnalysisArtifactImplCopyWithImpl<$Res>
           ? _value._frameResults
           : frameResults // ignore: cast_nullable_to_non_nullable
               as List<FrameAnalysisResult>,
-      timeline: null == timeline
-          ? _value.timeline
-          : timeline // ignore: cast_nullable_to_non_nullable
-              as UnifiedTimeline,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
       completedAt: freezed == completedAt
           ? _value.completedAt
           : completedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as AnalysisStatus,
       errorMessage: freezed == errorMessage
           ? _value.errorMessage
           : errorMessage // ignore: cast_nullable_to_non_nullable
@@ -625,17 +625,17 @@ class __$$AnalysisArtifactImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$AnalysisArtifactImpl extends _AnalysisArtifact {
   const _$AnalysisArtifactImpl(
-      {this.version = 1,
-      required this.mediaHash,
+      {required this.mediaHash,
       required this.mediaInfo,
       required this.settingsUsed,
+      required this.timeline,
+      required this.createdAt,
+      required this.status,
+      this.version = 1,
       this.transcript,
       final List<ProfanityMatch> profanityMatches = const [],
       final List<FrameAnalysisResult> frameResults = const [],
-      required this.timeline,
-      required this.createdAt,
       this.completedAt,
-      required this.status,
       this.errorMessage})
       : _profanityMatches = profanityMatches,
         _frameResults = frameResults,
@@ -643,11 +643,6 @@ class _$AnalysisArtifactImpl extends _AnalysisArtifact {
 
   factory _$AnalysisArtifactImpl.fromJson(Map<String, dynamic> json) =>
       _$$AnalysisArtifactImplFromJson(json);
-
-  /// Version of the artifact format
-  @override
-  @JsonKey()
-  final int version;
 
   /// SHA-256 hash of the source media file
   @override
@@ -660,6 +655,23 @@ class _$AnalysisArtifactImpl extends _AnalysisArtifact {
   /// Settings used for this analysis
   @override
   final AnalysisSettings settingsUsed;
+
+  /// Unified timeline with all detections and modifications
+  @override
+  final UnifiedTimeline timeline;
+
+  /// When the analysis was started
+  @override
+  final DateTime createdAt;
+
+  /// Current status of the analysis
+  @override
+  final AnalysisStatus status;
+
+  /// Version of the artifact format
+  @override
+  @JsonKey()
+  final int version;
 
   /// Transcript if ASR was performed
   @override
@@ -690,21 +702,9 @@ class _$AnalysisArtifactImpl extends _AnalysisArtifact {
     return EqualUnmodifiableListView(_frameResults);
   }
 
-  /// Unified timeline with all detections and modifications
-  @override
-  final UnifiedTimeline timeline;
-
-  /// When the analysis was started
-  @override
-  final DateTime createdAt;
-
   /// When the analysis was completed
   @override
   final DateTime? completedAt;
-
-  /// Current status of the analysis
-  @override
-  final AnalysisStatus status;
 
   /// Error message if failed
   @override
@@ -712,7 +712,7 @@ class _$AnalysisArtifactImpl extends _AnalysisArtifact {
 
   @override
   String toString() {
-    return 'AnalysisArtifact(version: $version, mediaHash: $mediaHash, mediaInfo: $mediaInfo, settingsUsed: $settingsUsed, transcript: $transcript, profanityMatches: $profanityMatches, frameResults: $frameResults, timeline: $timeline, createdAt: $createdAt, completedAt: $completedAt, status: $status, errorMessage: $errorMessage)';
+    return 'AnalysisArtifact(mediaHash: $mediaHash, mediaInfo: $mediaInfo, settingsUsed: $settingsUsed, timeline: $timeline, createdAt: $createdAt, status: $status, version: $version, transcript: $transcript, profanityMatches: $profanityMatches, frameResults: $frameResults, completedAt: $completedAt, errorMessage: $errorMessage)';
   }
 
   @override
@@ -720,26 +720,26 @@ class _$AnalysisArtifactImpl extends _AnalysisArtifact {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$AnalysisArtifactImpl &&
-            (identical(other.version, version) || other.version == version) &&
             (identical(other.mediaHash, mediaHash) ||
                 other.mediaHash == mediaHash) &&
             (identical(other.mediaInfo, mediaInfo) ||
                 other.mediaInfo == mediaInfo) &&
             (identical(other.settingsUsed, settingsUsed) ||
                 other.settingsUsed == settingsUsed) &&
+            (identical(other.timeline, timeline) ||
+                other.timeline == timeline) &&
+            (identical(other.createdAt, createdAt) ||
+                other.createdAt == createdAt) &&
+            (identical(other.status, status) || other.status == status) &&
+            (identical(other.version, version) || other.version == version) &&
             (identical(other.transcript, transcript) ||
                 other.transcript == transcript) &&
             const DeepCollectionEquality()
                 .equals(other._profanityMatches, _profanityMatches) &&
             const DeepCollectionEquality()
                 .equals(other._frameResults, _frameResults) &&
-            (identical(other.timeline, timeline) ||
-                other.timeline == timeline) &&
-            (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt) &&
             (identical(other.completedAt, completedAt) ||
                 other.completedAt == completedAt) &&
-            (identical(other.status, status) || other.status == status) &&
             (identical(other.errorMessage, errorMessage) ||
                 other.errorMessage == errorMessage));
   }
@@ -748,17 +748,17 @@ class _$AnalysisArtifactImpl extends _AnalysisArtifact {
   @override
   int get hashCode => Object.hash(
       runtimeType,
-      version,
       mediaHash,
       mediaInfo,
       settingsUsed,
+      timeline,
+      createdAt,
+      status,
+      version,
       transcript,
       const DeepCollectionEquality().hash(_profanityMatches),
       const DeepCollectionEquality().hash(_frameResults),
-      timeline,
-      createdAt,
       completedAt,
-      status,
       errorMessage);
 
   /// Create a copy of AnalysisArtifact
@@ -780,26 +780,22 @@ class _$AnalysisArtifactImpl extends _AnalysisArtifact {
 
 abstract class _AnalysisArtifact extends AnalysisArtifact {
   const factory _AnalysisArtifact(
-      {final int version,
-      required final String mediaHash,
+      {required final String mediaHash,
       required final ArtifactMediaInfo mediaInfo,
       required final AnalysisSettings settingsUsed,
+      required final UnifiedTimeline timeline,
+      required final DateTime createdAt,
+      required final AnalysisStatus status,
+      final int version,
       final Transcript? transcript,
       final List<ProfanityMatch> profanityMatches,
       final List<FrameAnalysisResult> frameResults,
-      required final UnifiedTimeline timeline,
-      required final DateTime createdAt,
       final DateTime? completedAt,
-      required final AnalysisStatus status,
       final String? errorMessage}) = _$AnalysisArtifactImpl;
   const _AnalysisArtifact._() : super._();
 
   factory _AnalysisArtifact.fromJson(Map<String, dynamic> json) =
       _$AnalysisArtifactImpl.fromJson;
-
-  /// Version of the artifact format
-  @override
-  int get version;
 
   /// SHA-256 hash of the source media file
   @override
@@ -813,6 +809,22 @@ abstract class _AnalysisArtifact extends AnalysisArtifact {
   @override
   AnalysisSettings get settingsUsed;
 
+  /// Unified timeline with all detections and modifications
+  @override
+  UnifiedTimeline get timeline;
+
+  /// When the analysis was started
+  @override
+  DateTime get createdAt;
+
+  /// Current status of the analysis
+  @override
+  AnalysisStatus get status;
+
+  /// Version of the artifact format
+  @override
+  int get version;
+
   /// Transcript if ASR was performed
   @override
   Transcript? get transcript;
@@ -825,21 +837,9 @@ abstract class _AnalysisArtifact extends AnalysisArtifact {
   @override
   List<FrameAnalysisResult> get frameResults;
 
-  /// Unified timeline with all detections and modifications
-  @override
-  UnifiedTimeline get timeline;
-
-  /// When the analysis was started
-  @override
-  DateTime get createdAt;
-
   /// When the analysis was completed
   @override
   DateTime? get completedAt;
-
-  /// Current status of the analysis
-  @override
-  AnalysisStatus get status;
 
   /// Error message if failed
   @override

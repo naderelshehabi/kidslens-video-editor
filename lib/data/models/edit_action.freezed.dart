@@ -26,9 +26,6 @@ mixin _$EditAction {
   /// ID of the media file this action applies to
   String get mediaId => throw _privateConstructorUsedError;
 
-  /// ID of the detection this action was created from (if any)
-  String? get detectionId => throw _privateConstructorUsedError;
-
   /// Type of edit action
   EditActionType get type => throw _privateConstructorUsedError;
 
@@ -39,6 +36,9 @@ mixin _$EditAction {
   /// End time in the media
   @DurationConverter()
   Duration get endTime => throw _privateConstructorUsedError;
+
+  /// ID of the detection this action was created from (if any)
+  String? get detectionId => throw _privateConstructorUsedError;
 
   /// Whether this action is enabled
   bool get enabled => throw _privateConstructorUsedError;
@@ -78,10 +78,10 @@ abstract class $EditActionCopyWith<$Res> {
   $Res call(
       {String id,
       String mediaId,
-      String? detectionId,
       EditActionType type,
       @DurationConverter() Duration startTime,
       @DurationConverter() Duration endTime,
+      String? detectionId,
       bool enabled,
       double blurIntensity,
       BoundingBox? boundingBox,
@@ -109,10 +109,10 @@ class _$EditActionCopyWithImpl<$Res, $Val extends EditAction>
   $Res call({
     Object? id = null,
     Object? mediaId = null,
-    Object? detectionId = freezed,
     Object? type = null,
     Object? startTime = null,
     Object? endTime = null,
+    Object? detectionId = freezed,
     Object? enabled = null,
     Object? blurIntensity = null,
     Object? boundingBox = freezed,
@@ -129,10 +129,6 @@ class _$EditActionCopyWithImpl<$Res, $Val extends EditAction>
           ? _value.mediaId
           : mediaId // ignore: cast_nullable_to_non_nullable
               as String,
-      detectionId: freezed == detectionId
-          ? _value.detectionId
-          : detectionId // ignore: cast_nullable_to_non_nullable
-              as String?,
       type: null == type
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
@@ -145,6 +141,10 @@ class _$EditActionCopyWithImpl<$Res, $Val extends EditAction>
           ? _value.endTime
           : endTime // ignore: cast_nullable_to_non_nullable
               as Duration,
+      detectionId: freezed == detectionId
+          ? _value.detectionId
+          : detectionId // ignore: cast_nullable_to_non_nullable
+              as String?,
       enabled: null == enabled
           ? _value.enabled
           : enabled // ignore: cast_nullable_to_non_nullable
@@ -198,10 +198,10 @@ abstract class _$$EditActionImplCopyWith<$Res>
   $Res call(
       {String id,
       String mediaId,
-      String? detectionId,
       EditActionType type,
       @DurationConverter() Duration startTime,
       @DurationConverter() Duration endTime,
+      String? detectionId,
       bool enabled,
       double blurIntensity,
       BoundingBox? boundingBox,
@@ -228,10 +228,10 @@ class __$$EditActionImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? mediaId = null,
-    Object? detectionId = freezed,
     Object? type = null,
     Object? startTime = null,
     Object? endTime = null,
+    Object? detectionId = freezed,
     Object? enabled = null,
     Object? blurIntensity = null,
     Object? boundingBox = freezed,
@@ -248,10 +248,6 @@ class __$$EditActionImplCopyWithImpl<$Res>
           ? _value.mediaId
           : mediaId // ignore: cast_nullable_to_non_nullable
               as String,
-      detectionId: freezed == detectionId
-          ? _value.detectionId
-          : detectionId // ignore: cast_nullable_to_non_nullable
-              as String?,
       type: null == type
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
@@ -264,6 +260,10 @@ class __$$EditActionImplCopyWithImpl<$Res>
           ? _value.endTime
           : endTime // ignore: cast_nullable_to_non_nullable
               as Duration,
+      detectionId: freezed == detectionId
+          ? _value.detectionId
+          : detectionId // ignore: cast_nullable_to_non_nullable
+              as String?,
       enabled: null == enabled
           ? _value.enabled
           : enabled // ignore: cast_nullable_to_non_nullable
@@ -298,10 +298,10 @@ class _$EditActionImpl extends _EditAction {
   const _$EditActionImpl(
       {required this.id,
       required this.mediaId,
-      this.detectionId,
       required this.type,
       @DurationConverter() required this.startTime,
       @DurationConverter() required this.endTime,
+      this.detectionId,
       this.enabled = true,
       this.blurIntensity = 1.0,
       this.boundingBox,
@@ -321,10 +321,6 @@ class _$EditActionImpl extends _EditAction {
   @override
   final String mediaId;
 
-  /// ID of the detection this action was created from (if any)
-  @override
-  final String? detectionId;
-
   /// Type of edit action
   @override
   final EditActionType type;
@@ -338,6 +334,10 @@ class _$EditActionImpl extends _EditAction {
   @override
   @DurationConverter()
   final Duration endTime;
+
+  /// ID of the detection this action was created from (if any)
+  @override
+  final String? detectionId;
 
   /// Whether this action is enabled
   @override
@@ -369,7 +369,7 @@ class _$EditActionImpl extends _EditAction {
 
   @override
   String toString() {
-    return 'EditAction(id: $id, mediaId: $mediaId, detectionId: $detectionId, type: $type, startTime: $startTime, endTime: $endTime, enabled: $enabled, blurIntensity: $blurIntensity, boundingBox: $boundingBox, beepFrequency: $beepFrequency, notes: $notes, createdAt: $createdAt)';
+    return 'EditAction(id: $id, mediaId: $mediaId, type: $type, startTime: $startTime, endTime: $endTime, detectionId: $detectionId, enabled: $enabled, blurIntensity: $blurIntensity, boundingBox: $boundingBox, beepFrequency: $beepFrequency, notes: $notes, createdAt: $createdAt)';
   }
 
   @override
@@ -379,12 +379,12 @@ class _$EditActionImpl extends _EditAction {
             other is _$EditActionImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.mediaId, mediaId) || other.mediaId == mediaId) &&
-            (identical(other.detectionId, detectionId) ||
-                other.detectionId == detectionId) &&
             (identical(other.type, type) || other.type == type) &&
             (identical(other.startTime, startTime) ||
                 other.startTime == startTime) &&
             (identical(other.endTime, endTime) || other.endTime == endTime) &&
+            (identical(other.detectionId, detectionId) ||
+                other.detectionId == detectionId) &&
             (identical(other.enabled, enabled) || other.enabled == enabled) &&
             (identical(other.blurIntensity, blurIntensity) ||
                 other.blurIntensity == blurIntensity) &&
@@ -403,10 +403,10 @@ class _$EditActionImpl extends _EditAction {
       runtimeType,
       id,
       mediaId,
-      detectionId,
       type,
       startTime,
       endTime,
+      detectionId,
       enabled,
       blurIntensity,
       boundingBox,
@@ -434,10 +434,10 @@ abstract class _EditAction extends EditAction {
   const factory _EditAction(
       {required final String id,
       required final String mediaId,
-      final String? detectionId,
       required final EditActionType type,
       @DurationConverter() required final Duration startTime,
       @DurationConverter() required final Duration endTime,
+      final String? detectionId,
       final bool enabled,
       final double blurIntensity,
       final BoundingBox? boundingBox,
@@ -457,10 +457,6 @@ abstract class _EditAction extends EditAction {
   @override
   String get mediaId;
 
-  /// ID of the detection this action was created from (if any)
-  @override
-  String? get detectionId;
-
   /// Type of edit action
   @override
   EditActionType get type;
@@ -474,6 +470,10 @@ abstract class _EditAction extends EditAction {
   @override
   @DurationConverter()
   Duration get endTime;
+
+  /// ID of the detection this action was created from (if any)
+  @override
+  String? get detectionId;
 
   /// Whether this action is enabled
   @override

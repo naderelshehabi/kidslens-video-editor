@@ -6,7 +6,27 @@ part of 'settings_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$settingsNotifierHash() => r'ef16a936d319bb8203306d63602b8c59a61fb2a3';
+String _$detectionThresholdsHash() =>
+    r'106445558641efb0c2a97a44a2fce46b1cb2bc44';
+
+/// Provider for detection thresholds (convenience accessor)
+///
+/// Copied from [detectionThresholds].
+@ProviderFor(detectionThresholds)
+final detectionThresholdsProvider = Provider<DetectionThresholds>.internal(
+  detectionThresholds,
+  name: r'detectionThresholdsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$detectionThresholdsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef DetectionThresholdsRef = ProviderRef<DetectionThresholds>;
+String _$settingsNotifierHash() => r'75767ce1aca67256c0043245a8520a0c47f5989a';
 
 /// Provider for managing application settings
 ///

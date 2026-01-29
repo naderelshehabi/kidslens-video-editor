@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kidslens_video_editor/data/models/detection.dart';
 import 'package:kidslens_video_editor/data/models/modification.dart';
@@ -127,10 +128,16 @@ void main() {
   });
 
   group('TimelineNotifier', () {
+    late ProviderContainer container;
     late TimelineNotifier notifier;
 
     setUp(() {
-      notifier = TimelineNotifier();
+      container = ProviderContainer();
+      notifier = container.read(timelineNotifierProvider.notifier);
+    });
+
+    tearDown(() {
+      container.dispose();
     });
 
     group('initialization', () {

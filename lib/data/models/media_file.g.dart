@@ -16,9 +16,9 @@ _$MediaFileImpl _$$MediaFileImplFromJson(Map<String, dynamic> json) =>
       width: (json['width'] as num).toInt(),
       height: (json['height'] as num).toInt(),
       fileSize: (json['fileSize'] as num).toInt(),
+      mediaType: $enumDecode(_$MediaTypeEnumMap, json['mediaType']),
       codec: json['codec'] as String?,
       container: json['container'] as String?,
-      mediaType: $enumDecode(_$MediaTypeEnumMap, json['mediaType']),
     );
 
 Map<String, dynamic> _$$MediaFileImplToJson(_$MediaFileImpl instance) =>
@@ -30,9 +30,9 @@ Map<String, dynamic> _$$MediaFileImplToJson(_$MediaFileImpl instance) =>
       'width': instance.width,
       'height': instance.height,
       'fileSize': instance.fileSize,
+      'mediaType': _$MediaTypeEnumMap[instance.mediaType]!,
       'codec': instance.codec,
       'container': instance.container,
-      'mediaType': _$MediaTypeEnumMap[instance.mediaType]!,
     };
 
 const _$MediaTypeEnumMap = {

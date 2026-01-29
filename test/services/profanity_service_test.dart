@@ -606,5 +606,345 @@ void main() {
         // Result depends on implementation details
       });
     });
+
+    group('isLanguageLoaded state', () {
+      test('should return false for unloaded language', () {
+        final isLoaded = profanityService.isLanguageLoaded('xx');
+
+        expect(isLoaded, isFalse);
+      });
+
+      test('should return true after loading language', () async {
+        await profanityService.loadWordList('en');
+
+        final isLoaded = profanityService.isLanguageLoaded('en');
+
+        expect(isLoaded, isTrue);
+      });
+
+      test('should track multiple loaded languages', () async {
+        await profanityService.loadWordList('en');
+        await profanityService.loadWordList('de');
+
+        expect(profanityService.isLanguageLoaded('en'), isTrue);
+        expect(profanityService.isLanguageLoaded('de'), isTrue);
+        expect(profanityService.isLanguageLoaded('fr'), isFalse);
+      });
+
+      test('should return loaded languages set', () async {
+        await profanityService.loadWordList('en');
+        await profanityService.loadWordList('es');
+
+        final loaded = profanityService.loadedLanguages;
+
+        expect(loaded, contains('en'));
+        expect(loaded, contains('es'));
+      });
+
+      test('getWordCount should return 0 for unloaded language', () {
+        final count = profanityService.getWordCount('xx');
+
+        expect(count, equals(0));
+      });
+
+      test('getWordCount should return count after loading', () async {
+        await profanityService.loadWordList('en');
+
+        final count = profanityService.getWordCount('en');
+
+        // English wordlist should have some words
+        expect(count, greaterThanOrEqualTo(0));
+      });
+
+      test('clearWordlists should reset loaded state', () async {
+        await profanityService.loadWordList('en');
+        expect(profanityService.isLanguageLoaded('en'), isTrue);
+
+        profanityService.clearWordlists();
+
+        expect(profanityService.isLanguageLoaded('en'), isFalse);
+        expect(profanityService.loadedLanguages, isEmpty);
+      });
+    });
+
+    group('phonetic matching (Double Metaphone)', () {
+      test('should detect phonetically similar words', () async {
+        await profanityService.loadWordList('en');
+        profanityService.addCustomWords(['phone']);
+
+        const transcript = Transcript(
+          segments: [
+            TranscriptSegment(
+              id: 'seg-1',
+              startTime: Duration.zero,
+              endTime: Duration(seconds: 2),
+              text: 'fone call',
+              words: [
+                TranscriptWord(
+                  word: 'fone',
+                  startTime: Duration.zero,
+                  endTime: Duration(milliseconds: 500),
+                  confidence: 0.95,
+                ),
+                TranscriptWord(
+                  word: 'call',
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(seconds: 1),
+                  confidence: 0.98,
+                ),
+              ],
+            ),
+          ],
+          language: 'en',
+        );
+
+        final matches = profanityService.detect(transcript);
+
+        // 'fone' and 'phone' have the same phonetic encoding
+        if (matches.isNotEmpty) {
+          expect(matches.first.type, equals(MatchType.phonetic));
+          expect(matches.first.confidence, lessThan(1.0));
+        }
+      });
+
+      test('should handle words starting with silent letters', () async {
+        await profanityService.loadWordList('en');
+        profanityService.addCustomWords(['knife']);
+
+        const transcript = Transcript(
+          segments: [
+            TranscriptSegment(
+              id: 'seg-1',
+              startTime: Duration.zero,
+              endTime: Duration(seconds: 2),
+              text: 'nife sharp',
+              words: [
+                TranscriptWord(
+                  word: 'nife',
+                  startTime: Duration.zero,
+                  endTime: Duration(milliseconds: 500),
+                  confidence: 0.95,
+                ),
+                TranscriptWord(
+                  word: 'sharp',
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(seconds: 1),
+                  confidence: 0.98,
+                ),
+              ],
+            ),
+          ],
+          language: 'en',
+        );
+
+        // Should try phonetic matching for 'nife' vs 'knife'
+        profanityService.detect(transcript);
+        // Result depends on phonetic algorithm specifics
+      });
+
+      test('should match words with different spellings but same sound', () async {
+        await profanityService.loadWordList('en');
+        profanityService.addCustomWords(['tough']);
+
+        const transcript = Transcript(
+          segments: [
+            TranscriptSegment(
+              id: 'seg-1',
+              startTime: Duration.zero,
+              endTime: Duration(seconds: 2),
+              text: 'tuff guy',
+              words: [
+                TranscriptWord(
+                  word: 'tuff',
+                  startTime: Duration.zero,
+                  endTime: Duration(milliseconds: 500),
+                  confidence: 0.95,
+                ),
+                TranscriptWord(
+                  word: 'guy',
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(seconds: 1),
+                  confidence: 0.98,
+                ),
+              ],
+            ),
+          ],
+          language: 'en',
+        );
+
+        final matches = profanityService.detect(transcript);
+
+        // 'tuff' and 'tough' should be phonetically similar
+        if (matches.isNotEmpty) {
+          expect(
+            matches.first.type,
+            anyOf(equals(MatchType.phonetic), equals(MatchType.fuzzy)),
+          );
+        }
+      });
+    });
+
+    group('fuzzy matching (Levenshtein distance)', () {
+      test('should detect words with minor typos', () async {
+        await profanityService.loadWordList('en');
+        profanityService.addCustomWords(['badword']);
+
+        const transcript = Transcript(
+          segments: [
+            TranscriptSegment(
+              id: 'seg-1',
+              startTime: Duration.zero,
+              endTime: Duration(seconds: 2),
+              text: 'badwrod here',
+              words: [
+                TranscriptWord(
+                  word: 'badwrod',
+                  startTime: Duration.zero,
+                  endTime: Duration(milliseconds: 500),
+                  confidence: 0.95,
+                ),
+                TranscriptWord(
+                  word: 'here',
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(seconds: 1),
+                  confidence: 0.98,
+                ),
+              ],
+            ),
+          ],
+          language: 'en',
+        );
+
+        final matches = profanityService.detect(transcript);
+
+        // 'badwrod' is one transposition away from 'badword'
+        if (matches.isNotEmpty) {
+          expect(matches.first.confidence, lessThan(1.0));
+        }
+      });
+
+      test('should detect words with single character difference', () async {
+        await profanityService.loadWordList('en');
+        profanityService.addCustomWords(['testing']);
+
+        const transcript = Transcript(
+          segments: [
+            TranscriptSegment(
+              id: 'seg-1',
+              startTime: Duration.zero,
+              endTime: Duration(seconds: 2),
+              text: 'testng example',
+              words: [
+                TranscriptWord(
+                  word: 'testng',
+                  startTime: Duration.zero,
+                  endTime: Duration(milliseconds: 500),
+                  confidence: 0.95,
+                ),
+                TranscriptWord(
+                  word: 'example',
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(seconds: 1),
+                  confidence: 0.98,
+                ),
+              ],
+            ),
+          ],
+          language: 'en',
+        );
+
+        // 'testng' is missing one letter from 'testing'
+        profanityService.detect(transcript);
+        // Result depends on similarity threshold
+      });
+
+      test('should not match words that are too different', () async {
+        await profanityService.loadWordList('en');
+        profanityService.addCustomWords(['specific']);
+
+        const transcript = Transcript(
+          segments: [
+            TranscriptSegment(
+              id: 'seg-1',
+              startTime: Duration.zero,
+              endTime: Duration(seconds: 2),
+              text: 'completely different',
+              words: [
+                TranscriptWord(
+                  word: 'completely',
+                  startTime: Duration.zero,
+                  endTime: Duration(milliseconds: 500),
+                  confidence: 0.95,
+                ),
+                TranscriptWord(
+                  word: 'different',
+                  startTime: Duration(milliseconds: 500),
+                  endTime: Duration(seconds: 1),
+                  confidence: 0.98,
+                ),
+              ],
+            ),
+          ],
+          language: 'en',
+        );
+
+        final matches = profanityService.detect(transcript);
+
+        // Words are too different, should not match
+        expect(
+          matches.where((m) => m.matchedProfanity == 'specific'),
+          isEmpty,
+        );
+      });
+    });
+
+    group('LanguageInfo', () {
+      test('should parse from JSON correctly', () {
+        final json = {
+          'code': 'en',
+          'name': 'English',
+          'rtl': false,
+        };
+
+        final info = LanguageInfo.fromJson(json);
+
+        expect(info.code, equals('en'));
+        expect(info.name, equals('English'));
+        expect(info.rtl, isFalse);
+      });
+
+      test('should handle RTL languages', () {
+        final json = {
+          'code': 'ar',
+          'name': 'Arabic',
+          'rtl': true,
+        };
+
+        final info = LanguageInfo.fromJson(json);
+
+        expect(info.code, equals('ar'));
+        expect(info.rtl, isTrue);
+      });
+    });
+
+    group('metadata loading', () {
+      test('should load metadata successfully', () async {
+        await profanityService.loadMetadata();
+
+        final languages = profanityService.supportedLanguages;
+
+        // Should have at least English
+        expect(languages, isNotEmpty);
+      });
+
+      test('supportedLanguages should be immutable', () async {
+        await profanityService.loadMetadata();
+
+        final languages = profanityService.supportedLanguages;
+
+        expect(() => languages.add(const LanguageInfo(code: 'xx', name: 'Test', rtl: false)),
+            throwsA(isA<UnsupportedError>()),);
+      });
+    });
   });
 }

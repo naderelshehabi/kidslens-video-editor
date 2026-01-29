@@ -53,8 +53,11 @@ abstract final class FileUtils {
   ///
   /// [bytes] - The size in bytes
   /// [unit] - The unit to display ('KB', 'MB', 'GB')
-  static String formatFileSizeInUnit(int bytes, String unit,
-      {int decimals = 2,}) {
+  static String formatFileSizeInUnit(
+    int bytes,
+    String unit, {
+    int decimals = 2,
+  }) {
     const divisors = <String, int>{
       'B': 1,
       'KB': 1024,
@@ -84,7 +87,8 @@ abstract final class FileUtils {
   static int parseFileSize(String input) {
     final trimmed = input.trim().toUpperCase();
 
-    final match = RegExp(r'^([\d.]+)\s*(B|KB|MB|GB|TB|PB)?$').firstMatch(trimmed);
+    final match =
+        RegExp(r'^([\d.]+)\s*(B|KB|MB|GB|TB|PB)?$').firstMatch(trimmed);
     if (match == null) {
       throw FormatException('Invalid file size format: $input');
     }
@@ -159,8 +163,12 @@ abstract final class FileUtils {
   static String normalizePath(String filePath) => path.normalize(filePath);
 
   /// Join path segments using the platform separator
-  static String joinPath(String path1, String path2,
-      [String? path3, String? path4,]) {
+  static String joinPath(
+    String path1,
+    String path2, [
+    String? path3,
+    String? path4,
+  ]) {
     if (path4 != null) {
       return path.join(path1, path2, path3, path4);
     }
@@ -287,10 +295,64 @@ abstract final class FileUtils {
   /// Returns 0 if the space cannot be determined.
   static Future<int> getAvailableDiskSpace(String path) async {
     try {
-      // This is platform-specific and may need platform channels
-      // For now, return a large default value
-      // TODO: Implement platform-specific disk space check
-      return 10 * 1024 * 1024 * 1024; // 10 GB default
+      if (Platform.isWindows) {
+        // Use wmic command to get disk free space on Windows
+        // Extract drive letter from path
+        final driveLetter =
+            path.length >= 2 && path[1] == ':' ? path.substring(0, 2) : 'C:';
+
+        final result = await Process.run(
+          'wmic',
+          [
+            'logicaldisk',
+            'where',
+            "DeviceID='$driveLetter'",
+            'get',
+            'FreeSpace',
+            '/value',
+          ],
+        );
+
+        if (result.exitCode == 0) {
+          // Parse output like "FreeSpace=123456789"
+          final output = (result.stdout as String).trim();
+          final match = RegExp(r'FreeSpace=(\d+)').firstMatch(output);
+          if (match != null) {
+            return int.tryParse(match.group(1)!) ?? 0;
+          }
+        }
+      } else if (Platform.isMacOS || Platform.isLinux) {
+        // Use df command for macOS and Linux
+        final result = await Process.run(
+          'df',
+          ['-B1', path], // -B1 for bytes (Linux), macOS uses 512-byte blocks
+        );
+
+        if (result.exitCode == 0) {
+          final lines = (result.stdout as String).split('\n');
+          if (lines.length >= 2) {
+            // Parse the second line which contains the disk info
+            // Format: Filesystem 1B-blocks Used Available Use% Mounted
+            final parts = lines[1].split(RegExp(r'\s+'));
+            if (parts.length >= 4) {
+              // Available space is the 4th column
+              final availableStr = parts[3];
+              var available = int.tryParse(availableStr);
+
+              // On macOS, df without -B1 uses 512-byte blocks
+              if (available != null &&
+                  Platform.isMacOS &&
+                  !lines[0].contains('1B-blocks')) {
+                available *= 512;
+              }
+
+              return available ?? 0;
+            }
+          }
+        }
+      }
+
+      return 0;
     } catch (_) {
       return 0;
     }

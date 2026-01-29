@@ -1,7 +1,10 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kidslens_video_editor/presentation/screens/about_screen.dart';
+import 'package:kidslens_video_editor/presentation/screens/analysis_settings/analysis_settings_screen.dart';
 import 'package:kidslens_video_editor/presentation/screens/editor_screen.dart';
+import 'package:kidslens_video_editor/presentation/screens/settings_screen.dart';
 import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 import 'package:kidslens_video_editor/services/project_service.dart';
 import 'package:kidslens_video_editor/state/providers/project_provider.dart';
@@ -18,7 +21,43 @@ class KidsLensApp extends StatelessWidget {
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.dark, // Video editors typically use dark theme
         home: const _OnboardingWrapper(),
+        routes: {
+          '/analysis-settings': (context) => const AnalysisSettingsScreen(),
+          '/settings': (context) => const SettingsScreen(),
+          '/about': (context) => const AboutScreen(),
+        },
+        onGenerateRoute: (settings) {
+          // Handle dynamic routes that require arguments
+          switch (settings.name) {
+            case '/editor':
+              return MaterialPageRoute<void>(
+                builder: (context) => const EditorScreen(),
+              );
+            default:
+              return null;
+          }
+        },
       );
+
+  /// Navigate to analysis settings
+  static void navigateToAnalysisSettings(BuildContext context) {
+    Navigator.pushNamed(context, '/analysis-settings');
+  }
+
+  /// Navigate to settings
+  static void navigateToSettings(BuildContext context) {
+    Navigator.pushNamed(context, '/settings');
+  }
+
+  /// Navigate to about screen
+  static void navigateToAbout(BuildContext context) {
+    Navigator.pushNamed(context, '/about');
+  }
+
+  /// Navigate to editor screen
+  static void navigateToEditor(BuildContext context) {
+    Navigator.pushReplacementNamed(context, '/editor');
+  }
 }
 
 /// Wrapper to check if onboarding should be shown
@@ -116,42 +155,48 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: PageView.builder(
-                controller: _controller,
-                itemCount: _pages.length,
-                onPageChanged: (page) => setState(() => _currentPage = page),
-                itemBuilder: (context, index) => _pages[index],
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: PageView.builder(
+                  controller: _controller,
+                  itemCount: _pages.length,
+                  onPageChanged: (page) => setState(() => _currentPage = page),
+                  itemBuilder: (context, index) => _pages[index],
+                ),
               ),
-            ),
-            _buildIndicators(),
-            _buildButtons(),
-          ],
+              _buildIndicators(),
+              _buildButtons(),
+            ],
+          ),
         ),
-      ),
-    );
+      );
 
   Widget _buildIndicators() => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(_pages.length, (index) => AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            width: _currentPage == index ? 24 : 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: _currentPage == index
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(4),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            _pages.length,
+            (index) => AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: _currentPage == index ? 24 : 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: _currentPage == index
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context)
+                        .colorScheme
+                        .outline
+                        .withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(4),
+              ),
             ),
-          ),),
-      ),
-    );
+          ),
+        ),
+      );
 
   Widget _buildButtons() {
     final isLastPage = _currentPage == _pages.length - 1;
@@ -206,40 +251,40 @@ class _OnboardingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              shape: BoxShape.circle,
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 56,
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
-            child: Icon(
-              icon,
-              size: 56,
-              color: Theme.of(context).colorScheme.primary,
+            const SizedBox(height: 48),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.headlineMedium,
+              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: 48),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.headlineMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            description,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
+            const SizedBox(height: 16),
+            Text(
+              description,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
 }
 
 /// Welcome screen with New/Open Project options
@@ -513,7 +558,7 @@ class _WelcomeScreenState extends ConsumerState<_WelcomeScreen> {
 
   Future<void> _showNewProjectDialog(BuildContext context) async {
     setState(() => _isLoading = true);
-    
+
     // Capture context-dependent values before async operations
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final errorColor = Theme.of(context).colorScheme.error;
@@ -537,7 +582,9 @@ class _WelcomeScreenState extends ConsumerState<_WelcomeScreen> {
       final initialTitle = fileName
               .endsWith('.${ProjectService.projectExtension}')
           ? fileName.substring(
-              0, fileName.length - '.${ProjectService.projectExtension}'.length,)
+              0,
+              fileName.length - '.${ProjectService.projectExtension}'.length,
+            )
           : fileName;
 
       // Show dialog to allow editing the title
@@ -548,7 +595,7 @@ class _WelcomeScreenState extends ConsumerState<_WelcomeScreen> {
       // Schedule the dialog to run in the next frame to avoid BuildContext async gap
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
-        
+
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogCtx) => AlertDialog(
@@ -593,7 +640,7 @@ class _WelcomeScreenState extends ConsumerState<_WelcomeScreen> {
             filePath: result,
           );
         }
-        
+
         if (mounted) {
           setState(() => _isLoading = false);
         }

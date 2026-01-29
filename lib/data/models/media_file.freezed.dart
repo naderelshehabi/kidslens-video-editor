@@ -42,14 +42,14 @@ mixin _$MediaFile {
   /// File size in bytes
   int get fileSize => throw _privateConstructorUsedError;
 
+  /// Type of the media file
+  MediaType get mediaType => throw _privateConstructorUsedError;
+
   /// Codec used for encoding (e.g., 'h264', 'aac')
   String? get codec => throw _privateConstructorUsedError;
 
   /// Container format (e.g., 'mp4', 'mkv', 'wav')
   String? get container => throw _privateConstructorUsedError;
-
-  /// Type of the media file
-  MediaType get mediaType => throw _privateConstructorUsedError;
 
   /// Serializes this MediaFile to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -74,9 +74,9 @@ abstract class $MediaFileCopyWith<$Res> {
       int width,
       int height,
       int fileSize,
+      MediaType mediaType,
       String? codec,
-      String? container,
-      MediaType mediaType});
+      String? container});
 }
 
 /// @nodoc
@@ -101,9 +101,9 @@ class _$MediaFileCopyWithImpl<$Res, $Val extends MediaFile>
     Object? width = null,
     Object? height = null,
     Object? fileSize = null,
+    Object? mediaType = null,
     Object? codec = freezed,
     Object? container = freezed,
-    Object? mediaType = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -134,6 +134,10 @@ class _$MediaFileCopyWithImpl<$Res, $Val extends MediaFile>
           ? _value.fileSize
           : fileSize // ignore: cast_nullable_to_non_nullable
               as int,
+      mediaType: null == mediaType
+          ? _value.mediaType
+          : mediaType // ignore: cast_nullable_to_non_nullable
+              as MediaType,
       codec: freezed == codec
           ? _value.codec
           : codec // ignore: cast_nullable_to_non_nullable
@@ -142,10 +146,6 @@ class _$MediaFileCopyWithImpl<$Res, $Val extends MediaFile>
           ? _value.container
           : container // ignore: cast_nullable_to_non_nullable
               as String?,
-      mediaType: null == mediaType
-          ? _value.mediaType
-          : mediaType // ignore: cast_nullable_to_non_nullable
-              as MediaType,
     ) as $Val);
   }
 }
@@ -166,9 +166,9 @@ abstract class _$$MediaFileImplCopyWith<$Res>
       int width,
       int height,
       int fileSize,
+      MediaType mediaType,
       String? codec,
-      String? container,
-      MediaType mediaType});
+      String? container});
 }
 
 /// @nodoc
@@ -191,9 +191,9 @@ class __$$MediaFileImplCopyWithImpl<$Res>
     Object? width = null,
     Object? height = null,
     Object? fileSize = null,
+    Object? mediaType = null,
     Object? codec = freezed,
     Object? container = freezed,
-    Object? mediaType = null,
   }) {
     return _then(_$MediaFileImpl(
       id: null == id
@@ -224,6 +224,10 @@ class __$$MediaFileImplCopyWithImpl<$Res>
           ? _value.fileSize
           : fileSize // ignore: cast_nullable_to_non_nullable
               as int,
+      mediaType: null == mediaType
+          ? _value.mediaType
+          : mediaType // ignore: cast_nullable_to_non_nullable
+              as MediaType,
       codec: freezed == codec
           ? _value.codec
           : codec // ignore: cast_nullable_to_non_nullable
@@ -232,10 +236,6 @@ class __$$MediaFileImplCopyWithImpl<$Res>
           ? _value.container
           : container // ignore: cast_nullable_to_non_nullable
               as String?,
-      mediaType: null == mediaType
-          ? _value.mediaType
-          : mediaType // ignore: cast_nullable_to_non_nullable
-              as MediaType,
     ));
   }
 }
@@ -251,9 +251,9 @@ class _$MediaFileImpl extends _MediaFile {
       required this.width,
       required this.height,
       required this.fileSize,
+      required this.mediaType,
       this.codec,
-      this.container,
-      required this.mediaType})
+      this.container})
       : super._();
 
   factory _$MediaFileImpl.fromJson(Map<String, dynamic> json) =>
@@ -288,6 +288,10 @@ class _$MediaFileImpl extends _MediaFile {
   @override
   final int fileSize;
 
+  /// Type of the media file
+  @override
+  final MediaType mediaType;
+
   /// Codec used for encoding (e.g., 'h264', 'aac')
   @override
   final String? codec;
@@ -296,13 +300,9 @@ class _$MediaFileImpl extends _MediaFile {
   @override
   final String? container;
 
-  /// Type of the media file
-  @override
-  final MediaType mediaType;
-
   @override
   String toString() {
-    return 'MediaFile(id: $id, path: $path, name: $name, duration: $duration, width: $width, height: $height, fileSize: $fileSize, codec: $codec, container: $container, mediaType: $mediaType)';
+    return 'MediaFile(id: $id, path: $path, name: $name, duration: $duration, width: $width, height: $height, fileSize: $fileSize, mediaType: $mediaType, codec: $codec, container: $container)';
   }
 
   @override
@@ -319,17 +319,17 @@ class _$MediaFileImpl extends _MediaFile {
             (identical(other.height, height) || other.height == height) &&
             (identical(other.fileSize, fileSize) ||
                 other.fileSize == fileSize) &&
+            (identical(other.mediaType, mediaType) ||
+                other.mediaType == mediaType) &&
             (identical(other.codec, codec) || other.codec == codec) &&
             (identical(other.container, container) ||
-                other.container == container) &&
-            (identical(other.mediaType, mediaType) ||
-                other.mediaType == mediaType));
+                other.container == container));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, id, path, name, duration, width,
-      height, fileSize, codec, container, mediaType);
+      height, fileSize, mediaType, codec, container);
 
   /// Create a copy of MediaFile
   /// with the given fields replaced by the non-null parameter values.
@@ -356,9 +356,9 @@ abstract class _MediaFile extends MediaFile {
       required final int width,
       required final int height,
       required final int fileSize,
+      required final MediaType mediaType,
       final String? codec,
-      final String? container,
-      required final MediaType mediaType}) = _$MediaFileImpl;
+      final String? container}) = _$MediaFileImpl;
   const _MediaFile._() : super._();
 
   factory _MediaFile.fromJson(Map<String, dynamic> json) =
@@ -393,6 +393,10 @@ abstract class _MediaFile extends MediaFile {
   @override
   int get fileSize;
 
+  /// Type of the media file
+  @override
+  MediaType get mediaType;
+
   /// Codec used for encoding (e.g., 'h264', 'aac')
   @override
   String? get codec;
@@ -400,10 +404,6 @@ abstract class _MediaFile extends MediaFile {
   /// Container format (e.g., 'mp4', 'mkv', 'wav')
   @override
   String? get container;
-
-  /// Type of the media file
-  @override
-  MediaType get mediaType;
 
   /// Create a copy of MediaFile
   /// with the given fields replaced by the non-null parameter values.
