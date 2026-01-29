@@ -5,6 +5,7 @@ import 'package:kidslens_video_editor/presentation/screens/editor_screen.dart';
 import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 import 'package:kidslens_video_editor/services/project_service.dart';
 import 'package:kidslens_video_editor/state/providers/project_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class KidsLensApp extends StatelessWidget {
   const KidsLensApp({super.key});
@@ -16,8 +17,229 @@ class KidsLensApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.dark, // Video editors typically use dark theme
-        home: const _WelcomeScreen(),
+        home: const _OnboardingWrapper(),
       );
+}
+
+/// Wrapper to check if onboarding should be shown
+class _OnboardingWrapper extends StatefulWidget {
+  const _OnboardingWrapper();
+
+  @override
+  State<_OnboardingWrapper> createState() => _OnboardingWrapperState();
+}
+
+class _OnboardingWrapperState extends State<_OnboardingWrapper> {
+  static const _onboardingCompleteKey = 'onboarding_complete';
+  bool? _showOnboarding;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOnboarding();
+  }
+
+  Future<void> _checkOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    final onboardingComplete = prefs.getBool(_onboardingCompleteKey) ?? false;
+    setState(() => _showOnboarding = !onboardingComplete);
+  }
+
+  Future<void> _completeOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingCompleteKey, true);
+    setState(() => _showOnboarding = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_showOnboarding == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_showOnboarding!) {
+      return _OnboardingScreen(onComplete: _completeOnboarding);
+    }
+
+    return const _WelcomeScreen();
+  }
+}
+
+/// Onboarding screen for first-time users
+class _OnboardingScreen extends StatefulWidget {
+  const _OnboardingScreen({required this.onComplete});
+
+  final VoidCallback onComplete;
+
+  @override
+  State<_OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends State<_OnboardingScreen> {
+  final PageController _controller = PageController();
+  int _currentPage = 0;
+
+  final List<_OnboardingPage> _pages = const [
+    _OnboardingPage(
+      icon: Icons.movie_filter_rounded,
+      title: 'Welcome to KidsLens',
+      description:
+          'Make your videos safe for all audiences by detecting and removing inappropriate content.',
+    ),
+    _OnboardingPage(
+      icon: Icons.smart_toy,
+      title: 'AI-Powered Analysis',
+      description:
+          'Our advanced AI models detect profanity, nudity, violence, and other sensitive content automatically.',
+    ),
+    _OnboardingPage(
+      icon: Icons.computer,
+      title: '100% Private',
+      description:
+          'All processing happens locally on your device. Your videos never leave your computer.',
+    ),
+    _OnboardingPage(
+      icon: Icons.auto_fix_high,
+      title: 'Smart Editing',
+      description:
+          'Automatically mute, blur, or cut detected content. Review and customize before exporting.',
+    ),
+  ];
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: PageView.builder(
+                controller: _controller,
+                itemCount: _pages.length,
+                onPageChanged: (page) => setState(() => _currentPage = page),
+                itemBuilder: (context, index) => _pages[index],
+              ),
+            ),
+            _buildIndicators(),
+            _buildButtons(),
+          ],
+        ),
+      ),
+    );
+
+  Widget _buildIndicators() => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(_pages.length, (index) => AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            width: _currentPage == index ? 24 : 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: _currentPage == index
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),),
+      ),
+    );
+
+  Widget _buildButtons() {
+    final isLastPage = _currentPage == _pages.length - 1;
+
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Row(
+        children: [
+          if (_currentPage > 0)
+            TextButton(
+              onPressed: () {
+                _controller.previousPage(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
+              child: const Text('Back'),
+            )
+          else
+            TextButton(
+              onPressed: widget.onComplete,
+              child: const Text('Skip'),
+            ),
+          const Spacer(),
+          FilledButton(
+            onPressed: isLastPage
+                ? widget.onComplete
+                : () {
+                    _controller.nextPage(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+            child: Text(isLastPage ? 'Get Started' : 'Next'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OnboardingPage extends StatelessWidget {
+  const _OnboardingPage({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              size: 56,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 48),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.headlineMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            description,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
 }
 
 /// Welcome screen with New/Open Project options

@@ -99,6 +99,12 @@ class _DetectionPanelState extends State<DetectionPanel>
   Widget _buildHeader(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    
+    // Calculate statistics
+    final total = widget.detections.length;
+    final active = widget.detections.where((d) => !d.isRejected).length;
+    final rejected = widget.detections.where((d) => d.isRejected).length;
+    final handled = widget.detections.where((d) => d.hasAction || d.isRejected).length;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -125,6 +131,23 @@ class _DetectionPanelState extends State<DetectionPanel>
               ],
             ),
           ),
+          // Summary statistics bar
+          if (total > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerLowest,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildStatChip(context, 'Total', total, colorScheme.primary),
+                  _buildStatChip(context, 'Active', active, Colors.orange),
+                  _buildStatChip(context, 'Rejected', rejected, Colors.grey),
+                  _buildStatChip(context, 'Handled', handled, Colors.green),
+                ],
+              ),
+            ),
           // Tab bar
           TabBar(
             controller: _tabController,
@@ -157,6 +180,37 @@ class _DetectionPanelState extends State<DetectionPanel>
       ),
     );
   }
+
+  Widget _buildStatChip(BuildContext context, String label, int count, Color color) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '$count',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(width: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: Theme.of(context).colorScheme.outline,
+          ),
+        ),
+      ],
+    );
 
   Widget _buildDetectionsTab(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;

@@ -43,6 +43,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   /// Tracks the previous audio effect state to detect changes
   AudioEffectState _previousEffectState = AudioEffectState.none;
   int _previousBeepFrequency = 0;
+  bool _isFullScreen = false;
   
   // Stream subscriptions for proper cleanup
   StreamSubscription<Duration>? _positionSubscription;
@@ -426,12 +427,29 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
             if (activeDetections.isNotEmpty)
               Positioned(
                 top: 8,
-                right: 8,
+                right: 48, // Make room for fullscreen button
                 child: Column(
                   children: activeDetections.map((d) => 
                     _buildDetectionBadge(context, d),).toList(),
                 ),
               ),
+
+            // Fullscreen toggle button
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                onPressed: () => _toggleFullScreen(context),
+                icon: Icon(
+                  _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                  color: Colors.white,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.black54,
+                ),
+                tooltip: _isFullScreen ? 'Exit Fullscreen' : 'Fullscreen',
+              ),
+            ),
 
             // Mute indicator
             if (isMuted)
@@ -822,6 +840,274 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
       return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}:${frames.toString().padLeft(2, '0')}';
     }
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}:${frames.toString().padLeft(2, '0')}';
+  }
+
+  void _toggleFullScreen(BuildContext context) {
+    if (_isFullScreen) {
+      Navigator.of(context).pop();
+      setState(() => _isFullScreen = false);
+    } else {
+      setState(() => _isFullScreen = true);
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => _FullScreenPreview(
+            player: _player,
+            videoController: _videoController,
+            media: widget.media,
+            detections: widget.detections,
+            editActions: widget.editActions,
+            playbackNotifier: ref.read(playbackNotifierProvider.notifier),
+            onExitFullScreen: () {
+              setState(() => _isFullScreen = false);
+            },
+          ),
+        ),
+      );
+    }
+  }
+}
+
+/// Full-screen preview overlay
+class _FullScreenPreview extends StatefulWidget {
+  const _FullScreenPreview({
+    required this.player,
+    required this.videoController,
+    required this.media,
+    required this.detections,
+    required this.editActions,
+    required this.playbackNotifier,
+    required this.onExitFullScreen,
+  });
+
+  final Player? player;
+  final VideoController? videoController;
+  final MediaFile? media;
+  final List<Detection> detections;
+  final List<EditAction> editActions;
+  final PlaybackNotifier playbackNotifier;
+  final VoidCallback onExitFullScreen;
+
+  @override
+  State<_FullScreenPreview> createState() => _FullScreenPreviewState();
+}
+
+class _FullScreenPreviewState extends State<_FullScreenPreview> {
+  bool _showControls = true;
+  Timer? _hideControlsTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startHideControlsTimer();
+  }
+
+  @override
+  void dispose() {
+    _hideControlsTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startHideControlsTimer() {
+    _hideControlsTimer?.cancel();
+    _hideControlsTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() => _showControls = false);
+      }
+    });
+  }
+
+  void _onTap() {
+    setState(() => _showControls = !_showControls);
+    if (_showControls) {
+      _startHideControlsTimer();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+      backgroundColor: Colors.black,
+      body: GestureDetector(
+        onTap: _onTap,
+        child: Stack(
+          children: [
+            // Video
+            Center(
+              child: widget.videoController != null
+                  ? Video(
+                      controller: widget.videoController!,
+                      controls: (state) => const SizedBox.shrink(),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+
+            // Controls overlay
+            AnimatedOpacity(
+              opacity: _showControls ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.black54, Colors.transparent, Colors.transparent, Colors.black54],
+                    stops: [0.0, 0.15, 0.85, 1.0],
+                  ),
+                ),
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      // Top bar
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back, color: Colors.white),
+                              onPressed: () {
+                                widget.onExitFullScreen();
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                            const Spacer(),
+                            if (widget.media != null)
+                              Text(
+                                widget.media!.name,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(Icons.fullscreen_exit, color: Colors.white),
+                              onPressed: () {
+                                widget.onExitFullScreen();
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      const Spacer(),
+                      
+                      // Center play button
+                      StreamBuilder<bool>(
+                        stream: widget.player?.stream.playing,
+                        builder: (context, snapshot) {
+                          final isPlaying = snapshot.data ?? false;
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.replay_10, color: Colors.white, size: 32),
+                                onPressed: () {
+                                  final position = widget.player?.state.position ?? Duration.zero;
+                                  widget.player?.seek(Duration(
+                                    milliseconds: math.max(0, position.inMilliseconds - 10000),
+                                  ));
+                                },
+                              ),
+                              const SizedBox(width: 24),
+                              IconButton(
+                                icon: Icon(
+                                  isPlaying ? Icons.pause : Icons.play_arrow,
+                                  color: Colors.white,
+                                  size: 64,
+                                ),
+                                onPressed: () => widget.playbackNotifier.playOrPause(),
+                              ),
+                              const SizedBox(width: 24),
+                              IconButton(
+                                icon: const Icon(Icons.forward_10, color: Colors.white, size: 32),
+                                onPressed: () {
+                                  final position = widget.player?.state.position ?? Duration.zero;
+                                  final duration = widget.player?.state.duration ?? Duration.zero;
+                                  widget.player?.seek(Duration(
+                                    milliseconds: math.min(
+                                      duration.inMilliseconds,
+                                      position.inMilliseconds + 10000,
+                                    ),
+                                  ));
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      
+                      const Spacer(),
+                      
+                      // Bottom controls with timeline
+                      StreamBuilder<Duration>(
+                        stream: widget.player?.stream.position,
+                        builder: (context, positionSnapshot) {
+                          return StreamBuilder<Duration>(
+                            stream: widget.player?.stream.duration,
+                            builder: (context, durationSnapshot) {
+                              final position = positionSnapshot.data ?? Duration.zero;
+                              final duration = durationSnapshot.data ?? 
+                                  (widget.media?.duration ?? Duration.zero);
+                              
+                              return Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  children: [
+                                    SliderTheme(
+                                      data: SliderTheme.of(context).copyWith(
+                                        trackHeight: 4,
+                                        activeTrackColor: Colors.white,
+                                        inactiveTrackColor: Colors.white38,
+                                        thumbColor: Colors.white,
+                                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                                      ),
+                                      child: Slider(
+                                        value: duration.inMilliseconds > 0
+                                            ? (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0)
+                                            : 0,
+                                        onChanged: (value) {
+                                          widget.player?.seek(Duration(
+                                            milliseconds: (value * duration.inMilliseconds).round(),
+                                          ));
+                                        },
+                                      ),
+                                    ),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          _formatDuration(position),
+                                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                                        ),
+                                        Text(
+                                          _formatDuration(duration),
+                                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+    final seconds = duration.inSeconds % 60;
+
+    if (hours > 0) {
+      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    }
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 }
 

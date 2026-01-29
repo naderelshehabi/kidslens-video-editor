@@ -112,11 +112,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                               media: project.selectedMedia,
                               detections: project.selectedMediaId != null
                                   ? project.detectionsForMedia(
-                                      project.selectedMediaId!,)
+                                      project.selectedMediaId!,
+                                    )
                                   : [],
                               editActions: project.selectedMediaId != null
                                   ? project.editActionsForMedia(
-                                      project.selectedMediaId!,)
+                                      project.selectedMediaId!,
+                                    )
                                   : [],
                               onEditActionUpdated: _onEditActionUpdated,
                               editingBlurActionId: _editingBlurActionId,
@@ -208,8 +210,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       child: Row(
         children: [
           // App logo/title
-          Icon(Icons.movie_filter_rounded,
-              color: colorScheme.primary, size: 20,),
+          Icon(
+            Icons.movie_filter_rounded,
+            color: colorScheme.primary,
+            size: 20,
+          ),
           const SizedBox(width: 8),
           Text(
             project.name,
@@ -256,6 +261,30 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             ],
           ),
 
+          // Help menu
+          _MenuButton(
+            label: 'Help',
+            items: [
+              _MenuItem('About KidsLens', Icons.info_outline,
+                  () => _showAboutDialog(context)),
+              _MenuItem('Keyboard Shortcuts', Icons.keyboard,
+                  () => _showShortcutsDialog(context)),
+              const _MenuDivider(),
+              _MenuItem('Privacy Policy', Icons.privacy_tip,
+                  () => _showPrivacyDialog(context)),
+              _MenuItem(
+                  'Open Source Licenses',
+                  Icons.description,
+                  () => showLicensePage(
+                        context: context,
+                        applicationName: 'KidsLens Video Editor',
+                        applicationVersion: '1.0.0',
+                        applicationLegalese:
+                            '© 2024 KidsLens. All rights reserved.',
+                      )),
+            ],
+          ),
+
           const Spacer(),
 
           // Save indicator
@@ -298,59 +327,70 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
-  Widget _buildVerticalResizer({required void Function(double) onDrag}) => MouseRegion(
-      cursor: SystemMouseCursors.resizeColumn,
-      child: GestureDetector(
-        onHorizontalDragUpdate: (details) => onDrag(details.delta.dx),
-        child: Container(
-          width: 6,
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          child: Center(
-            child: Container(
-              width: 2,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(1),
+  Widget _buildVerticalResizer({required void Function(double) onDrag}) =>
+      MouseRegion(
+        cursor: SystemMouseCursors.resizeColumn,
+        child: GestureDetector(
+          onHorizontalDragUpdate: (details) => onDrag(details.delta.dx),
+          child: Container(
+            width: 6,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: Center(
+              child: Container(
+                width: 2,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outline
+                      .withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(1),
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-  Widget _buildHorizontalResizer({required void Function(double) onDrag}) => MouseRegion(
-      cursor: SystemMouseCursors.resizeRow,
-      child: GestureDetector(
-        onVerticalDragUpdate: (details) => onDrag(details.delta.dy),
-        child: Container(
-          height: 6,
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          child: Center(
-            child: Container(
-              width: 40,
-              height: 2,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(1),
+  Widget _buildHorizontalResizer({required void Function(double) onDrag}) =>
+      MouseRegion(
+        cursor: SystemMouseCursors.resizeRow,
+        child: GestureDetector(
+          onVerticalDragUpdate: (details) => onDrag(details.delta.dy),
+          child: Container(
+            height: 6,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: Center(
+              child: Container(
+                width: 40,
+                height: 2,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outline
+                      .withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(1),
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
   Map<ShortcutActivator, VoidCallback> _buildKeyboardShortcuts() => {
-      const SingleActivator(LogicalKeyboardKey.keyS, control: true):
-          _saveProject,
-      const SingleActivator(LogicalKeyboardKey.keyI, control: true):
-          _importMedia,
-      const SingleActivator(LogicalKeyboardKey.space): _togglePlayback,
-      const SingleActivator(LogicalKeyboardKey.keyZ, control: true): _undo,
-      const SingleActivator(LogicalKeyboardKey.keyY, control: true): _redo,
-      const SingleActivator(LogicalKeyboardKey.keyZ,
-          control: true, shift: true,): _redo,
-    };
+        const SingleActivator(LogicalKeyboardKey.keyS, control: true):
+            _saveProject,
+        const SingleActivator(LogicalKeyboardKey.keyI, control: true):
+            _importMedia,
+        const SingleActivator(LogicalKeyboardKey.space): _togglePlayback,
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true): _undo,
+        const SingleActivator(LogicalKeyboardKey.keyY, control: true): _redo,
+        const SingleActivator(
+          LogicalKeyboardKey.keyZ,
+          control: true,
+          shift: true,
+        ): _redo,
+      };
 
   void _undo() {
     ref.read(projectNotifierProvider.notifier).undo();
@@ -574,6 +614,203 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _editingBlurActionId = actionId;
     });
   }
+
+  void _showAboutDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.movie_filter_rounded,
+                color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 12),
+            const Text('About KidsLens'),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Column(
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        Icons.movie_filter_rounded,
+                        size: 40,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'KidsLens Video Editor',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Version 1.0.0',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Features',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              _buildFeatureRow(context, Icons.mic_off, 'Profanity Detection'),
+              _buildFeatureRow(
+                  context, Icons.visibility_off, 'Visual Content Analysis'),
+              _buildFeatureRow(
+                  context, Icons.edit, 'Smart Editing (Mute, Blur, Cut)'),
+              _buildFeatureRow(
+                  context, Icons.computer, '100% Offline Processing'),
+              const SizedBox(height: 24),
+              Text(
+                'Open Source Credits',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '• whisper.cpp - Speech recognition (MIT)\n'
+                '• FFmpeg - Media processing (LGPL/GPL)\n'
+                '• ONNX Runtime - AI inference (MIT)\n'
+                '• media_kit - Video playback (MIT)',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureRow(BuildContext context, IconData icon, String text) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 8),
+            Text(text, style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
+      );
+
+  void _showShortcutsDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.keyboard),
+            SizedBox(width: 12),
+            Text('Keyboard Shortcuts'),
+          ],
+        ),
+        content: SizedBox(
+          width: 350,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildShortcutRow(context, 'Ctrl+S', 'Save Project'),
+              _buildShortcutRow(context, 'Ctrl+I', 'Import Media'),
+              _buildShortcutRow(context, 'Space', 'Play/Pause'),
+              _buildShortcutRow(context, 'Ctrl+Z', 'Undo'),
+              _buildShortcutRow(context, 'Ctrl+Y', 'Redo'),
+              _buildShortcutRow(context, 'I', 'Set Selection Start'),
+              _buildShortcutRow(context, 'O', 'Set Selection End'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShortcutRow(
+          BuildContext context, String shortcut, String action) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                shortcut,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+                child: Text(action,
+                    style: Theme.of(context).textTheme.bodyMedium)),
+          ],
+        ),
+      );
+
+  void _showPrivacyDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.privacy_tip),
+            SizedBox(width: 12),
+            Text('Privacy Policy'),
+          ],
+        ),
+        content: const SizedBox(
+          width: 400,
+          child: SingleChildScrollView(
+            child: Text(
+              'KidsLens Video Editor processes all media files locally on your device. '
+              'No data is sent to external servers.\n\n'
+              'We do not collect, store, or transmit any personal information '
+              'or media content.\n\n'
+              'AI models are bundled with the application or downloaded from official sources '
+              'and stored locally. All processing is performed entirely offline.\n\n'
+              '© 2024 KidsLens. All rights reserved.',
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // Menu components
@@ -585,32 +822,32 @@ class _MenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PopupMenuButton<VoidCallback?>(
-      tooltip: '',
-      offset: const Offset(0, 40),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Text(label),
-      ),
-      itemBuilder: (context) =>
-          items.map<PopupMenuEntry<VoidCallback?>>((item) {
-        if (item is _MenuDivider) {
-          return const PopupMenuDivider();
-        }
-        final menuItem = item as _MenuItem;
-        return PopupMenuItem<VoidCallback?>(
-          value: menuItem.onTap,
-          enabled: menuItem.onTap != null,
-          child: Row(
-            children: [
-              Icon(menuItem.icon, size: 18),
-              const SizedBox(width: 12),
-              Text(menuItem.label),
-            ],
-          ),
-        );
-      }).toList(),
-      onSelected: (callback) => callback?.call(),
-    );
+        tooltip: '',
+        offset: const Offset(0, 40),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Text(label),
+        ),
+        itemBuilder: (context) =>
+            items.map<PopupMenuEntry<VoidCallback?>>((item) {
+          if (item is _MenuDivider) {
+            return const PopupMenuDivider();
+          }
+          final menuItem = item as _MenuItem;
+          return PopupMenuItem<VoidCallback?>(
+            value: menuItem.onTap,
+            enabled: menuItem.onTap != null,
+            child: Row(
+              children: [
+                Icon(menuItem.icon, size: 18),
+                const SizedBox(width: 12),
+                Text(menuItem.label),
+              ],
+            ),
+          );
+        }).toList(),
+        onSelected: (callback) => callback?.call(),
+      );
 }
 
 abstract class _MenuItemBase {}
@@ -650,6 +887,13 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
   bool _enableBlood = true;
   bool _enableWeapons = true;
   bool _hasStarted = false;
+  bool _showAdvanced = false;
+
+  // Threshold settings
+  double _nsfwThreshold = 0.6;
+  double _violenceThreshold = 0.6;
+  double _bloodThreshold = 0.6;
+  double _weaponsThreshold = 0.6;
 
   @override
   Widget build(BuildContext context) {
@@ -671,139 +915,195 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
         ],
       ),
       content: SizedBox(
-        width: 400,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!_hasStarted) ...[
-              Text(
-                'Select content types to detect:',
-                style: theme.textTheme.titleSmall,
-              ),
-              const SizedBox(height: 16),
-              _buildCheckbox('Profanity', _enableProfanity, (v) {
-                setState(() => _enableProfanity = v ?? false);
-              }),
-              _buildCheckbox('Violence', _enableViolence, (v) {
-                setState(() => _enableViolence = v ?? false);
-              }),
-              _buildCheckbox('NSFW', _enableNsfw, (v) {
-                setState(() => _enableNsfw = v ?? false);
-              }),
-              _buildCheckbox('Blood/Gore', _enableBlood, (v) {
-                setState(() => _enableBlood = v ?? false);
-              }),
-              _buildCheckbox('Weapons', _enableWeapons, (v) {
-                setState(() => _enableWeapons = v ?? false);
-              }),
-            ] else ...[
-              if (isRunning) ...[
+        width: 450,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (!_hasStarted) ...[
                 Text(
-                  analysisState.currentStep ?? 'Processing...',
-                  style: theme.textTheme.bodyMedium,
+                  'Select content types to detect:',
+                  style: theme.textTheme.titleSmall,
                 ),
                 const SizedBox(height: 16),
-                LinearProgressIndicator(
-                  value: analysisState.progress,
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${(analysisState.progress * 100).toStringAsFixed(0)}%',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ] else if (isComplete) ...[
-                Text(
-                  'Found ${analysisState.detections.length} detection(s)',
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 12),
-                if (analysisState.detections.isNotEmpty) ...[
-                  Container(
-                    constraints: const BoxConstraints(maxHeight: 200),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                _buildCheckbox('Profanity', _enableProfanity, (v) {
+                  setState(() => _enableProfanity = v ?? false);
+                }),
+                _buildCheckbox('Violence', _enableViolence, (v) {
+                  setState(() => _enableViolence = v ?? false);
+                }),
+                _buildCheckbox('NSFW', _enableNsfw, (v) {
+                  setState(() => _enableNsfw = v ?? false);
+                }),
+                _buildCheckbox('Blood/Gore', _enableBlood, (v) {
+                  setState(() => _enableBlood = v ?? false);
+                }),
+                _buildCheckbox('Weapons', _enableWeapons, (v) {
+                  setState(() => _enableWeapons = v ?? false);
+                }),
+                const SizedBox(height: 16),
+                // Advanced settings toggle
+                InkWell(
+                  onTap: () => setState(() => _showAdvanced = !_showAdvanced),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _showAdvanced ? Icons.expand_less : Icons.expand_more,
+                        size: 20,
                       ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: analysisState.detections.length,
-                      itemBuilder: (context, index) {
-                        final detection = analysisState.detections[index];
-                        return ListTile(
-                          dense: true,
-                          leading: Icon(
-                            _getIconForType(detection.type),
-                            color: _getColorForType(detection.type),
-                            size: 20,
-                          ),
-                          title: Text(
-                            detection.description,
-                            style: theme.textTheme.bodySmall,
-                          ),
-                          subtitle: Text(
-                            '${_formatDuration(detection.startTime)} - ${_formatDuration(detection.endTime)}',
-                            style: theme.textTheme.labelSmall,
-                          ),
-                          trailing: Text(
-                            '${(detection.confidence * 100).toStringAsFixed(0)}%',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                        );
-                      },
+                      const SizedBox(width: 8),
+                      Text(
+                        'Detection Sensitivity',
+                        style: theme.textTheme.titleSmall,
+                      ),
+                    ],
+                  ),
+                ),
+                if (_showAdvanced) ...[
+                  const SizedBox(height: 12),
+                  _buildThresholdSlider(
+                    'NSFW Threshold',
+                    _nsfwThreshold,
+                    (v) => setState(() => _nsfwThreshold = v),
+                    enabled: _enableNsfw,
+                  ),
+                  _buildThresholdSlider(
+                    'Violence Threshold',
+                    _violenceThreshold,
+                    (v) => setState(() => _violenceThreshold = v),
+                    enabled: _enableViolence,
+                  ),
+                  _buildThresholdSlider(
+                    'Blood Threshold',
+                    _bloodThreshold,
+                    (v) => setState(() => _bloodThreshold = v),
+                    enabled: _enableBlood,
+                  ),
+                  _buildThresholdSlider(
+                    'Weapons Threshold',
+                    _weaponsThreshold,
+                    (v) => setState(() => _weaponsThreshold = v),
+                    enabled: _enableWeapons,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Lower values = more sensitive (more detections)\nHigher values = less sensitive (fewer false positives)',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.outline,
                     ),
                   ),
-                ] else ...[
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    alignment: Alignment.center,
-                    child: Column(
-                      children: [
-                        const Icon(
-                          Icons.check_circle_outline,
-                          size: 48,
-                          color: Colors.green,
+                ],
+              ] else ...[
+                if (isRunning) ...[
+                  Text(
+                    analysisState.currentStep ?? 'Processing...',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  LinearProgressIndicator(
+                    value: analysisState.progress,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${(analysisState.progress * 100).toStringAsFixed(0)}%',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ] else if (isComplete) ...[
+                  Text(
+                    'Found ${analysisState.detections.length} detection(s)',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  if (analysisState.detections.isNotEmpty) ...[
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color:
+                              theme.colorScheme.outline.withValues(alpha: 0.3),
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No concerning content detected!',
-                          style: theme.textTheme.titleMedium?.copyWith(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: analysisState.detections.length,
+                        itemBuilder: (context, index) {
+                          final detection = analysisState.detections[index];
+                          return ListTile(
+                            dense: true,
+                            leading: Icon(
+                              _getIconForType(detection.type),
+                              color: _getColorForType(detection.type),
+                              size: 20,
+                            ),
+                            title: Text(
+                              detection.description,
+                              style: theme.textTheme.bodySmall,
+                            ),
+                            subtitle: Text(
+                              '${_formatDuration(detection.startTime)} - ${_formatDuration(detection.endTime)}',
+                              style: theme.textTheme.labelSmall,
+                            ),
+                            trailing: Text(
+                              '${(detection.confidence * 100).toStringAsFixed(0)}%',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ] else ...[
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      alignment: Alignment.center,
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.check_circle_outline,
+                            size: 48,
                             color: Colors.green,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No concerning content detected!',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ] else if (isFailed) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error, color: theme.colorScheme.error),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            analysisState.errorMessage ?? 'Analysis failed',
+                            style: TextStyle(
+                              color: theme.colorScheme.onErrorContainer,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
                 ],
-              ] else if (isFailed) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.error, color: theme.colorScheme.error),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          analysisState.errorMessage ?? 'Analysis failed',
-                          style: TextStyle(
-                              color: theme.colorScheme.onErrorContainer,),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ],
-          ],
+          ),
         ),
       ),
       actions: [
@@ -842,24 +1142,74 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
   }
 
   Widget _buildCheckbox(
-      String label, bool value, ValueChanged<bool?> onChanged,) => CheckboxListTile(
-      title: Text(label),
-      value: value,
-      onChanged: onChanged,
-      dense: true,
-      controlAffinity: ListTileControlAffinity.leading,
+    String label,
+    bool value,
+    ValueChanged<bool?> onChanged,
+  ) =>
+      CheckboxListTile(
+        title: Text(label),
+        value: value,
+        onChanged: onChanged,
+        dense: true,
+        controlAffinity: ListTileControlAffinity.leading,
+      );
+
+  Widget _buildThresholdSlider(
+    String label,
+    double value,
+    ValueChanged<double> onChanged, {
+    bool enabled = true,
+  }) {
+    final theme = Theme.of(context);
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.5,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label, style: theme.textTheme.bodySmall),
+              Text(
+                '${(value * 100).round()}%',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 3,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+            ),
+            child: Slider(
+              value: value,
+              min: 0.1,
+              max: 1.0,
+              divisions: 9,
+              onChanged: enabled ? onChanged : null,
+            ),
+          ),
+        ],
+      ),
     );
+  }
 
   void _startAnalysis() {
     setState(() => _hasStarted = true);
 
-    // Create settings with defaults, overriding enable flags based on user selection
+    // Create settings with defaults, overriding enable flags and thresholds based on user selection
     final settings = AnalysisSettings.defaults().copyWith(
       enableProfanity: _enableProfanity,
       enableViolence: _enableViolence,
       enableNsfw: _enableNsfw,
       enableBlood: _enableBlood,
       enableWeapons: _enableWeapons,
+      nsfwThreshold: _nsfwThreshold,
+      violenceThreshold: _violenceThreshold,
+      bloodThreshold: _bloodThreshold,
+      weaponsThreshold: _weaponsThreshold,
     );
 
     ref.read(analysisNotifierProvider.notifier).startAnalysis(
