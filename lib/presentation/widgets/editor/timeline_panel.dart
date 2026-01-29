@@ -10,6 +10,7 @@ import 'package:kidslens_video_editor/data/models/edit_action.dart';
 import 'package:kidslens_video_editor/data/models/media_file.dart';
 import 'package:kidslens_video_editor/state/providers/playback_provider.dart';
 import 'package:kidslens_video_editor/state/providers/service_providers.dart';
+import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 import 'package:uuid/uuid.dart';
 
 /// Timeline panel with tracks and detection indicators
@@ -93,8 +94,14 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
 
     try {
       final thumbnailService = ref.read(thumbnailServiceProvider);
+      final settings = ref.read(settingsNotifierProvider);
       final duration = media.duration;
-      final count = (duration.inSeconds / 5).ceil().clamp(1, 200);
+      final interval = settings.thumbnailInterval;
+
+      // Calculate count based on interval
+      // Ensure at least one thumbnail, and cap at 300
+      final rawCount = (duration.inSeconds / interval.inSeconds).ceil();
+      final count = rawCount.clamp(1, 300);
 
       final thumbnailBytes = await thumbnailService.extractThumbnails(
         videoPath: media.path,
@@ -151,6 +158,25 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
 
   @override
   Widget build(BuildContext context) {
+    // Listen for setting changes
+    ref.listen(settingsNotifierProvider, (previous, next) {
+      if (previous?.thumbnailInterval != next.thumbnailInterval) {
+        // Dispose existing thumbnails to free memory
+        if (_thumbnailImages != null) {
+          for (final image in _thumbnailImages!) {
+            image.dispose();
+          }
+        }
+        
+        if (mounted) {
+          setState(() {
+            _thumbnailImages = null;
+          });
+          _loadThumbnailsIfNeeded();
+        }
+      }
+    });
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final playbackState = ref.watch(playbackNotifierProvider);
@@ -516,7 +542,11 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
   Widget _buildVideoTrack(BuildContext context, double timelineWidth, PlaybackState playbackState) {
     final colorScheme = Theme.of(context).colorScheme;
     final duration = widget.media?.duration ?? Duration.zero;
-    final thumbnailCount = (duration.inSeconds / 5).ceil().clamp(1, 200);
+    // Match the loading logic with settings
+    final interval = ref.watch(settingsNotifierProvider).thumbnailInterval.inSeconds;
+    // Use actual loaded count if available, otherwise estimate based on settings
+    final thumbnailCount = _thumbnailImages?.length ?? 
+        (duration.inSeconds / interval).ceil().clamp(1, 300);
     const trackHeight = 64.0;
 
     return Container(

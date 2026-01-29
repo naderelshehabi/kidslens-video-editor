@@ -22,6 +22,9 @@ class FFmpegBindings extends NativeResource {
   /// Whether using bundled FFmpeg binaries (vs system-installed)
   bool get isUsingBundledBinaries => _usingBundledBinaries;
 
+  /// The path to the FFmpeg executable
+  String? get ffmpegPath => _ffmpegPath;
+
   /// Initialize FFmpeg bindings by finding FFmpeg on the system
   /// 
   /// First checks for bundled binaries relative to the executable,

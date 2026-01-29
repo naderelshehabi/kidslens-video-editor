@@ -3,11 +3,15 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
+import 'package:kidslens_video_editor/native/bindings/ffmpeg_bindings.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
 /// Service for extracting video thumbnails
 class ThumbnailService {
+  ThumbnailService(this._ffmpegBindings);
+
+  final FFmpegBindings _ffmpegBindings;
   final Map<String, List<Uint8List>> _cache = {};
   final Map<String, Completer<List<Uint8List>>> _pendingExtractions = {};
 
@@ -73,9 +77,12 @@ class ThumbnailService {
     final intervalSeconds = duration.inSeconds / count;
     final thumbnails = <Uint8List>[];
 
-    // Try to use system FFmpeg
-    final ffmpegPath = await _findFFmpeg();
+    // Ensure FFmpeg is initialized
+    await _ffmpegBindings.initialize();
+    final ffmpegPath = _ffmpegBindings.ffmpegPath;
+    
     if (ffmpegPath == null) {
+      debugPrint('FFmpeg not found via bindings');
       return _generatePlaceholderThumbnails(count, width, height);
     }
 
@@ -125,43 +132,6 @@ class ThumbnailService {
     } catch (_) {}
 
     return thumbnails;
-  }
-
-  Future<String?> _findFFmpeg() async {
-    // Check common FFmpeg locations
-    final possiblePaths = <String>[
-      'ffmpeg', // In PATH
-      if (Platform.isWindows) ...[
-        r'C:\ffmpeg\bin\ffmpeg.exe',
-        r'C:\Program Files\ffmpeg\bin\ffmpeg.exe',
-        r'C:\Program Files (x86)\ffmpeg\bin\ffmpeg.exe',
-      ],
-      if (Platform.isMacOS) ...[
-        '/usr/local/bin/ffmpeg',
-        '/opt/homebrew/bin/ffmpeg',
-      ],
-      if (Platform.isLinux) ...[
-        '/usr/bin/ffmpeg',
-        '/usr/local/bin/ffmpeg',
-      ],
-    ];
-
-    for (final ffmpegPath in possiblePaths) {
-      try {
-        final result = await Process.run(
-          ffmpegPath,
-          ['-version'],
-          runInShell: Platform.isWindows,
-        );
-        if (result.exitCode == 0) {
-          return ffmpegPath;
-        }
-      } catch (_) {
-        continue;
-      }
-    }
-
-    return null;
   }
 
   // Generate placeholder thumbnails - returns list of valid PNG bytes

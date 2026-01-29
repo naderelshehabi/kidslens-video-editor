@@ -77,7 +77,8 @@ ExportService exportService(Ref ref) => ExportService(
     );
 
 @Riverpod(keepAlive: true)
-ThumbnailService thumbnailService(Ref ref) => ThumbnailService();
+ThumbnailService thumbnailService(Ref ref) =>
+    ThumbnailService(ref.watch(ffmpegBindingsProvider));
 
 @Riverpod(keepAlive: true)
 BeepAudioService beepAudioService(Ref ref) => BeepAudioService();

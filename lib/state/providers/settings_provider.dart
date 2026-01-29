@@ -44,6 +44,7 @@ class SettingsState {
     this.defaultExportQuality = ExportQuality.high,
     this.defaultExportFormat = ExportFormat.mp4,
     this.autoSaveInterval = const Duration(minutes: 5),
+    this.thumbnailInterval = const Duration(minutes: 1),
     this.detectionThresholds = const DetectionThresholds(),
   }) : analysisSettings = analysisSettings ?? AnalysisSettings.defaults();
 
@@ -61,6 +62,8 @@ class SettingsState {
             json['defaultExportFormat'] as int? ?? ExportFormat.mp4.index],
         autoSaveInterval:
             Duration(minutes: json['autoSaveIntervalMinutes'] as int? ?? 5),
+        thumbnailInterval:
+            Duration(seconds: json['thumbnailIntervalSeconds'] as int? ?? 60),
         detectionThresholds: json['detectionThresholds'] != null
             ? DetectionThresholds.fromJson(
                 json['detectionThresholds'] as Map<String, dynamic>,
@@ -78,6 +81,7 @@ class SettingsState {
   final ExportQuality defaultExportQuality;
   final ExportFormat defaultExportFormat;
   final Duration autoSaveInterval;
+  final Duration thumbnailInterval;
   final DetectionThresholds detectionThresholds;
 
   SettingsState copyWith({
@@ -91,6 +95,7 @@ class SettingsState {
     ExportQuality? defaultExportQuality,
     ExportFormat? defaultExportFormat,
     Duration? autoSaveInterval,
+    Duration? thumbnailInterval,
     DetectionThresholds? detectionThresholds,
   }) =>
       SettingsState(
@@ -104,6 +109,7 @@ class SettingsState {
         defaultExportQuality: defaultExportQuality ?? this.defaultExportQuality,
         defaultExportFormat: defaultExportFormat ?? this.defaultExportFormat,
         autoSaveInterval: autoSaveInterval ?? this.autoSaveInterval,
+        thumbnailInterval: thumbnailInterval ?? this.thumbnailInterval,
         detectionThresholds: detectionThresholds ?? this.detectionThresholds,
       );
 
@@ -118,6 +124,7 @@ class SettingsState {
         'defaultExportQuality': defaultExportQuality.index,
         'defaultExportFormat': defaultExportFormat.index,
         'autoSaveIntervalMinutes': autoSaveInterval.inMinutes,
+        'thumbnailIntervalSeconds': thumbnailInterval.inSeconds,
         'detectionThresholds': detectionThresholds.toJson(),
       };
 }
@@ -278,6 +285,11 @@ class SettingsNotifier extends _$SettingsNotifier {
 
   void setAutoSaveInterval(Duration interval) {
     state = state.copyWith(autoSaveInterval: interval);
+    saveSettings();
+  }
+
+  void setThumbnailInterval(Duration interval) {
+    state = state.copyWith(thumbnailInterval: interval);
     saveSettings();
   }
 

@@ -310,7 +310,11 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
                           EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       prefixIcon: Icon(Icons.folder, size: 20),
                     ),
-                    onChanged: (value) => _outputPath = value,
+                    onChanged: (value) {
+                        _outputPath = value;
+                        // Trigger rebuild to update path validity
+                        if (mounted) setState(() {});
+                    },
                     style: theme.textTheme.bodySmall,
                   ),
                 ),
@@ -332,20 +336,21 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (_isComplete && _errorMessage == null) ...[
-          const Icon(
-            Icons.check_circle,
-            size: 64,
-            color: Colors.green,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Export completed successfully!',
-            style: theme.textTheme.titleMedium,
-          ),
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_isComplete && _errorMessage == null) ...[
+            const Icon(
+              Icons.check_circle,
+              size: 64,
+              color: Colors.green,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Export completed successfully!',
+              style: theme.textTheme.titleMedium,
+            ),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(12),
@@ -415,6 +420,7 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
           ),
         ],
       ],
+      ),
     );
   }
 

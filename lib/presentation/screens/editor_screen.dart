@@ -6,6 +6,7 @@ import 'package:kidslens_video_editor/app.dart';
 import 'package:kidslens_video_editor/core/constants/supported_formats.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/presentation/screens/analysis_settings/analysis_settings_screen.dart';
+import 'package:kidslens_video_editor/presentation/screens/settings_screen.dart';
 import 'package:kidslens_video_editor/presentation/widgets/dialogs/export_dialog.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/detection_panel.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/media_bin_panel.dart';
@@ -15,6 +16,7 @@ import 'package:kidslens_video_editor/state/providers/analysis_provider.dart';
 import 'package:kidslens_video_editor/state/providers/playback_provider.dart';
 import 'package:kidslens_video_editor/state/providers/project_provider.dart';
 import 'package:kidslens_video_editor/state/providers/service_providers.dart';
+import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 
 /// Main video editor screen with industry-standard layout
 class EditorScreen extends ConsumerStatefulWidget {
@@ -248,6 +250,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               _MenuItem('Cut Selection', Icons.content_cut, _cutSelection),
               _MenuItem('Mute Selection', Icons.volume_off, _muteSelection),
               _MenuItem('Blur Selection', Icons.blur_on, _blurSelection),
+              const _MenuDivider(),
+              _MenuItem('Preferences', Icons.settings, _openSettings),
             ],
           ),
 
@@ -332,6 +336,30 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             iconSize: 18,
             tooltip: 'Start Analysis',
             onPressed: _startAnalysis,
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            iconSize: 18,
+            tooltip: 'Settings',
+            onPressed: _openSettings,
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: Icon(
+              ref.watch(settingsNotifierProvider).useDarkTheme
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
+            ),
+            iconSize: 18,
+            tooltip: ref.watch(settingsNotifierProvider).useDarkTheme
+                ? 'Switch to Light Mode'
+                : 'Switch to Dark Mode',
+            onPressed: () {
+              final isDark = ref.read(settingsNotifierProvider).useDarkTheme;
+              ref
+                  .read(settingsNotifierProvider.notifier)
+                  .setDarkTheme(useDark: !isDark);
+            },
           ),
         ],
       ),
@@ -454,6 +482,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         );
       }
     }
+  }
+
+  void _openSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => const SettingsScreen(),
+      ),
+    );
   }
 
   void _saveProject() {

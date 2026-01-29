@@ -1,54 +1,57 @@
 import 'package:flutter/material.dart';
 
 /// Application theme configuration
-/// Uses a cheerful, family-friendly color palette inspired by popular kids apps
-/// (YouTube Kids, PBS Kids, Disney+). Colors evoke safety, joy, and entertainment.
+/// Uses a cheerful, family-friendly color palette.
+///
+/// Keywords: Family, Safe, kids, joy, entertainment, cheerful
 ///
 /// Color Psychology:
-/// - Coral/Orange: Friendly, energizing, warm, inviting
-/// - Teal/Cyan: Trustworthy, calming, playful
-/// - Yellow: Cheerful, happy, optimistic
-/// - Purple: Creative, imaginative, fun
+/// - Blue: Safe, trustworthy, calm, friendly
+/// - Yellow/Amber: Joy, optimism, entertainment, energy
+/// - Green: Growth, harmony, safety
+/// - Pink: Playful, sweet, cheerful
 class AppTheme {
   AppTheme._();
 
-  // Primary colors - Cheerful coral/orange palette (warmth, joy, energy)
-  static const Color primaryColor = Color(0xFFFF7043); // Deep Orange 400 - Coral
-  static const Color primaryVariant = Color(0xFFE64A19); // Deep Orange 700
-  static const Color primaryLight = Color(0xFFFFAB91); // Deep Orange 200 - Soft coral
+  // Primary colors - Safe & Trustworthy Blue (Family, Safe)
+  static const Color primaryColor = Color(0xFF1E88E5); // Blue 600
+  static const Color primaryVariant = Color(0xFF1565C0); // Blue 800
+  static const Color primaryLight = Color(0xFF64B5F6); // Blue 300
 
-  // Secondary colors - Playful teal palette (trust, calm, safety)
-  static const Color secondaryColor = Color(0xFF26C6DA); // Cyan 400 - Teal
-  static const Color secondaryVariant = Color(0xFF00ACC1); // Cyan 600
-  static const Color secondaryLight = Color(0xFF80DEEA); // Cyan 200 - Sky blue
+  // Secondary colors - Joyful Amber/Yellow (Joy, Entertainment)
+  static const Color secondaryColor = Color(0xFFFFB300); // Amber 600
+  static const Color secondaryVariant = Color(0xFFFF8F00); // Amber 800
+  static const Color secondaryLight = Color(0xFFFFD54F); // Amber 300
 
-  // Accent colors - Sunny and cheerful
-  static const Color accentColor = Color(0xFFFFD54F); // Amber 300 - Sunny yellow
-  static const Color accentLight = Color(0xFFFFF8E1); // Amber 50 - Cream yellow
+  // Tertiary colors - Playful Green (Cheerful, Growth)
+  static const Color tertiaryColor = Color(0xFF43A047); // Green 600
+  static const Color tertiaryLight = Color(0xFF81C784); // Green 300
 
-  // Tertiary colors - Playful purple for creativity
-  static const Color tertiaryColor = Color(0xFFBA68C8); // Purple 300 - Playful purple
-  static const Color tertiaryLight = Color(0xFFE1BEE7); // Purple 100 - Soft lavender
+  // Accent colors - Fun Pink
+  static const Color accentColor = Color(0xFFEC407A); // Pink 400
+  static const Color accentLight = Color(0xFFF48FB1); // Pink 200
 
-  // Status colors - Friendly, not alarming
-  static const Color successColor = Color(0xFF81C784); // Green 300 - Soft green
-  static const Color warningColor = Color(0xFFFFB74D); // Orange 300 - Warm amber
-  static const Color errorColor = Color(0xFFE57373); // Red 300 - Soft coral red
-  static const Color infoColor = Color(0xFF4FC3F7); // Light Blue 300 - Friendly blue
+  // Status colors - Clear and friendly
+  static const Color successColor = Color(0xFF66BB6A); // Green 400
+  static const Color warningColor = Color(0xFFFFA726); // Orange 400
+  static const Color errorColor = Color(0xFFEF5350); // Red 400
+  static const Color infoColor = Color(0xFF42A5F5); // Blue 400
 
-  // Detection type colors - Visible but child-friendly (not scary)
-  static const Color profanityColor =
-      Color(0xFFFFB300); // Amber 600 - Warm gold (alert but friendly)
-  static const Color nsfwColor = Color(0xFFEC407A); // Pink 400 (soft magenta)
-  static const Color nudityColor =
-      Color(0xFFEC407A); // Pink 400 (same as NSFW)
-  static const Color violenceColor = Color(0xFFFF8A65); // Deep Orange 300 - Muted coral
-  static const Color bloodColor = Color(0xFFEF5350); // Red 400 - Softer red
-  static const Color weaponsColor =
-      Color(0xFF90A4AE); // Blue Grey 300 - Neutral gray
+  // Background colors
+  static const Color surfaceLight = Color(0xFFFFFFFF);
+  static const Color backgroundLight = Color(0xFFF5F7FA); // Very light cool grey/blue
+  static const Color surfaceDark = Color(0xFF1E1E1E);
+  static const Color backgroundDark = Color(0xFF121212);
 
-  /// Light theme - Cheerful coral/teal palette for family-friendly editing
-  /// Inspired by popular kids apps with warm, inviting colors
+  // Detection type colors - Consistent with the safe/joy theme
+  static const Color profanityColor = Color(0xFFFFCA28); // Amber 400
+  static const Color nsfwColor = Color(0xFFAB47BC); // Purple 400
+  static const Color nudityColor = Color(0xFFAB47BC); 
+  static const Color violenceColor = Color(0xFFFF7043); // Deep Orange 400
+  static const Color bloodColor = Color(0xFFE53935); // Red 600
+  static const Color weaponsColor = Color(0xFF78909C); // Blue Grey 400
+
+  /// Light theme - Cheerful Blue/Amber palette for family-friendly editing
   static ThemeData get lightTheme => ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
@@ -58,10 +61,14 @@ class AppTheme {
         secondary: secondaryColor,
         tertiary: tertiaryColor,
         error: errorColor,
+        surface: surfaceLight,
       ),
+      scaffoldBackgroundColor: backgroundLight,
       appBarTheme: const AppBarTheme(
         elevation: 0,
         centerTitle: true,
+        backgroundColor: backgroundLight,
+        surfaceTintColor: Colors.transparent,
       ),
       cardTheme: CardThemeData(
         elevation: 2,
@@ -74,9 +81,12 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
         ),
         filled: true,
+        fillColor: surfaceLight,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
@@ -85,6 +95,8 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
+          foregroundColor: primaryColor,
+          side: const BorderSide(color: primaryColor),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
@@ -101,22 +113,25 @@ class AppTheme {
       ),
     );
 
-  /// Dark theme - Cheerful coral/teal palette for family-friendly editing
-  /// Uses lighter variants for better visibility on dark backgrounds
+  /// Dark theme - Cheerful Blue/Amber palette adapted for dark mode
   static ThemeData get darkTheme => ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryColor,
         brightness: Brightness.dark,
-        primary: primaryLight, // Lighter coral for dark theme visibility
-        secondary: secondaryLight, // Sky blue for dark theme visibility
+        primary: primaryLight, // Lighter for dark theme visibility
+        secondary: secondaryLight, // Lighter amber for dark theme visibility
         tertiary: tertiaryLight,
         error: errorColor,
+        surface: surfaceDark,
       ),
+      scaffoldBackgroundColor: backgroundDark,
       appBarTheme: const AppBarTheme(
         elevation: 0,
         centerTitle: true,
+        backgroundColor: backgroundDark,
+        surfaceTintColor: Colors.transparent,
       ),
       cardTheme: CardThemeData(
         elevation: 2,
@@ -129,9 +144,12 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
         ),
         filled: true,
+        fillColor: const Color(0xFF2C2C2C),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
@@ -140,6 +158,8 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
+          foregroundColor: primaryLight,
+          side: const BorderSide(color: primaryLight),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
@@ -158,23 +178,22 @@ class AppTheme {
 
   /// Get color for detection type
   /// Returns child-friendly colors that are distinct but not scary
-  /// Colors are softer variants that alert without alarming children
   static Color getDetectionColor(String type) {
     switch (type.toLowerCase()) {
       case 'profanity':
-        return profanityColor; // Warm gold - alert but friendly
+        return profanityColor; 
       case 'nsfw':
-        return nsfwColor; // Soft pink - distinct
+        return nsfwColor; 
       case 'nudity':
-        return nudityColor; // Soft pink
+        return nudityColor; 
       case 'violence':
-        return violenceColor; // Muted coral
+        return violenceColor; 
       case 'blood':
-        return bloodColor; // Softer red
+        return bloodColor; 
       case 'weapons':
-        return weaponsColor; // Neutral gray
+        return weaponsColor; 
       default:
-        return const Color(0xFFB0BEC5); // Blue Grey 200 - neutral fallback
+        return const Color(0xFF90A4AE); // Blue Grey 300 - neutral fallback
     }
   }
 
@@ -187,6 +206,8 @@ class AppTheme {
     switch (type.toLowerCase()) {
       case 'blood':
       case 'violence':
+      case 'nsfw':
+      case 'nudity':
         return Colors.white;
       default:
         return Colors.black87;

@@ -8,36 +8,14 @@ import 'package:kidslens_video_editor/presentation/screens/settings_screen.dart'
 import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 import 'package:kidslens_video_editor/services/project_service.dart';
 import 'package:kidslens_video_editor/state/providers/project_provider.dart';
+import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class KidsLensApp extends StatelessWidget {
+class KidsLensApp extends ConsumerStatefulWidget {
   const KidsLensApp({super.key});
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-        title: 'KidsLens Video Editor',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.dark, // Video editors typically use dark theme
-        home: const _OnboardingWrapper(),
-        routes: {
-          '/analysis-settings': (context) => const AnalysisSettingsScreen(),
-          '/settings': (context) => const SettingsScreen(),
-          '/about': (context) => const AboutScreen(),
-        },
-        onGenerateRoute: (settings) {
-          // Handle dynamic routes that require arguments
-          switch (settings.name) {
-            case '/editor':
-              return MaterialPageRoute<void>(
-                builder: (context) => const EditorScreen(),
-              );
-            default:
-              return null;
-          }
-        },
-      );
+  ConsumerState<KidsLensApp> createState() => _KidsLensAppState();
 
   /// Navigate to analysis settings
   static void navigateToAnalysisSettings(BuildContext context) {
@@ -59,6 +37,47 @@ class KidsLensApp extends StatelessWidget {
     Navigator.pushReplacementNamed(context, '/editor');
   }
 }
+
+class _KidsLensAppState extends ConsumerState<KidsLensApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Load persisted settings
+    ref.read(settingsNotifierProvider.notifier).loadSettings();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = ref.watch(settingsNotifierProvider);
+    
+    return MaterialApp(
+        title: 'KidsLens Video Editor',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: settings.themeMode,
+        home: const _OnboardingWrapper(),
+        routes: {
+          '/analysis-settings': (context) => const AnalysisSettingsScreen(),
+          '/settings': (context) => const SettingsScreen(),
+          '/about': (context) => const AboutScreen(),
+        },
+        onGenerateRoute: (settings) {
+          // Handle dynamic routes that require arguments
+          switch (settings.name) {
+            case '/editor':
+              return MaterialPageRoute<void>(
+                builder: (context) => const EditorScreen(),
+              );
+            default:
+              return null;
+          }
+        },
+      );
+  }
+}
+
+
 
 /// Wrapper to check if onboarding should be shown
 class _OnboardingWrapper extends StatefulWidget {
