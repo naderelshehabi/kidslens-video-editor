@@ -14,6 +14,15 @@
 
 KidsLens is a powerful desktop application that uses local AI models to analyze and clean video content, ensuring it's appropriate for children and family viewing. All processing happens on your computer - no data is sent to the cloud.
 
+## Documentation
+
+For detailed technical information, please refer to the documentation in the `docs/` folder:
+
+- [Technical Reference](docs/TECHNICAL_REFERENCE.md) - **New!** Comprehensive guide on architecture, UI, and FFmpeg setup.
+- [Architecture](docs/architecture.md) - High-level system design.
+- [Native Integration](docs/native-integration.md) - Details on FFI and native libraries.
+- [Getting Started](docs/getting-started.md) - Setup guide for developers.
+
 ## Features
 
 - **Visual Content Detection**: Identify inappropriate scenes using ONNX Runtime

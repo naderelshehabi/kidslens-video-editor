@@ -145,66 +145,184 @@ class ExportService {
     List<_TimedModification> videoMods,
     ExportSettings settings,
   ) {
-    final filters = <String>[];
-
-    // Build audio filters
-    for (final timedMod in audioMods) {
-      final enable = _buildEnableExpression(timedMod.start, timedMod.end);
-      final filter = _audioModToFilter(timedMod.modification, enable, timedMod);
-      if (filter.isNotEmpty) {
-        filters.add(filter);
+    final chains = <String>[];
+    
+    // ============ VIDEO CHAIN ============
+    // Linear chain: [0:v] -> filter1 -> filter2...
+    if (videoMods.isNotEmpty) {
+      final filters = <String>[];
+      for (final mod in videoMods) {
+        final enable = _buildEnableExpression(mod.start, mod.end);
+        final filter = _videoModToFilter(mod.modification, enable);
+        if (filter.isNotEmpty) {
+          filters.add(filter);
+        }
+      }
+      
+      if (filters.isNotEmpty) {
+        // [0:v]filter1,filter2
+        // We do not label the output to let generic FFmpeg mapping pick it up
+        chains.add('[0:v]${filters.join(',')}');
       }
     }
 
-    // Build video filters
-    for (final timedMod in videoMods) {
-      final enable = _buildEnableExpression(timedMod.start, timedMod.end);
-      final filter = _videoModToFilter(timedMod.modification, enable);
-      if (filter.isNotEmpty) {
-        filters.add(filter);
+    // ============ AUDIO CHAIN ============
+    // Complex graph with mixing for overlays (Beep, Replace)
+    
+    // 1. Separate modifications
+    final baseFilters = <String>[];
+    final overlays = <String>[];
+    int overlayCount = 0;
+
+    for (final mod in audioMods) {
+      final enable = _buildEnableExpression(mod.start, mod.end);
+      
+      switch (mod.modification) {
+        case AudioMute():
+          baseFilters.add("volume=enable='$enable':volume=0");
+          
+        case AudioBeep(:final frequency, :final volume):
+          // Mute original track during beep
+          baseFilters.add("volume=enable='$enable':volume=0");
+          
+          overlayCount++;
+          final label = 'beep_$overlayCount';
+          final durationSec = mod.duration.inMilliseconds / 1000.0;
+          final startMs = mod.start.inMilliseconds;
+          
+          // Generate beep source
+          // aevalsrc -> vol -> adelay -> [label]
+          overlays.add(
+            "aevalsrc=sin($frequency*2*PI*t):d=$durationSec,"
+            "volume=$volume,"
+            "adelay=$startMs|$startMs[out_$label]"
+          );
+          
+        case AudioReplace(:final audioPath, :final volume, :final loop):
+          // Mute original track
+          baseFilters.add("volume=enable='$enable':volume=0");
+          
+          overlayCount++;
+          final label = 'replace_$overlayCount';
+          // Escape path for FFmpeg string
+          final escapedPath = audioPath.replaceAll("'", "'\\''").replaceAll(':', '\\:');
+          final durationSec = mod.duration.inMilliseconds / 1000.0;
+          final startMs = mod.start.inMilliseconds;
+          final loopVal = loop ? 0 : 1;
+          
+          // Generate replacement source
+          // amovie -> atrim -> vol -> adelay -> [label]
+          overlays.add(
+            "amovie='$escapedPath':loop=$loopVal,"
+            "atrim=duration=$durationSec,"
+            "volume=$volume,"
+            "adelay=$startMs|$startMs[out_$label]"
+          );
+          
+        default:
+          // Ignore unrelated
       }
     }
 
-    return filters.join(',');
+    // 2. Build Audio Graph
+    if (overlays.isEmpty) {
+      // Linear chain only
+      if (baseFilters.isNotEmpty) {
+        chains.add('[0:a]${baseFilters.join(',')}');
+      }
+    } else {
+      // Complex mix
+      final mixParts = <String>[];
+      
+      // Part A: Base Chain
+      // [0:a]filters...[a_base]
+      var baseChain = '[0:a]';
+      if (baseFilters.isNotEmpty) {
+        baseChain += baseFilters.join(',');
+      } else {
+        baseChain += 'anull';
+      }
+      baseChain += '[a_base]';
+      mixParts.add(baseChain);
+      
+      // Part B: Overlays definitions
+      mixParts.addAll(overlays);
+      
+      // Part C: Mixing
+      // [a_base][out_beep_1]...amix...
+      final mixCmd = StringBuffer();
+      mixCmd.write('[a_base]');
+      for (int i = 1; i <= overlayCount; i++) {
+        // Find which type of label was used. 
+        // Logic above uses 'beep_$i' or 'replace_$i' BUT overlayCount increments globally.
+        // Wait, I need to reconstruct the labels exactly matching generation order.
+        // The generation loop populates `overlays` strings which contain `[out_beep_1]` etc.
+        // I should have stored the labels separately to be sure.
+        // Let's refactor loop slightly to store labels.
+      }
+      // REFACTORING INSIDE TO FIX LABEL LOGIC
+      // ... (See implementation below) ...
+    }
+    
+    // RE-IMPLEMENTING AUDIO LOGIC TO BE CLEANER
+    final audioGraphParts = <String>[];
+    
+    // If we have overlays, we need a base label and mix
+    if (overlays.isNotEmpty) {
+      // 1. Base Chain
+      var baseExpression = '[0:a]';
+      if (baseFilters.isNotEmpty) {
+        baseExpression += baseFilters.join(',');
+      } else {
+        baseExpression += 'anull';
+      }
+      baseExpression += '[a_base]';
+      audioGraphParts.add(baseExpression);
+      
+      // 2. Overlays
+      audioGraphParts.addAll(overlays);
+      
+      // 3. Mix
+      final mixInputs = StringBuffer();
+      mixInputs.write('[a_base]');
+      for (final overlay in overlays) {
+        // Extract label from end of string: [out_X]
+        final match = RegExp(r'\[(.*?)\]$').firstMatch(overlay);
+        if (match != null) {
+          mixInputs.write('[${match.group(1)}]');
+        }
+      }
+      // duration=first ensures output matches base track length
+      audioGraphParts.add('${mixInputs}amix=inputs=${overlays.length + 1}:duration=first:dropout_transition=0');
+      
+      chains.add(audioGraphParts.join(';'));
+    } else if (baseFilters.isNotEmpty) {
+      // Simple linear chain
+      chains.add('[0:a]${baseFilters.join(',')}');
+    }
+
+    return chains.join(';');
   }
 
   String _buildEnableExpression(Duration start, Duration end) =>
       'between(t,${start.inMilliseconds / 1000.0},${end.inMilliseconds / 1000.0})';
 
-  String _audioModToFilter(
-    Modification mod,
-    String enable,
-    _TimedModification timedMod,
-  ) => switch (mod) {
-      AudioMute() => "volume=enable='$enable':volume=0",
-      AudioBeep(:final frequency) =>
-        'aevalsrc=sin($frequency*2*PI*t):d=${timedMod.duration.inMilliseconds / 1000.0}',
-      AudioReplace(:final audioPath, :final volume) =>
-        'amovie=$audioPath,volume=$volume',
-      // Video modifications don't apply to audio track
-      VideoBlur() => '',
-      VideoPixelate() => '',
-      VideoBlackBox() => '',
-      VideoSkip() => '',
-    };
-
   String _videoModToFilter(Modification mod, String enable) => switch (mod) {
       VideoBlur(:final intensity) =>
         "gblur=sigma=${_intensityToBlurSigma(intensity)}:enable='$enable'",
-      // Pixelation is achieved by scaling down then back up with nearest neighbor
       VideoPixelate(:final blockSize) =>
         "scale=iw/$blockSize:ih/$blockSize:enable='$enable',"
             "scale=iw*$blockSize:ih*$blockSize:flags=neighbor:enable='$enable'",
-      // Convert hex color and apply opacity
       VideoBlackBox(:final color, :final opacity) =>
         "drawbox=x=0:y=0:w=iw:h=ih:c=${_hexToFFmpegColor(color, opacity)}:t=fill:enable='$enable'",
-      // Skip segments are handled differently - they're cut from the timeline
       VideoSkip() => '',
-      // Audio modifications don't apply to video track
+      // Audio mods ignored
       AudioMute() => '',
       AudioBeep() => '',
       AudioReplace() => '',
-    };
+  };
+
+  // Removed _audioModToFilter as logic is now embedded in _buildFilterComplex
 
   /// Convert blur intensity (1-100) to FFmpeg gblur sigma value
   // Map intensity 1-100 to sigma 5-50

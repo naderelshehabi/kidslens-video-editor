@@ -25,6 +25,13 @@ class FFmpegBindings extends NativeResource {
   /// The path to the FFmpeg executable
   String? get ffmpegPath => _ffmpegPath;
 
+  /// Set FFmpeg path manually for testing
+  @visibleForTesting
+  void setFFmpegPathForTesting(String path) {
+    _ffmpegPath = path;
+    _initialized = true;
+  }
+
   /// Initialize FFmpeg bindings by finding FFmpeg on the system
   /// 
   /// First checks for bundled binaries relative to the executable,
@@ -80,7 +87,7 @@ class FFmpegBindings extends NativeResource {
           final result = await Process.run(
             path,
             ['-version'],
-            runInShell: Platform.isWindows,
+            runInShell: false,
           );
           if (result.exitCode == 0) {
             return path;
@@ -105,7 +112,7 @@ class FFmpegBindings extends NativeResource {
           final result = await Process.run(
             path,
             ['-version'],
-            runInShell: Platform.isWindows,
+            runInShell: false,
           );
           if (result.exitCode == 0) {
             return path;
@@ -250,7 +257,7 @@ class FFmpegBindings extends NativeResource {
         final result = await Process.run(
           execPath,
           ['-version'],
-          runInShell: Platform.isWindows,
+          runInShell: false,
         );
         if (result.exitCode == 0) {
           return execPath;
@@ -281,7 +288,7 @@ class FFmpegBindings extends NativeResource {
             '-show_streams',
             path,
           ],
-          runInShell: Platform.isWindows,
+          runInShell: false,
         );
 
         if (result.exitCode == 0) {
@@ -377,7 +384,7 @@ class FFmpegBindings extends NativeResource {
         '-y',
         outputPath,
       ],
-      runInShell: Platform.isWindows,
+      runInShell: false,
     );
 
     if (result.exitCode != 0) {
@@ -438,7 +445,7 @@ class FFmpegBindings extends NativeResource {
         '-y',
         outputPath,
       ],
-      runInShell: Platform.isWindows,
+      runInShell: false,
     );
 
     if (result.exitCode != 0) {
@@ -529,7 +536,7 @@ class FFmpegBindings extends NativeResource {
       final process = await Process.start(
         _ffmpegPath!,
         args,
-        runInShell: Platform.isWindows,
+        runInShell: false,
       );
 
       var lastProgress = 0.0;
@@ -676,7 +683,7 @@ class FFmpegBindings extends NativeResource {
         '-f', 'null',
         '-',
       ],
-      runInShell: Platform.isWindows,
+      runInShell: false,
     );
 
     final scenes = <SceneChange>[];

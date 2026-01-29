@@ -648,10 +648,13 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
     // Set codec based on format
     switch (_format) {
       case ExportFormat.mp4H264:
-        videoCodec = 'libx264';
+        // Use libopenh264 or h264 relative to what's available
+        // libx264 is not available in the bundled build
+        videoCodec = 'libopenh264'; 
         audioCodec = 'aac';
       case ExportFormat.mp4H265:
-        videoCodec = 'libx265';
+        // Use libkvazaar as libx265 is not available
+        videoCodec = 'libkvazaar';
         audioCodec = 'aac';
       case ExportFormat.webm:
         videoCodec = 'libvpx-vp9';
@@ -665,23 +668,28 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
     }
 
     // Set bitrate and preset based on quality
+    // Note: libopenh264 does not support standard presets (slow, fast, etc.)
+    // We only set preset for other codecs or if we change implementation.
+    // For now, we clear preset for libopenh264/libkvazaar to avoid errors/warnings,
+    // or keep it if they handle it gracefully (libkvazaar supports presets).
+    
     switch (_quality) {
       case ExportQuality.low:
         videoBitrate = '2M';
         audioBitrate = '128k';
-        preset = 'fast';
+        preset = (videoCodec == 'libopenh264') ? null : 'fast';
       case ExportQuality.medium:
         videoBitrate = '5M';
         audioBitrate = '192k';
-        preset = 'medium';
+        preset = (videoCodec == 'libopenh264') ? null : 'medium';
       case ExportQuality.high:
         videoBitrate = '10M';
         audioBitrate = '256k';
-        preset = 'slow';
+        preset = (videoCodec == 'libopenh264') ? null : 'slow';
       case ExportQuality.lossless:
         videoBitrate = null;
         audioBitrate = '320k';
-        preset = 'veryslow';
+        preset = (videoCodec == 'libopenh264') ? null : 'veryslow';
     }
 
     return ExportSettings(
