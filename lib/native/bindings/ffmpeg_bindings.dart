@@ -87,7 +87,6 @@ class FFmpegBindings extends NativeResource {
           final result = await Process.run(
             path,
             ['-version'],
-            runInShell: false,
           );
           if (result.exitCode == 0) {
             return path;
@@ -112,7 +111,6 @@ class FFmpegBindings extends NativeResource {
           final result = await Process.run(
             path,
             ['-version'],
-            runInShell: false,
           );
           if (result.exitCode == 0) {
             return path;
@@ -257,7 +255,6 @@ class FFmpegBindings extends NativeResource {
         final result = await Process.run(
           execPath,
           ['-version'],
-          runInShell: false,
         );
         if (result.exitCode == 0) {
           return execPath;
@@ -288,7 +285,6 @@ class FFmpegBindings extends NativeResource {
             '-show_streams',
             path,
           ],
-          runInShell: false,
         );
 
         if (result.exitCode == 0) {
@@ -384,7 +380,6 @@ class FFmpegBindings extends NativeResource {
         '-y',
         outputPath,
       ],
-      runInShell: false,
     );
 
     if (result.exitCode != 0) {
@@ -445,7 +440,6 @@ class FFmpegBindings extends NativeResource {
         '-y',
         outputPath,
       ],
-      runInShell: false,
     );
 
     if (result.exitCode != 0) {
@@ -536,7 +530,6 @@ class FFmpegBindings extends NativeResource {
       final process = await Process.start(
         _ffmpegPath!,
         args,
-        runInShell: false,
       );
 
       var lastProgress = 0.0;
@@ -683,7 +676,6 @@ class FFmpegBindings extends NativeResource {
         '-f', 'null',
         '-',
       ],
-      runInShell: false,
     );
 
     final scenes = <SceneChange>[];

@@ -21,6 +21,8 @@ class DetectionPanel extends StatefulWidget {
     required this.onAcceptDetection,
     required this.onToggleEditAction,
     required this.onRemoveEditAction,
+    this.onDeleteMultiple,
+    this.onDeleteAll,
     super.key,
   });
 
@@ -32,6 +34,8 @@ class DetectionPanel extends StatefulWidget {
   final void Function(Detection) onAcceptDetection;
   final void Function(EditAction) onToggleEditAction;
   final void Function(EditAction) onRemoveEditAction;
+  final void Function(List<String>)? onDeleteMultiple;
+  final VoidCallback? onDeleteAll;
 
   @override
   State<DetectionPanel> createState() => _DetectionPanelState();
@@ -43,10 +47,33 @@ class _DetectionPanelState extends State<DetectionPanel>
   ContentType? _filterType;
   DetectionFilterMode _filterMode = DetectionFilterMode.active;
 
+  // Selection
+  final Set<String> _selectedIds = {};
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+  }
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _selectAll() {
+    setState(() {
+      _selectedIds.addAll(_getFilteredDetections().map((d) => d.id));
+    });
+  }
+
+  void _clearSelection() {
+    setState(_selectedIds.clear);
   }
 
   @override
@@ -258,32 +285,75 @@ class _DetectionPanelState extends State<DetectionPanel>
               ),
               const SizedBox(height: 8),
               // Type filter dropdown
-              DropdownButtonFormField<ContentType?>(
-                initialValue: _filterType,
-                decoration: const InputDecoration(
-                  labelText: 'Filter by type',
-                  isDense: true,
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 8,
+              Row(
+                children: [
+                   Expanded(
+                    child: DropdownButtonFormField<ContentType?>(
+                      initialValue: _filterType,
+                      decoration: const InputDecoration(
+                        labelText: 'Filter by type',
+                        isDense: true,
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          child: Text('All types', style: TextStyle(fontSize: 12)),
+                        ),
+                        ...ContentType.values.map((type) => DropdownMenuItem(
+                          value: type,
+                          child: Text(
+                            _contentTypeName(type),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),),
+                      ],
+                      onChanged: (value) => setState(() => _filterType = value),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (widget.onDeleteAll != null)
+                    IconButton(
+                        onPressed: widget.onDeleteAll,
+                        icon: const Icon(Icons.delete_forever),
+                        tooltip: 'Delete All Detections',
+                        color: colorScheme.error,
+                    ),
+                ],
+              ),
+              
+              if (_selectedIds.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      Text('${_selectedIds.length} selected', style: TextStyle(fontSize: 11, color: colorScheme.primary)),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: _selectAll,
+                        style: TextButton.styleFrom(
+                           visualDensity: VisualDensity.compact,
+                           padding: EdgeInsets.zero,
+                           textStyle: const TextStyle(fontSize: 11),
+                        ),
+                        child: const Text('All'),
+                      ),
+                      TextButton(
+                        onPressed: _clearSelection,
+                        style: TextButton.styleFrom(
+                           visualDensity: VisualDensity.compact,
+                           padding: EdgeInsets.zero,
+                           textStyle: const TextStyle(fontSize: 11),
+                        ),
+                        child: const Text('None'),
+                      ),
+                    ],
                   ),
                 ),
-                items: [
-                  const DropdownMenuItem(
-                    child: Text('All types', style: TextStyle(fontSize: 12)),
-                  ),
-                  ...ContentType.values.map((type) => DropdownMenuItem(
-                    value: type,
-                    child: Text(
-                      _contentTypeName(type),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),),
-                ],
-                onChanged: (value) => setState(() => _filterType = value),
-                style: const TextStyle(fontSize: 12),
-              ),
             ],
           ),
         ),
@@ -294,11 +364,14 @@ class _DetectionPanelState extends State<DetectionPanel>
               ? _buildEmptyDetections(context)
               : ListView.builder(
                   itemCount: filteredDetections.length,
-                  itemBuilder: (context, index) => _DetectionTile(
-                      detection: filteredDetections[index],
-                      onSeek: () => widget.onSeekToDetection(
-                        filteredDetections[index],
-                      ),
+                  itemBuilder: (context, index) {
+                    final detection = filteredDetections[index];
+                    final isSelected = _selectedIds.contains(detection.id);
+                    return _DetectionTile(
+                      detection: detection,
+                      isSelected: isSelected,
+                      onToggleSelection: () => _toggleSelection(detection.id),
+                      onSeek: () => widget.onSeekToDetection(detection),
                       onApplyAction: (type) => widget.onApplyAction(
                         filteredDetections[index],
                         type,
@@ -309,7 +382,8 @@ class _DetectionPanelState extends State<DetectionPanel>
                       onAccept: () => widget.onAcceptDetection(
                         filteredDetections[index],
                       ),
-                    ),
+                    );
+                  },
                 ),
         ),
         
@@ -397,6 +471,48 @@ class _DetectionPanelState extends State<DetectionPanel>
 
   Widget _buildBulkActions(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    
+    if (_selectedIds.isNotEmpty) {
+       return Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: colorScheme.secondaryContainer,
+          border: Border(
+            top: BorderSide(color: colorScheme.outlineVariant),
+          ),
+        ),
+        child: Row(
+          children: [
+            Text('${_selectedIds.length} selected', style: TextStyle(color: colorScheme.onSecondaryContainer, fontSize: 12)),
+            const Spacer(),
+            IconButton(
+              icon: const Icon(Icons.block),
+              tooltip: 'Reject Selected',
+              iconSize: 20,
+              onPressed: () {
+                 widget.detections
+                     .where((d) => _selectedIds.contains(d.id))
+                     .toList()
+                     .forEach(widget.onRejectDetection);
+                 _clearSelection();
+              },
+            ),
+            if (widget.onDeleteMultiple != null)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              tooltip: 'Delete Selected',
+              iconSize: 20,
+              color: colorScheme.error,
+              onPressed: () {
+                 widget.onDeleteMultiple!(_selectedIds.toList());
+                 _clearSelection();
+              },
+            ),
+          ],
+        ),
+      );
+    }
+
     final unhandledCount = widget.detections
         .where((d) => !d.isRejected && !d.hasAction)
         .length;
@@ -460,6 +576,8 @@ class _DetectionTile extends StatelessWidget {
     required this.onApplyAction,
     required this.onReject,
     required this.onAccept,
+    this.isSelected = false,
+    this.onToggleSelection,
   });
 
   final Detection detection;
@@ -467,6 +585,8 @@ class _DetectionTile extends StatelessWidget {
   final void Function(EditActionType) onApplyAction;
   final VoidCallback onReject;
   final VoidCallback onAccept;
+  final bool isSelected;
+  final VoidCallback? onToggleSelection;
 
   @override
   Widget build(BuildContext context) {
@@ -476,20 +596,40 @@ class _DetectionTile extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: isRejected ? colorScheme.surfaceContainerLow : null,
+      color: isSelected 
+        ? colorScheme.primaryContainer 
+        : (isRejected ? colorScheme.surfaceContainerLow : null),
       child: InkWell(
         onTap: onSeek,
+        onLongPress: onToggleSelection,
         borderRadius: BorderRadius.circular(8),
         child: Opacity(
           opacity: isRejected ? 0.6 : 1.0,
           child: Padding(
             padding: const EdgeInsets.all(8),
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header row
-                Row(
-                  children: [
+                if (onToggleSelection != null)
+                   Padding(
+                     padding: const EdgeInsets.only(right: 8, top: 4),
+                     child: SizedBox(
+                       width: 20,
+                       height: 20,
+                       child: Checkbox(
+                         value: isSelected,
+                         onChanged: (_) => onToggleSelection!(),
+                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                       ),
+                     ),
+                   ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header row
+                      Row(
+                        children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
@@ -628,7 +768,10 @@ class _DetectionTile extends StatelessWidget {
                       color: colorScheme.outline,
                       onTap: onReject,
                     ),
+                      ],
+                    ),
                   ],
+                ),
                 ),
               ],
             ),

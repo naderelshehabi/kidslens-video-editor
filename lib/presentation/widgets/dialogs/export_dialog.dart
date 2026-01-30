@@ -11,6 +11,8 @@ import 'package:kidslens_video_editor/data/models/modification.dart';
 import 'package:kidslens_video_editor/data/models/timeline.dart';
 import 'package:kidslens_video_editor/services/export_service.dart';
 import 'package:kidslens_video_editor/state/providers/service_providers.dart';
+import 'package:kidslens_video_editor/state/providers/settings_provider.dart'
+    as settings;
 import 'package:path/path.dart' as p;
 
 /// Format options for export
@@ -80,7 +82,34 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
   @override
   void initState() {
     super.initState();
+    _loadDefaults();
     _initOutputPath();
+  }
+
+  void _loadDefaults() {
+    final state = ref.read(settings.settingsNotifierProvider);
+
+    // Map Format
+    switch (state.defaultExportFormat) {
+      case settings.ExportFormat.mp4:
+        _format = ExportFormat.mp4H264;
+      case settings.ExportFormat.webm:
+        _format = ExportFormat.webm;
+      case settings.ExportFormat.mov:
+        _format = ExportFormat.mov;
+    }
+
+    // Map Quality
+    switch (state.defaultExportQuality) {
+      case settings.ExportQuality.low:
+        _quality = ExportQuality.low;
+      case settings.ExportQuality.medium:
+        _quality = ExportQuality.medium;
+      case settings.ExportQuality.high:
+        _quality = ExportQuality.high;
+      case settings.ExportQuality.ultra:
+        _quality = ExportQuality.lossless;
+    }
   }
 
   @override

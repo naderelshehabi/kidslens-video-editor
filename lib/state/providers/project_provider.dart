@@ -386,6 +386,39 @@ class ProjectNotifier extends _$ProjectNotifier {
     state = state.copyWith(currentProject: updatedProject);
   }
 
+  /// Remove multiple detections
+  void removeDetections(List<String> detectionIds) {
+    if (state.currentProject == null) return;
+
+    _pushUndo();
+    final idsSet = detectionIds.toSet();
+    final updatedProject = state.currentProject!.copyWith(
+      detections: state.currentProject!.detections
+          .where((d) => !idsSet.contains(d.id))
+          .toList(),
+      modifiedAt: DateTime.now(),
+      isDirty: true,
+    );
+
+    state = state.copyWith(currentProject: updatedProject);
+  }
+
+  /// Remove all detections for a media file
+  void removeAllDetections(String mediaId) {
+    if (state.currentProject == null) return;
+
+    _pushUndo();
+    final updatedProject = state.currentProject!.copyWith(
+      detections: state.currentProject!.detections
+          .where((d) => d.mediaId != mediaId)
+          .toList(),
+      modifiedAt: DateTime.now(),
+      isDirty: true,
+    );
+
+    state = state.copyWith(currentProject: updatedProject);
+  }
+
   /// Add an edit action
   void addEditAction(
     String mediaId,

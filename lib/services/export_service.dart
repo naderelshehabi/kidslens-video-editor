@@ -172,7 +172,7 @@ class ExportService {
     // 1. Separate modifications
     final baseFilters = <String>[];
     final overlays = <String>[];
-    int overlayCount = 0;
+    var overlayCount = 0;
 
     for (final mod in audioMods) {
       final enable = _buildEnableExpression(mod.start, mod.end);
@@ -193,9 +193,9 @@ class ExportService {
           // Generate beep source
           // aevalsrc -> vol -> adelay -> [label]
           overlays.add(
-            "aevalsrc=sin($frequency*2*PI*t):d=$durationSec,"
-            "volume=$volume,"
-            "adelay=$startMs|$startMs[out_$label]"
+            'aevalsrc=sin($frequency*2*PI*t):d=$durationSec,'
+            'volume=$volume,'
+            'adelay=$startMs|$startMs[out_$label]'
           );
           
         case AudioReplace(:final audioPath, :final volume, :final loop):
@@ -214,9 +214,9 @@ class ExportService {
           // amovie -> atrim -> vol -> adelay -> [label]
           overlays.add(
             "amovie='$escapedPath':loop=$loopVal,"
-            "atrim=duration=$durationSec,"
-            "volume=$volume,"
-            "adelay=$startMs|$startMs[out_$label]"
+            'atrim=duration=$durationSec,'
+            'volume=$volume,'
+            'adelay=$startMs|$startMs[out_$label]'
           );
           
         default:
@@ -225,47 +225,6 @@ class ExportService {
     }
 
     // 2. Build Audio Graph
-    if (overlays.isEmpty) {
-      // Linear chain only
-      if (baseFilters.isNotEmpty) {
-        chains.add('[0:a]${baseFilters.join(',')}');
-      }
-    } else {
-      // Complex mix
-      final mixParts = <String>[];
-      
-      // Part A: Base Chain
-      // [0:a]filters...[a_base]
-      var baseChain = '[0:a]';
-      if (baseFilters.isNotEmpty) {
-        baseChain += baseFilters.join(',');
-      } else {
-        baseChain += 'anull';
-      }
-      baseChain += '[a_base]';
-      mixParts.add(baseChain);
-      
-      // Part B: Overlays definitions
-      mixParts.addAll(overlays);
-      
-      // Part C: Mixing
-      // [a_base][out_beep_1]...amix...
-      final mixCmd = StringBuffer();
-      mixCmd.write('[a_base]');
-      for (int i = 1; i <= overlayCount; i++) {
-        // Find which type of label was used. 
-        // Logic above uses 'beep_$i' or 'replace_$i' BUT overlayCount increments globally.
-        // Wait, I need to reconstruct the labels exactly matching generation order.
-        // The generation loop populates `overlays` strings which contain `[out_beep_1]` etc.
-        // I should have stored the labels separately to be sure.
-        // Let's refactor loop slightly to store labels.
-      }
-      // REFACTORING INSIDE TO FIX LABEL LOGIC
-      // ... (See implementation below) ...
-    }
-    
-    // RE-IMPLEMENTING AUDIO LOGIC TO BE CLEANER
-    final audioGraphParts = <String>[];
     
     // If we have overlays, we need a base label and mix
     if (overlays.isNotEmpty) {
@@ -277,14 +236,9 @@ class ExportService {
         baseExpression += 'anull';
       }
       baseExpression += '[a_base]';
-      audioGraphParts.add(baseExpression);
-      
-      // 2. Overlays
-      audioGraphParts.addAll(overlays);
-      
+
       // 3. Mix
-      final mixInputs = StringBuffer();
-      mixInputs.write('[a_base]');
+      final mixInputs = StringBuffer()..write('[a_base]');
       for (final overlay in overlays) {
         // Extract label from end of string: [out_X]
         final match = RegExp(r'\[(.*?)\]$').firstMatch(overlay);
@@ -292,8 +246,15 @@ class ExportService {
           mixInputs.write('[${match.group(1)}]');
         }
       }
-      // duration=first ensures output matches base track length
-      audioGraphParts.add('${mixInputs}amix=inputs=${overlays.length + 1}:duration=first:dropout_transition=0');
+
+      final audioGraphParts = <String>[
+        baseExpression,
+        // 2. Overlays
+        ...overlays,
+        // 3. Mix
+        // duration=first ensures output matches base track length
+        '${mixInputs}amix=inputs=${overlays.length + 1}:duration=first:dropout_transition=0',
+      ];
       
       chains.add(audioGraphParts.join(';'));
     } else if (baseFilters.isNotEmpty) {

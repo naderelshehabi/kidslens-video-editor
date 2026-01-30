@@ -161,6 +161,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                         onAcceptDetection: _onAcceptDetection,
                         onToggleEditAction: _onToggleEditAction,
                         onRemoveEditAction: _onRemoveEditAction,
+                        onDeleteMultiple: _onDeleteMultiple,
+                        onDeleteAll: _onDeleteAll,
                       ),
                     ),
                   ],
@@ -765,6 +767,44 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   void _onRemoveEditActionById(String actionId) {
     ref.read(projectNotifierProvider.notifier).removeEditAction(actionId);
+  }
+
+  void _onDeleteMultiple(List<String> ids) {
+    ref.read(projectNotifierProvider.notifier).removeDetections(ids);
+  }
+
+  void _onDeleteAll() {
+    final project = ref.read(projectNotifierProvider).currentProject;
+    if (project?.selectedMediaId != null) {
+      showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Clear All Detections?'),
+          content: const Text(
+            'This will permanently delete all detections for this media file. '
+            'This action cannot be undone (except by Undo).',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                ref
+                    .read(projectNotifierProvider.notifier)
+                    .removeAllDetections(project!.selectedMediaId!);
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   void _onAddEditAction(EditAction action) {

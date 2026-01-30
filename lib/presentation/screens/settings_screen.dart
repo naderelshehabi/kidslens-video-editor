@@ -11,7 +11,6 @@ class SettingsKeys {
   static const String themeMode = 'settings_theme_mode';
   static const String defaultExportQuality = 'settings_export_quality';
   static const String defaultExportFormat = 'settings_export_format';
-  static const String checkForUpdates = 'settings_check_updates';
   static const String autoSaveInterval = 'settings_auto_save_interval';
 }
 
@@ -52,7 +51,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   ThemeMode _themeMode = ThemeMode.system;
   ExportQuality _exportQuality = ExportQuality.high;
   ExportFormat _exportFormat = ExportFormat.mp4;
-  bool _checkForUpdates = true;
   int _autoSaveInterval = 5; // minutes
 
   // Cache info
@@ -75,7 +73,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           .values[prefs.getInt(SettingsKeys.defaultExportQuality) ?? 2];
       _exportFormat = ExportFormat
           .values[prefs.getInt(SettingsKeys.defaultExportFormat) ?? 0];
-      _checkForUpdates = prefs.getBool(SettingsKeys.checkForUpdates) ?? true;
       _autoSaveInterval = prefs.getInt(SettingsKeys.autoSaveInterval) ?? 5;
     });
   }
@@ -96,12 +93,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(SettingsKeys.defaultExportFormat, format.index);
     setState(() => _exportFormat = format);
-  }
-
-  Future<void> _saveCheckForUpdates(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(SettingsKeys.checkForUpdates, value);
-    setState(() => _checkForUpdates = value);
   }
 
   Future<void> _saveAutoSaveInterval(int minutes) async {
@@ -362,39 +353,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Updates Section
-                const _SectionHeader(
-                  icon: Icons.system_update_rounded,
-                  title: 'Updates',
-                  color: Colors.green,
-                ),
-                Card(
-                  child: Column(
-                    children: [
-                      SwitchListTile(
-                        secondary: const Icon(Icons.notifications_rounded),
-                        title: const Text('Check for Updates'),
-                        subtitle: const Text(
-                          'Automatically check for new versions on startup',
-                        ),
-                        value: _checkForUpdates,
-                        onChanged: _saveCheckForUpdates,
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(Icons.update_rounded),
-                        title: const Text('Check Now'),
-                        subtitle: const Text('Version 1.0.0'),
-                        trailing: OutlinedButton(
-                          onPressed: _checkForUpdatesManually,
-                          child: const Text('Check'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
                 // Reset Section
                 _SectionHeader(
                   icon: Icons.restart_alt_rounded,
@@ -438,36 +396,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _checkForUpdatesManually() async {
-    // Show checking dialog
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const AlertDialog(
-        content: Row(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 24),
-            Text('Checking for updates...'),
-          ],
-        ),
-      ),
-    );
-
-    // Simulate update check
-    await Future<void>.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You are using the latest version!'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
   Future<void> _resetSettings() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -499,7 +427,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await prefs.remove(SettingsKeys.themeMode);
     await prefs.remove(SettingsKeys.defaultExportQuality);
     await prefs.remove(SettingsKeys.defaultExportFormat);
-    await prefs.remove(SettingsKeys.checkForUpdates);
     await prefs.remove(SettingsKeys.autoSaveInterval);
 
     // Reset Riverpod state
