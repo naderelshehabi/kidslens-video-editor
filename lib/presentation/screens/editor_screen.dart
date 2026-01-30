@@ -41,6 +41,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   // Blur editing state
   String? _editingBlurActionId;
 
+  // Subtitle generation state
+  bool _isGeneratingSubtitles = false;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -195,6 +198,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   onEditActionUpdated: _onEditActionUpdated,
                   onRemoveEditAction: _onRemoveEditActionById,
                   onEditBlurAction: _onEditingBlurActionChanged,
+                  subtitleTrack: project.selectedMediaId != null
+                      ? project.subtitleTrackForMedia(project.selectedMediaId!)
+                      : null,
+                  onGenerateSubtitles: _generateSubtitles,
+                  isGeneratingSubtitles: _isGeneratingSubtitles,
                 ),
               ),
             ],
@@ -564,12 +572,100 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     // Get edit actions for the selected media
     final editActions = project.editActionsForMedia(selectedMedia.id);
 
+    // Get subtitle track for the selected media
+    final subtitleTrack = project.subtitleTrackForMedia(selectedMedia.id);
+
     // Show export dialog
     ExportDialog.show(
       context: context,
       media: selectedMedia,
       editActions: editActions,
+      subtitleTrack: subtitleTrack,
     );
+  }
+
+  Future<void> _generateSubtitles() async {
+    final project = ref.read(projectNotifierProvider).currentProject;
+    if (project == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No project loaded')),
+      );
+      return;
+    }
+
+    final selectedMedia = project.selectedMedia;
+    if (selectedMedia == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a media file first')),
+      );
+      return;
+    }
+
+    // Check if subtitles already exist
+    if (project.subtitleTrackForMedia(selectedMedia.id) != null) {
+      final shouldRegenerate = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Subtitles Exist'),
+          content: const Text('Subtitles already exist for this media. Do you want to regenerate them?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Regenerate'),
+            ),
+          ],
+        ),
+      );
+      if (shouldRegenerate != true) return;
+    }
+
+    setState(() => _isGeneratingSubtitles = true);
+
+    try {
+      // Initialize whisper bindings first
+      final whisper = ref.read(whisperBindingsProvider);
+      await whisper.initialize();
+      
+      final asrService = ref.read(asrServiceProvider);
+      
+      // Transcribe the media using transcribeToResult for direct result
+      final transcript = await asrService.transcribeToResult(selectedMedia.path);
+      
+      // Convert transcript to subtitle track
+      final subtitleTrack = SubtitleTrack.fromTranscript(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        transcript: transcript,
+        mediaId: selectedMedia.id,
+      );
+      
+      // Update project with new subtitle track
+      ref.read(projectNotifierProvider.notifier).addSubtitleTrack(subtitleTrack);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Generated ${subtitleTrack.segments.length} subtitle segments'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to generate subtitles: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isGeneratingSubtitles = false);
+      }
+    }
   }
 
   void _startAnalysis() {

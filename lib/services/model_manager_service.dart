@@ -79,19 +79,55 @@ enum ModelDownloadStatus {
 
 /// Service for managing AI model downloads and storage
 class ModelManagerService {
-  ModelManagerService({HuggingFaceModelRegistry? registry})
-      : _registry = registry ?? HuggingFaceModelRegistry.instance;
+  ModelManagerService({
+    HuggingFaceModelRegistry? registry,
+    String? customModelsPath,
+  })  : _registry = registry ?? HuggingFaceModelRegistry.instance,
+        _customModelsPath = customModelsPath;
 
   static const String _modelsSubdir = 'kidslens_models';
   static const String _metadataFileName = 'model_metadata.json';
 
   final HuggingFaceModelRegistry _registry;
+  final String? _customModelsPath;
   String? _cacheDir;
 
   /// Get the models cache directory
   Future<String> get modelsDirectory async {
+    // Use custom path if provided
+    if (_customModelsPath != null && _customModelsPath.isNotEmpty) {
+      final customDir = Directory(_customModelsPath);
+      if (!customDir.existsSync()) {
+        customDir.createSync(recursive: true);
+      }
+      return _customModelsPath;
+    }
     _cacheDir ??= await _initCacheDir();
     return _cacheDir!;
+  }
+
+  /// Set a custom models directory
+  /// Returns the new path if valid, or throws if invalid
+  static Future<String> validateModelsPath(String path) async {
+    final dir = Directory(path);
+    if (!dir.existsSync()) {
+      try {
+        dir.createSync(recursive: true);
+      } catch (e) {
+        throw ModelStorageException('Cannot create directory: $path');
+      }
+    }
+    
+    // Test write access
+    final testFile = File(p.join(path, '.write_test'));
+    try {
+      await testFile.writeAsString('test');
+      await testFile.delete();
+    } catch (e) {
+      throw ModelStorageException('Cannot write to directory: $path');
+    }
+    
+    return path;
   }
 
   Future<String> _initCacheDir() async {
@@ -439,4 +475,14 @@ class ModelDownloadException implements Exception {
 
   @override
   String toString() => 'Failed to download model $modelId: $reason';
+}
+
+/// Exception thrown when model storage path is invalid
+class ModelStorageException implements Exception {
+  ModelStorageException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'Model storage error: $message';
 }

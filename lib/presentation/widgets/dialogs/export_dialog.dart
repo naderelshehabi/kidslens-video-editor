@@ -8,8 +8,10 @@ import 'package:kidslens_video_editor/data/models/detection.dart';
 import 'package:kidslens_video_editor/data/models/edit_action.dart';
 import 'package:kidslens_video_editor/data/models/media_file.dart';
 import 'package:kidslens_video_editor/data/models/modification.dart';
+import 'package:kidslens_video_editor/data/models/subtitle_track.dart';
 import 'package:kidslens_video_editor/data/models/timeline.dart';
 import 'package:kidslens_video_editor/services/export_service.dart';
+import 'package:kidslens_video_editor/services/subtitle_service.dart';
 import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart'
     as settings;
@@ -37,6 +39,7 @@ class ExportDialog extends ConsumerStatefulWidget {
   const ExportDialog({
     required this.media,
     required this.editActions,
+    this.subtitleTrack,
     super.key,
   });
 
@@ -46,17 +49,22 @@ class ExportDialog extends ConsumerStatefulWidget {
   /// Edit actions to apply during export
   final List<EditAction> editActions;
 
+  /// Subtitle track to export alongside media (optional)
+  final SubtitleTrack? subtitleTrack;
+
   /// Show the export dialog
   static Future<bool?> show({
     required BuildContext context,
     required MediaFile media,
     required List<EditAction> editActions,
+    SubtitleTrack? subtitleTrack,
   }) => showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) => ExportDialog(
         media: media,
         editActions: editActions,
+        subtitleTrack: subtitleTrack,
       ),
     );
 
@@ -69,6 +77,10 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
   ExportFormat _format = ExportFormat.mp4H264;
   ExportQuality _quality = ExportQuality.high;
   late String _outputPath;
+
+  // Subtitle settings
+  bool _exportSubtitles = true;
+  SubtitleFormat _subtitleFormat = SubtitleFormat.srt;
 
   // Export state
   bool _isExporting = false;
@@ -325,6 +337,67 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
           ),
           const SizedBox(height: 16),
 
+          // Subtitle export section (only shown if subtitle track exists)
+          if (widget.subtitleTrack != null) ...[
+            _buildSection(
+              title: 'Subtitles',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _exportSubtitles,
+                        onChanged: (value) {
+                          setState(() => _exportSubtitles = value ?? true);
+                        },
+                      ),
+                      Text(
+                        'Export subtitles (${widget.subtitleTrack!.segments.length} segments)',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                  if (_exportSubtitles) ...[
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<SubtitleFormat>(
+                      value: _subtitleFormat,
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        labelText: 'Subtitle Format',
+                      ),
+                      items: SubtitleFormat.values.map((format) => DropdownMenuItem(
+                          value: format,
+                          child: Row(
+                            children: [
+                              const Icon(Icons.subtitles, size: 18),
+                              const SizedBox(width: 8),
+                              Text(format.displayName),
+                            ],
+                          ),
+                        ),).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _subtitleFormat = value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _getSubtitleFormatDescription(_subtitleFormat),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           // Output path
           _buildSection(
             title: 'Output Location',
@@ -569,8 +642,13 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
             });
           }
         },
-        onDone: () {
+        onDone: () async {
           if (mounted && !_isCancelled) {
+            // Export subtitles if enabled and available
+            if (_exportSubtitles && widget.subtitleTrack != null) {
+              await _exportSubtitleFile();
+            }
+            
             setState(() {
               _isExporting = false;
               _isComplete = true;
@@ -585,6 +663,39 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
           _errorMessage = e.toString();
         });
       }
+    }
+  }
+
+  /// Export subtitle file alongside the video
+  Future<void> _exportSubtitleFile() async {
+    if (widget.subtitleTrack == null) return;
+
+    setState(() {
+      _currentPhase = 'Exporting subtitles...';
+    });
+
+    try {
+      final subtitleService = ref.read(subtitleServiceProvider);
+      
+      // Build subtitle output path (same name as video but with subtitle extension)
+      final baseName = p.basenameWithoutExtension(_outputPath);
+      final directory = p.dirname(_outputPath);
+      final subtitlePath = p.join(
+        directory,
+        '$baseName.${_subtitleFormat.extension}',
+      );
+
+      // Convert SubtitleTrack to Transcript format for the service
+      final transcript = widget.subtitleTrack!.toTranscript();
+      
+      await subtitleService.generateSubtitles(
+        transcript,
+        subtitlePath,
+        _subtitleFormat,
+      );
+    } catch (e) {
+      // Don't fail the entire export for subtitle errors, just log
+      debugPrint('Failed to export subtitles: $e');
     }
   }
 
@@ -779,6 +890,15 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
       ExportQuality.medium => 'Balanced quality and file size.',
       ExportQuality.high => 'High quality, larger file size.',
       ExportQuality.lossless => 'No quality loss, very large file size.',
+    };
+
+  String _getSubtitleFormatDescription(SubtitleFormat format) => switch (format) {
+      SubtitleFormat.srt =>
+        'Most widely supported format. Works with most video players.',
+      SubtitleFormat.vtt =>
+        'Web-friendly format with styling support. Used for HTML5 video.',
+      SubtitleFormat.ass =>
+        'Advanced format with rich styling. Popular for anime subtitles.',
     };
 
   IconData _getIconForActionType(EditActionType type) => switch (type) {

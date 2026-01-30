@@ -7,7 +7,7 @@ part of 'settings_provider.dart';
 // **************************************************************************
 
 String _$detectionThresholdsHash() =>
-    r'106445558641efb0c2a97a44a2fce46b1cb2bc44';
+    r'06d87ee11d80f57e80ca0ea7c741e2dff788de67';
 
 /// Provider for detection thresholds (convenience accessor)
 ///
@@ -26,7 +26,7 @@ final detectionThresholdsProvider = Provider<DetectionThresholds>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef DetectionThresholdsRef = ProviderRef<DetectionThresholds>;
-String _$settingsNotifierHash() => r'75767ce1aca67256c0043245a8520a0c47f5989a';
+String _$settingsNotifierHash() => r'3ef8c04e7b50ebf6efa04673ad19cfe01ee41ce4';
 
 /// Provider for managing application settings
 ///

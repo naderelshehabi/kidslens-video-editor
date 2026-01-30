@@ -15,6 +15,7 @@ import 'package:kidslens_video_editor/services/performance_monitor.dart';
 import 'package:kidslens_video_editor/services/profanity_service.dart';
 import 'package:kidslens_video_editor/services/project_service.dart';
 import 'package:kidslens_video_editor/services/sample_analysis_service.dart';
+import 'package:kidslens_video_editor/services/subtitle_service.dart';
 import 'package:kidslens_video_editor/services/temporal_aggregator.dart';
 import 'package:kidslens_video_editor/services/thumbnail_service.dart';
 import 'package:kidslens_video_editor/services/visual_analysis_service.dart';
@@ -106,3 +107,6 @@ FrameSamplingService frameSamplingService(Ref ref) => FrameSamplingService(
 
 @Riverpod(keepAlive: true)
 PerformanceMonitor performanceMonitor(Ref ref) => PerformanceMonitor.instance();
+
+@Riverpod(keepAlive: true)
+SubtitleService subtitleService(Ref ref) => const SubtitleService();

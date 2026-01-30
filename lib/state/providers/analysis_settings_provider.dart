@@ -202,6 +202,14 @@ class AnalysisSettingsState {
         asrModelId: asrModelId,
         visualModelId:
             visualModelIds[HuggingFaceModelType.nsfw] ?? 'nsfw-mobilenet-v2',
+        nsfwModelId:
+            visualModelIds[HuggingFaceModelType.nsfw] ?? 'nsfw-mobilenet-v2',
+        violenceModelId:
+            visualModelIds[HuggingFaceModelType.violence] ?? 'violence-mobilenet',
+        bloodModelId:
+            visualModelIds[HuggingFaceModelType.blood] ?? 'gore-efficientnet-b2',
+        weaponsModelId:
+            visualModelIds[HuggingFaceModelType.weapons] ?? 'weapons-yolov8-small',
         asrLanguage: asrLanguage,
         useGpu: useGpuAcceleration,
         cpuThreads: cpuThreads,

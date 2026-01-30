@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/data/models/detection.dart';
 import 'package:kidslens_video_editor/data/models/edit_action.dart';
 import 'package:kidslens_video_editor/data/models/media_file.dart';
+import 'package:kidslens_video_editor/data/models/subtitle_track.dart';
 import 'package:kidslens_video_editor/state/providers/playback_provider.dart';
 import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
@@ -26,6 +27,9 @@ class TimelinePanel extends ConsumerStatefulWidget {
     this.onRemoveEditAction,
     this.onEditBlurAction,
     this.thumbnails,
+    this.subtitleTrack,
+    this.onGenerateSubtitles,
+    this.isGeneratingSubtitles = false,
   });
 
   final MediaFile? media;
@@ -37,6 +41,9 @@ class TimelinePanel extends ConsumerStatefulWidget {
   final void Function(String)? onRemoveEditAction;
   final void Function(String)? onEditBlurAction;
   final List<Uint8List>? thumbnails;
+  final SubtitleTrack? subtitleTrack;
+  final VoidCallback? onGenerateSubtitles;
+  final bool isGeneratingSubtitles;
 
   @override
   ConsumerState<TimelinePanel> createState() => _TimelinePanelState();
@@ -46,6 +53,8 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     with SingleTickerProviderStateMixin {
   double _zoom = 1;
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _labelsVerticalController = ScrollController();
+  final ScrollController _tracksVerticalController = ScrollController();
   static const _uuid = Uuid();
   
   // Selection by drag state
@@ -146,6 +155,8 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     _scrollController
       ..removeListener(_onScroll)
       ..dispose();
+    _labelsVerticalController.dispose();
+    _tracksVerticalController.dispose();
     _shimmerController.dispose();
     // Dispose thumbnail images
     if (_thumbnailImages != null) {
@@ -356,39 +367,57 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
               ),
             ),
           ),
-          // Track labels - wrapped in Expanded to prevent overflow
+          // Track labels - synced with timeline vertical scroll
           Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Video track label
-                  _TrackLabel(
-                    icon: Icons.videocam,
-                    label: 'Video',
-                    color: colorScheme.primary,
-                    height: 64, // Taller for thumbnails
-                  ),
-                  // Audio track label
-                  _TrackLabel(
-                    icon: Icons.audiotrack,
-                    label: 'Audio',
-                    color: colorScheme.secondary,
-                    height: 40,
-                  ),
-                  // Detections track label
-                  const _TrackLabel(
-                    icon: Icons.warning_amber,
-                    label: 'Detections',
-                    color: Colors.orange,
-                  ),
-                  // Edits track label
-                  const _TrackLabel(
-                    icon: Icons.edit,
-                    label: 'Edits',
-                    color: Colors.purple,
-                  ),
-                ],
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                // Sync scroll to timeline tracks
+                if (notification is ScrollUpdateNotification &&
+                    _tracksVerticalController.hasClients) {
+                  _tracksVerticalController.jumpTo(notification.metrics.pixels);
+                }
+                return true; // Absorb notifications
+              },
+              child: SingleChildScrollView(
+                controller: _labelsVerticalController,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Video track label
+                    _TrackLabel(
+                      icon: Icons.videocam,
+                      label: 'Video',
+                      color: colorScheme.primary,
+                      height: 64, // Taller for thumbnails
+                    ),
+                    // Audio track label
+                    _TrackLabel(
+                      icon: Icons.audiotrack,
+                      label: 'Audio',
+                      color: colorScheme.secondary,
+                      height: 40,
+                    ),
+                    // Detections track label
+                    const _TrackLabel(
+                      icon: Icons.warning_amber,
+                      label: 'Detections',
+                      color: Colors.orange,
+                    ),
+                    // Edits track label
+                    const _TrackLabel(
+                      icon: Icons.edit,
+                      label: 'Edits',
+                      color: Colors.purple,
+                    ),
+                    // Subtitles track label
+                    _SubtitleTrackLabel(
+                      hasSubtitles: widget.subtitleTrack != null,
+                      isGenerating: widget.isGeneratingSubtitles,
+                      onGenerate: widget.onGenerateSubtitles,
+                      language: widget.subtitleTrack?.language,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -495,9 +524,17 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
           physics: const ClampingScrollPhysics(),
           child: SizedBox(
             width: timelineWidth,
-            child: SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 200),
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                // Sync vertical scroll with labels
+                if (notification is ScrollUpdateNotification && 
+                    _labelsVerticalController.hasClients) {
+                  _labelsVerticalController.jumpTo(notification.metrics.pixels);
+                }
+                return false;
+              },
+              child: SingleChildScrollView(
+                controller: _tracksVerticalController,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -529,6 +566,9 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                       playbackState: playbackState,
                       timelineWidth: timelineWidth,
                     ),
+                    
+                    // Subtitles track
+                    _buildSubtitlesTrack(context, timelineWidth, playbackState),
                   ],
                 ),
               ),
@@ -655,6 +695,112 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
             _buildSelectionRegion(40, playbackState, timelineWidth, duration),
           // Playhead
           _buildPlayhead(40, playbackState, timelineWidth),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubtitlesTrack(BuildContext context, double timelineWidth, PlaybackState playbackState) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final duration = widget.media?.duration ?? Duration.zero;
+    const trackHeight = 30.0;
+    const trackColor = Colors.teal;
+
+    return Container(
+      height: trackHeight,
+      decoration: BoxDecoration(
+        color: trackColor.withValues(alpha: 0.1),
+        border: Border(
+          bottom: BorderSide(color: colorScheme.outlineVariant),
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Subtitle segments
+          if (widget.subtitleTrack != null && duration.inMilliseconds > 0)
+            ...widget.subtitleTrack!.segments.map((segment) {
+              final startX = (segment.startTime.inMilliseconds / 
+                  duration.inMilliseconds) * timelineWidth;
+              final endX = (segment.endTime.inMilliseconds / 
+                  duration.inMilliseconds) * timelineWidth;
+              final width = endX - startX;
+
+              return Positioned(
+                left: startX,
+                top: 2,
+                bottom: 2,
+                child: Tooltip(
+                  message: segment.text,
+                  child: Container(
+                    width: math.max(width, 4),
+                    decoration: BoxDecoration(
+                      color: trackColor.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(2),
+                      border: Border.all(
+                        color: trackColor.withValues(alpha: 0.8),
+                        width: 0.5,
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: width > 40
+                        ? Text(
+                            segment.text,
+                            style: TextStyle(
+                              fontSize: 8,
+                              color: colorScheme.onSurface,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          )
+                        : null,
+                  ),
+                ),
+              );
+            }),
+          // Empty state
+          if (widget.subtitleTrack == null && !widget.isGeneratingSubtitles)
+            Center(
+              child: Text(
+                'Click + to generate subtitles',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: colorScheme.outline,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          // Loading state
+          if (widget.isGeneratingSubtitles)
+            Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      valueColor: const AlwaysStoppedAnimation<Color>(trackColor),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Generating subtitles...',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: colorScheme.outline,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          // Selection overlay
+          if (_isDraggingSelection)
+            _buildDragSelectionOverlay(trackHeight, timelineWidth, duration),
+          if (playbackState.hasSelection && duration.inMilliseconds > 0)
+            _buildSelectionRegion(trackHeight, playbackState, timelineWidth, duration),
+          // Playhead
+          _buildPlayhead(trackHeight, playbackState, timelineWidth),
         ],
       ),
     );
@@ -1339,6 +1485,77 @@ class _TrackLabel extends StatelessWidget {
         ],
       ),
     );
+}
+
+/// Special track label for subtitles with generate button
+class _SubtitleTrackLabel extends StatelessWidget {
+  const _SubtitleTrackLabel({
+    required this.hasSubtitles,
+    required this.isGenerating,
+    this.onGenerate,
+    this.language,
+  });
+
+  final bool hasSubtitles;
+  final bool isGenerating;
+  final VoidCallback? onGenerate;
+  final String? language;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    const trackColor = Colors.teal;
+
+    return Container(
+      height: 30,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: colorScheme.outlineVariant),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.subtitles, size: 14, color: trackColor),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              hasSubtitles && language != null 
+                  ? 'Subtitles ($language)' 
+                  : 'Subtitles',
+              style: const TextStyle(fontSize: 11, color: trackColor),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (!hasSubtitles && !isGenerating)
+            Tooltip(
+              message: 'Generate subtitles using ASR',
+              child: InkWell(
+                onTap: onGenerate,
+                borderRadius: BorderRadius.circular(4),
+                child: const Padding(
+                  padding: EdgeInsets.all(2),
+                  child: Icon(
+                    Icons.add_circle_outline,
+                    size: 14,
+                    color: trackColor,
+                  ),
+                ),
+              ),
+            )
+          else if (isGenerating)
+            const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(trackColor),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ToolButton extends StatelessWidget {

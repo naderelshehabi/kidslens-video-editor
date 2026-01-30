@@ -10,8 +10,20 @@ class ModelConfig with _$ModelConfig {
     /// ID of the ASR model to use for transcription
     required String asrModelId,
 
-    /// ID of the visual model to use for frame analysis
+    /// ID of the visual model to use for frame analysis (legacy, use per-type IDs)
     required String visualModelId,
+
+    /// ID of the NSFW detection model
+    @Default('nsfw-mobilenet-v2') String nsfwModelId,
+
+    /// ID of the violence detection model
+    @Default('violence-mobilenet') String violenceModelId,
+
+    /// ID of the blood/gore detection model
+    @Default('gore-efficientnet-b2') String bloodModelId,
+
+    /// ID of the weapons detection model
+    @Default('weapons-yolov8-small') String weaponsModelId,
 
     /// Language for ASR (e.g., 'en', 'es', 'auto')
     @Default('en') String asrLanguage,
@@ -46,7 +58,7 @@ class ModelConfig with _$ModelConfig {
   /// Creates default model configuration
   factory ModelConfig.defaults() => const ModelConfig(
         asrModelId: 'whisper-base',
-        visualModelId: 'nsfw-mobilenet',
+        visualModelId: 'nsfw-mobilenet-v2',
       );
 }
 

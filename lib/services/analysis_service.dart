@@ -216,12 +216,18 @@ class AnalysisService {
     final samplingFps = fps / samplingRate;
     final totalFrames = (totalSeconds * samplingFps).ceil();
 
-    // Load models
+    // Load models using IDs from settings
     final nsfwModelPath = settings.enableNsfw
-        ? await modelManager.getModelPath('nsfw-mobilenet-v2')
+        ? await modelManager.getModelPath(settings.modelConfig.nsfwModelId)
         : null;
     final violenceModelPath = settings.enableViolence
-        ? await modelManager.getModelPath('violence-mobilenet')
+        ? await modelManager.getModelPath(settings.modelConfig.violenceModelId)
+        : null;
+    final bloodModelPath = settings.enableBlood
+        ? await modelManager.getModelPath(settings.modelConfig.bloodModelId)
+        : null;
+    final weaponsModelPath = settings.enableWeapons
+        ? await modelManager.getModelPath(settings.modelConfig.weaponsModelId)
         : null;
 
     var frameNumber = startFrame;
@@ -261,12 +267,42 @@ class AnalysisService {
         );
       }
 
+      // Run blood/gore detection
+      BloodResult? bloodResult;
+      if (bloodModelPath != null) {
+        final bloodScores = await onnx.runInference(
+          bloodModelPath,
+          frameData.rgbData,
+          frameData.width,
+          frameData.height,
+        );
+        bloodResult = BloodResult(
+          score: bloodScores['blood'] ?? bloodScores['gore'] ?? 0.0,
+        );
+      }
+
+      // Run weapons detection
+      WeaponsResult? weaponsResult;
+      if (weaponsModelPath != null) {
+        final weaponsScores = await onnx.runInference(
+          weaponsModelPath,
+          frameData.rgbData,
+          frameData.width,
+          frameData.height,
+        );
+        weaponsResult = WeaponsResult(
+          score: weaponsScores['weapons'] ?? weaponsScores['weapon'] ?? 0.0,
+        );
+      }
+
       yield _FrameAnalysisProgress(
         frame: FrameAnalysisResult(
           frameNumber: frameNumber,
           timestamp: frameData.timestamp,
           nsfw: nsfwResult,
           violence: violenceResult,
+          blood: bloodResult,
+          weapons: weaponsResult,
         ),
         frameNumber: frameNumber,
         totalFrames: totalFrames,

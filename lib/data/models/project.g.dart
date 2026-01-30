@@ -28,6 +28,10 @@ _$ProjectImpl _$$ProjectImplFromJson(Map<String, dynamic> json) =>
               ?.map((e) => EditAction.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      subtitleTracks: (json['subtitleTracks'] as List<dynamic>?)
+              ?.map((e) => SubtitleTrack.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       settings: json['settings'] == null
           ? const ProjectSettings()
           : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
@@ -46,6 +50,7 @@ Map<String, dynamic> _$$ProjectImplToJson(_$ProjectImpl instance) =>
       'selectedMediaId': instance.selectedMediaId,
       'detections': instance.detections,
       'editActions': instance.editActions,
+      'subtitleTracks': instance.subtitleTracks,
       'settings': instance.settings,
       'analysisProgress': instance.analysisProgress,
       'analysisComplete': instance.analysisComplete,

@@ -265,44 +265,16 @@ void main() {
       });
     });
 
-    group('updates section', () {
-      testWidgets('renders Updates section header', (tester) async {
-        await tester.pumpWidget(createSettingsScreen());
-        await tester.pump();
-
-        expect(find.text('Updates'), findsOneWidget);
-      });
-
-      testWidgets('renders system update icon', (tester) async {
-        await tester.pumpWidget(createSettingsScreen());
-        await tester.pump();
-
-        expect(find.byIcon(Icons.system_update_rounded), findsOneWidget);
-      });
-
-      testWidgets('renders Check for Updates toggle', (tester) async {
-        await tester.pumpWidget(createSettingsScreen());
-        await tester.pump();
-
-        expect(find.text('Check for Updates'), findsOneWidget);
-        expect(find.byType(SwitchListTile), findsOneWidget);
-      });
-
-      testWidgets('renders Check Now button', (tester) async {
-        await tester.pumpWidget(createSettingsScreen());
-        await tester.pump();
-
-        expect(find.text('Check Now'), findsOneWidget);
-        expect(find.widgetWithText(OutlinedButton, 'Check'), findsOneWidget);
-      });
-
-      testWidgets('renders version info', (tester) async {
-        await tester.pumpWidget(createSettingsScreen());
-        await tester.pump();
-
-        expect(find.text('Version 1.0.0'), findsOneWidget);
-      });
-    });
+    // Note: Updates section was removed from the UI.
+    // If an Updates section is added in the future, uncomment and update these tests:
+    //
+    // group('updates section', () {
+    //   testWidgets('renders Updates section header', ...);
+    //   testWidgets('renders system update icon', ...);
+    //   testWidgets('renders Check for Updates toggle', ...);
+    //   testWidgets('renders Check Now button', ...);
+    //   testWidgets('renders version info', ...);
+    // });
 
     group('reset section', () {
       testWidgets('renders Reset section header', (tester) async {

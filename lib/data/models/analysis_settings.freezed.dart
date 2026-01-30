@@ -23,8 +23,20 @@ mixin _$ModelConfig {
   /// ID of the ASR model to use for transcription
   String get asrModelId => throw _privateConstructorUsedError;
 
-  /// ID of the visual model to use for frame analysis
+  /// ID of the visual model to use for frame analysis (legacy, use per-type IDs)
   String get visualModelId => throw _privateConstructorUsedError;
+
+  /// ID of the NSFW detection model
+  String get nsfwModelId => throw _privateConstructorUsedError;
+
+  /// ID of the violence detection model
+  String get violenceModelId => throw _privateConstructorUsedError;
+
+  /// ID of the blood/gore detection model
+  String get bloodModelId => throw _privateConstructorUsedError;
+
+  /// ID of the weapons detection model
+  String get weaponsModelId => throw _privateConstructorUsedError;
 
   /// Language for ASR (e.g., 'en', 'es', 'auto')
   String get asrLanguage => throw _privateConstructorUsedError;
@@ -69,6 +81,10 @@ abstract class $ModelConfigCopyWith<$Res> {
   $Res call(
       {String asrModelId,
       String visualModelId,
+      String nsfwModelId,
+      String violenceModelId,
+      String bloodModelId,
+      String weaponsModelId,
       String asrLanguage,
       bool useGpu,
       int cpuThreads,
@@ -96,6 +112,10 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
   $Res call({
     Object? asrModelId = null,
     Object? visualModelId = null,
+    Object? nsfwModelId = null,
+    Object? violenceModelId = null,
+    Object? bloodModelId = null,
+    Object? weaponsModelId = null,
     Object? asrLanguage = null,
     Object? useGpu = null,
     Object? cpuThreads = null,
@@ -113,6 +133,22 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
       visualModelId: null == visualModelId
           ? _value.visualModelId
           : visualModelId // ignore: cast_nullable_to_non_nullable
+              as String,
+      nsfwModelId: null == nsfwModelId
+          ? _value.nsfwModelId
+          : nsfwModelId // ignore: cast_nullable_to_non_nullable
+              as String,
+      violenceModelId: null == violenceModelId
+          ? _value.violenceModelId
+          : violenceModelId // ignore: cast_nullable_to_non_nullable
+              as String,
+      bloodModelId: null == bloodModelId
+          ? _value.bloodModelId
+          : bloodModelId // ignore: cast_nullable_to_non_nullable
+              as String,
+      weaponsModelId: null == weaponsModelId
+          ? _value.weaponsModelId
+          : weaponsModelId // ignore: cast_nullable_to_non_nullable
               as String,
       asrLanguage: null == asrLanguage
           ? _value.asrLanguage
@@ -161,6 +197,10 @@ abstract class _$$ModelConfigImplCopyWith<$Res>
   $Res call(
       {String asrModelId,
       String visualModelId,
+      String nsfwModelId,
+      String violenceModelId,
+      String bloodModelId,
+      String weaponsModelId,
       String asrLanguage,
       bool useGpu,
       int cpuThreads,
@@ -186,6 +226,10 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
   $Res call({
     Object? asrModelId = null,
     Object? visualModelId = null,
+    Object? nsfwModelId = null,
+    Object? violenceModelId = null,
+    Object? bloodModelId = null,
+    Object? weaponsModelId = null,
     Object? asrLanguage = null,
     Object? useGpu = null,
     Object? cpuThreads = null,
@@ -203,6 +247,22 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
       visualModelId: null == visualModelId
           ? _value.visualModelId
           : visualModelId // ignore: cast_nullable_to_non_nullable
+              as String,
+      nsfwModelId: null == nsfwModelId
+          ? _value.nsfwModelId
+          : nsfwModelId // ignore: cast_nullable_to_non_nullable
+              as String,
+      violenceModelId: null == violenceModelId
+          ? _value.violenceModelId
+          : violenceModelId // ignore: cast_nullable_to_non_nullable
+              as String,
+      bloodModelId: null == bloodModelId
+          ? _value.bloodModelId
+          : bloodModelId // ignore: cast_nullable_to_non_nullable
+              as String,
+      weaponsModelId: null == weaponsModelId
+          ? _value.weaponsModelId
+          : weaponsModelId // ignore: cast_nullable_to_non_nullable
               as String,
       asrLanguage: null == asrLanguage
           ? _value.asrLanguage
@@ -246,6 +306,10 @@ class _$ModelConfigImpl extends _ModelConfig {
   const _$ModelConfigImpl(
       {required this.asrModelId,
       required this.visualModelId,
+      this.nsfwModelId = 'nsfw-mobilenet-v2',
+      this.violenceModelId = 'violence-mobilenet',
+      this.bloodModelId = 'gore-efficientnet-b2',
+      this.weaponsModelId = 'weapons-yolov8-small',
       this.asrLanguage = 'en',
       this.useGpu = true,
       this.cpuThreads = 4,
@@ -263,9 +327,29 @@ class _$ModelConfigImpl extends _ModelConfig {
   @override
   final String asrModelId;
 
-  /// ID of the visual model to use for frame analysis
+  /// ID of the visual model to use for frame analysis (legacy, use per-type IDs)
   @override
   final String visualModelId;
+
+  /// ID of the NSFW detection model
+  @override
+  @JsonKey()
+  final String nsfwModelId;
+
+  /// ID of the violence detection model
+  @override
+  @JsonKey()
+  final String violenceModelId;
+
+  /// ID of the blood/gore detection model
+  @override
+  @JsonKey()
+  final String bloodModelId;
+
+  /// ID of the weapons detection model
+  @override
+  @JsonKey()
+  final String weaponsModelId;
 
   /// Language for ASR (e.g., 'en', 'es', 'auto')
   @override
@@ -309,7 +393,7 @@ class _$ModelConfigImpl extends _ModelConfig {
 
   @override
   String toString() {
-    return 'ModelConfig(asrModelId: $asrModelId, visualModelId: $visualModelId, asrLanguage: $asrLanguage, useGpu: $useGpu, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16, translateToEnglish: $translateToEnglish, wordLevelTimestamps: $wordLevelTimestamps, beamSize: $beamSize)';
+    return 'ModelConfig(asrModelId: $asrModelId, visualModelId: $visualModelId, nsfwModelId: $nsfwModelId, violenceModelId: $violenceModelId, bloodModelId: $bloodModelId, weaponsModelId: $weaponsModelId, asrLanguage: $asrLanguage, useGpu: $useGpu, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16, translateToEnglish: $translateToEnglish, wordLevelTimestamps: $wordLevelTimestamps, beamSize: $beamSize)';
   }
 
   @override
@@ -321,6 +405,14 @@ class _$ModelConfigImpl extends _ModelConfig {
                 other.asrModelId == asrModelId) &&
             (identical(other.visualModelId, visualModelId) ||
                 other.visualModelId == visualModelId) &&
+            (identical(other.nsfwModelId, nsfwModelId) ||
+                other.nsfwModelId == nsfwModelId) &&
+            (identical(other.violenceModelId, violenceModelId) ||
+                other.violenceModelId == violenceModelId) &&
+            (identical(other.bloodModelId, bloodModelId) ||
+                other.bloodModelId == bloodModelId) &&
+            (identical(other.weaponsModelId, weaponsModelId) ||
+                other.weaponsModelId == weaponsModelId) &&
             (identical(other.asrLanguage, asrLanguage) ||
                 other.asrLanguage == asrLanguage) &&
             (identical(other.useGpu, useGpu) || other.useGpu == useGpu) &&
@@ -343,6 +435,10 @@ class _$ModelConfigImpl extends _ModelConfig {
       runtimeType,
       asrModelId,
       visualModelId,
+      nsfwModelId,
+      violenceModelId,
+      bloodModelId,
+      weaponsModelId,
       asrLanguage,
       useGpu,
       cpuThreads,
@@ -372,6 +468,10 @@ abstract class _ModelConfig extends ModelConfig {
   const factory _ModelConfig(
       {required final String asrModelId,
       required final String visualModelId,
+      final String nsfwModelId,
+      final String violenceModelId,
+      final String bloodModelId,
+      final String weaponsModelId,
       final String asrLanguage,
       final bool useGpu,
       final int cpuThreads,
@@ -389,9 +489,25 @@ abstract class _ModelConfig extends ModelConfig {
   @override
   String get asrModelId;
 
-  /// ID of the visual model to use for frame analysis
+  /// ID of the visual model to use for frame analysis (legacy, use per-type IDs)
   @override
   String get visualModelId;
+
+  /// ID of the NSFW detection model
+  @override
+  String get nsfwModelId;
+
+  /// ID of the violence detection model
+  @override
+  String get violenceModelId;
+
+  /// ID of the blood/gore detection model
+  @override
+  String get bloodModelId;
+
+  /// ID of the weapons detection model
+  @override
+  String get weaponsModelId;
 
   /// Language for ASR (e.g., 'en', 'es', 'auto')
   @override

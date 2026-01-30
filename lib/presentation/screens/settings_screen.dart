@@ -12,6 +12,7 @@ class SettingsKeys {
   static const String defaultExportQuality = 'settings_export_quality';
   static const String defaultExportFormat = 'settings_export_format';
   static const String autoSaveInterval = 'settings_auto_save_interval';
+  static const String modelCachePath = 'settings_model_cache_path';
 }
 
 /// Export quality options
@@ -52,6 +53,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   ExportQuality _exportQuality = ExportQuality.high;
   ExportFormat _exportFormat = ExportFormat.mp4;
   int _autoSaveInterval = 5; // minutes
+  String? _modelCachePath;
 
   // Cache info
   String _cacheSize = 'Calculating...';
@@ -74,6 +76,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _exportFormat = ExportFormat
           .values[prefs.getInt(SettingsKeys.defaultExportFormat) ?? 0];
       _autoSaveInterval = prefs.getInt(SettingsKeys.autoSaveInterval) ?? 5;
+      _modelCachePath = prefs.getString(SettingsKeys.modelCachePath);
     });
   }
 
@@ -187,6 +190,91 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } finally {
       setState(() => _isClearingCache = false);
       await _calculateCacheSize();
+    }
+  }
+
+  Future<void> _changeModelsLocation() async {
+    final controller = TextEditingController(text: _modelCachePath ?? '');
+    
+    final newPath = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('AI Models Location'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Choose where to store AI models. Leave empty for default location.',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Models Directory Path',
+                hintText: 'e.g., D:\\AI Models',
+                border: OutlineInputBorder(),
+                helperText: 'Models will need to be re-downloaded after changing',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, ''),
+            child: const Text('Use Default'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (newPath == null) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      if (newPath.isEmpty) {
+        await prefs.remove(SettingsKeys.modelCachePath);
+        ref.read(settingsNotifierProvider.notifier).setModelCachePath('');
+        setState(() => _modelCachePath = null);
+      } else {
+        // Validate the path
+        final dir = Directory(newPath);
+        if (!dir.existsSync()) {
+          dir.createSync(recursive: true);
+        }
+        await prefs.setString(SettingsKeys.modelCachePath, newPath);
+        ref.read(settingsNotifierProvider.notifier).setModelCachePath(newPath);
+        setState(() => _modelCachePath = newPath);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Models location updated. Downloaded models will need to be re-downloaded.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Invalid path: $e'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
     }
   }
 
@@ -324,6 +412,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Card(
                   child: Column(
                     children: [
+                      ListTile(
+                        leading: const Icon(Icons.smart_toy_rounded),
+                        title: const Text('AI Models Location'),
+                        subtitle: Text(
+                          _modelCachePath ?? 'Default (App Data)',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: TextButton.icon(
+                          onPressed: _changeModelsLocation,
+                          icon: const Icon(Icons.folder_open),
+                          label: const Text('Change'),
+                        ),
+                      ),
+                      const Divider(height: 1),
                       ListTile(
                         leading: const Icon(Icons.folder_rounded),
                         title: const Text('Cache Size'),

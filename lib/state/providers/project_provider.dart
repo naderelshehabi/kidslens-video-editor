@@ -4,6 +4,7 @@ import 'package:kidslens_video_editor/data/models/detection.dart';
 import 'package:kidslens_video_editor/data/models/edit_action.dart';
 import 'package:kidslens_video_editor/data/models/media_file.dart';
 import 'package:kidslens_video_editor/data/models/project.dart';
+import 'package:kidslens_video_editor/data/models/subtitle_track.dart';
 import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -503,6 +504,42 @@ class ProjectNotifier extends _$ProjectNotifier {
     final updatedProject = state.currentProject!.copyWith(
       analysisProgress: progress,
       analysisComplete: progress >= 1.0,
+    );
+
+    state = state.copyWith(currentProject: updatedProject);
+  }
+
+  /// Add a subtitle track for a media file
+  void addSubtitleTrack(SubtitleTrack subtitleTrack) {
+    if (state.currentProject == null) return;
+
+    _pushUndo();
+    
+    // Remove existing subtitle track for the same media if any
+    final existingTracks = state.currentProject!.subtitleTracks
+        .where((s) => s.mediaId != subtitleTrack.mediaId)
+        .toList();
+
+    final updatedProject = state.currentProject!.copyWith(
+      subtitleTracks: [...existingTracks, subtitleTrack],
+      modifiedAt: DateTime.now(),
+      isDirty: true,
+    );
+
+    state = state.copyWith(currentProject: updatedProject);
+  }
+
+  /// Remove a subtitle track
+  void removeSubtitleTrack(String mediaId) {
+    if (state.currentProject == null) return;
+
+    _pushUndo();
+    final updatedProject = state.currentProject!.copyWith(
+      subtitleTracks: state.currentProject!.subtitleTracks
+          .where((s) => s.mediaId != mediaId)
+          .toList(),
+      modifiedAt: DateTime.now(),
+      isDirty: true,
     );
 
     state = state.copyWith(currentProject: updatedProject);

@@ -45,8 +45,13 @@ void main() {
         final config = ModelConfig.defaults();
 
         expect(config.asrModelId, equals('whisper-base'));
-        expect(config.visualModelId, equals('nsfw-mobilenet'));
+        expect(config.visualModelId, equals('nsfw-mobilenet-v2'));
         expect(config.asrLanguage, equals('en'));
+        // Verify per-type model IDs have sensible defaults
+        expect(config.nsfwModelId, equals('nsfw-mobilenet-v2'));
+        expect(config.violenceModelId, equals('violence-mobilenet'));
+        expect(config.bloodModelId, equals('gore-efficientnet-b2'));
+        expect(config.weaponsModelId, equals('weapons-yolov8-small'));
       });
     });
 

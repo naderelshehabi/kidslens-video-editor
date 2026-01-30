@@ -21,9 +21,13 @@ class VisualAnalysisSettings {
     this.weaponsThreshold = 0.5,
     this.batchSize = 8,
     this.useGpu = true,
+    this.nsfwModelId = 'nsfw-mobilenet-v2',
+    this.violenceModelId = 'violence-mobilenet',
+    this.bloodModelId = 'gore-efficientnet-b2',
+    this.weaponsModelId = 'weapons-yolov8-small',
   });
 
-  /// Creates default settings
+  /// Creates default settings with recommended models
   factory VisualAnalysisSettings.defaults() =>
       const VisualAnalysisSettings();
 
@@ -57,6 +61,18 @@ class VisualAnalysisSettings {
   /// Whether to use GPU acceleration
   final bool useGpu;
 
+  /// Model ID for NSFW detection
+  final String nsfwModelId;
+
+  /// Model ID for violence detection
+  final String violenceModelId;
+
+  /// Model ID for blood detection
+  final String bloodModelId;
+
+  /// Model ID for weapons detection
+  final String weaponsModelId;
+
   /// Copy with modifications
   VisualAnalysisSettings copyWith({
     bool? enableNsfw,
@@ -69,6 +85,10 @@ class VisualAnalysisSettings {
     double? weaponsThreshold,
     int? batchSize,
     bool? useGpu,
+    String? nsfwModelId,
+    String? violenceModelId,
+    String? bloodModelId,
+    String? weaponsModelId,
   }) =>
       VisualAnalysisSettings(
         enableNsfw: enableNsfw ?? this.enableNsfw,
@@ -81,6 +101,10 @@ class VisualAnalysisSettings {
         weaponsThreshold: weaponsThreshold ?? this.weaponsThreshold,
         batchSize: batchSize ?? this.batchSize,
         useGpu: useGpu ?? this.useGpu,
+        nsfwModelId: nsfwModelId ?? this.nsfwModelId,
+        violenceModelId: violenceModelId ?? this.violenceModelId,
+        bloodModelId: bloodModelId ?? this.bloodModelId,
+        weaponsModelId: weaponsModelId ?? this.weaponsModelId,
       );
 }
 
@@ -331,9 +355,9 @@ class VisualAnalysisService {
       BloodResult? blood;
       WeaponsResult? weapons;
 
-      if (settings.enableNsfw || settings.enableViolence) {
-        final modelPath = _loadedModels['nsfw-mobilenet'] ??
-            _loadedModels.values.firstOrNull;
+      // NSFW detection using selected model
+      if (settings.enableNsfw) {
+        final modelPath = _loadedModels[settings.nsfwModelId];
 
         if (modelPath != null) {
           final scores = await onnx.runInference(
@@ -343,31 +367,69 @@ class VisualAnalysisService {
             frame.height,
           );
 
-          if (settings.enableNsfw) {
-            nsfw = NsfwResult(
-              porn: scores['porn'] ?? 0,
-              sexy: scores['sexy'] ?? 0,
-              hentai: scores['hentai'] ?? 0,
-              drawings: scores['drawings'] ?? 0,
-              neutral: scores['neutral'] ?? 1,
-            );
-          }
-
-          if (settings.enableViolence) {
-            violence = ViolenceResult(
-              violent: scores['violent'] ?? 0,
-              nonViolent: scores['non_violent'] ?? 1,
-            );
-          }
+          nsfw = NsfwResult(
+            porn: scores['porn'] ?? 0,
+            sexy: scores['sexy'] ?? 0,
+            hentai: scores['hentai'] ?? 0,
+            drawings: scores['drawings'] ?? 0,
+            neutral: scores['neutral'] ?? 1,
+          );
         }
       }
 
-      if (settings.enableBlood) {
-        blood = const BloodResult(score: 0); // Placeholder
+      // Violence detection using selected model
+      if (settings.enableViolence) {
+        final modelPath = _loadedModels[settings.violenceModelId];
+
+        if (modelPath != null) {
+          final scores = await onnx.runInference(
+            modelPath,
+            frame.data.toList(),
+            frame.width,
+            frame.height,
+          );
+
+          violence = ViolenceResult(
+            violent: scores['violent'] ?? 0,
+            nonViolent: scores['non_violent'] ?? 1,
+          );
+        }
       }
 
+      // Blood detection using selected model
+      if (settings.enableBlood) {
+        final modelPath = _loadedModels[settings.bloodModelId];
+
+        if (modelPath != null) {
+          final scores = await onnx.runInference(
+            modelPath,
+            frame.data.toList(),
+            frame.width,
+            frame.height,
+          );
+
+          blood = BloodResult(score: scores['blood'] ?? scores['gore'] ?? 0);
+        } else {
+          blood = const BloodResult(score: 0);
+        }
+      }
+
+      // Weapons detection using selected model
       if (settings.enableWeapons) {
-        weapons = const WeaponsResult(score: 0); // Placeholder
+        final modelPath = _loadedModels[settings.weaponsModelId];
+
+        if (modelPath != null) {
+          final scores = await onnx.runInference(
+            modelPath,
+            frame.data.toList(),
+            frame.width,
+            frame.height,
+          );
+
+          weapons = WeaponsResult(score: scores['weapons'] ?? scores['weapon'] ?? 0);
+        } else {
+          weapons = const WeaponsResult(score: 0);
+        }
       }
 
       results.add(FrameAnalysisResult(
@@ -386,19 +448,23 @@ class VisualAnalysisService {
 
   /// Ensure required models are loaded based on settings
   Future<void> _ensureModelsLoaded(VisualAnalysisSettings settings) async {
-    // Determine which models we need
+    // Determine which models we need based on settings model IDs
     final requiredModels = <String>[];
 
-    if (settings.enableNsfw || settings.enableViolence) {
-      requiredModels.add('nsfw-mobilenet');
+    if (settings.enableNsfw) {
+      requiredModels.add(settings.nsfwModelId);
+    }
+
+    if (settings.enableViolence) {
+      requiredModels.add(settings.violenceModelId);
     }
 
     if (settings.enableBlood) {
-      requiredModels.add('blood-detection');
+      requiredModels.add(settings.bloodModelId);
     }
 
     if (settings.enableWeapons) {
-      requiredModels.add('weapons-detection');
+      requiredModels.add(settings.weaponsModelId);
     }
 
     // Load any models that aren't already loaded

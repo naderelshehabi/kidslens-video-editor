@@ -211,7 +211,7 @@ final exportServiceProvider = Provider<ExportService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ExportServiceRef = ProviderRef<ExportService>;
-String _$thumbnailServiceHash() => r'c859e58a5655980aac6efe6ae2378a0bebe5ef77';
+String _$thumbnailServiceHash() => r'b04f879d67047d881c88c44b7c315c00490158f8';
 
 /// See also [thumbnailService].
 @ProviderFor(thumbnailService)
@@ -317,7 +317,7 @@ final frameSamplingServiceProvider = Provider<FrameSamplingService>.internal(
 // ignore: unused_element
 typedef FrameSamplingServiceRef = ProviderRef<FrameSamplingService>;
 String _$performanceMonitorHash() =>
-    r'55ab61305f4cc5295204070fa74f33196ab6daf7';
+    r'3d6bd178b4be3c4a909fe6b8126308e59d69b33e';
 
 /// See also [performanceMonitor].
 @ProviderFor(performanceMonitor)
@@ -334,5 +334,22 @@ final performanceMonitorProvider = Provider<PerformanceMonitor>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef PerformanceMonitorRef = ProviderRef<PerformanceMonitor>;
+String _$subtitleServiceHash() => r'bf331fabb15848d375a6790f17d9f49048c119ec';
+
+/// See also [subtitleService].
+@ProviderFor(subtitleService)
+final subtitleServiceProvider = Provider<SubtitleService>.internal(
+  subtitleService,
+  name: r'subtitleServiceProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$subtitleServiceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SubtitleServiceRef = ProviderRef<SubtitleService>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -49,6 +49,9 @@ mixin _$Project {
   /// Edit actions applied to the project (cuts, blurs, mutes)
   List<EditAction> get editActions => throw _privateConstructorUsedError;
 
+  /// Subtitle tracks generated for media files
+  List<SubtitleTrack> get subtitleTracks => throw _privateConstructorUsedError;
+
   /// Project settings
   ProjectSettings get settings => throw _privateConstructorUsedError;
 
@@ -86,6 +89,7 @@ abstract class $ProjectCopyWith<$Res> {
       String? selectedMediaId,
       List<Detection> detections,
       List<EditAction> editActions,
+      List<SubtitleTrack> subtitleTracks,
       ProjectSettings settings,
       double? analysisProgress,
       bool analysisComplete,
@@ -118,6 +122,7 @@ class _$ProjectCopyWithImpl<$Res, $Val extends Project>
     Object? selectedMediaId = freezed,
     Object? detections = null,
     Object? editActions = null,
+    Object? subtitleTracks = null,
     Object? settings = null,
     Object? analysisProgress = freezed,
     Object? analysisComplete = null,
@@ -160,6 +165,10 @@ class _$ProjectCopyWithImpl<$Res, $Val extends Project>
           ? _value.editActions
           : editActions // ignore: cast_nullable_to_non_nullable
               as List<EditAction>,
+      subtitleTracks: null == subtitleTracks
+          ? _value.subtitleTracks
+          : subtitleTracks // ignore: cast_nullable_to_non_nullable
+              as List<SubtitleTrack>,
       settings: null == settings
           ? _value.settings
           : settings // ignore: cast_nullable_to_non_nullable
@@ -207,6 +216,7 @@ abstract class _$$ProjectImplCopyWith<$Res> implements $ProjectCopyWith<$Res> {
       String? selectedMediaId,
       List<Detection> detections,
       List<EditAction> editActions,
+      List<SubtitleTrack> subtitleTracks,
       ProjectSettings settings,
       double? analysisProgress,
       bool analysisComplete,
@@ -238,6 +248,7 @@ class __$$ProjectImplCopyWithImpl<$Res>
     Object? selectedMediaId = freezed,
     Object? detections = null,
     Object? editActions = null,
+    Object? subtitleTracks = null,
     Object? settings = null,
     Object? analysisProgress = freezed,
     Object? analysisComplete = null,
@@ -280,6 +291,10 @@ class __$$ProjectImplCopyWithImpl<$Res>
           ? _value._editActions
           : editActions // ignore: cast_nullable_to_non_nullable
               as List<EditAction>,
+      subtitleTracks: null == subtitleTracks
+          ? _value._subtitleTracks
+          : subtitleTracks // ignore: cast_nullable_to_non_nullable
+              as List<SubtitleTrack>,
       settings: null == settings
           ? _value.settings
           : settings // ignore: cast_nullable_to_non_nullable
@@ -313,6 +328,7 @@ class _$ProjectImpl extends _Project {
       this.selectedMediaId,
       final List<Detection> detections = const [],
       final List<EditAction> editActions = const [],
+      final List<SubtitleTrack> subtitleTracks = const [],
       this.settings = const ProjectSettings(),
       this.analysisProgress,
       this.analysisComplete = false,
@@ -321,6 +337,7 @@ class _$ProjectImpl extends _Project {
       : _mediaFiles = mediaFiles,
         _detections = detections,
         _editActions = editActions,
+        _subtitleTracks = subtitleTracks,
         super._();
 
   factory _$ProjectImpl.fromJson(Map<String, dynamic> json) =>
@@ -388,6 +405,18 @@ class _$ProjectImpl extends _Project {
     return EqualUnmodifiableListView(_editActions);
   }
 
+  /// Subtitle tracks generated for media files
+  final List<SubtitleTrack> _subtitleTracks;
+
+  /// Subtitle tracks generated for media files
+  @override
+  @JsonKey()
+  List<SubtitleTrack> get subtitleTracks {
+    if (_subtitleTracks is EqualUnmodifiableListView) return _subtitleTracks;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_subtitleTracks);
+  }
+
   /// Project settings
   @override
   @JsonKey()
@@ -409,7 +438,7 @@ class _$ProjectImpl extends _Project {
 
   @override
   String toString() {
-    return 'Project(id: $id, name: $name, projectPath: $projectPath, createdAt: $createdAt, modifiedAt: $modifiedAt, mediaFiles: $mediaFiles, selectedMediaId: $selectedMediaId, detections: $detections, editActions: $editActions, settings: $settings, analysisProgress: $analysisProgress, analysisComplete: $analysisComplete, isDirty: $isDirty)';
+    return 'Project(id: $id, name: $name, projectPath: $projectPath, createdAt: $createdAt, modifiedAt: $modifiedAt, mediaFiles: $mediaFiles, selectedMediaId: $selectedMediaId, detections: $detections, editActions: $editActions, subtitleTracks: $subtitleTracks, settings: $settings, analysisProgress: $analysisProgress, analysisComplete: $analysisComplete, isDirty: $isDirty)';
   }
 
   @override
@@ -433,6 +462,8 @@ class _$ProjectImpl extends _Project {
                 .equals(other._detections, _detections) &&
             const DeepCollectionEquality()
                 .equals(other._editActions, _editActions) &&
+            const DeepCollectionEquality()
+                .equals(other._subtitleTracks, _subtitleTracks) &&
             (identical(other.settings, settings) ||
                 other.settings == settings) &&
             (identical(other.analysisProgress, analysisProgress) ||
@@ -455,6 +486,7 @@ class _$ProjectImpl extends _Project {
       selectedMediaId,
       const DeepCollectionEquality().hash(_detections),
       const DeepCollectionEquality().hash(_editActions),
+      const DeepCollectionEquality().hash(_subtitleTracks),
       settings,
       analysisProgress,
       analysisComplete,
@@ -487,6 +519,7 @@ abstract class _Project extends Project {
       final String? selectedMediaId,
       final List<Detection> detections,
       final List<EditAction> editActions,
+      final List<SubtitleTrack> subtitleTracks,
       final ProjectSettings settings,
       final double? analysisProgress,
       final bool analysisComplete,
@@ -533,6 +566,10 @@ abstract class _Project extends Project {
   /// Edit actions applied to the project (cuts, blurs, mutes)
   @override
   List<EditAction> get editActions;
+
+  /// Subtitle tracks generated for media files
+  @override
+  List<SubtitleTrack> get subtitleTracks;
 
   /// Project settings
   @override

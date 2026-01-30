@@ -7,7 +7,7 @@ part of 'analysis_settings_provider.dart';
 // **************************************************************************
 
 String _$currentAnalysisSettingsHash() =>
-    r'ba7012313901deaa88d61b1e92dbe2429021f339';
+    r'212d02471531bd402dfb74d1760d8b4a30c71ad6';
 
 /// Provider for getting the current AnalysisSettings (compatibility)
 ///
@@ -27,7 +27,7 @@ final currentAnalysisSettingsProvider = Provider<AnalysisSettings>.internal(
 // ignore: unused_element
 typedef CurrentAnalysisSettingsRef = ProviderRef<AnalysisSettings>;
 String _$analysisSettingsNotifierHash() =>
-    r'3a53873978b6e8c0b795fb0442634509ebb33b02';
+    r'366c9c6314a6043acf572e449311dbb157c321e0';
 
 /// Provider for managing analysis settings
 ///

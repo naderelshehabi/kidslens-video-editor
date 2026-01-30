@@ -31,6 +31,10 @@ class ThresholdsTab extends ConsumerWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
+          const SizedBox(height: 8),
+
+          // Threshold explanation card
+          _buildThresholdExplanation(theme),
           const SizedBox(height: 24),
 
           // Preset buttons
@@ -447,4 +451,126 @@ class ThresholdsTab extends ConsumerWidget {
     );
     ref.read(settingsNotifierProvider.notifier).updateAnalysisSettings(defaults);
   }
+
+  Widget _buildThresholdExplanation(ThemeData theme) => Card(
+        color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.3),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: theme.colorScheme.secondary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'How Thresholds Work',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.secondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Each AI model outputs a confidence score (0-100%) indicating how likely the content matches the detection category.',
+                style: theme.textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              _buildThresholdExplanationRow(
+                theme,
+                'Lower threshold (40%)',
+                'Catches more potential issues but may flag innocent content (false positives). Good for maximum safety.',
+                Icons.arrow_downward,
+                Colors.orange,
+              ),
+              const SizedBox(height: 8),
+              _buildThresholdExplanationRow(
+                theme,
+                'Default threshold (60%)',
+                'Balanced setting. Catches clear violations while minimizing false positives.',
+                Icons.balance,
+                Colors.blue,
+              ),
+              const SizedBox(height: 8),
+              _buildThresholdExplanationRow(
+                theme,
+                'Higher threshold (80%)',
+                'Only flags high-confidence detections. May miss subtle or borderline content.',
+                Icons.arrow_upward,
+                Colors.green,
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Example: NSFW Detection at 60% Threshold',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '• Frame with 75% confidence → Flagged as NSFW ✓\n'
+                      '• Frame with 45% confidence → Not flagged (below threshold)\n'
+                      '• Lower the threshold to 40% to catch the second frame',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildThresholdExplanationRow(
+    ThemeData theme,
+    String title,
+    String description,
+    IconData icon,
+    Color color,
+  ) =>
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                Text(
+                  description,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
 }

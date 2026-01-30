@@ -3,6 +3,7 @@ import 'package:kidslens_video_editor/data/models/converters.dart';
 import 'package:kidslens_video_editor/data/models/detection.dart';
 import 'package:kidslens_video_editor/data/models/edit_action.dart';
 import 'package:kidslens_video_editor/data/models/media_file.dart';
+import 'package:kidslens_video_editor/data/models/subtitle_track.dart';
 
 part 'project.freezed.dart';
 part 'project.g.dart';
@@ -37,6 +38,9 @@ class Project with _$Project {
 
     /// Edit actions applied to the project (cuts, blurs, mutes)
     @Default([]) List<EditAction> editActions,
+
+    /// Subtitle tracks generated for media files
+    @Default([]) List<SubtitleTrack> subtitleTracks,
 
     /// Project settings
     @Default(ProjectSettings()) ProjectSettings settings,
@@ -85,6 +89,13 @@ class Project with _$Project {
   /// Get edit actions for a specific media file
   List<EditAction> editActionsForMedia(String mediaId) =>
       editActions.where((e) => e.mediaId == mediaId).toList();
+
+  /// Get subtitle track for a specific media file
+  SubtitleTrack? subtitleTrackForMedia(String mediaId) =>
+      subtitleTracks.where((s) => s.mediaId == mediaId).firstOrNull;
+
+  /// Check if project has any subtitle tracks
+  bool get hasSubtitles => subtitleTracks.isNotEmpty;
 
   /// Check if project has unsaved changes
   bool get hasUnsavedChanges => isDirty;

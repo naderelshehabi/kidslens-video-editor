@@ -48,6 +48,7 @@ class HuggingFaceModelCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Header row with name and badge
               _buildHeader(context),
@@ -67,7 +68,7 @@ class HuggingFaceModelCard extends StatelessWidget {
 
               // Stats row
               _buildStats(context),
-              const Spacer(),
+              const SizedBox(height: 16),
 
               // Hardware warning if any
               if (hardwareWarning != null) ...[
@@ -278,7 +279,7 @@ class HuggingFaceModelCard extends StatelessWidget {
             : AppTheme.warningColor;
 
     return Tooltip(
-      message: 'Accuracy: ${model.accuracyPercent}%',
+      message: _getAccuracyTooltip(),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
@@ -299,6 +300,17 @@ class HuggingFaceModelCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getAccuracyTooltip() {
+    final accuracyType = switch (model.modelType) {
+      HuggingFaceModelType.asr => 'Word Error Rate (WER) on LibriSpeech/CommonVoice benchmarks',
+      HuggingFaceModelType.nsfw => 'F1 score on NSFW-200K test dataset',
+      HuggingFaceModelType.violence => 'mAP on Violence Detection benchmark',
+      HuggingFaceModelType.blood => 'Precision/Recall on Gore Detection dataset',
+      HuggingFaceModelType.weapons => 'mAP@50 on COCO Weapons subset',
+    };
+    return 'Accuracy: ${model.accuracyPercent}%\n\nMeasured using: $accuracyType\n\nHigher is better. Scores ≥94% are excellent, ≥88% are good.';
   }
 
   Widget _buildWarning(BuildContext context) => Container(

@@ -15,6 +15,7 @@ export 'model_info.dart';
 export 'modification.dart';
 export 'profanity_match.dart';
 export 'project.dart';
+export 'subtitle_track.dart';
 export 'timeline.dart';
 export 'transcript.dart';
 export 'transcription_progress.dart';
