@@ -49,14 +49,14 @@ class TimelinePanel extends ConsumerStatefulWidget {
   ConsumerState<TimelinePanel> createState() => _TimelinePanelState();
 }
 
-class _TimelinePanelState extends ConsumerState<TimelinePanel> 
+class _TimelinePanelState extends ConsumerState<TimelinePanel>
     with SingleTickerProviderStateMixin {
   double _zoom = 1;
   final ScrollController _scrollController = ScrollController();
   final ScrollController _labelsVerticalController = ScrollController();
   final ScrollController _tracksVerticalController = ScrollController();
   static const _uuid = Uuid();
-  
+
   // Selection by drag state
   bool _isDraggingSelection = false;
   Duration? _dragSelectionStart;
@@ -66,7 +66,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
   List<ui.Image>? _thumbnailImages;
   String? _loadedMediaPath;
   bool _isLoadingThumbnails = false;
-  
+
   // Shimmer animation controller
   late AnimationController _shimmerController;
 
@@ -178,7 +178,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
             image.dispose();
           }
         }
-        
+
         if (mounted) {
           setState(() {
             _thumbnailImages = null;
@@ -198,7 +198,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
         children: [
           // Timeline toolbar
           _buildToolbar(context, playbackState),
-          
+
           // Timeline content
           Expanded(
             child: widget.media == null
@@ -207,7 +207,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                     children: [
                       // Track labels
                       _buildTrackLabels(context),
-                      
+
                       // Timeline area
                       Expanded(
                         child: _buildTimelineArea(context, playbackState),
@@ -243,13 +243,14 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
               fontWeight: FontWeight.bold,
             ),
           ),
-          
+
           const SizedBox(width: 24),
-          
+
           // Zoom controls
           IconButton(
             icon: const Icon(Icons.zoom_out, size: 16),
-            onPressed: () => setState(() => _zoom = math.max(0.25, _zoom - 0.25)),
+            onPressed: () =>
+                setState(() => _zoom = math.max(0.25, _zoom - 0.25)),
             visualDensity: VisualDensity.compact,
             tooltip: 'Zoom Out',
           ),
@@ -268,12 +269,12 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
             visualDensity: VisualDensity.compact,
             tooltip: 'Zoom In',
           ),
-          
+
           Text(
             '${(_zoom * 100).round()}%',
             style: theme.textTheme.bodySmall,
           ),
-          
+
           const Spacer(),
 
           // Selection indicator
@@ -295,13 +296,16 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                   ),
                   const SizedBox(width: 4),
                   InkWell(
-                    onTap: () => ref.read(playbackNotifierProvider.notifier).clearSelection(),
-                    child: const Icon(Icons.close, size: 14, color: Colors.blue),
+                    onTap: () => ref
+                        .read(playbackNotifierProvider.notifier)
+                        .clearSelection(),
+                    child:
+                        const Icon(Icons.close, size: 14, color: Colors.blue),
                   ),
                 ],
               ),
             ),
-          
+
           // Edit action buttons - enabled only when selection exists
           _ToolButton(
             icon: Icons.content_cut,
@@ -369,55 +373,46 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
           ),
           // Track labels - synced with timeline vertical scroll
           Expanded(
-            child: NotificationListener<ScrollNotification>(
-              onNotification: (notification) {
-                // Sync scroll to timeline tracks
-                if (notification is ScrollUpdateNotification &&
-                    _tracksVerticalController.hasClients) {
-                  _tracksVerticalController.jumpTo(notification.metrics.pixels);
-                }
-                return true; // Absorb notifications
-              },
-              child: SingleChildScrollView(
-                controller: _labelsVerticalController,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Video track label
-                    _TrackLabel(
-                      icon: Icons.videocam,
-                      label: 'Video',
-                      color: colorScheme.primary,
-                      height: 64, // Taller for thumbnails
-                    ),
-                    // Audio track label
-                    _TrackLabel(
-                      icon: Icons.audiotrack,
-                      label: 'Audio',
-                      color: colorScheme.secondary,
-                      height: 40,
-                    ),
-                    // Detections track label
-                    const _TrackLabel(
-                      icon: Icons.warning_amber,
-                      label: 'Detections',
-                      color: Colors.orange,
-                    ),
-                    // Edits track label
-                    const _TrackLabel(
-                      icon: Icons.edit,
-                      label: 'Edits',
-                      color: Colors.purple,
-                    ),
-                    // Subtitles track label
-                    _SubtitleTrackLabel(
-                      hasSubtitles: widget.subtitleTrack != null,
-                      isGenerating: widget.isGeneratingSubtitles,
-                      onGenerate: widget.onGenerateSubtitles,
-                      language: widget.subtitleTrack?.language,
-                    ),
-                  ],
-                ),
+            child: SingleChildScrollView(
+              controller: _labelsVerticalController,
+              physics: const NeverScrollableScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Video track label
+                  _TrackLabel(
+                    icon: Icons.videocam,
+                    label: 'Video',
+                    color: colorScheme.primary,
+                    height: 64, // Taller for thumbnails
+                  ),
+                  // Audio track label
+                  _TrackLabel(
+                    icon: Icons.audiotrack,
+                    label: 'Audio',
+                    color: colorScheme.secondary,
+                    height: 40,
+                  ),
+                  // Detections track label
+                  const _TrackLabel(
+                    icon: Icons.warning_amber,
+                    label: 'Detections',
+                    color: Colors.orange,
+                  ),
+                  // Edits track label
+                  const _TrackLabel(
+                    icon: Icons.edit,
+                    label: 'Edits',
+                    color: Colors.purple,
+                  ),
+                  // Subtitles track label
+                  _SubtitleTrackLabel(
+                    hasSubtitles: widget.subtitleTrack != null,
+                    isGenerating: widget.isGeneratingSubtitles,
+                    onGenerate: widget.onGenerateSubtitles,
+                    language: widget.subtitleTrack?.language,
+                  ),
+                ],
               ),
             ),
           ),
@@ -428,7 +423,8 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
 
   Widget _buildTimelineArea(BuildContext context, PlaybackState playbackState) {
     final duration = widget.media?.duration ?? Duration.zero;
-    final double timelineWidth = math.max(duration.inSeconds * 20.0 * _zoom, 500);
+    final double timelineWidth =
+        math.max(duration.inSeconds * 20.0 * _zoom, 500);
 
     return Listener(
       onPointerSignal: (event) {
@@ -438,10 +434,10 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
             // Horizontal scroll - let it pass through for scrolling
             return;
           }
-          
+
           // Ctrl + scroll OR pinch gesture = zoom
           // On trackpad, pinch sends scroll events with Ctrl modifier
-          if (HardwareKeyboard.instance.isControlPressed || 
+          if (HardwareKeyboard.instance.isControlPressed ||
               HardwareKeyboard.instance.isMetaPressed) {
             final delta = event.scrollDelta.dy > 0 ? -0.15 : 0.15;
             setState(() => _zoom = (_zoom + delta).clamp(0.1, 10.0));
@@ -458,10 +454,14 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
           // For single finger: start selection drag
           // For two fingers: prepare for pinch zoom
           if (details.pointerCount == 1 && duration.inMilliseconds > 0) {
-            final scrollOffset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+            final scrollOffset =
+                _scrollController.hasClients ? _scrollController.offset : 0.0;
             final position = Duration(
               milliseconds: ((details.localFocalPoint.dx + scrollOffset) /
-                  timelineWidth * duration.inMilliseconds).round().clamp(0, duration.inMilliseconds),
+                      timelineWidth *
+                      duration.inMilliseconds)
+                  .round()
+                  .clamp(0, duration.inMilliseconds),
             );
             setState(() {
               _isDraggingSelection = true;
@@ -477,10 +477,14 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
             setState(() => _zoom = newZoom);
           } else if (_isDraggingSelection && duration.inMilliseconds > 0) {
             // Handle single finger drag for selection
-            final scrollOffset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+            final scrollOffset =
+                _scrollController.hasClients ? _scrollController.offset : 0.0;
             final position = Duration(
               milliseconds: ((details.localFocalPoint.dx + scrollOffset) /
-                  timelineWidth * duration.inMilliseconds).round().clamp(0, duration.inMilliseconds),
+                      timelineWidth *
+                      duration.inMilliseconds)
+                  .round()
+                  .clamp(0, duration.inMilliseconds),
             );
             setState(() {
               _dragSelectionEnd = position;
@@ -488,18 +492,24 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
           }
         },
         onScaleEnd: (details) {
-          if (_isDraggingSelection && _dragSelectionStart != null && _dragSelectionEnd != null) {
+          if (_isDraggingSelection &&
+              _dragSelectionStart != null &&
+              _dragSelectionEnd != null) {
             // Finalize selection
-            final start = _dragSelectionStart!.inMilliseconds < _dragSelectionEnd!.inMilliseconds
+            final start = _dragSelectionStart!.inMilliseconds <
+                    _dragSelectionEnd!.inMilliseconds
                 ? _dragSelectionStart!
                 : _dragSelectionEnd!;
-            final end = _dragSelectionStart!.inMilliseconds < _dragSelectionEnd!.inMilliseconds
+            final end = _dragSelectionStart!.inMilliseconds <
+                    _dragSelectionEnd!.inMilliseconds
                 ? _dragSelectionEnd!
                 : _dragSelectionStart!;
-            
+
             if ((end - start).inMilliseconds > 50) {
               // Only set selection if it's meaningful (> 50ms)
-              ref.read(playbackNotifierProvider.notifier).setSelection(start, end);
+              ref
+                  .read(playbackNotifierProvider.notifier)
+                  .setSelection(start, end);
             }
           }
           setState(() {
@@ -510,10 +520,13 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
         },
         onTapDown: (details) {
           if (duration.inMilliseconds == 0) return;
-          final scrollOffset = _scrollController.hasClients ? _scrollController.offset : 0.0;
+          final scrollOffset =
+              _scrollController.hasClients ? _scrollController.offset : 0.0;
           final position = Duration(
             milliseconds: ((details.localPosition.dx + scrollOffset) /
-                timelineWidth * duration.inMilliseconds).round(),
+                    timelineWidth *
+                    duration.inMilliseconds)
+                .round(),
           );
           ref.read(playbackNotifierProvider.notifier).seek(position);
           widget.onSeek(position);
@@ -524,54 +537,68 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
           physics: const ClampingScrollPhysics(),
           child: SizedBox(
             width: timelineWidth,
-            child: NotificationListener<ScrollNotification>(
-              onNotification: (notification) {
-                // Sync vertical scroll with labels
-                if (notification is ScrollUpdateNotification && 
-                    _labelsVerticalController.hasClients) {
-                  _labelsVerticalController.jumpTo(notification.metrics.pixels);
-                }
-                return false;
-              },
-              child: SingleChildScrollView(
-                controller: _tracksVerticalController,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Time ruler
-                    _buildTimeRuler(context, timelineWidth),
-                    
-                    // Video track with thumbnails
-                    _buildVideoTrack(context, timelineWidth, playbackState),
-                    
-                    // Audio track with waveform
-                    _buildAudioTrack(context, timelineWidth, playbackState),
-                    
-                    // Detections track
-                    _buildTrack(
-                      context,
-                      height: 30,
-                      color: Colors.orange.withValues(alpha: 0.1),
-                      child: _buildDetectionMarkers(context, timelineWidth),
-                      playbackState: playbackState,
-                      timelineWidth: timelineWidth,
+            child: Column(
+              children: [
+                // Time ruler - OUTSIDE vertical scroll to match labels structure
+                _buildTimeRuler(context, timelineWidth),
+
+                // Scrollable tracks area
+                Expanded(
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (notification) {
+                      // Sync vertical scroll with labels when tracks scroll
+                      if (notification.metrics.axis == Axis.vertical &&
+                          _labelsVerticalController.hasClients &&
+                          _labelsVerticalController.offset !=
+                              notification.metrics.pixels) {
+                        _labelsVerticalController
+                            .jumpTo(notification.metrics.pixels);
+                      }
+                      return false;
+                    },
+                    child: SingleChildScrollView(
+                      controller: _tracksVerticalController,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Video track with thumbnails
+                          _buildVideoTrack(
+                              context, timelineWidth, playbackState),
+
+                          // Audio track with waveform
+                          _buildAudioTrack(
+                              context, timelineWidth, playbackState),
+
+                          // Detections track
+                          _buildTrack(
+                            context,
+                            height: 30,
+                            color: Colors.orange.withValues(alpha: 0.1),
+                            child:
+                                _buildDetectionMarkers(context, timelineWidth),
+                            playbackState: playbackState,
+                            timelineWidth: timelineWidth,
+                          ),
+
+                          // Edits track
+                          _buildTrack(
+                            context,
+                            height: 30,
+                            color: Colors.purple.withValues(alpha: 0.1),
+                            child: _buildEditMarkers(context, timelineWidth),
+                            playbackState: playbackState,
+                            timelineWidth: timelineWidth,
+                          ),
+
+                          // Subtitles track
+                          _buildSubtitlesTrack(
+                              context, timelineWidth, playbackState),
+                        ],
+                      ),
                     ),
-                    
-                    // Edits track
-                    _buildTrack(
-                      context,
-                      height: 30,
-                      color: Colors.purple.withValues(alpha: 0.1),
-                      child: _buildEditMarkers(context, timelineWidth),
-                      playbackState: playbackState,
-                      timelineWidth: timelineWidth,
-                    ),
-                    
-                    // Subtitles track
-                    _buildSubtitlesTrack(context, timelineWidth, playbackState),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
@@ -579,13 +606,15 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     );
   }
 
-  Widget _buildVideoTrack(BuildContext context, double timelineWidth, PlaybackState playbackState) {
+  Widget _buildVideoTrack(
+      BuildContext context, double timelineWidth, PlaybackState playbackState) {
     final colorScheme = Theme.of(context).colorScheme;
     final duration = widget.media?.duration ?? Duration.zero;
     // Match the loading logic with settings
-    final interval = ref.watch(settingsNotifierProvider).thumbnailInterval.inSeconds;
+    final interval =
+        ref.watch(settingsNotifierProvider).thumbnailInterval.inSeconds;
     // Use actual loaded count if available, otherwise estimate based on settings
-    final thumbnailCount = _thumbnailImages?.length ?? 
+    final thumbnailCount = _thumbnailImages?.length ??
         (duration.inSeconds / interval).ceil().clamp(1, 300);
     const trackHeight = 64.0;
 
@@ -604,20 +633,22 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
             AnimatedBuilder(
               animation: _shimmerController,
               builder: (context, child) => CustomPaint(
-                  painter: _ThumbnailStripPainter(
-                    duration: duration,
-                    zoom: _zoom,
-                    primaryColor: colorScheme.primary,
-                    thumbnailCount: thumbnailCount,
-                    thumbnailImages: _thumbnailImages,
-                    isLoading: _isLoadingThumbnails,
-                    animationValue: _shimmerController.value,
-                  ),
-                  size: Size(timelineWidth, trackHeight),
+                painter: _ThumbnailStripPainter(
+                  duration: duration,
+                  zoom: _zoom,
+                  primaryColor: colorScheme.primary,
+                  thumbnailCount: thumbnailCount,
+                  thumbnailImages: _thumbnailImages,
+                  isLoading: _isLoadingThumbnails,
+                  animationValue: _shimmerController.value,
                 ),
+                size: Size(timelineWidth, trackHeight),
+              ),
             ),
           // Loading indicator badge for thumbnails
-          if (_isLoadingThumbnails && widget.media != null && widget.media!.isVideo)
+          if (_isLoadingThumbnails &&
+              widget.media != null &&
+              widget.media!.isVideo)
             Positioned(
               right: 8,
               top: 4,
@@ -635,7 +666,8 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                       height: 10,
                       child: CircularProgressIndicator(
                         strokeWidth: 1.5,
-                        valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(colorScheme.primary),
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -656,7 +688,8 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
           if (_isDraggingSelection)
             _buildDragSelectionOverlay(trackHeight, timelineWidth, duration),
           if (playbackState.hasSelection && duration.inMilliseconds > 0)
-            _buildSelectionRegion(trackHeight, playbackState, timelineWidth, duration),
+            _buildSelectionRegion(
+                trackHeight, playbackState, timelineWidth, duration),
           // Playhead
           _buildPlayhead(trackHeight, playbackState, timelineWidth),
         ],
@@ -664,7 +697,8 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     );
   }
 
-  Widget _buildAudioTrack(BuildContext context, double timelineWidth, PlaybackState playbackState) {
+  Widget _buildAudioTrack(
+      BuildContext context, double timelineWidth, PlaybackState playbackState) {
     final colorScheme = Theme.of(context).colorScheme;
     final duration = widget.media?.duration ?? Duration.zero;
 
@@ -684,7 +718,8 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
               color: colorScheme.secondary,
               duration: duration,
               zoom: _zoom,
-              detections: widget.detections.where((d) => d.isAudioDetection).toList(),
+              detections:
+                  widget.detections.where((d) => d.isAudioDetection).toList(),
             ),
             size: Size(timelineWidth, 40),
           ),
@@ -700,7 +735,8 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     );
   }
 
-  Widget _buildSubtitlesTrack(BuildContext context, double timelineWidth, PlaybackState playbackState) {
+  Widget _buildSubtitlesTrack(
+      BuildContext context, double timelineWidth, PlaybackState playbackState) {
     final colorScheme = Theme.of(context).colorScheme;
     final duration = widget.media?.duration ?? Duration.zero;
     const trackHeight = 30.0;
@@ -719,10 +755,12 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
           // Subtitle segments
           if (widget.subtitleTrack != null && duration.inMilliseconds > 0)
             ...widget.subtitleTrack!.segments.map((segment) {
-              final startX = (segment.startTime.inMilliseconds / 
-                  duration.inMilliseconds) * timelineWidth;
-              final endX = (segment.endTime.inMilliseconds / 
-                  duration.inMilliseconds) * timelineWidth;
+              final startX =
+                  (segment.startTime.inMilliseconds / duration.inMilliseconds) *
+                      timelineWidth;
+              final endX =
+                  (segment.endTime.inMilliseconds / duration.inMilliseconds) *
+                      timelineWidth;
               final width = endX - startX;
 
               return Positioned(
@@ -780,7 +818,8 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                     height: 12,
                     child: CircularProgressIndicator(
                       strokeWidth: 1.5,
-                      valueColor: const AlwaysStoppedAnimation<Color>(trackColor),
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(trackColor),
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -798,7 +837,8 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
           if (_isDraggingSelection)
             _buildDragSelectionOverlay(trackHeight, timelineWidth, duration),
           if (playbackState.hasSelection && duration.inMilliseconds > 0)
-            _buildSelectionRegion(trackHeight, playbackState, timelineWidth, duration),
+            _buildSelectionRegion(
+                trackHeight, playbackState, timelineWidth, duration),
           // Playhead
           _buildPlayhead(trackHeight, playbackState, timelineWidth),
         ],
@@ -806,19 +846,21 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     );
   }
 
-  Widget _buildDragSelectionOverlay(double height, double timelineWidth, Duration duration) {
+  Widget _buildDragSelectionOverlay(
+      double height, double timelineWidth, Duration duration) {
     if (_dragSelectionStart == null || _dragSelectionEnd == null) {
       return const SizedBox.shrink();
     }
-    
-    final startX = (_dragSelectionStart!.inMilliseconds / 
-        duration.inMilliseconds) * timelineWidth;
-    final endX = (_dragSelectionEnd!.inMilliseconds / 
-        duration.inMilliseconds) * timelineWidth;
-    
+
+    final startX =
+        (_dragSelectionStart!.inMilliseconds / duration.inMilliseconds) *
+            timelineWidth;
+    final endX = (_dragSelectionEnd!.inMilliseconds / duration.inMilliseconds) *
+        timelineWidth;
+
     final left = math.min(startX, endX);
     final width = (startX - endX).abs();
-    
+
     return Positioned(
       left: left,
       top: 0,
@@ -834,7 +876,11 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
               borderRadius: BorderRadius.circular(2),
             ),
             child: Text(
-              _formatDuration(Duration(milliseconds: (width / timelineWidth * duration.inMilliseconds).round().abs())),
+              _formatDuration(Duration(
+                  milliseconds:
+                      (width / timelineWidth * duration.inMilliseconds)
+                          .round()
+                          .abs())),
               style: const TextStyle(color: Colors.white, fontSize: 9),
             ),
           ),
@@ -925,7 +971,8 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
           if (_isDraggingSelection)
             _buildDragSelectionOverlay(height, timelineWidth, duration),
           if (playbackState.hasSelection && duration.inMilliseconds > 0)
-            _buildSelectionRegion(height, playbackState, timelineWidth, duration),
+            _buildSelectionRegion(
+                height, playbackState, timelineWidth, duration),
           // Playhead
           _buildPlayhead(height, playbackState, timelineWidth),
         ],
@@ -933,12 +980,15 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     );
   }
 
-  Widget _buildSelectionRegion(double height, PlaybackState playbackState, double timelineWidth, Duration duration) {
-    final startX = (playbackState.selectionStart!.inMilliseconds / 
-        duration.inMilliseconds) * timelineWidth;
-    final endX = (playbackState.selectionEnd!.inMilliseconds / 
-        duration.inMilliseconds) * timelineWidth;
-    
+  Widget _buildSelectionRegion(double height, PlaybackState playbackState,
+      double timelineWidth, Duration duration) {
+    final startX = (playbackState.selectionStart!.inMilliseconds /
+            duration.inMilliseconds) *
+        timelineWidth;
+    final endX =
+        (playbackState.selectionEnd!.inMilliseconds / duration.inMilliseconds) *
+            timelineWidth;
+
     return Positioned(
       left: startX,
       top: 0,
@@ -956,12 +1006,14 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     );
   }
 
-  Widget _buildPlayhead(double height, PlaybackState playbackState, double timelineWidth) {
+  Widget _buildPlayhead(
+      double height, PlaybackState playbackState, double timelineWidth) {
     final duration = widget.media?.duration ?? Duration.zero;
     if (duration.inMilliseconds == 0) return const SizedBox.shrink();
 
-    final playheadX = (playbackState.position.inMilliseconds / 
-        duration.inMilliseconds) * timelineWidth;
+    final playheadX =
+        (playbackState.position.inMilliseconds / duration.inMilliseconds) *
+            timelineWidth;
 
     return Positioned(
       left: playheadX - 1,
@@ -989,11 +1041,13 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
 
     return Stack(
       children: widget.detections.where((d) => !d.isRejected).map((detection) {
-        final startX = (detection.startTime.inMilliseconds /
-            duration.inMilliseconds) * timelineWidth;
+        final startX =
+            (detection.startTime.inMilliseconds / duration.inMilliseconds) *
+                timelineWidth;
         final width = ((detection.endTime.inMilliseconds -
-            detection.startTime.inMilliseconds) /
-            duration.inMilliseconds) * timelineWidth;
+                    detection.startTime.inMilliseconds) /
+                duration.inMilliseconds) *
+            timelineWidth;
 
         return Positioned(
           left: startX,
@@ -1009,7 +1063,8 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
               ),
             ),
             child: Tooltip(
-              message: '${detection.typeDisplayName}\n${_formatDuration(detection.startTime)} - ${_formatDuration(detection.endTime)}',
+              message:
+                  '${detection.typeDisplayName}\n${_formatDuration(detection.startTime)} - ${_formatDuration(detection.endTime)}',
               child: Icon(
                 _getDetectionIcon(detection.type),
                 size: 12,
@@ -1027,67 +1082,76 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     if (duration.inMilliseconds == 0) return const SizedBox.shrink();
 
     return Stack(
-      children: widget.editActions.where((e) => e.enabled).map((action) => _EditActionMarker(
-          key: ValueKey(action.id),
-          action: action,
-          duration: duration,
-          timelineWidth: timelineWidth,
-          editColor: _getEditColor(action.type),
-          editIcon: _getEditIcon(action.type),
-          onTap: () {
-            if (action.type == EditActionType.blur) {
-              widget.onEditBlurAction?.call(action.id);
-            }
-          },
-          onUpdated: widget.onEditActionUpdated,
-          onRemoved: widget.onRemoveEditAction,
-          formatDuration: _formatDuration,
-        ),).toList(),
+      children: widget.editActions
+          .where((e) => e.enabled)
+          .map(
+            (action) => _EditActionMarker(
+              key: ValueKey(action.id),
+              action: action,
+              duration: duration,
+              timelineWidth: timelineWidth,
+              editColor: _getEditColor(action.type),
+              editIcon: _getEditIcon(action.type),
+              onTap: () {
+                if (action.type == EditActionType.blur) {
+                  widget.onEditBlurAction?.call(action.id);
+                }
+              },
+              onUpdated: widget.onEditActionUpdated,
+              onRemoved: widget.onRemoveEditAction,
+              formatDuration: _formatDuration,
+            ),
+          )
+          .toList(),
     );
   }
 
   void _cutSelection() {
     final playbackState = ref.read(playbackNotifierProvider);
     if (!playbackState.hasSelection || widget.media == null) return;
-    
+
     final action = EditAction.cut(
       id: _uuid.v4(),
       mediaId: widget.media!.id,
       startTime: playbackState.selectionStart!,
       endTime: playbackState.selectionEnd!,
     );
-    
+
     widget.onAddEditAction(action);
     ref.read(playbackNotifierProvider.notifier).clearSelection();
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cut added to timeline'), duration: Duration(seconds: 1)),
+      const SnackBar(
+          content: Text('Cut added to timeline'),
+          duration: Duration(seconds: 1)),
     );
   }
 
   void _muteSelection() {
     final playbackState = ref.read(playbackNotifierProvider);
     if (!playbackState.hasSelection || widget.media == null) return;
-    
+
     final action = EditAction.mute(
       id: _uuid.v4(),
       mediaId: widget.media!.id,
       startTime: playbackState.selectionStart!,
       endTime: playbackState.selectionEnd!,
     );
-    
+
     widget.onAddEditAction(action);
     ref.read(playbackNotifierProvider.notifier).clearSelection();
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Mute added to timeline'), duration: Duration(seconds: 1)),
+      const SnackBar(
+          content: Text('Mute added to timeline'),
+          duration: Duration(seconds: 1)),
     );
   }
 
   void _blurSelection() {
     final playbackState = ref.read(playbackNotifierProvider);
     if (!playbackState.hasSelection || widget.media == null) return;
-    
+
     final action = EditAction.blur(
       id: _uuid.v4(),
       mediaId: widget.media!.id,
@@ -1101,33 +1165,37 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
       ),
       intensity: 0.75, // 0.0 to 1.0 range, moderate blur
     );
-    
+
     widget.onAddEditAction(action);
     ref.read(playbackNotifierProvider.notifier).clearSelection();
-    
+
     widget.onEditBlurAction?.call(action.id);
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Blur added - drag handles to adjust region'), duration: Duration(seconds: 2)),
+      const SnackBar(
+          content: Text('Blur added - drag handles to adjust region'),
+          duration: Duration(seconds: 2)),
     );
   }
 
   void _beepSelection() {
     final playbackState = ref.read(playbackNotifierProvider);
     if (!playbackState.hasSelection || widget.media == null) return;
-    
+
     final action = EditAction.beep(
       id: _uuid.v4(),
       mediaId: widget.media!.id,
       startTime: playbackState.selectionStart!,
       endTime: playbackState.selectionEnd!,
     );
-    
+
     widget.onAddEditAction(action);
     ref.read(playbackNotifierProvider.notifier).clearSelection();
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Beep added to timeline'), duration: Duration(seconds: 1)),
+      const SnackBar(
+          content: Text('Beep added to timeline'),
+          duration: Duration(seconds: 1)),
     );
   }
 
@@ -1235,25 +1303,28 @@ class _EditActionMarkerState extends State<_EditActionMarker> {
   Duration _tempStartTime = Duration.zero;
   Duration _tempEndTime = Duration.zero;
 
-  double get startX => (_isDragging || _isDraggingLeftEdge || _isDraggingRightEdge
-      ? _tempStartTime.inMilliseconds
-      : widget.action.startTime.inMilliseconds) /
+  double get startX =>
+      (_isDragging || _isDraggingLeftEdge || _isDraggingRightEdge
+          ? _tempStartTime.inMilliseconds
+          : widget.action.startTime.inMilliseconds) /
       widget.duration.inMilliseconds *
       widget.timelineWidth;
 
-  double get endX => (_isDragging || _isDraggingLeftEdge || _isDraggingRightEdge
-      ? _tempEndTime.inMilliseconds
-      : widget.action.endTime.inMilliseconds) /
+  double get endX =>
+      (_isDragging || _isDraggingLeftEdge || _isDraggingRightEdge
+          ? _tempEndTime.inMilliseconds
+          : widget.action.endTime.inMilliseconds) /
       widget.duration.inMilliseconds *
       widget.timelineWidth;
 
   double get markerWidth => math.max(endX - startX, 8);
 
   Duration _positionToDuration(double x) => Duration(
-      milliseconds: (x / widget.timelineWidth * widget.duration.inMilliseconds)
-          .round()
-          .clamp(0, widget.duration.inMilliseconds),
-    );
+        milliseconds:
+            (x / widget.timelineWidth * widget.duration.inMilliseconds)
+                .round()
+                .clamp(0, widget.duration.inMilliseconds),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -1288,10 +1359,9 @@ class _EditActionMarkerState extends State<_EditActionMarker> {
                       _positionToDuration(startX);
                   final newStart = _tempStartTime + delta;
                   final newEnd = _tempEndTime + delta;
-                  
+
                   // Keep within bounds
-                  if (newStart >= Duration.zero &&
-                      newEnd <= widget.duration) {
+                  if (newStart >= Duration.zero && newEnd <= widget.duration) {
                     setState(() {
                       _tempStartTime = newStart;
                       _tempEndTime = newEnd;
@@ -1313,21 +1383,25 @@ class _EditActionMarkerState extends State<_EditActionMarker> {
                   cursor: SystemMouseCursors.move,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: widget.editColor.withValues(alpha: _isDragging ? 0.9 : 0.7),
+                      color: widget.editColor
+                          .withValues(alpha: _isDragging ? 0.9 : 0.7),
                       borderRadius: BorderRadius.circular(2),
-                      border: Border.all(color: widget.editColor, width: _isDragging ? 2 : 1),
+                      border: Border.all(
+                          color: widget.editColor, width: _isDragging ? 2 : 1),
                     ),
                     child: Tooltip(
-                      message: '${widget.action.typeLabel}\n${widget.formatDuration(widget.action.startTime)} - ${widget.formatDuration(widget.action.endTime)}',
+                      message:
+                          '${widget.action.typeLabel}\n${widget.formatDuration(widget.action.startTime)} - ${widget.formatDuration(widget.action.endTime)}',
                       child: Center(
-                        child: Icon(widget.editIcon, size: 12, color: Colors.white),
+                        child: Icon(widget.editIcon,
+                            size: 12, color: Colors.white),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-            
+
             // Left resize handle
             Positioned(
               left: 0,
@@ -1344,8 +1418,10 @@ class _EditActionMarkerState extends State<_EditActionMarker> {
                 },
                 onPanUpdate: (details) {
                   if (!_isDraggingLeftEdge) return;
-                  final newStart = _positionToDuration(startX + details.delta.dx);
-                  if (newStart < _tempEndTime - const Duration(milliseconds: 100)) {
+                  final newStart =
+                      _positionToDuration(startX + details.delta.dx);
+                  if (newStart <
+                      _tempEndTime - const Duration(milliseconds: 100)) {
                     setState(() => _tempStartTime = newStart);
                   }
                 },
@@ -1371,7 +1447,7 @@ class _EditActionMarkerState extends State<_EditActionMarker> {
                 ),
               ),
             ),
-            
+
             // Right resize handle
             Positioned(
               right: 0,
@@ -1389,7 +1465,8 @@ class _EditActionMarkerState extends State<_EditActionMarker> {
                 onPanUpdate: (details) {
                   if (!_isDraggingRightEdge) return;
                   final newEnd = _positionToDuration(endX + details.delta.dx);
-                  if (newEnd > _tempStartTime + const Duration(milliseconds: 100)) {
+                  if (newEnd >
+                      _tempStartTime + const Duration(milliseconds: 100)) {
                     setState(() => _tempEndTime = newEnd);
                   }
                 },
@@ -1465,26 +1542,26 @@ class _TrackLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-      height: height,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Theme.of(context).colorScheme.outlineVariant,
+        height: height,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
           ),
         ),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(fontSize: 11, color: color),
-          ),
-        ],
-      ),
-    );
+        child: Row(
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(fontSize: 11, color: color),
+            ),
+          ],
+        ),
+      );
 }
 
 /// Special track label for subtitles with generate button
@@ -1520,8 +1597,8 @@ class _SubtitleTrackLabel extends StatelessWidget {
           const SizedBox(width: 4),
           Expanded(
             child: Text(
-              hasSubtitles && language != null 
-                  ? 'Subtitles ($language)' 
+              hasSubtitles && language != null
+                  ? 'Subtitles ($language)'
                   : 'Subtitles',
               style: const TextStyle(fontSize: 11, color: trackColor),
               overflow: TextOverflow.ellipsis,
@@ -1571,14 +1648,14 @@ class _ToolButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => TextButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 14),
-      label: Text(label, style: const TextStyle(fontSize: 11)),
-      style: TextButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        visualDensity: VisualDensity.compact,
-      ),
-    );
+        onPressed: onPressed,
+        icon: Icon(icon, size: 14),
+        label: Text(label, style: const TextStyle(fontSize: 11)),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          visualDensity: VisualDensity.compact,
+        ),
+      );
 }
 
 class _TimeRulerPainter extends CustomPainter {
@@ -1607,7 +1684,7 @@ class _TimeRulerPainter extends CustomPainter {
 
     final pixelsPerSecond = 20.0 * zoom;
     final totalSeconds = duration.inSeconds;
-    
+
     // Adjust major interval based on zoom level
     int majorInterval;
     if (zoom < 0.5) {
@@ -1624,7 +1701,7 @@ class _TimeRulerPainter extends CustomPainter {
 
     for (var s = 0; s <= totalSeconds; s++) {
       final x = s * pixelsPerSecond;
-      
+
       if (s % majorInterval == 0) {
         // Major tick
         canvas.drawLine(
@@ -1661,7 +1738,8 @@ class _TimeRulerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _TimeRulerPainter oldDelegate) => oldDelegate.duration != duration || oldDelegate.zoom != zoom;
+  bool shouldRepaint(covariant _TimeRulerPainter oldDelegate) =>
+      oldDelegate.duration != duration || oldDelegate.zoom != zoom;
 }
 
 class _ThumbnailStripPainter extends CustomPainter {
@@ -1688,27 +1766,30 @@ class _ThumbnailStripPainter extends CustomPainter {
     if (duration.inMilliseconds == 0) return;
 
     final thumbnailWidth = size.width / thumbnailCount;
-    final random = math.Random(42); // Consistent random for placeholder thumbnails
-    final hasThumbnails = thumbnailImages != null && thumbnailImages!.isNotEmpty;
+    final random =
+        math.Random(42); // Consistent random for placeholder thumbnails
+    final hasThumbnails =
+        thumbnailImages != null && thumbnailImages!.isNotEmpty;
 
     for (var i = 0; i < thumbnailCount; i++) {
       final x = i * thumbnailWidth;
       final rect = Rect.fromLTWH(x, 2, thumbnailWidth - 1, size.height - 4);
-      
+
       // Draw actual thumbnail if available
       if (hasThumbnails && i < thumbnailImages!.length) {
         final image = thumbnailImages![i];
         final srcRect = Rect.fromLTWH(
-          0, 0, 
-          image.width.toDouble(), 
+          0,
+          0,
+          image.width.toDouble(),
           image.height.toDouble(),
         );
-        
+
         // Scale to fit height while maintaining aspect ratio
         final imageAspectRatio = image.width / image.height;
         final destHeight = size.height - 4;
         final destWidth = destHeight * imageAspectRatio;
-        
+
         // If thumbnail width is wider than dest width, tile; otherwise center-crop
         if (thumbnailWidth >= destWidth) {
           // Center the thumbnail in its slot
@@ -1718,7 +1799,8 @@ class _ThumbnailStripPainter extends CustomPainter {
             destWidth,
             destHeight,
           );
-          canvas.drawImageRect(image, srcRect, destRect, Paint()..filterQuality = FilterQuality.medium);
+          canvas.drawImageRect(image, srcRect, destRect,
+              Paint()..filterQuality = FilterQuality.medium);
         } else {
           // Crop to fill the slot
           final cropWidth = image.height * (thumbnailWidth / destHeight);
@@ -1729,9 +1811,10 @@ class _ThumbnailStripPainter extends CustomPainter {
             math.min(cropWidth, image.width.toDouble()),
             image.height.toDouble(),
           );
-          canvas.drawImageRect(image, croppedSrcRect, rect, Paint()..filterQuality = FilterQuality.medium);
+          canvas.drawImageRect(image, croppedSrcRect, rect,
+              Paint()..filterQuality = FilterQuality.medium);
         }
-        
+
         // Draw subtle border around thumbnail
         canvas.drawRRect(
           RRect.fromRectAndRadius(rect, const Radius.circular(2)),
@@ -1740,12 +1823,12 @@ class _ThumbnailStripPainter extends CustomPainter {
             ..color = Colors.black.withValues(alpha: 0.2)
             ..strokeWidth = 0.5,
         );
-        
+
         // Draw timestamp overlay
         _drawTimestamp(canvas, rect, i);
         continue;
       }
-      
+
       // Draw placeholder/loading state
       if (isLoading) {
         // Shimmer loading animation
@@ -1762,15 +1845,15 @@ class _ThumbnailStripPainter extends CustomPainter {
             math.min(1, shimmerOffset + 0.3),
           ],
         );
-        
+
         final shimmerPaint = Paint()
           ..shader = shimmerGradient.createShader(rect);
-        
+
         canvas.drawRRect(
           RRect.fromRectAndRadius(rect, const Radius.circular(2)),
           shimmerPaint,
         );
-        
+
         // Draw film strip icon in center
         final double iconSize = math.min(rect.width * 0.4, 20);
         final iconRect = Rect.fromCenter(
@@ -1778,7 +1861,7 @@ class _ThumbnailStripPainter extends CustomPainter {
           width: iconSize,
           height: iconSize,
         );
-        
+
         // Draw simple film frame icon
         final iconPaint = Paint()
           ..color = primaryColor.withValues(alpha: 0.4)
@@ -1788,18 +1871,20 @@ class _ThumbnailStripPainter extends CustomPainter {
           RRect.fromRectAndRadius(iconRect, const Radius.circular(2)),
           iconPaint,
         );
-        
+
         // Draw film perforations
         final perfSize = iconSize * 0.15;
         for (var p = 0; p < 3; p++) {
           final perfY = iconRect.top + iconSize * (p + 1) / 4;
           canvas
             ..drawRect(
-              Rect.fromLTWH(iconRect.left - perfSize - 1, perfY - perfSize / 2, perfSize, perfSize),
+              Rect.fromLTWH(iconRect.left - perfSize - 1, perfY - perfSize / 2,
+                  perfSize, perfSize),
               Paint()..color = primaryColor.withValues(alpha: 0.3),
             )
             ..drawRect(
-              Rect.fromLTWH(iconRect.right + 1, perfY - perfSize / 2, perfSize, perfSize),
+              Rect.fromLTWH(
+                  iconRect.right + 1, perfY - perfSize / 2, perfSize, perfSize),
               Paint()..color = primaryColor.withValues(alpha: 0.3),
             );
         }
@@ -1808,9 +1893,11 @@ class _ThumbnailStripPainter extends CustomPainter {
         final hue = (i * 15 + 200) % 360;
         final saturation = 0.3 + random.nextDouble() * 0.2;
         final lightness = 0.3 + random.nextDouble() * 0.2;
-        
-        final color = HSLColor.fromAHSL(1, hue.toDouble(), saturation, lightness).toColor();
-        
+
+        final color =
+            HSLColor.fromAHSL(1, hue.toDouble(), saturation, lightness)
+                .toColor();
+
         final gradient = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -1819,10 +1906,9 @@ class _ThumbnailStripPainter extends CustomPainter {
             color.withValues(alpha: 0.6),
           ],
         );
-        
-        final paint = Paint()
-          ..shader = gradient.createShader(rect);
-        
+
+        final paint = Paint()..shader = gradient.createShader(rect);
+
         canvas.drawRRect(
           RRect.fromRectAndRadius(rect, const Radius.circular(2)),
           paint,
@@ -1832,13 +1918,14 @@ class _ThumbnailStripPainter extends CustomPainter {
         final linePaint = Paint()
           ..color = Colors.white.withValues(alpha: 0.1)
           ..strokeWidth = 1;
-        
+
         // Add some visual variation to simulate video frames
         final lineCount = 3 + (random.nextDouble() * 3).toInt();
         for (var j = 0; j < lineCount; j++) {
           final lineY = rect.top + (rect.height * (j + 1) / (lineCount + 1));
           final lineLength = rect.width * (0.3 + random.nextDouble() * 0.5);
-          final lineX = rect.left + (rect.width - lineLength) * random.nextDouble();
+          final lineX =
+              rect.left + (rect.width - lineLength) * random.nextDouble();
           canvas.drawLine(
             Offset(lineX, lineY),
             Offset(lineX + lineLength, lineY),
@@ -1846,7 +1933,7 @@ class _ThumbnailStripPainter extends CustomPainter {
           );
         }
       }
-      
+
       // Draw timestamp for placeholders too
       _drawTimestamp(canvas, rect, i);
     }
@@ -1859,8 +1946,9 @@ class _ThumbnailStripPainter extends CustomPainter {
     final seconds = (index * intervalSeconds).round();
     final minutes = seconds ~/ 60;
     final secs = seconds % 60;
-    final timeText = '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
-    
+    final timeText =
+        '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+
     // Draw semi-transparent background
     final bgRect = Rect.fromLTWH(
       rect.left + 2,
@@ -1872,7 +1960,7 @@ class _ThumbnailStripPainter extends CustomPainter {
       bgRect,
       Paint()..color = Colors.black.withValues(alpha: 0.5),
     );
-    
+
     // Draw text
     final textSpan = TextSpan(
       text: timeText,
@@ -1896,12 +1984,13 @@ class _ThumbnailStripPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _ThumbnailStripPainter oldDelegate) => oldDelegate.duration != duration || 
-           oldDelegate.zoom != zoom ||
-           oldDelegate.thumbnailCount != thumbnailCount ||
-           oldDelegate.thumbnailImages != thumbnailImages ||
-           oldDelegate.isLoading != isLoading ||
-           oldDelegate.animationValue != animationValue;
+  bool shouldRepaint(covariant _ThumbnailStripPainter oldDelegate) =>
+      oldDelegate.duration != duration ||
+      oldDelegate.zoom != zoom ||
+      oldDelegate.thumbnailCount != thumbnailCount ||
+      oldDelegate.thumbnailImages != thumbnailImages ||
+      oldDelegate.isLoading != isLoading ||
+      oldDelegate.animationValue != animationValue;
 }
 
 class _MiniWaveformPainter extends CustomPainter {
@@ -1923,13 +2012,14 @@ class _MiniWaveformPainter extends CustomPainter {
 
     // Draw detection regions
     for (final detection in detections) {
-      final startX = (detection.startTime.inMilliseconds /
-          duration.inMilliseconds) * size.width;
-      final endX = (detection.endTime.inMilliseconds /
-          duration.inMilliseconds) * size.width;
+      final startX =
+          (detection.startTime.inMilliseconds / duration.inMilliseconds) *
+              size.width;
+      final endX =
+          (detection.endTime.inMilliseconds / duration.inMilliseconds) *
+              size.width;
 
-      final regionPaint = Paint()
-        ..color = Colors.orange.withValues(alpha: 0.3);
+      final regionPaint = Paint()..color = Colors.orange.withValues(alpha: 0.3);
       canvas.drawRect(
         Rect.fromLTRB(startX, 0, endX, size.height),
         regionPaint,
@@ -1937,8 +2027,7 @@ class _MiniWaveformPainter extends CustomPainter {
     }
 
     // Draw waveform background
-    final bgPaint = Paint()
-      ..color = color.withValues(alpha: 0.1);
+    final bgPaint = Paint()..color = color.withValues(alpha: 0.1);
     canvas.drawRect(Offset.zero & size, bgPaint);
 
     // Draw mini waveform - detail increases with zoom
@@ -1972,7 +2061,8 @@ class _MiniWaveformPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _MiniWaveformPainter oldDelegate) => oldDelegate.duration != duration ||
-        oldDelegate.zoom != zoom ||
-        oldDelegate.detections != detections;
+  bool shouldRepaint(covariant _MiniWaveformPainter oldDelegate) =>
+      oldDelegate.duration != duration ||
+      oldDelegate.zoom != zoom ||
+      oldDelegate.detections != detections;
 }

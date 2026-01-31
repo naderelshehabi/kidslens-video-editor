@@ -66,7 +66,7 @@ class AsrService {
       );
 
       final startTime = DateTime.now();
-      
+
       // Perform transcription
       final transcript = await whisper.transcribe(
         audioPath,
@@ -91,9 +91,8 @@ class AsrService {
         isComplete: true,
         segmentsProcessed: transcript.segments.length,
         totalSegments: transcript.segments.length,
-        currentSegment: transcript.segments.isNotEmpty 
-            ? transcript.segments.last 
-            : null,
+        currentSegment:
+            transcript.segments.isNotEmpty ? transcript.segments.last : null,
         estimatedTimeRemaining: Duration.zero,
       );
 
@@ -109,10 +108,12 @@ class AsrService {
   /// Transcribe and return the transcript directly
   ///
   /// Convenience method for when progress tracking is not needed.
+  /// [mediaDuration] can be passed to help with placeholder generation.
   Future<Transcript> transcribeToResult(
     String audioPath, {
     String? language,
     String? preferredModel,
+    Duration? mediaDuration,
   }) async {
     final modelId = preferredModel ?? await _selectModel();
     final modelPath = await _ensureModelLoaded(modelId);
@@ -124,6 +125,7 @@ class AsrService {
       audioPath,
       modelPath,
       language: language,
+      mediaDuration: mediaDuration,
     );
   }
 
@@ -144,11 +146,56 @@ class AsrService {
 
     // Default supported languages for Whisper models
     return [
-      'en', 'zh', 'de', 'es', 'ru', 'ko', 'fr', 'ja', 'pt', 'tr',
-      'pl', 'ca', 'nl', 'ar', 'sv', 'it', 'id', 'hi', 'fi', 'vi',
-      'he', 'uk', 'el', 'ms', 'cs', 'ro', 'da', 'hu', 'ta', 'no',
-      'th', 'ur', 'hr', 'bg', 'lt', 'la', 'mi', 'ml', 'cy', 'sk',
-      'te', 'fa', 'lv', 'bn', 'sr', 'az', 'sl', 'kn', 'et', 'mk',
+      'en',
+      'zh',
+      'de',
+      'es',
+      'ru',
+      'ko',
+      'fr',
+      'ja',
+      'pt',
+      'tr',
+      'pl',
+      'ca',
+      'nl',
+      'ar',
+      'sv',
+      'it',
+      'id',
+      'hi',
+      'fi',
+      'vi',
+      'he',
+      'uk',
+      'el',
+      'ms',
+      'cs',
+      'ro',
+      'da',
+      'hu',
+      'ta',
+      'no',
+      'th',
+      'ur',
+      'hr',
+      'bg',
+      'lt',
+      'la',
+      'mi',
+      'ml',
+      'cy',
+      'sk',
+      'te',
+      'fa',
+      'lv',
+      'bn',
+      'sr',
+      'az',
+      'sl',
+      'kn',
+      'et',
+      'mk',
     ];
   }
 

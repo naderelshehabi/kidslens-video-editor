@@ -51,7 +51,8 @@ class _AsrModelsTabState extends ConsumerState<AsrModelsTab> {
     models = _applyFilter(models, modelState.downloadedModels);
     models = _applySort(models);
 
-    final selectedModelId = settingsState.analysisSettings.modelConfig.asrModelId;
+    final selectedModelId =
+        settingsState.analysisSettings.modelConfig.asrModelId;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,7 +134,8 @@ class _AsrModelsTabState extends ConsumerState<AsrModelsTab> {
               : LayoutBuilder(
                   builder: (context, constraints) {
                     // Calculate number of columns based on width
-                    final columns = (constraints.maxWidth / 400).floor().clamp(1, 4);
+                    final columns =
+                        (constraints.maxWidth / 400).floor().clamp(1, 4);
                     return GridView.builder(
                       padding: const EdgeInsets.all(16),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -145,10 +147,15 @@ class _AsrModelsTabState extends ConsumerState<AsrModelsTab> {
                       itemCount: models.length,
                       itemBuilder: (context, index) {
                         final model = models[index];
-                        final isDownloaded = modelState.downloadedModels.contains(model.id);
+                        final isDownloaded =
+                            modelState.downloadedModels.contains(model.id);
                         final isSelected = model.id == selectedModelId;
-                        final downloadProgress = modelState.activeDownloads[model.id];
+                        final downloadProgress =
+                            modelState.activeDownloads[model.id];
                         final isDownloading = downloadProgress != null;
+
+                        // Show warning if model is selected but not downloaded
+                        final needsDownload = isSelected && !isDownloaded;
 
                         return HuggingFaceModelCard(
                           model: model,
@@ -156,9 +163,14 @@ class _AsrModelsTabState extends ConsumerState<AsrModelsTab> {
                           isSelected: isSelected,
                           isDownloading: isDownloading,
                           downloadProgress: downloadProgress?.percentage,
+                          hardwareWarning: needsDownload
+                              ? 'This model is selected but not downloaded. Download it to use.'
+                              : null,
                           onDownload: () => _downloadModel(model.id),
                           onDelete: () => _deleteModel(model.id),
-                          onSelect: isDownloaded ? () => _selectModel(model.id) : null,
+                          onSelect: isDownloaded
+                              ? () => _selectModel(model.id)
+                              : null,
                         );
                       },
                     );
@@ -200,31 +212,31 @@ class _AsrModelsTabState extends ConsumerState<AsrModelsTab> {
   }
 
   Widget _buildEmptyState() => Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.search_off,
-            size: 64,
-            color: Theme.of(context).colorScheme.outline,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No models match your filters',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () {
-              setState(() => _filter = AsrModelFilter.all);
-            },
-            child: const Text('Clear filters'),
-          ),
-        ],
-      ),
-    );
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off,
+              size: 64,
+              color: Theme.of(context).colorScheme.outline,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No models match your filters',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () {
+                setState(() => _filter = AsrModelFilter.all);
+              },
+              child: const Text('Clear filters'),
+            ),
+          ],
+        ),
+      );
 
   void _downloadModel(String modelId) {
     ref.read(modelNotifierProvider.notifier).downloadModel(modelId);

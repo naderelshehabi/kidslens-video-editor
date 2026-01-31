@@ -13,6 +13,7 @@ import 'package:kidslens_video_editor/presentation/widgets/editor/media_bin_pane
 import 'package:kidslens_video_editor/presentation/widgets/editor/preview_panel.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/timeline_panel.dart';
 import 'package:kidslens_video_editor/state/providers/analysis_provider.dart';
+import 'package:kidslens_video_editor/state/providers/model_provider.dart';
 import 'package:kidslens_video_editor/state/providers/playback_provider.dart';
 import 'package:kidslens_video_editor/state/providers/project_provider.dart';
 import 'package:kidslens_video_editor/state/providers/service_providers.dart';
@@ -273,7 +274,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               _MenuItem('Stop Analysis', Icons.stop, _stopAnalysis),
               const _MenuDivider(),
               _MenuItem(
-                  'Analysis Settings', Icons.settings, _openAnalysisSettings,),
+                'Analysis Settings',
+                Icons.settings,
+                _openAnalysisSettings,
+              ),
             ],
           ),
 
@@ -607,7 +611,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Subtitles Exist'),
-          content: const Text('Subtitles already exist for this media. Do you want to regenerate them?'),
+          content: const Text(
+              'Subtitles already exist for this media. Do you want to regenerate them?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -623,32 +628,79 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       if (shouldRegenerate != true) return;
     }
 
+    // Check if ASR model is available
+    final settings = ref.read(settingsNotifierProvider);
+    final asrModelId = settings.analysisSettings.modelConfig.asrModelId;
+    final modelState = ref.read(modelNotifierProvider);
+
+    if (!modelState.downloadedModels.contains(asrModelId)) {
+      if (mounted) {
+        final shouldDownload = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('ASR Model Not Downloaded'),
+            content: Text(
+              'The selected ASR model "$asrModelId" is not downloaded. '
+              'Would you like to download it now?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Download'),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldDownload == true) {
+          // Navigate to model settings - ASR models tab is at index 0
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const AnalysisSettingsScreen(initialTab: 0),
+            ),
+          );
+        }
+      }
+      return;
+    }
+
     setState(() => _isGeneratingSubtitles = true);
 
     try {
-      // Initialize whisper bindings first
+      // Get the shared WhisperBindings instance from provider and initialize it
       final whisper = ref.read(whisperBindingsProvider);
       await whisper.initialize();
-      
+
       final asrService = ref.read(asrServiceProvider);
-      
+
       // Transcribe the media using transcribeToResult for direct result
-      final transcript = await asrService.transcribeToResult(selectedMedia.path);
-      
+      // Pass media duration for better placeholder generation
+      final transcript = await asrService.transcribeToResult(
+        selectedMedia.path,
+        mediaDuration: selectedMedia.duration,
+      );
+
       // Convert transcript to subtitle track
       final subtitleTrack = SubtitleTrack.fromTranscript(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
         transcript: transcript,
         mediaId: selectedMedia.id,
       );
-      
+
       // Update project with new subtitle track
-      ref.read(projectNotifierProvider.notifier).addSubtitleTrack(subtitleTrack);
-      
+      ref
+          .read(projectNotifierProvider.notifier)
+          .addSubtitleTrack(subtitleTrack);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Generated ${subtitleTrack.segments.length} subtitle segments'),
+            content: Text(
+                'Generated ${subtitleTrack.segments.length} subtitle segments'),
           ),
         );
       }
@@ -715,8 +767,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     if (!playbackState.hasSelection) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text(
-                'Please make a selection on the timeline first (use I and O keys)',),),
+          content: Text(
+            'Please make a selection on the timeline first (use I and O keys)',
+          ),
+        ),
       );
       return;
     }
@@ -747,8 +801,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     if (!playbackState.hasSelection) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text(
-                'Please make a selection on the timeline first (use I and O keys)',),),
+          content: Text(
+            'Please make a selection on the timeline first (use I and O keys)',
+          ),
+        ),
       );
       return;
     }
@@ -779,8 +835,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     if (!playbackState.hasSelection) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text(
-                'Please make a selection on the timeline first (use I and O keys)',),),
+          content: Text(
+            'Please make a selection on the timeline first (use I and O keys)',
+          ),
+        ),
       );
       return;
     }

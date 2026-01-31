@@ -50,6 +50,11 @@ class SettingsState {
 
   /// Create from JSON for persistence
   factory SettingsState.fromJson(Map<String, dynamic> json) => SettingsState(
+        analysisSettings: json['analysisSettings'] != null
+            ? AnalysisSettings.fromJson(
+                json['analysisSettings'] as Map<String, dynamic>,
+              )
+            : null,
         selectedLanguage: json['selectedLanguage'] as String?,
         themeMode: ThemeMode.values[json['themeMode'] as int? ?? 0],
         useDarkTheme: json['useDarkTheme'] as bool? ?? false,
@@ -114,19 +119,30 @@ class SettingsState {
       );
 
   /// Convert to JSON for persistence
-  Map<String, dynamic> toJson() => {
-        'selectedLanguage': selectedLanguage,
-        'themeMode': themeMode.index,
-        'useDarkTheme': useDarkTheme,
-        'showOnboarding': showOnboarding,
-        'modelCachePath': modelCachePath,
-        'exportPath': exportPath,
-        'defaultExportQuality': defaultExportQuality.index,
-        'defaultExportFormat': defaultExportFormat.index,
-        'autoSaveIntervalMinutes': autoSaveInterval.inMinutes,
-        'thumbnailIntervalSeconds': thumbnailInterval.inSeconds,
-        'detectionThresholds': detectionThresholds.toJson(),
-      };
+  /// Note: We encode/decode analysisSettings to ensure nested Freezed objects
+  /// are properly converted to JSON maps (Freezed's toJson doesn't do this by default)
+  Map<String, dynamic> toJson() {
+    // Convert analysisSettings through JSON encoding to ensure nested objects
+    // are properly serialized as maps
+    final analysisSettingsJson =
+        jsonDecode(jsonEncode(analysisSettings.toJson()))
+            as Map<String, dynamic>;
+
+    return {
+      'analysisSettings': analysisSettingsJson,
+      'selectedLanguage': selectedLanguage,
+      'themeMode': themeMode.index,
+      'useDarkTheme': useDarkTheme,
+      'showOnboarding': showOnboarding,
+      'modelCachePath': modelCachePath,
+      'exportPath': exportPath,
+      'defaultExportQuality': defaultExportQuality.index,
+      'defaultExportFormat': defaultExportFormat.index,
+      'autoSaveIntervalMinutes': autoSaveInterval.inMinutes,
+      'thumbnailIntervalSeconds': thumbnailInterval.inSeconds,
+      'detectionThresholds': detectionThresholds.toJson(),
+    };
+  }
 }
 
 /// Detection thresholds for different content types

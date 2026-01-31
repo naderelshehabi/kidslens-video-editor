@@ -23,7 +23,9 @@ enum AnalysisSettingsTab {
 
 /// Main screen for configuring AI analysis settings
 class AnalysisSettingsScreen extends ConsumerStatefulWidget {
-  const AnalysisSettingsScreen({super.key});
+  const AnalysisSettingsScreen({super.key, this.initialTab});
+
+  final int? initialTab;
 
   @override
   ConsumerState<AnalysisSettingsScreen> createState() =>
@@ -32,11 +34,16 @@ class AnalysisSettingsScreen extends ConsumerStatefulWidget {
 
 class _AnalysisSettingsScreenState
     extends ConsumerState<AnalysisSettingsScreen> {
-  AnalysisSettingsTab _selectedTab = AnalysisSettingsTab.asrModels;
+  late AnalysisSettingsTab _selectedTab;
 
   @override
   void initState() {
     super.initState();
+    // Set initial tab based on parameter or default to ASR models
+    _selectedTab = widget.initialTab != null &&
+            widget.initialTab! < AnalysisSettingsTab.values.length
+        ? AnalysisSettingsTab.values[widget.initialTab!]
+        : AnalysisSettingsTab.asrModels;
     // Load available models when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(modelNotifierProvider.notifier).loadAvailableModels();
