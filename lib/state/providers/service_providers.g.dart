@@ -245,7 +245,7 @@ final beepAudioServiceProvider = Provider<BeepAudioService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef BeepAudioServiceRef = ProviderRef<BeepAudioService>;
-String _$asrServiceHash() => r'ae7c35d060b0ff41e574b350a76ad79a02c82cbe';
+String _$asrServiceHash() => r'7851b469c53b78fae1f6f459a5d0e390acbc1211';
 
 /// See also [asrService].
 @ProviderFor(asrService)

@@ -72,12 +72,19 @@ Containers: MP4, MKV, AVI, MOV, WebM, WAV, MP3
 | large-v3 | 2.9GB | ~10GB | 1x | Best |
 
 **Hardware Acceleration**:
-- CPU: AVX/AVX2/AVX512
+- CPU: AVX/AVX2/AVX512 (always available)
+- Vulkan: Cross-platform GPU (Windows, Linux)
 - CUDA: NVIDIA GPUs (Compute 6.0+)
 - Metal: Apple Silicon/Intel Mac
-- Vulkan: Cross-platform GPU
 
-**Custom Wrapper Required**: Yes - `whisper_wrapper.dll/.so/.dylib`
+**GPU Auto-Fallback**: The library automatically tries GPU acceleration first, and gracefully falls back to CPU if:
+- No GPU is available
+- GPU drivers are outdated
+- Vulkan SDK was not installed at build time
+
+**Build Integration**: whisper_wrapper is automatically built as part of `flutter build windows`. No manual compilation required.
+
+**Custom Wrapper**: `whisper_wrapper.dll/.so/.dylib` - Auto-generated during build
 
 ### ONNX Runtime 1.16+
 
@@ -721,8 +728,8 @@ ffmpeg_wrapper.dll
 └── swresample-4.dll
 
 whisper_wrapper.dll
-├── whisper.dll
-└── ggml.dll
+└── (self-contained, whisper.cpp linked statically)
+    └── vulkan-1.dll (optional, for GPU acceleration)
 
 onnxruntime.dll
 └── onnxruntime_providers_*.dll (optional GPU)

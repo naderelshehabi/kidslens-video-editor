@@ -88,6 +88,7 @@ BeepAudioService beepAudioService(Ref ref) => BeepAudioService();
 AsrService asrService(Ref ref) => AsrService(
       whisper: ref.watch(whisperBindingsProvider),
       modelManager: ref.watch(modelManagerServiceProvider),
+      ffmpeg: ref.watch(ffmpegBindingsProvider),
     );
 
 @Riverpod(keepAlive: true)

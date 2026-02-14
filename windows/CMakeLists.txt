@@ -10,6 +10,63 @@ set(BINARY_NAME "kidslens_video_editor")
 # versions of CMake.
 cmake_policy(VERSION 3.14...3.25)
 
+# ============================================================================
+# Native Libraries Build Options
+# ============================================================================
+option(BUILD_WHISPER_WRAPPER "Build whisper_wrapper native library" ON)
+option(WHISPER_USE_CUDA "Enable CUDA GPU acceleration for Whisper" OFF)
+# Vulkan is attempted by default but will gracefully fall back to CPU if not available
+option(WHISPER_USE_VULKAN "Enable Vulkan GPU acceleration for Whisper" ON)
+
+# Auto-detect Vulkan availability
+if(WHISPER_USE_VULKAN)
+  find_package(Vulkan QUIET)
+  if(NOT Vulkan_FOUND)
+    message(STATUS "Vulkan SDK not found - building Whisper with CPU-only support")
+    message(STATUS "For GPU acceleration, install Vulkan SDK: https://vulkan.lunarg.com/sdk/home")
+    set(WHISPER_USE_VULKAN OFF CACHE BOOL "" FORCE)
+  else()
+    message(STATUS "Vulkan SDK found - GPU acceleration enabled")
+  endif()
+endif()
+
+# ============================================================================
+# Build whisper_wrapper native library
+# ============================================================================
+if(BUILD_WHISPER_WRAPPER)
+  message(STATUS "Building whisper_wrapper native library...")
+  
+  # Add whisper subdirectory
+  set(WHISPER_WRAPPER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../native/whisper")
+  
+  if(EXISTS "${WHISPER_WRAPPER_DIR}/CMakeLists.txt")
+    # Configure whisper options before adding subdirectory
+    set(WHISPER_WRAPPER_BUILD_SHARED ON CACHE BOOL "" FORCE)
+    set(WHISPER_USE_BUNDLED ON CACHE BOOL "" FORCE)
+    
+    # Pass GPU options
+    if(WHISPER_USE_CUDA)
+      set(WHISPER_USE_CUDA ON CACHE BOOL "" FORCE)
+    endif()
+    if(WHISPER_USE_VULKAN)
+      set(WHISPER_USE_VULKAN ON CACHE BOOL "" FORCE)
+    endif()
+    
+    # EXCLUDE_FROM_ALL prevents whisper.cpp's install targets from running
+    # We handle installation of whisper_wrapper ourselves below
+    add_subdirectory("${WHISPER_WRAPPER_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/whisper_wrapper" EXCLUDE_FROM_ALL)
+    
+    # Make whisper_wrapper build as part of the default ALL target
+    set_target_properties(whisper_wrapper PROPERTIES EXCLUDE_FROM_ALL FALSE)
+    
+    # Add to bundled libraries for installation
+    set(WHISPER_WRAPPER_LIBRARY "$<TARGET_FILE:whisper_wrapper>")
+    list(APPEND NATIVE_BUNDLED_LIBRARIES "${WHISPER_WRAPPER_LIBRARY}")
+  else()
+    message(WARNING "whisper_wrapper not found at ${WHISPER_WRAPPER_DIR}")
+  endif()
+endif()
+
 # Define build configuration option.
 get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(IS_MULTICONFIG)
@@ -85,6 +142,17 @@ if(PLUGIN_BUNDLED_LIBRARIES)
   install(FILES "${PLUGIN_BUNDLED_LIBRARIES}"
     DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
     COMPONENT Runtime)
+endif()
+
+# ============================================================================
+# Install whisper_wrapper native library
+# ============================================================================
+if(BUILD_WHISPER_WRAPPER AND TARGET whisper_wrapper)
+  install(TARGETS whisper_wrapper
+    RUNTIME DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+    LIBRARY DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+    COMPONENT Runtime)
+  message(STATUS "whisper_wrapper will be installed to ${INSTALL_BUNDLE_LIB_DIR}")
 endif()
 
 # Copy the native assets provided by the build.dart from all packages.

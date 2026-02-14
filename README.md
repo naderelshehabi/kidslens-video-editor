@@ -70,6 +70,27 @@ flutter run -d linux
 - 8GB RAM minimum (16GB recommended for 4K videos)
 - GPU recommended for optimal performance
 
+### Speech Recognition (Built-in)
+
+Speech-to-text transcription is built into the app via **whisper.cpp** FFI integration. No external tools needed - just run `flutter build windows` and whisper support is included.
+
+### GPU Acceleration (Optional)
+
+For faster AI processing, install the **Vulkan SDK**:
+
+1. Download from [vulkan.lunarg.com](https://vulkan.lunarg.com/sdk/home)
+2. Install and ensure environment variables are set
+3. Rebuild: `flutter clean && flutter build windows --release`
+
+The app automatically uses GPU when available and falls back to CPU otherwise.
+
+| GPU Type | Status |
+|----------|--------|
+| NVIDIA (Vulkan/CUDA) | ✅ Supported |
+| AMD (Vulkan) | ✅ Supported |
+| Intel (Vulkan) | ✅ Supported |
+| No GPU | ✅ CPU fallback |
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

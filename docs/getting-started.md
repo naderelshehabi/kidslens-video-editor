@@ -32,11 +32,14 @@ This guide will help you set up your development environment and get started wit
 |----------|---------|----------|
 | **Visual Studio 2022** | C++ build tools | [visualstudio.microsoft.com](https://visualstudio.microsoft.com/) |
 | **Windows 10 SDK** | Windows APIs | Included with VS |
+| **Vulkan SDK** *(optional)* | GPU acceleration | [vulkan.lunarg.com](https://vulkan.lunarg.com/sdk/home) |
 
 During Visual Studio installation, select:
 - "Desktop development with C++"
 - Windows 10 SDK (10.0.x or later)
 - C++ CMake tools for Windows
+
+> **GPU Acceleration**: Install the Vulkan SDK for faster AI inference. The app works without it (CPU fallback).
 
 #### macOS (Future)
 
@@ -261,10 +264,46 @@ The release build requires native libraries to be bundled:
 | Library | Files (Windows) | Purpose |
 |---------|-----------------|---------|
 | FFmpeg | `ffmpeg_wrapper.dll`, `avcodec-*.dll`, etc. | Media processing |
-| Whisper | `whisper_wrapper.dll` | Speech recognition |
+| Whisper | `whisper_wrapper.dll` | Speech recognition (auto-built) |
 | ONNX Runtime | `onnxruntime.dll` | AI inference |
 
-Place native libraries in `windows/` or configure CMakeLists.txt to copy them during build.
+> **Note**: `whisper_wrapper.dll` is automatically built during `flutter build windows`. No manual setup required.
+
+### GPU Acceleration (Optional)
+
+For faster speech recognition, you can enable GPU acceleration. The app automatically falls back to CPU if GPU is unavailable.
+
+#### Installing Vulkan SDK (Recommended for GPU support)
+
+1. Download the Vulkan SDK from [vulkan.lunarg.com](https://vulkan.lunarg.com/sdk/home)
+2. Run the installer and ensure environment variables are set
+3. Rebuild the project:
+
+```bash
+# Clean and rebuild to enable GPU support
+flutter clean
+flutter build windows --release
+```
+
+The build system will automatically detect the Vulkan SDK and enable GPU acceleration.
+
+#### GPU Support Status
+
+| GPU Type | Acceleration | Notes |
+|----------|--------------|-------|
+| NVIDIA | Vulkan or CUDA | Vulkan recommended for simplicity |
+| AMD | Vulkan | Full support |
+| Intel | Vulkan | Integrated GPU support |
+| None | CPU | Automatic fallback, always works |
+
+#### Verifying GPU Acceleration
+
+When the app loads a Whisper model, it logs whether GPU is active:
+
+```
+Model loaded: small (GPU: true)   // GPU acceleration enabled
+Model loaded: small (GPU: false)  // CPU mode (fallback)
+```
 
 ---
 

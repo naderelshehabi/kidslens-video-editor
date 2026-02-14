@@ -675,6 +675,27 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       final whisper = ref.read(whisperBindingsProvider);
       await whisper.initialize();
 
+      // Check if native library is available for real transcription
+      if (!whisper.hasNativeSupport) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Whisper native library not loaded. Using placeholder subtitles. '
+                'Build the native library for real speech recognition.',
+              ),
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Learn More',
+                onPressed: () {
+                  // Could open documentation URL
+                },
+              ),
+            ),
+          );
+        }
+      }
+
       final asrService = ref.read(asrServiceProvider);
 
       // Transcribe the media using transcribeToResult for direct result

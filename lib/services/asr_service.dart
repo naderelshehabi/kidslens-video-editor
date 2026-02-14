@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
+import 'package:kidslens_video_editor/native/bindings/ffmpeg_bindings.dart';
 import 'package:kidslens_video_editor/native/bindings/whisper_bindings.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
+import 'package:path/path.dart' as p;
 
 /// Service for orchestrating ASR (Automatic Speech Recognition) transcription
 ///
@@ -13,10 +16,38 @@ class AsrService {
   AsrService({
     required this.whisper,
     required this.modelManager,
+    required this.ffmpeg,
   });
 
   final WhisperBindings whisper;
   final ModelManagerService modelManager;
+  final FFmpegBindings ffmpeg;
+
+  /// File extensions that are video formats requiring audio extraction
+  static const _videoExtensions = {
+    '.mp4',
+    '.mkv',
+    '.mov',
+    '.avi',
+    '.webm',
+    '.wmv',
+    '.flv',
+    '.m4v',
+  };
+
+  /// File extensions that need conversion to 16kHz mono WAV
+  static const _nonWavAudioExtensions = {
+    '.mp3',
+    '.aac',
+    '.m4a',
+    '.ogg',
+    '.flac',
+    '.opus',
+    '.wma',
+  };
+
+  /// Temporary file used for audio extraction (cleaned up after transcription)
+  String? _tempAudioPath;
 
   /// Controller for progress updates
   StreamController<TranscriptionProgress>? _progressController;
@@ -30,7 +61,7 @@ class AsrService {
   /// with the final result. Access the transcript through the last progress
   /// event or use [transcribeToResult] for direct access.
   ///
-  /// [audioPath] - Path to the audio file to transcribe
+  /// [audioPath] - Path to the audio/video file to transcribe
   /// [language] - Optional language code (e.g., 'en', 'es'). Use 'auto' for detection.
   /// [preferredModel] - Optional model ID to use. Falls back to recommended model.
   Stream<TranscriptionProgress> transcribe(
@@ -39,12 +70,20 @@ class AsrService {
     String? preferredModel,
   }) async* {
     _progressController = StreamController<TranscriptionProgress>.broadcast();
+    String? preparedAudioPath;
 
     try {
       // Phase 1: Initialization
       yield const TranscriptionProgress(
         progress: 0,
       );
+
+      // Phase 1.5: Prepare audio (extract if video, convert to WAV if needed)
+      yield const TranscriptionProgress(
+        progress: 0.02,
+        phase: TranscriptionPhase.extractingAudio,
+      );
+      preparedAudioPath = await _prepareAudioForWhisper(audioPath);
 
       // Phase 2: Load model
       yield const TranscriptionProgress(
@@ -67,9 +106,9 @@ class AsrService {
 
       final startTime = DateTime.now();
 
-      // Perform transcription
+      // Perform transcription with prepared audio
       final transcript = await whisper.transcribe(
-        audioPath,
+        preparedAudioPath,
         modelPath,
         language: language,
       );
@@ -100,6 +139,7 @@ class AsrService {
     } catch (e) {
       yield TranscriptionProgress.error(e.toString());
     } finally {
+      await _cleanupTempAudio();
       await _progressController?.close();
       _progressController = null;
     }
@@ -108,6 +148,7 @@ class AsrService {
   /// Transcribe and return the transcript directly
   ///
   /// Convenience method for when progress tracking is not needed.
+  /// Automatically extracts audio from video files and converts to proper format.
   /// [mediaDuration] can be passed to help with placeholder generation.
   Future<Transcript> transcribeToResult(
     String audioPath, {
@@ -115,18 +156,25 @@ class AsrService {
     String? preferredModel,
     Duration? mediaDuration,
   }) async {
-    final modelId = preferredModel ?? await _selectModel();
-    final modelPath = await _ensureModelLoaded(modelId);
-    if (modelPath == null) {
-      throw AsrException('Failed to load model: $modelId');
-    }
+    try {
+      // Prepare audio (extract if video, convert to WAV if needed)
+      final preparedAudioPath = await _prepareAudioForWhisper(audioPath);
 
-    return whisper.transcribe(
-      audioPath,
-      modelPath,
-      language: language,
-      mediaDuration: mediaDuration,
-    );
+      final modelId = preferredModel ?? await _selectModel();
+      final modelPath = await _ensureModelLoaded(modelId);
+      if (modelPath == null) {
+        throw AsrException('Failed to load model: $modelId');
+      }
+
+      return await whisper.transcribe(
+        preparedAudioPath,
+        modelPath,
+        language: language,
+        mediaDuration: mediaDuration,
+      );
+    } finally {
+      await _cleanupTempAudio();
+    }
   }
 
   /// Get the recommended model based on hardware capabilities
@@ -272,7 +320,96 @@ class AsrService {
   /// Release resources
   void dispose() {
     cancel();
+    _cleanupTempAudio();
     _loadedModelPath = null;
+  }
+
+  /// Prepare audio file for Whisper transcription
+  ///
+  /// If the input is a video file, extracts audio to a temporary WAV file.
+  /// If the input is a non-WAV audio file, converts to WAV format.
+  /// WAV files are passed through directly (if already 16kHz mono PCM).
+  ///
+  /// Returns the path to the WAV file ready for Whisper.
+  Future<String> _prepareAudioForWhisper(String inputPath) async {
+    final extension = p.extension(inputPath).toLowerCase();
+    final isVideo = _videoExtensions.contains(extension);
+    final isNonWavAudio = _nonWavAudioExtensions.contains(extension);
+
+    // If already a WAV file, use it directly
+    // Note: Whisper loader will validate format internally
+    if (extension == '.wav' && !isVideo && !isNonWavAudio) {
+      debugPrint('Using WAV file directly: $inputPath');
+      return inputPath;
+    }
+
+    // Need to extract/convert to WAV
+    debugPrint(
+        'Extracting audio from ${isVideo ? "video" : "audio"} file: $inputPath');
+
+    // Create temp file path
+    final tempDir = Directory.systemTemp;
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final tempWavPath = p.join(tempDir.path, 'whisper_audio_$timestamp.wav');
+    _tempAudioPath = tempWavPath;
+
+    // Use FFmpeg to extract/convert audio to 16kHz mono WAV (Whisper's required format)
+    await _extractAudioToWav(inputPath, tempWavPath);
+
+    debugPrint('Audio extracted to: $tempWavPath');
+    return tempWavPath;
+  }
+
+  /// Extract audio from input file to 16kHz mono WAV format for Whisper
+  Future<void> _extractAudioToWav(String inputPath, String outputPath) async {
+    final ffmpegPath = ffmpeg.ffmpegPath;
+    if (ffmpegPath == null) {
+      throw AsrException(
+        'FFmpeg not available. Cannot extract audio from video files.',
+      );
+    }
+
+    final result = await Process.run(
+      ffmpegPath,
+      [
+        '-i', inputPath, // Input file
+        '-vn', // No video
+        '-acodec', 'pcm_s16le', // 16-bit PCM (required by Whisper)
+        '-ar', '16000', // 16kHz sample rate (required by Whisper)
+        '-ac', '1', // Mono (single channel)
+        '-y', // Overwrite output file
+        outputPath,
+      ],
+    );
+
+    if (result.exitCode != 0) {
+      throw AsrException(
+        'Failed to extract audio: ${result.stderr}',
+      );
+    }
+
+    // Verify the output file was created
+    if (!await File(outputPath).exists()) {
+      throw AsrException(
+        'Audio extraction completed but output file was not created.',
+      );
+    }
+  }
+
+  /// Clean up temporary audio file if one was created
+  Future<void> _cleanupTempAudio() async {
+    if (_tempAudioPath != null) {
+      try {
+        final tempFile = File(_tempAudioPath!);
+        if (await tempFile.exists()) {
+          await tempFile.delete();
+          debugPrint('Cleaned up temp audio file: $_tempAudioPath');
+        }
+      } catch (e) {
+        debugPrint('Warning: Failed to clean up temp audio file: $e');
+      }
+      _tempAudioPath = null;
+    }
   }
 }
 

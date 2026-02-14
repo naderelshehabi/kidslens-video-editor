@@ -7,7 +7,13 @@
 - **Framework**: Flutter (SDK >=3.22)
 - **State Management**: Riverpod (riverpod, flutter_riverpod)
 - **Video Processing**: FFmpeg (via FFI / Process execution) & `media_kit` for playback.
+- **Speech Recognition**: whisper.cpp (via FFI, GPU-accelerated with auto CPU fallback)
 - **Local Persistence**: `shared_preferences` (Settings), JSON (Project files).
+
+### Hardware Acceleration
+- **GPU Support**: Vulkan (cross-platform), CUDA (NVIDIA), Metal (macOS)
+- **Auto-Fallback**: If GPU unavailable, automatically uses CPU
+- **Build-time Detection**: CMake detects Vulkan SDK and enables GPU support if available
 
 ### Architectural Pattern
 The application follows a **Clean Architecture** approach, separated into layers:

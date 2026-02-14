@@ -2,8 +2,220 @@ import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
 
+import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart';
 import 'package:kidslens_video_editor/data/models/transcript.dart';
 import 'package:kidslens_video_editor/native/resource_manager.dart';
+import 'package:path/path.dart' as p;
+
+// ============================================================================
+// FFI Struct Definitions
+// ============================================================================
+
+/// Native word-level timestamp info
+final class WhisperWordNative extends Struct {
+  @Int64()
+  external int startMs;
+
+  @Int64()
+  external int endMs;
+
+  external Pointer<Utf8> text;
+
+  @Float()
+  external double probability;
+}
+
+/// Native segment with word timestamps
+final class WhisperSegmentNative extends Struct {
+  @Int64()
+  external int startMs;
+
+  @Int64()
+  external int endMs;
+
+  external Pointer<Utf8> text;
+
+  @Float()
+  external double probability;
+
+  @Int32()
+  external int numWords;
+
+  external Pointer<WhisperWordNative> words;
+}
+
+/// Native transcription result
+final class WhisperResultNative extends Struct {
+  @Int32()
+  external int numSegments;
+
+  external Pointer<WhisperSegmentNative> segments;
+
+  external Pointer<Utf8> detectedLanguage;
+
+  @Float()
+  external double languageProbability;
+
+  @Int64()
+  external int processingTimeMs;
+
+  @Bool()
+  external bool success;
+
+  external Pointer<Utf8> errorMessage;
+}
+
+/// Native configuration struct
+final class WhisperConfigNative extends Struct {
+  @Int32()
+  external int nThreads;
+
+  @Bool()
+  external bool useGpu;
+
+  @Int32()
+  external int gpuDevice;
+
+  external Pointer<Utf8> language;
+
+  @Bool()
+  external bool translate;
+
+  @Bool()
+  external bool wordTimestamps;
+
+  @Float()
+  external double wordThreshold;
+
+  @Int32()
+  external int maxSegmentLength;
+
+  @Bool()
+  external bool splitOnWord;
+
+  @Float()
+  external double temperature;
+
+  @Int32()
+  external int beamSize;
+
+  @Float()
+  external double entropyThreshold;
+
+  @Bool()
+  external bool suppressBlank;
+
+  @Bool()
+  external bool suppressNonSpeech;
+
+  @Float()
+  external double noSpeechThreshold;
+}
+
+/// Native model info struct
+final class WhisperModelInfoNative extends Struct {
+  external Pointer<Utf8> modelType;
+
+  @Bool()
+  external bool isMultilingual;
+
+  @Bool()
+  external bool usingGpu;
+
+  @Int32()
+  external int nVocab;
+
+  @Int32()
+  external int nAudioCtx;
+
+  @Int32()
+  external int nTextCtx;
+}
+
+// ============================================================================
+// FFI Function Typedefs
+// ============================================================================
+
+// whisper_init
+typedef WhisperInitNative = Pointer Function(Pointer<Utf8> modelPath);
+typedef WhisperInitDart = Pointer Function(Pointer<Utf8> modelPath);
+
+// whisper_free
+typedef WhisperFreeNative = Void Function(Pointer handle);
+typedef WhisperFreeDart = void Function(Pointer handle);
+
+// whisper_default_config
+typedef WhisperDefaultConfigNative = WhisperConfigNative Function();
+typedef WhisperDefaultConfigDart = WhisperConfigNative Function();
+
+// whisper_transcribe_file
+typedef WhisperTranscribeFileNative = Pointer<WhisperResultNative> Function(
+  Pointer handle,
+  Pointer<Utf8> audioPath,
+  Pointer<WhisperConfigNative> config,
+);
+typedef WhisperTranscribeFileDart = Pointer<WhisperResultNative> Function(
+  Pointer handle,
+  Pointer<Utf8> audioPath,
+  Pointer<WhisperConfigNative> config,
+);
+
+// whisper_transcribe_pcm
+typedef WhisperTranscribePcmNative = Pointer<WhisperResultNative> Function(
+  Pointer handle,
+  Pointer<Float> samples,
+  Int32 numSamples,
+  Pointer<WhisperConfigNative> config,
+);
+typedef WhisperTranscribePcmDart = Pointer<WhisperResultNative> Function(
+  Pointer handle,
+  Pointer<Float> samples,
+  int numSamples,
+  Pointer<WhisperConfigNative> config,
+);
+
+// whisper_free_result
+typedef WhisperFreeResultNative = Void Function(
+  Pointer<WhisperResultNative> result,
+);
+typedef WhisperFreeResultDart = void Function(
+  Pointer<WhisperResultNative> result,
+);
+
+// whisper_get_model_info
+typedef WhisperGetModelInfoNative = WhisperModelInfoNative Function(
+  Pointer handle,
+);
+typedef WhisperGetModelInfoDart = WhisperModelInfoNative Function(
+  Pointer handle,
+);
+
+// whisper_get_error
+typedef WhisperGetErrorNative = Pointer<Utf8> Function();
+typedef WhisperGetErrorDart = Pointer<Utf8> Function();
+
+// whisper_gpu_available
+typedef WhisperGpuAvailableNative = Bool Function();
+typedef WhisperGpuAvailableDart = bool Function();
+
+// whisper_gpu_name
+typedef WhisperGpuNameNative = Pointer<Utf8> Function();
+typedef WhisperGpuNameDart = Pointer<Utf8> Function();
+
+// whisper_version
+typedef WhisperVersionNative = Pointer<Utf8> Function();
+typedef WhisperVersionDart = Pointer<Utf8> Function();
+
+// whisper_supported_languages
+typedef WhisperSupportedLanguagesNative = Pointer<Utf8> Function(
+  Pointer handle,
+);
+typedef WhisperSupportedLanguagesDart = Pointer<Utf8> Function(Pointer handle);
+
+// ============================================================================
+// Metadata Classes
+// ============================================================================
 
 /// Metadata about a loaded Whisper model
 class WhisperModelInfo {
@@ -12,6 +224,7 @@ class WhisperModelInfo {
     required this.modelType,
     required this.languageCount,
     required this.isMultilingual,
+    required this.usingGpu,
     required this.vocabSize,
     required this.nMels,
     required this.loadedAt,
@@ -21,13 +234,14 @@ class WhisperModelInfo {
   final String modelType;
   final int languageCount;
   final bool isMultilingual;
+  final bool usingGpu;
   final int vocabSize;
   final int nMels;
   final DateTime loadedAt;
 
   @override
   String toString() =>
-      'WhisperModelInfo(type: $modelType, multilingual: $isMultilingual, languages: $languageCount)';
+      'WhisperModelInfo(type: $modelType, gpu: $usingGpu, multilingual: $isMultilingual, languages: $languageCount)';
 }
 
 /// A single transcription segment for streaming
@@ -49,59 +263,196 @@ class TranscriptionSegment {
   final double probability;
 }
 
-/// FFI bindings for whisper.cpp
+// ============================================================================
+// WhisperBindings - FFI-based Whisper Integration
+// ============================================================================
+
+/// FFI bindings for whisper.cpp native library.
+/// Provides direct integration with Whisper speech recognition without CLI tools.
 class WhisperBindings extends NativeResource {
-  // ignore: unused_field - Will be used when FFI is fully implemented
   DynamicLibrary? _lib;
   bool _initialized = false;
+  Pointer? _modelHandle;
   String? _loadedModelPath;
   WhisperModelInfo? _modelInfo;
+
+  // FFI function pointers
+  WhisperInitDart? _whisperInit;
+  WhisperFreeDart? _whisperFree;
+  WhisperDefaultConfigDart? _whisperDefaultConfig;
+  WhisperTranscribeFileDart? _whisperTranscribeFile;
+  WhisperTranscribePcmDart? _whisperTranscribePcm;
+  WhisperFreeResultDart? _whisperFreeResult;
+  WhisperGetModelInfoDart? _whisperGetModelInfo;
+  WhisperGetErrorDart? _whisperGetError;
+  WhisperGpuAvailableDart? _whisperGpuAvailable;
+  WhisperGpuNameDart? _whisperGpuName;
+  WhisperVersionDart? _whisperVersion;
+  WhisperSupportedLanguagesDart? _whisperSupportedLanguages;
 
   /// Stream controller for streaming transcription segments
   StreamController<TranscriptionSegment>? _streamController;
 
-  /// Initialize Whisper bindings
+  /// Whether FFI library is loaded and available
+  bool get hasNativeSupport => _lib != null && _whisperInit != null;
+
+  /// Initialize Whisper bindings by loading the native library
   Future<void> initialize() async {
     if (_initialized) return;
 
-    // TODO: Implement FFI loading once whisper_wrapper.dll is built
-    // For now, just mark as initialized since we're using placeholder implementation
     try {
-      // Skip DLL loading until native implementation is complete
-      // _lib = _loadLibrary();
+      _lib = _loadNativeLibrary();
+
+      if (_lib != null) {
+        _bindFunctions();
+        debugPrint('Whisper FFI library loaded successfully');
+        debugPrint('GPU available: ${_whisperGpuAvailable?.call() ?? false}');
+
+        final gpuName = _whisperGpuName?.call();
+        if (gpuName != null && gpuName != nullptr) {
+          debugPrint('GPU: ${gpuName.toDartString()}');
+        }
+
+        final version = _whisperVersion?.call();
+        if (version != null && version != nullptr) {
+          debugPrint('Whisper version: ${version.toDartString()}');
+        }
+      }
+
       _initialized = true;
     } catch (e) {
-      throw WhisperInitializationException(
-          'Failed to load Whisper library: $e');
+      // Library not found - will use fallback mode
+      debugPrint('Whisper native library not found: $e');
+      _initialized = true; // Still mark as initialized for fallback mode
     }
   }
 
-  // DynamicLibrary _loadLibrary() {
-  //   if (Platform.isWindows) {
-  //     return DynamicLibrary.open('whisper_wrapper.dll');
-  //   } else if (Platform.isMacOS) {
-  //     return DynamicLibrary.open('libwhisper_wrapper.dylib');
-  //   } else if (Platform.isLinux) {
-  //     return DynamicLibrary.open('libwhisper_wrapper.so');
-  //   }
-  //   throw UnsupportedError('Platform not supported');
-  // }
+  /// Load the native whisper wrapper library
+  DynamicLibrary? _loadNativeLibrary() {
+    try {
+      if (Platform.isWindows) {
+        // Try to find library in various locations
+        final possiblePaths = [
+          'whisper_wrapper.dll',
+          'data/flutter_assets/native/whisper_wrapper.dll',
+          '${p.dirname(Platform.resolvedExecutable)}/whisper_wrapper.dll',
+          '${p.dirname(Platform.resolvedExecutable)}/data/flutter_assets/native/whisper_wrapper.dll',
+        ];
+
+        for (final libPath in possiblePaths) {
+          try {
+            return DynamicLibrary.open(libPath);
+          } catch (_) {
+            continue;
+          }
+        }
+        return null;
+      } else if (Platform.isMacOS) {
+        final possiblePaths = [
+          'libwhisper_wrapper.dylib',
+          '@executable_path/../Frameworks/libwhisper_wrapper.dylib',
+          '/usr/local/lib/libwhisper_wrapper.dylib',
+        ];
+
+        for (final libPath in possiblePaths) {
+          try {
+            return DynamicLibrary.open(libPath);
+          } catch (_) {
+            continue;
+          }
+        }
+        return null;
+      } else if (Platform.isLinux) {
+        final possiblePaths = [
+          'libwhisper_wrapper.so',
+          './lib/libwhisper_wrapper.so',
+          '/usr/local/lib/libwhisper_wrapper.so',
+          '/usr/lib/libwhisper_wrapper.so',
+        ];
+
+        for (final libPath in possiblePaths) {
+          try {
+            return DynamicLibrary.open(libPath);
+          } catch (_) {
+            continue;
+          }
+        }
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Failed to load Whisper native library: $e');
+    }
+    return null;
+  }
+
+  /// Bind all FFI functions from the library
+  void _bindFunctions() {
+    if (_lib == null) return;
+
+    // All functions use 'kl_whisper_' prefix to avoid conflicts with whisper.cpp
+    _whisperInit = _lib!
+        .lookup<NativeFunction<WhisperInitNative>>('kl_whisper_init')
+        .asFunction();
+
+    _whisperFree = _lib!
+        .lookup<NativeFunction<WhisperFreeNative>>('kl_whisper_free')
+        .asFunction();
+
+    _whisperDefaultConfig = _lib!
+        .lookup<NativeFunction<WhisperDefaultConfigNative>>(
+            'kl_whisper_default_config')
+        .asFunction();
+
+    _whisperTranscribeFile = _lib!
+        .lookup<NativeFunction<WhisperTranscribeFileNative>>(
+            'kl_whisper_transcribe_file')
+        .asFunction();
+
+    _whisperTranscribePcm = _lib!
+        .lookup<NativeFunction<WhisperTranscribePcmNative>>(
+            'kl_whisper_transcribe_pcm')
+        .asFunction();
+
+    _whisperFreeResult = _lib!
+        .lookup<NativeFunction<WhisperFreeResultNative>>(
+            'kl_whisper_free_result')
+        .asFunction();
+
+    _whisperGetModelInfo = _lib!
+        .lookup<NativeFunction<WhisperGetModelInfoNative>>(
+            'kl_whisper_get_model_info')
+        .asFunction();
+
+    _whisperGetError = _lib!
+        .lookup<NativeFunction<WhisperGetErrorNative>>('kl_whisper_get_error')
+        .asFunction();
+
+    _whisperGpuAvailable = _lib!
+        .lookup<NativeFunction<WhisperGpuAvailableNative>>(
+            'kl_whisper_gpu_available')
+        .asFunction();
+
+    _whisperGpuName = _lib!
+        .lookup<NativeFunction<WhisperGpuNameNative>>('kl_whisper_gpu_name')
+        .asFunction();
+
+    _whisperVersion = _lib!
+        .lookup<NativeFunction<WhisperVersionNative>>('kl_whisper_version')
+        .asFunction();
+
+    _whisperSupportedLanguages = _lib!
+        .lookup<NativeFunction<WhisperSupportedLanguagesNative>>(
+            'kl_whisper_supported_languages')
+        .asFunction();
+  }
 
   /// Load a Whisper model into memory for reuse
   ///
-  /// [modelPath] Path to the Whisper model file (.bin)
-  ///
-  /// Implementation Plan:
-  /// 1. Validate model file exists and has correct format
-  /// 2. Call whisper_init_from_file() FFI function
-  /// 3. Store context pointer in _modelContext field
-  /// 4. Query model metadata (type, multilingual, vocab size)
-  /// 5. Cache model info for getModelInfo() calls
-  /// 6. Handle OOM by throwing WhisperModelLoadException
+  /// [modelPath] Path to the Whisper model file (.bin/.ggml)
   Future<void> loadModel(String modelPath) async {
     _ensureInitialized();
 
-    if (_loadedModelPath == modelPath) return;
+    if (_loadedModelPath == modelPath && _modelHandle != null) return;
 
     // Unload any existing model first
     if (_loadedModelPath != null) {
@@ -114,44 +465,74 @@ class WhisperBindings extends NativeResource {
       throw WhisperModelLoadException('Model file not found: $modelPath');
     }
 
-    try {
-      // FFI Implementation Plan:
-      // 1. Call: whisper_init_from_file(modelPath.toNativeUtf8())
-      // 2. Check returned context is not nullptr
-      // 3. Store context pointer: _modelContext = ctx
-      // 4. Query model properties via whisper_model_* functions
-      // 5. Build WhisperModelInfo from native metadata
+    // Use FFI if available
+    if (hasNativeSupport && _whisperInit != null) {
+      final modelPathPtr = modelPath.toNativeUtf8();
+      try {
+        _modelHandle = _whisperInit!(modelPathPtr);
 
-      // Placeholder until FFI is implemented
+        if (_modelHandle == null || _modelHandle == nullptr) {
+          final errorPtr = _whisperGetError?.call();
+          final error = errorPtr != null && errorPtr != nullptr
+              ? errorPtr.toDartString()
+              : 'Unknown error';
+          throw WhisperModelLoadException('Failed to load model: $error');
+        }
+
+        // Get model info from native
+        if (_whisperGetModelInfo != null) {
+          final nativeInfo = _whisperGetModelInfo!(_modelHandle!);
+          final modelType = nativeInfo.modelType != nullptr
+              ? nativeInfo.modelType.toDartString()
+              : _inferModelType(modelPath);
+
+          _modelInfo = WhisperModelInfo(
+            modelPath: modelPath,
+            modelType: modelType,
+            languageCount: nativeInfo.isMultilingual ? 99 : 1,
+            isMultilingual: nativeInfo.isMultilingual,
+            usingGpu: nativeInfo.usingGpu,
+            vocabSize: nativeInfo.nVocab,
+            nMels: 80, // Standard for all Whisper models
+            loadedAt: DateTime.now(),
+          );
+        } else {
+          _modelInfo = _createFallbackModelInfo(modelPath);
+        }
+
+        _loadedModelPath = modelPath;
+        debugPrint('Model loaded: ${_modelInfo?.modelType} (GPU: ${_modelInfo?.usingGpu})');
+      } finally {
+        malloc.free(modelPathPtr);
+      }
+    } else {
+      // Fallback: just validate file and create metadata
       _loadedModelPath = modelPath;
-      _modelInfo = WhisperModelInfo(
-        modelPath: modelPath,
-        modelType: _inferModelType(modelPath),
-        languageCount: 99,
-        isMultilingual: !modelPath.contains('.en.'),
-        vocabSize: 51865,
-        nMels: 80,
-        loadedAt: DateTime.now(),
-      );
-    } catch (e) {
-      throw WhisperModelLoadException('Failed to load model: $e');
+      _modelInfo = _createFallbackModelInfo(modelPath);
     }
   }
 
+  /// Create fallback model info when FFI is not available
+  WhisperModelInfo _createFallbackModelInfo(String modelPath) {
+    return WhisperModelInfo(
+      modelPath: modelPath,
+      modelType: _inferModelType(modelPath),
+      languageCount: 99,
+      isMultilingual: !modelPath.contains('.en.'),
+      usingGpu: false, // Fallback mode doesn't use GPU
+      vocabSize: 51865,
+      nMels: 80,
+      loadedAt: DateTime.now(),
+    );
+  }
+
   /// Unload the currently loaded model and free resources
-  ///
-  /// Implementation Plan:
-  /// 1. Check if model is loaded (_modelContext != null)
-  /// 2. Call whisper_free(_modelContext) FFI function
-  /// 3. Set _modelContext to null
-  /// 4. Clear cached model info
   Future<void> unloadModel() async {
-    if (_loadedModelPath == null) return;
+    if (_modelHandle != null && _whisperFree != null) {
+      _whisperFree!(_modelHandle!);
+    }
 
-    // FFI Implementation Plan:
-    // 1. Call: whisper_free(_modelContext)
-    // 2. Set _modelContext = nullptr
-
+    _modelHandle = null;
     _loadedModelPath = null;
     _modelInfo = null;
   }
@@ -160,8 +541,6 @@ class WhisperBindings extends NativeResource {
   bool isModelLoaded() => _loadedModelPath != null && _modelInfo != null;
 
   /// Get information about the currently loaded model
-  ///
-  /// Returns null if no model is loaded
   WhisperModelInfo? getModelInfo() => _modelInfo;
 
   String _inferModelType(String modelPath) {
@@ -176,46 +555,12 @@ class WhisperBindings extends NativeResource {
     return 'unknown';
   }
 
-  /// Transcribe audio file using Whisper model
+  /// Transcribe audio file using Whisper model via FFI
   ///
-  /// [audioPath] Path to the audio file (WAV, MP3, etc.)
-  /// [modelPath] Path to the Whisper model (optional if model pre-loaded)
+  /// [audioPath] Path to the audio file (WAV format preferred, 16kHz mono)
+  /// [modelPath] Path to the Whisper model
   /// [language] Language code (e.g., 'en', 'es') or null for auto-detect
   /// [translateToEnglish] If true, translates non-English to English
-  ///
-  /// Implementation Plan:
-  /// 1. Pre-processing:
-  ///    - Load audio file using whisper_load_wav_file() or decode via FFmpeg
-  ///    - Resample to 16kHz mono if necessary
-  ///    - Convert to float32 PCM format
-  ///
-  /// 2. Model loading:
-  ///    - If modelPath provided and different from loaded, call loadModel()
-  ///    - Verify model is loaded, throw if not
-  ///
-  /// 3. Configure transcription parameters:
-  ///    - Create whisper_full_params with whisper_full_default_params()
-  ///    - Set language code if provided (params.language = language)
-  ///    - Set translate flag (params.translate = translateToEnglish)
-  ///    - Enable word timestamps (params.token_timestamps = true)
-  ///    - Set n_threads based on CPU cores
-  ///
-  /// 4. Run transcription:
-  ///    - Call whisper_full(_modelContext, params, samples, n_samples)
-  ///    - Check return code for errors
-  ///
-  /// 5. Extract results:
-  ///    - Get segment count: whisper_full_n_segments(_modelContext)
-  ///    - For each segment:
-  ///      - Get text: whisper_full_get_segment_text(_modelContext, i)
-  ///      - Get timing: whisper_full_get_segment_t0/t1(_modelContext, i)
-  ///      - Get tokens for word-level timing
-  ///    - Build Transcript object from segments
-  ///
-  /// 6. Error handling:
-  ///    - Wrap all FFI calls in try-catch
-  ///    - Convert native errors to WhisperTranscriptionException
-  ///    - Clean up temporary buffers on error
   Future<Transcript> transcribe(
     String audioPath,
     String modelPath, {
@@ -236,83 +581,230 @@ class WhisperBindings extends NativeResource {
       throw WhisperTranscriptionException('Audio file not found: $audioPath');
     }
 
-    try {
-      // Placeholder implementation - generates realistic segments
-      // See implementation plan above for actual FFI integration
-      final detectedLanguage = language ?? 'en';
+    // Use FFI transcription if available
+    if (hasNativeSupport &&
+        _modelHandle != null &&
+        _whisperTranscribeFile != null) {
+      return _transcribeWithFfi(
+        audioPath,
+        language: language,
+        translateToEnglish: translateToEnglish,
+      );
+    }
 
-      // Estimate duration from file size if not provided
-      // Rough estimate: ~128kbps for audio = ~16KB per second
-      Duration estimatedDuration;
-      if (mediaDuration != null && mediaDuration.inSeconds > 0) {
-        estimatedDuration = mediaDuration;
+    // Fall back to placeholder if FFI is not available
+    return _generatePlaceholderTranscript(
+      audioPath,
+      modelPath,
+      language: language,
+      mediaDuration: mediaDuration,
+    );
+  }
+
+  /// Transcribe using FFI (native library)
+  Future<Transcript> _transcribeWithFfi(
+    String audioPath, {
+    String? language,
+    bool translateToEnglish = false,
+  }) async {
+    // Create config
+    final configPtr = calloc<WhisperConfigNative>();
+    final audioPathPtr = audioPath.toNativeUtf8();
+    Pointer<Utf8>? languagePtr;
+
+    try {
+      // Fill config
+      final config = configPtr.ref;
+      config.nThreads = Platform.numberOfProcessors.clamp(1, 8);
+      config.useGpu = true;
+      config.gpuDevice = 0;
+      config.translate = translateToEnglish;
+      config.wordTimestamps = true;
+      config.wordThreshold = 0.01;
+      config.maxSegmentLength = 0;
+      config.splitOnWord = true;
+      config.temperature = 0.0;
+      config.beamSize = 5;
+      config.entropyThreshold = 2.4;
+      config.suppressBlank = true;
+      config.suppressNonSpeech = true;
+      config.noSpeechThreshold = 0.6;
+
+      if (language != null && language != 'auto') {
+        languagePtr = language.toNativeUtf8();
+        config.language = languagePtr;
       } else {
-        final fileSize = audioFile.lengthSync();
-        final estimatedSeconds = (fileSize / 16000).clamp(5, 3600).toInt();
-        estimatedDuration = Duration(seconds: estimatedSeconds);
+        config.language = nullptr;
       }
 
-      // Generate placeholder segments (one every ~5 seconds)
-      final segmentDuration = const Duration(seconds: 5);
-      final segments = <TranscriptSegment>[];
-      final placeholderTexts = [
-        'Speech segment detected here.',
-        'Transcription content would appear here.',
-        'Audio content is being processed.',
-        'Spoken words are transcribed in real-time.',
-        'This is placeholder text for testing.',
-        'The actual transcription will replace this.',
-        'Whisper model processes audio segments.',
-        'Speech recognition results appear here.',
-      ];
+      debugPrint('Transcribing: $audioPath');
+      final stopwatch = Stopwatch()..start();
 
-      var currentTime = Duration.zero;
-      var segmentIndex = 0;
+      // Call native transcription
+      final resultPtr = _whisperTranscribeFile!(
+        _modelHandle!,
+        audioPathPtr,
+        configPtr,
+      );
 
-      while (currentTime < estimatedDuration) {
-        final segmentEnd = currentTime + segmentDuration;
-        final actualEnd =
-            segmentEnd > estimatedDuration ? estimatedDuration : segmentEnd;
+      stopwatch.stop();
+      debugPrint('Transcription completed in ${stopwatch.elapsedMilliseconds}ms');
 
-        // Only add segment if it has meaningful duration
-        if (actualEnd.inMilliseconds - currentTime.inMilliseconds >= 500) {
-          final text = placeholderTexts[segmentIndex % placeholderTexts.length];
-          segments.add(
-            TranscriptSegment(
-              id: 'segment_$segmentIndex',
-              text: text,
-              startTime: currentTime,
-              endTime: actualEnd,
-              words: _generatePlaceholderWords(text, currentTime, actualEnd),
-            ),
-          );
+      if (resultPtr == nullptr) {
+        final errorPtr = _whisperGetError?.call();
+        final error = errorPtr != null && errorPtr != nullptr
+            ? errorPtr.toDartString()
+            : 'Unknown transcription error';
+        throw WhisperTranscriptionException(error);
+      }
+
+      try {
+        final result = resultPtr.ref;
+
+        if (!result.success) {
+          final error = result.errorMessage != nullptr
+              ? result.errorMessage.toDartString()
+              : 'Transcription failed';
+          throw WhisperTranscriptionException(error);
         }
 
-        currentTime = segmentEnd;
-        segmentIndex++;
+        // Convert native result to Transcript
+        return _convertNativeResult(resultPtr, _loadedModelPath!);
+      } finally {
+        // Free native result
+        _whisperFreeResult?.call(resultPtr);
       }
+    } finally {
+      calloc.free(configPtr);
+      malloc.free(audioPathPtr);
+      if (languagePtr != null) {
+        malloc.free(languagePtr);
+      }
+    }
+  }
 
-      // Ensure at least one segment
-      if (segments.isEmpty) {
-        segments.add(
-          TranscriptSegment(
-            id: 'segment_0',
-            text: 'Placeholder transcription',
-            startTime: Duration.zero,
-            endTime: estimatedDuration,
-            words: const [],
+  /// Convert native WhisperResult to Dart Transcript
+  Transcript _convertNativeResult(
+    Pointer<WhisperResultNative> resultPtr,
+    String modelPath,
+  ) {
+    final result = resultPtr.ref;
+    final segments = <TranscriptSegment>[];
+
+    for (var i = 0; i < result.numSegments; i++) {
+      final nativeSeg = result.segments.elementAt(i).ref;
+
+      // Extract words
+      final words = <TranscriptWord>[];
+      for (var j = 0; j < nativeSeg.numWords; j++) {
+        final nativeWord = nativeSeg.words.elementAt(j).ref;
+        words.add(
+          TranscriptWord(
+            word: nativeWord.text != nullptr
+                ? nativeWord.text.toDartString()
+                : '',
+            startTime: Duration(milliseconds: nativeWord.startMs),
+            endTime: Duration(milliseconds: nativeWord.endMs),
+            confidence: nativeWord.probability,
           ),
         );
       }
 
-      return Transcript(
-        segments: segments,
-        language: detectedLanguage,
-        modelId: modelPath.split('/').last,
+      segments.add(
+        TranscriptSegment(
+          id: 'segment_$i',
+          text: nativeSeg.text != nullptr ? nativeSeg.text.toDartString() : '',
+          startTime: Duration(milliseconds: nativeSeg.startMs),
+          endTime: Duration(milliseconds: nativeSeg.endMs),
+          words: words,
+        ),
       );
-    } catch (e) {
-      throw WhisperTranscriptionException('Transcription failed: $e');
     }
+
+    final detectedLanguage = result.detectedLanguage != nullptr
+        ? result.detectedLanguage.toDartString()
+        : 'en';
+
+    return Transcript(
+      segments: segments,
+      language: detectedLanguage,
+      modelId: p.basename(modelPath),
+    );
+  }
+
+  /// Generate placeholder transcript when FFI is not available
+  Transcript _generatePlaceholderTranscript(
+    String audioPath,
+    String modelPath, {
+    String? language,
+    Duration? mediaDuration,
+  }) {
+    final audioFile = File(audioPath);
+    final detectedLanguage = language ?? 'en';
+
+    // Estimate duration from file size if not provided
+    Duration estimatedDuration;
+    if (mediaDuration != null && mediaDuration.inSeconds > 0) {
+      estimatedDuration = mediaDuration;
+    } else {
+      final fileSize = audioFile.lengthSync();
+      final estimatedSeconds = (fileSize / 16000).clamp(5, 3600).toInt();
+      estimatedDuration = Duration(seconds: estimatedSeconds);
+    }
+
+    // Generate placeholder segments (one every ~5 seconds)
+    final segmentDuration = const Duration(seconds: 5);
+    final segments = <TranscriptSegment>[];
+    final placeholderTexts = [
+      '[Native library not loaded - placeholder mode]',
+      'Build whisper_wrapper native library for real transcription.',
+      'See native/whisper/README.md for build instructions.',
+      'Audio content would be transcribed here.',
+      'Speech recognition requires the native whisper_wrapper library.',
+    ];
+
+    var currentTime = Duration.zero;
+    var segmentIndex = 0;
+
+    while (currentTime < estimatedDuration) {
+      final segmentEnd = currentTime + segmentDuration;
+      final actualEnd =
+          segmentEnd > estimatedDuration ? estimatedDuration : segmentEnd;
+
+      if (actualEnd.inMilliseconds - currentTime.inMilliseconds >= 500) {
+        final text = placeholderTexts[segmentIndex % placeholderTexts.length];
+        segments.add(
+          TranscriptSegment(
+            id: 'segment_$segmentIndex',
+            text: text,
+            startTime: currentTime,
+            endTime: actualEnd,
+            words: _generatePlaceholderWords(text, currentTime, actualEnd),
+          ),
+        );
+      }
+
+      currentTime = segmentEnd;
+      segmentIndex++;
+    }
+
+    if (segments.isEmpty) {
+      segments.add(
+        TranscriptSegment(
+          id: 'segment_0',
+          text: '[Native library not loaded - build for real transcription]',
+          startTime: Duration.zero,
+          endTime: estimatedDuration,
+          words: const [],
+        ),
+      );
+    }
+
+    return Transcript(
+      segments: segments,
+      language: detectedLanguage,
+      modelId: p.basename(modelPath),
+    );
   }
 
   /// Generate placeholder words for a segment
@@ -432,7 +924,18 @@ class WhisperBindings extends NativeResource {
   Future<List<String>> getSupportedLanguages(String modelPath) async {
     _ensureInitialized();
 
-    // Whisper supports 99 languages
+    // Try to get from native library if available
+    if (hasNativeSupport &&
+        _modelHandle != null &&
+        _whisperSupportedLanguages != null) {
+      final langsPtr = _whisperSupportedLanguages!(_modelHandle!);
+      if (langsPtr != nullptr) {
+        final langsStr = langsPtr.toDartString();
+        return langsStr.split(',').where((l) => l.isNotEmpty).toList();
+      }
+    }
+
+    // Fallback: Whisper supports 99 languages
     return [
       'en',
       'zh',
@@ -469,9 +972,28 @@ class WhisperBindings extends NativeResource {
     _streamController?.close();
     _streamController = null;
 
-    // Unload model synchronously
+    // Free model via FFI if loaded
+    if (_modelHandle != null && _whisperFree != null) {
+      _whisperFree!(_modelHandle!);
+      _modelHandle = null;
+    }
+
     _loadedModelPath = null;
     _modelInfo = null;
+
+    // Clear function pointers
+    _whisperInit = null;
+    _whisperFree = null;
+    _whisperDefaultConfig = null;
+    _whisperTranscribeFile = null;
+    _whisperTranscribePcm = null;
+    _whisperFreeResult = null;
+    _whisperGetModelInfo = null;
+    _whisperGetError = null;
+    _whisperGpuAvailable = null;
+    _whisperGpuName = null;
+    _whisperVersion = null;
+    _whisperSupportedLanguages = null;
 
     _lib = null;
     _initialized = false;
