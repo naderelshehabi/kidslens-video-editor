@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/app.dart';
 import 'package:kidslens_video_editor/core/constants/supported_formats.dart';
+import 'package:kidslens_video_editor/data/models/gpu_info.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/presentation/screens/analysis_settings/analysis_settings_screen.dart';
 import 'package:kidslens_video_editor/presentation/screens/settings_screen.dart';
@@ -690,7 +691,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
     // Read GPU / threading settings
     final modelConfig = ref.read(settingsNotifierProvider).analysisSettings.modelConfig;
-    final gpuAvailable = whisper.isGpuAvailable;
+    // Use runtime GPU detection (nvidia-smi, etc.) rather than the whisper
+    // DLL's compile-time flag, which only reflects build-time CUDA linkage.
+    final gpuManager = ref.read(gpuAccelerationManagerProvider);
+    final accelerator = await gpuManager.detectAccelerator();
+    final gpuAvailable = accelerator.type != AcceleratorType.cpu;
     final useGpu = gpuAvailable && modelConfig.useGpu;
 
     final subtitleTrack = await showDialog<SubtitleTrack>(
