@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/native/bindings/ffmpeg_bindings.dart';
+import 'package:kidslens_video_editor/services/asr_cache_service.dart';
 import 'package:kidslens_video_editor/native/bindings/whisper_bindings.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
+import 'package:kidslens_video_editor/services/transcription_isolate.dart';
 import 'package:path/path.dart' as p;
 
 /// Service for orchestrating ASR (Automatic Speech Recognition) transcription
@@ -17,11 +20,13 @@ class AsrService {
     required this.whisper,
     required this.modelManager,
     required this.ffmpeg,
+    this.cache,
   });
 
   final WhisperBindings whisper;
   final ModelManagerService modelManager;
   final FFmpegBindings ffmpeg;
+  final AsrCacheService? cache;
 
   /// File extensions that are video formats requiring audio extraction
   static const _videoExtensions = {
@@ -174,6 +179,297 @@ class AsrService {
       );
     } finally {
       await _cleanupTempAudio();
+    }
+  }
+
+  /// Transcribe in a background isolate so the UI thread is never blocked.
+  ///
+  /// Audio extraction (FFmpeg) runs on the main thread (async, non-blocking).
+  /// The heavy FFI transcription runs in a dedicated [Isolate] using
+  /// overlapping audio chunks for accurate progress reporting.
+  ///
+  /// [onProgress] is called with (phase, progress 0.0-1.0, message,
+  /// currentTimestamp) where [currentTimestamp] is the audio position
+  /// currently being transcribed.
+  ///
+  /// [cancelToken] can be completed to abort.  The background isolate will
+  /// be killed immediately.
+  Future<Transcript> transcribeInBackground(
+    String audioPath, {
+    String? language,
+    String? preferredModel,
+    Duration? mediaDuration,
+    bool? useGpu,
+    int? nThreads,
+    int? beamSize,
+    void Function(
+      TranscriptionPhase phase,
+      double progress,
+      String message,
+      Duration? currentTimestamp,
+    )? onProgress,
+    Completer<void>? cancelToken,
+  }) async {
+    try {
+      void checkCancelled() {
+        if (cancelToken != null && cancelToken.isCompleted) {
+          throw AsrCancelledException();
+        }
+      }
+
+      // Phase 1: Extract / convert audio (async, non-blocking)
+      onProgress?.call(
+        TranscriptionPhase.extractingAudio,
+        0.0,
+        'Extracting audio...',
+        null,
+      );
+      final preparedAudioPath = await _prepareAudioForWhisper(audioPath);
+      checkCancelled();
+      onProgress?.call(
+        TranscriptionPhase.extractingAudio,
+        0.05,
+        'Audio extracted',
+        null,
+      );
+
+      // Phase 2: Resolve model path
+      onProgress?.call(
+        TranscriptionPhase.loadingModel,
+        0.05,
+        'Preparing model...',
+        null,
+      );
+      final modelId = preferredModel ?? await _selectModel();
+      final modelPath = await _ensureModelLoaded(modelId);
+      if (modelPath == null) {
+        throw AsrException('Model not found: $modelId. Please download it.');
+      }
+      checkCancelled();
+      onProgress?.call(
+        TranscriptionPhase.loadingModel,
+        0.10,
+        'Model ready',
+        null,
+      );
+
+      // Check cache before starting heavy transcription
+      if (cache != null) {
+        final cached = await cache!.lookup(
+          audioPath: preparedAudioPath,
+          modelId: modelId,
+          language: language,
+        );
+        if (cached != null) {
+          onProgress?.call(
+            TranscriptionPhase.complete,
+            1.0,
+            'Loaded from cache',
+            mediaDuration,
+          );
+          return cached;
+        }
+      }
+
+      // Check if native library is available
+      final libraryPath = whisper.nativeLibraryPath;
+      if (libraryPath == null || !whisper.hasNativeSupport) {
+        // Fallback: placeholder mode runs instantly, no isolate needed
+        onProgress?.call(
+          TranscriptionPhase.transcribing,
+          0.50,
+          'Generating placeholder subtitles...',
+          null,
+        );
+        final transcript = await whisper.transcribe(
+          preparedAudioPath,
+          modelPath,
+          language: language,
+          mediaDuration: mediaDuration,
+        );
+        onProgress?.call(
+          TranscriptionPhase.complete,
+          1.0,
+          'Complete!',
+          mediaDuration,
+        );
+        return transcript;
+      }
+
+      // Phase 3: Chunked transcription in background isolate
+      onProgress?.call(
+        TranscriptionPhase.transcribing,
+        0.10,
+        'Starting transcription...',
+        Duration.zero,
+      );
+
+      final params = TranscriptionIsolateParams(
+        libraryPath: libraryPath,
+        audioPath: preparedAudioPath,
+        modelPath: modelPath,
+        language: language,
+        useGpu: useGpu ?? true,
+        nThreads: nThreads ?? 0,
+        beamSize: beamSize ?? adaptiveBeamSize(modelId),
+      );
+
+      checkCancelled();
+
+      Transcript transcript;
+      try {
+        transcript = await _runChunkedInIsolate(
+          params,
+          onProgress: onProgress,
+          cancelToken: cancelToken,
+        );
+      } catch (e) {
+        // If the user explicitly cancelled, don't retry
+        if (e is AsrCancelledException) rethrow;
+
+        // If GPU was enabled, retry once with CPU-only as a fallback
+        if (params.useGpu) {
+          debugPrint(
+            'Transcription failed with GPU enabled, retrying with CPU: $e',
+          );
+          onProgress?.call(
+            TranscriptionPhase.transcribing,
+            0.10,
+            'GPU error — retrying with CPU...',
+            Duration.zero,
+          );
+
+          final cpuParams = TranscriptionIsolateParams(
+            libraryPath: params.libraryPath,
+            audioPath: params.audioPath,
+            modelPath: params.modelPath,
+            language: params.language,
+            translateToEnglish: params.translateToEnglish,
+            useGpu: false,
+            nThreads: params.nThreads,
+            beamSize: params.beamSize,
+          );
+
+          transcript = await _runChunkedInIsolate(
+            cpuParams,
+            onProgress: onProgress,
+            cancelToken: cancelToken,
+          );
+        } else {
+          rethrow;
+        }
+      }
+
+      checkCancelled();
+
+      // Cache the result for future re-use
+      if (cache != null) {
+        await cache!.store(
+          audioPath: preparedAudioPath,
+          modelId: modelId,
+          language: language,
+          transcript: transcript,
+        );
+      }
+
+      // Phase 4: Done
+      onProgress?.call(
+        TranscriptionPhase.complete,
+        1.0,
+        'Complete!',
+        mediaDuration,
+      );
+      debugPrint(
+        'Background transcription complete: '
+        '${transcript.segments.length} segments',
+      );
+      return transcript;
+    } finally {
+      await _cleanupTempAudio();
+    }
+  }
+
+  /// Spawn a background isolate that processes audio in overlapping chunks
+  /// and streams progress updates back via [ReceivePort].
+  static Future<Transcript> _runChunkedInIsolate(
+    TranscriptionIsolateParams params, {
+    void Function(
+      TranscriptionPhase phase,
+      double progress,
+      String message,
+      Duration? currentTimestamp,
+    )? onProgress,
+    Completer<void>? cancelToken,
+  }) async {
+    final receivePort = ReceivePort();
+    late final Isolate isolate;
+
+    try {
+      isolate = await Isolate.spawn(
+        chunkedTranscriptionEntry,
+        (params, receivePort.sendPort),
+      );
+    } catch (e) {
+      receivePort.close();
+      rethrow;
+    }
+
+    // If cancellation is requested, kill the isolate immediately.
+    StreamSubscription<void>? cancelSub;
+    if (cancelToken != null && !cancelToken.isCompleted) {
+      cancelSub = cancelToken.future.asStream().listen((_) {
+        isolate.kill(priority: Isolate.beforeNextEvent);
+        receivePort.close();
+      });
+    }
+
+    try {
+      Transcript? result;
+      String? error;
+
+      await for (final msg in receivePort) {
+        if (msg is Map) {
+          final type = msg['type'] as String;
+
+          if (type == 'progress') {
+            final progress = (msg['progress'] as num).toDouble();
+            final timestampMs = msg['timestampMs'] as int;
+            final message = msg['message'] as String;
+            onProgress?.call(
+              TranscriptionPhase.transcribing,
+              progress,
+              message,
+              Duration(milliseconds: timestampMs),
+            );
+          } else if (type == 'result') {
+            result = msg['transcript'] as Transcript;
+            break;
+          } else if (type == 'error') {
+            error = msg['message'] as String;
+            break;
+          }
+        }
+      }
+
+      if (cancelToken != null && cancelToken.isCompleted) {
+        throw AsrCancelledException();
+      }
+
+      if (error != null) {
+        throw AsrException(error);
+      }
+
+      if (result == null) {
+        throw AsrException(
+          'Transcription isolate ended without returning a result.',
+        );
+      }
+
+      return result;
+    } finally {
+      await cancelSub?.cancel();
+      receivePort.close();
+      isolate.kill(priority: Isolate.beforeNextEvent);
     }
   }
 
@@ -411,6 +707,22 @@ class AsrService {
       _tempAudioPath = null;
     }
   }
+
+  /// Compute an optimal beam size based on the model tier.
+  ///
+  /// Tiny/base models benefit less from wide beams (wasteful CPU), while
+  /// large models can exploit extra search width for better accuracy.
+  /// Returns the recommended beam size if the caller has not explicitly
+  /// overridden it (i.e. when [beamSize] is null).
+  static int adaptiveBeamSize(String modelId) {
+    final id = modelId.toLowerCase();
+    if (id.contains('tiny')) return 2;
+    if (id.contains('base')) return 3;
+    if (id.contains('small')) return 4;
+    if (id.contains('medium')) return 5;
+    // large, large-v2, large-v3
+    return 5;
+  }
 }
 
 /// Exception thrown by ASR service
@@ -421,4 +733,10 @@ class AsrException implements Exception {
 
   @override
   String toString() => 'AsrException: $message';
+}
+
+/// Exception thrown when the user cancels transcription.
+class AsrCancelledException implements Exception {
+  @override
+  String toString() => 'Transcription cancelled by user';
 }

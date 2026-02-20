@@ -14,20 +14,53 @@ cmake_policy(VERSION 3.14...3.25)
 # Native Libraries Build Options
 # ============================================================================
 option(BUILD_WHISPER_WRAPPER "Build whisper_wrapper native library" ON)
-option(WHISPER_USE_CUDA "Enable CUDA GPU acceleration for Whisper" OFF)
-# Vulkan is attempted by default but will gracefully fall back to CPU if not available
-option(WHISPER_USE_VULKAN "Enable Vulkan GPU acceleration for Whisper" ON)
+option(WHISPER_USE_CUDA "Enable CUDA GPU acceleration for Whisper (preferred)" ON)
+option(WHISPER_USE_VULKAN "Enable Vulkan GPU acceleration for Whisper (fallback)" ON)
 
-# Auto-detect Vulkan availability
-if(WHISPER_USE_VULKAN)
-  find_package(Vulkan QUIET)
-  if(NOT Vulkan_FOUND)
-    message(STATUS "Vulkan SDK not found - building Whisper with CPU-only support")
-    message(STATUS "For GPU acceleration, install Vulkan SDK: https://vulkan.lunarg.com/sdk/home")
+# ============================================================================
+# GPU Backend Auto-Detection: CUDA > Vulkan > CPU
+# CUDA is preferred for NVIDIA GPUs (2-4x faster than Vulkan for whisper.cpp)
+# Vulkan is the fallback for AMD/Intel GPUs
+# CPU is the final fallback when no GPU SDK is available
+# ============================================================================
+
+# Step 1: Try CUDA (preferred — fastest for NVIDIA hardware)
+if(WHISPER_USE_CUDA)
+  include(CheckLanguage)
+  check_language(CUDA)
+  if(CMAKE_CUDA_COMPILER)
+    enable_language(CUDA)
+    message(STATUS "CUDA compiler found — enabling CUDA backend (preferred)")
+    set(WHISPER_USE_CUDA ON CACHE BOOL "" FORCE)
+    # When CUDA is available, disable Vulkan to avoid conflicts
     set(WHISPER_USE_VULKAN OFF CACHE BOOL "" FORCE)
   else()
-    message(STATUS "Vulkan SDK found - GPU acceleration enabled")
+    message(STATUS "CUDA compiler not found — falling back to Vulkan/CPU")
+    set(WHISPER_USE_CUDA OFF CACHE BOOL "" FORCE)
   endif()
+endif()
+
+# Step 2: Try Vulkan (fallback for non-NVIDIA or when CUDA unavailable)
+if(NOT WHISPER_USE_CUDA AND WHISPER_USE_VULKAN)
+  find_package(Vulkan QUIET)
+  if(NOT Vulkan_FOUND)
+    message(STATUS "Vulkan SDK not found — building Whisper with CPU-only support")
+    message(STATUS "For GPU acceleration, install:")
+    message(STATUS "  NVIDIA: CUDA Toolkit — https://developer.nvidia.com/cuda-toolkit")
+    message(STATUS "  AMD/Intel: Vulkan SDK — https://vulkan.lunarg.com/sdk/home")
+    set(WHISPER_USE_VULKAN OFF CACHE BOOL "" FORCE)
+  else()
+    message(STATUS "Vulkan SDK found — GPU acceleration via Vulkan")
+  endif()
+endif()
+
+# Summary
+if(WHISPER_USE_CUDA)
+  message(STATUS "Whisper GPU backend: CUDA")
+elseif(WHISPER_USE_VULKAN)
+  message(STATUS "Whisper GPU backend: Vulkan")
+else()
+  message(STATUS "Whisper GPU backend: CPU-only")
 endif()
 
 # ============================================================================

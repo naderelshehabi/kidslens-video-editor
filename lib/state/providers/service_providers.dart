@@ -5,6 +5,7 @@ import 'package:kidslens_video_editor/native/bindings/onnx_bindings.dart';
 import 'package:kidslens_video_editor/native/bindings/whisper_bindings.dart';
 import 'package:kidslens_video_editor/native/gpu_manager.dart';
 import 'package:kidslens_video_editor/services/analysis_service.dart';
+import 'package:kidslens_video_editor/services/asr_cache_service.dart';
 import 'package:kidslens_video_editor/services/asr_service.dart';
 import 'package:kidslens_video_editor/services/beep_audio_service.dart';
 import 'package:kidslens_video_editor/services/export_service.dart';
@@ -85,10 +86,14 @@ ThumbnailService thumbnailService(Ref ref) =>
 BeepAudioService beepAudioService(Ref ref) => BeepAudioService();
 
 @Riverpod(keepAlive: true)
+AsrCacheService asrCacheService(Ref ref) => AsrCacheService();
+
+@Riverpod(keepAlive: true)
 AsrService asrService(Ref ref) => AsrService(
       whisper: ref.watch(whisperBindingsProvider),
       modelManager: ref.watch(modelManagerServiceProvider),
       ffmpeg: ref.watch(ffmpegBindingsProvider),
+      cache: ref.watch(asrCacheServiceProvider),
     );
 
 @Riverpod(keepAlive: true)

@@ -29,6 +29,7 @@ class TimelinePanel extends ConsumerStatefulWidget {
     this.thumbnails,
     this.subtitleTrack,
     this.onGenerateSubtitles,
+    this.onDeleteSubtitleTrack,
     this.isGeneratingSubtitles = false,
   });
 
@@ -43,6 +44,7 @@ class TimelinePanel extends ConsumerStatefulWidget {
   final List<Uint8List>? thumbnails;
   final SubtitleTrack? subtitleTrack;
   final VoidCallback? onGenerateSubtitles;
+  final VoidCallback? onDeleteSubtitleTrack;
   final bool isGeneratingSubtitles;
 
   @override
@@ -410,6 +412,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                     hasSubtitles: widget.subtitleTrack != null,
                     isGenerating: widget.isGeneratingSubtitles,
                     onGenerate: widget.onGenerateSubtitles,
+                    onDelete: widget.onDeleteSubtitleTrack,
                     language: widget.subtitleTrack?.language,
                   ),
                 ],
@@ -1570,12 +1573,14 @@ class _SubtitleTrackLabel extends StatelessWidget {
     required this.hasSubtitles,
     required this.isGenerating,
     this.onGenerate,
+    this.onDelete,
     this.language,
   });
 
   final bool hasSubtitles;
   final bool isGenerating;
   final VoidCallback? onGenerate;
+  final VoidCallback? onDelete;
   final String? language;
 
   @override
@@ -1627,6 +1632,22 @@ class _SubtitleTrackLabel extends StatelessWidget {
               child: CircularProgressIndicator(
                 strokeWidth: 2,
                 valueColor: AlwaysStoppedAnimation<Color>(trackColor),
+              ),
+            ),
+          if (hasSubtitles && !isGenerating)
+            Tooltip(
+              message: 'Delete subtitles',
+              child: InkWell(
+                onTap: onDelete,
+                borderRadius: BorderRadius.circular(4),
+                child: const Padding(
+                  padding: EdgeInsets.all(2),
+                  child: Icon(
+                    Icons.delete_outline,
+                    size: 14,
+                    color: trackColor,
+                  ),
+                ),
               ),
             ),
         ],

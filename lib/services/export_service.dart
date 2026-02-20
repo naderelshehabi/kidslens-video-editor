@@ -166,6 +166,24 @@ class ExportService {
       }
     }
 
+    // ============ SUBTITLE BURN-IN ============
+    if (settings.subtitleMode == SubtitleExportMode.burnIn &&
+        settings.subtitleFilePath != null) {
+      // FFmpeg subtitles filter requires forward slashes and escaped colons
+      final escapedPath = settings.subtitleFilePath!
+          .replaceAll(r'\', '/')
+          .replaceAll(':', r'\:');
+      final subtitleFilter = "subtitles='$escapedPath'";
+
+      if (chains.isNotEmpty && chains.first.startsWith('[0:v]')) {
+        // Append to existing video filter chain
+        chains[0] = '${chains[0]},$subtitleFilter';
+      } else {
+        // No existing video filters — create new chain
+        chains.insert(0, '[0:v]$subtitleFilter');
+      }
+    }
+
     // ============ AUDIO CHAIN ============
     // Complex graph with mixing for overlays (Beep, Replace)
     
@@ -338,6 +356,14 @@ class ExportProgress {
   final Duration? estimatedTimeRemaining;
 }
 
+/// How subtitles should be included in the export
+enum SubtitleExportMode {
+  /// No subtitle embedding in video stream
+  none,
+  /// Burn subtitles permanently into the video pixels
+  burnIn,
+}
+
 /// Settings for export operation
 class ExportSettings {
   const ExportSettings({
@@ -347,6 +373,8 @@ class ExportSettings {
     this.audioBitrate,
     this.preset,
     this.preserveMetadata = true,
+    this.subtitleMode = SubtitleExportMode.none,
+    this.subtitleFilePath,
   });
 
   final String? videoCodec;
@@ -355,6 +383,12 @@ class ExportSettings {
   final String? audioBitrate;
   final String? preset;
   final bool preserveMetadata;
+
+  /// How subtitles should be embedded in the video
+  final SubtitleExportMode subtitleMode;
+
+  /// Path to subtitle file for burn-in. Required when [subtitleMode] is [SubtitleExportMode.burnIn].
+  final String? subtitleFilePath;
 }
 
 /// Exception thrown during export

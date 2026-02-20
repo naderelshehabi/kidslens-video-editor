@@ -7,10 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/data/models/detection.dart';
 import 'package:kidslens_video_editor/data/models/edit_action.dart';
 import 'package:kidslens_video_editor/data/models/media_file.dart';
+import 'package:kidslens_video_editor/data/models/subtitle_track.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/blur_region_overlay.dart';
+import 'package:kidslens_video_editor/presentation/widgets/editor/subtitle_overlay.dart';
 import 'package:kidslens_video_editor/state/providers/playback_provider.dart';
 import 'package:kidslens_video_editor/state/providers/service_providers.dart';
-import 'package:media_kit/media_kit.dart';
+import 'package:media_kit/media_kit.dart' hide SubtitleTrack;
 import 'package:media_kit_video/media_kit_video.dart';
 
 /// Preview panel for video/audio with playback controls using media_kit
@@ -20,6 +22,7 @@ class PreviewPanel extends ConsumerStatefulWidget {
     required this.detections,
     required this.editActions,
     super.key,
+    this.subtitleTrack,
     this.onEditActionUpdated,
     this.editingBlurActionId,
     this.onEditingBlurActionChanged,
@@ -28,6 +31,7 @@ class PreviewPanel extends ConsumerStatefulWidget {
   final MediaFile? media;
   final List<Detection> detections;
   final List<EditAction> editActions;
+  final SubtitleTrack? subtitleTrack;
   final void Function(EditAction)? onEditActionUpdated;
   final String? editingBlurActionId;
   final void Function(String?)? onEditingBlurActionChanged;
@@ -418,6 +422,12 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                     ...activeDetections
                         .where((d) => d.isVisualDetection)
                         .map(_buildDetectionOverlay),
+                    
+                    // Subtitle overlay
+                    SubtitleOverlay(
+                      subtitleTrack: widget.subtitleTrack,
+                      currentPosition: position,
+                    ),
                   ],
                 ),
               ),

@@ -150,6 +150,9 @@ KL_WHISPER_API void kl_whisper_set_progress_callback(
     void* user_data
 );
 
+/** Cancel an in-progress transcription. Thread-safe. */
+KL_WHISPER_API void kl_whisper_cancel(KLWhisperHandle handle);
+
 // ============================================================================
 // Error Handling
 // ============================================================================

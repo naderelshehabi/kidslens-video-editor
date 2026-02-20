@@ -81,6 +81,7 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
   // Subtitle settings
   bool _exportSubtitles = true;
   SubtitleFormat _subtitleFormat = SubtitleFormat.srt;
+  SubtitleExportMode _subtitleExportMode = SubtitleExportMode.none;
 
   // Export state
   bool _isExporting = false;
@@ -299,6 +300,11 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
                   setState(() {
                     _format = value;
                     _updateOutputExtension();
+                    // Burn-in is not applicable for audio-only export
+                    if (value == ExportFormat.audioOnly &&
+                        _subtitleExportMode == SubtitleExportMode.burnIn) {
+                      _subtitleExportMode = SubtitleExportMode.none;
+                    }
                   });
                 }
               },
@@ -359,38 +365,79 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
                     ],
                   ),
                   if (_exportSubtitles) ...[
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<SubtitleFormat>(
-                      value: _subtitleFormat,
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        labelText: 'Subtitle Format',
+                    const SizedBox(height: 12),
+                    // Export mode selection
+                    Text(
+                      'Export Mode',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                      items: SubtitleFormat.values.map((format) => DropdownMenuItem(
-                          value: format,
-                          child: Row(
-                            children: [
-                              const Icon(Icons.subtitles, size: 18),
-                              const SizedBox(width: 8),
-                              Text(format.displayName),
-                            ],
-                          ),
-                        ),).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => _subtitleFormat = value);
-                        }
+                    ),
+                    const SizedBox(height: 8),
+                    SegmentedButton<SubtitleExportMode>(
+                      segments: [
+                        const ButtonSegment(
+                          value: SubtitleExportMode.none,
+                          label: Text('Separate File'),
+                          icon: Icon(Icons.file_copy, size: 16),
+                        ),
+                        ButtonSegment(
+                          value: SubtitleExportMode.burnIn,
+                          label: const Text('Burn Into Video'),
+                          icon: const Icon(Icons.subtitles, size: 16),
+                          enabled: _format != ExportFormat.audioOnly,
+                        ),
+                      ],
+                      selected: {_subtitleExportMode},
+                      onSelectionChanged: (modes) {
+                        setState(() => _subtitleExportMode = modes.first);
                       },
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _getSubtitleFormatDescription(_subtitleFormat),
+                      _subtitleExportMode == SubtitleExportMode.burnIn
+                          ? 'Subtitles will be permanently rendered into the video pixels. '
+                            'All players will show them without needing subtitle support.'
+                          : 'Subtitles will be exported as a standalone file alongside the video.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.outline,
                       ),
                     ),
+                    // Show format dropdown only for separate file mode
+                    if (_subtitleExportMode == SubtitleExportMode.none) ...[
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<SubtitleFormat>(
+                        value: _subtitleFormat,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          labelText: 'Subtitle Format',
+                        ),
+                        items: SubtitleFormat.values.map((format) => DropdownMenuItem(
+                            value: format,
+                            child: Row(
+                              children: [
+                                const Icon(Icons.subtitles, size: 18),
+                                const SizedBox(width: 8),
+                                Text(format.displayName),
+                              ],
+                            ),
+                          ),).toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _subtitleFormat = value);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _getSubtitleFormatDescription(_subtitleFormat),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.outline,
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -607,7 +654,35 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
       final exportService = ref.read(exportServiceProvider);
 
       // Build export settings from format and quality selections
-      final settings = _createExportSettings();
+      var settings = _createExportSettings();
+
+      // Handle subtitle burn-in: write temp SRT file for FFmpeg
+      String? tempSubtitlePath;
+      if (_exportSubtitles &&
+          widget.subtitleTrack != null &&
+          _subtitleExportMode == SubtitleExportMode.burnIn) {
+        tempSubtitlePath = p.join(
+          Directory.systemTemp.path,
+          'kidslens_burn_subs_${DateTime.now().millisecondsSinceEpoch}.srt',
+        );
+        final subtitleService = ref.read(subtitleServiceProvider);
+        final transcript = widget.subtitleTrack!.toTranscript();
+        await subtitleService.generateSubtitles(
+          transcript,
+          tempSubtitlePath,
+          SubtitleFormat.srt,
+        );
+        settings = ExportSettings(
+          videoCodec: settings.videoCodec,
+          audioCodec: settings.audioCodec,
+          videoBitrate: settings.videoBitrate,
+          audioBitrate: settings.audioBitrate,
+          preset: settings.preset,
+          preserveMetadata: settings.preserveMetadata,
+          subtitleMode: SubtitleExportMode.burnIn,
+          subtitleFilePath: tempSubtitlePath,
+        );
+      }
 
       // Convert EditActions to UnifiedTimeline for ExportService
       final timeline = _buildTimelineFromEditActions();
@@ -644,11 +719,23 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
         },
         onDone: () async {
           if (mounted && !_isCancelled) {
-            // Export subtitles if enabled and available
-            if (_exportSubtitles && widget.subtitleTrack != null) {
+            // Export subtitles as separate file (only when in 'separate file' mode)
+            if (_exportSubtitles &&
+                widget.subtitleTrack != null &&
+                _subtitleExportMode == SubtitleExportMode.none) {
               await _exportSubtitleFile();
             }
-            
+
+            // Clean up temp subtitle file used for burn-in
+            if (tempSubtitlePath != null) {
+              try {
+                final tempFile = File(tempSubtitlePath);
+                if (tempFile.existsSync()) {
+                  tempFile.deleteSync();
+                }
+              } catch (_) {}
+            }
+
             setState(() {
               _isExporting = false;
               _isComplete = true;

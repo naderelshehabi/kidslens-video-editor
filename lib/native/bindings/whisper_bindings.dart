@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 
@@ -276,6 +277,12 @@ class WhisperBindings extends NativeResource {
   String? _loadedModelPath;
   WhisperModelInfo? _modelInfo;
 
+  /// The resolved path to the native library, set after successful loading
+  String? _nativeLibraryPath;
+
+  /// Get the resolved native library path (available after [initialize])
+  String? get nativeLibraryPath => _nativeLibraryPath;
+
   // FFI function pointers
   WhisperInitDart? _whisperInit;
   WhisperFreeDart? _whisperFree;
@@ -295,6 +302,9 @@ class WhisperBindings extends NativeResource {
 
   /// Whether FFI library is loaded and available
   bool get hasNativeSupport => _lib != null && _whisperInit != null;
+
+  /// Whether GPU acceleration is available in the loaded native library
+  bool get isGpuAvailable => _whisperGpuAvailable?.call() ?? false;
 
   /// Initialize Whisper bindings by loading the native library
   Future<void> initialize() async {
@@ -341,7 +351,9 @@ class WhisperBindings extends NativeResource {
 
         for (final libPath in possiblePaths) {
           try {
-            return DynamicLibrary.open(libPath);
+            final lib = DynamicLibrary.open(libPath);
+            _nativeLibraryPath = libPath;
+            return lib;
           } catch (_) {
             continue;
           }
@@ -356,7 +368,9 @@ class WhisperBindings extends NativeResource {
 
         for (final libPath in possiblePaths) {
           try {
-            return DynamicLibrary.open(libPath);
+            final lib = DynamicLibrary.open(libPath);
+            _nativeLibraryPath = libPath;
+            return lib;
           } catch (_) {
             continue;
           }
@@ -372,7 +386,9 @@ class WhisperBindings extends NativeResource {
 
         for (final libPath in possiblePaths) {
           try {
-            return DynamicLibrary.open(libPath);
+            final lib = DynamicLibrary.open(libPath);
+            _nativeLibraryPath = libPath;
+            return lib;
           } catch (_) {
             continue;
           }
@@ -567,6 +583,9 @@ class WhisperBindings extends NativeResource {
     String? language,
     bool translateToEnglish = false,
     Duration? mediaDuration,
+    bool useGpu = true,
+    int nThreads = 0,
+    int beamSize = 5,
   }) async {
     _ensureInitialized();
 
@@ -589,6 +608,9 @@ class WhisperBindings extends NativeResource {
         audioPath,
         language: language,
         translateToEnglish: translateToEnglish,
+        useGpu: useGpu,
+        nThreads: nThreads,
+        beamSize: beamSize,
       );
     }
 
@@ -606,6 +628,9 @@ class WhisperBindings extends NativeResource {
     String audioPath, {
     String? language,
     bool translateToEnglish = false,
+    bool useGpu = true,
+    int nThreads = 0,
+    int beamSize = 5,
   }) async {
     // Create config
     final configPtr = calloc<WhisperConfigNative>();
@@ -615,8 +640,8 @@ class WhisperBindings extends NativeResource {
     try {
       // Fill config
       final config = configPtr.ref;
-      config.nThreads = Platform.numberOfProcessors.clamp(1, 8);
-      config.useGpu = true;
+      config.nThreads = nThreads > 0 ? nThreads : Platform.numberOfProcessors.clamp(1, 8);
+      config.useGpu = useGpu;
       config.gpuDevice = 0;
       config.translate = translateToEnglish;
       config.wordTimestamps = true;
@@ -624,7 +649,7 @@ class WhisperBindings extends NativeResource {
       config.maxSegmentLength = 0;
       config.splitOnWord = true;
       config.temperature = 0.0;
-      config.beamSize = 5;
+      config.beamSize = beamSize;
       config.entropyThreshold = 2.4;
       config.suppressBlank = true;
       config.suppressNonSpeech = true;
@@ -701,7 +726,7 @@ class WhisperBindings extends NativeResource {
         words.add(
           TranscriptWord(
             word: nativeWord.text != nullptr
-                ? nativeWord.text.toDartString()
+                ? _safeUtf8(nativeWord.text)
                 : '',
             startTime: Duration(milliseconds: nativeWord.startMs),
             endTime: Duration(milliseconds: nativeWord.endMs),
@@ -713,7 +738,7 @@ class WhisperBindings extends NativeResource {
       segments.add(
         TranscriptSegment(
           id: 'segment_$i',
-          text: nativeSeg.text != nullptr ? nativeSeg.text.toDartString() : '',
+          text: nativeSeg.text != nullptr ? _safeUtf8(nativeSeg.text) : '',
           startTime: Duration(milliseconds: nativeSeg.startMs),
           endTime: Duration(milliseconds: nativeSeg.endMs),
           words: words,
@@ -722,7 +747,7 @@ class WhisperBindings extends NativeResource {
     }
 
     final detectedLanguage = result.detectedLanguage != nullptr
-        ? result.detectedLanguage.toDartString()
+        ? _safeUtf8(result.detectedLanguage)
         : 'en';
 
     return Transcript(
@@ -930,7 +955,7 @@ class WhisperBindings extends NativeResource {
         _whisperSupportedLanguages != null) {
       final langsPtr = _whisperSupportedLanguages!(_modelHandle!);
       if (langsPtr != nullptr) {
-        final langsStr = langsPtr.toDartString();
+        final langsStr = _safeUtf8(langsPtr);
         return langsStr.split(',').where((l) => l.isNotEmpty).toList();
       }
     }
@@ -1035,4 +1060,19 @@ class WhisperTranscriptionException implements Exception {
 
   @override
   String toString() => 'WhisperTranscriptionException: $message';
+}
+
+/// Decode a native UTF-8 pointer without throwing on malformed bytes.
+///
+/// Whisper may return strings containing partial multi-byte sequences
+/// (especially for auto-detected language codes from English-only models).
+/// This replaces invalid bytes with the Unicode replacement character instead
+/// of throwing a [FormatException].
+String _safeUtf8(Pointer<Utf8> ptr) {
+  int len = 0;
+  while (ptr.cast<Uint8>().elementAt(len).value != 0) {
+    len++;
+  }
+  final bytes = ptr.cast<Uint8>().asTypedList(len);
+  return utf8.decode(bytes, allowMalformed: true);
 }

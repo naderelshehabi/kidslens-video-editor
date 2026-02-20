@@ -34,7 +34,7 @@ if(WHISPER_USE_BUNDLED)
     FetchContent_Declare(
         whisper
         GIT_REPOSITORY https://github.com/ggml-org/whisper.cpp.git
-        GIT_TAG        master
+        GIT_TAG        v1.7.3
         GIT_SHALLOW    TRUE
     )
     
@@ -57,6 +57,11 @@ if(WHISPER_USE_BUNDLED)
     if(WHISPER_USE_VULKAN)
         set(GGML_VULKAN ON CACHE BOOL "" FORCE)
     endif()
+
+    # Enable SIMD optimizations for CPU inference (Intel Haswell 2013+ / AMD Zen 2017+)
+    set(GGML_AVX2  ON CACHE BOOL "" FORCE)
+    set(GGML_FMA   ON CACHE BOOL "" FORCE)
+    set(GGML_F16C  ON CACHE BOOL "" FORCE)
     
     FetchContent_MakeAvailable(whisper)
     

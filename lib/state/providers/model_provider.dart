@@ -2,6 +2,7 @@ import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/services/huggingface_model_registry.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
 import 'package:kidslens_video_editor/state/providers/service_providers.dart';
+import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'model_provider.g.dart';
@@ -104,13 +105,23 @@ class ModelNotifier extends _$ModelNotifier {
       // Check which models are downloaded
       final downloadedIds = await _modelManager.getDownloadedModels();
 
-      // Set default selected models (recommended for each type)
+      // Read persisted model selections from settings
+      final settings = ref.read(settingsNotifierProvider);
+      final persistedAsrModelId =
+          settings.analysisSettings.modelConfig.asrModelId;
+
+      // Set selected models: prefer persisted settings, fall back to recommended
       final selectedModels = <HuggingFaceModelType, String>{};
       for (final type in HuggingFaceModelType.values) {
         final recommended = _registry.getRecommendedModel(type);
         if (recommended != null) {
           selectedModels[type] = recommended.id;
         }
+      }
+
+      // Override ASR selection with persisted value if available
+      if (persistedAsrModelId.isNotEmpty) {
+        selectedModels[HuggingFaceModelType.asr] = persistedAsrModelId;
       }
 
       state = state.copyWith(

@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <atomic>
 #include <mutex>
 #include <chrono>
 #include <fstream>
@@ -99,21 +100,13 @@ static bool load_wav_file(const char* path, std::vector<float>& pcm_out) {
                 }
                 pcm_out.resize(out_idx);
 
-                // Resample to 16kHz if needed
+                // Reject non-16kHz audio — the Dart pipeline (FFmpeg) must
+                // always pre-convert to 16 kHz before calling whisper.
+                // Linear-interpolation resampling was removed because it
+                // introduces aliasing artifacts that degrade transcription.
                 if (sample_rate != 16000) {
-                    std::vector<float> resampled;
-                    float ratio = static_cast<float>(sample_rate) / 16000.0f;
-                    size_t new_size = static_cast<size_t>(pcm_out.size() / ratio);
-                    resampled.resize(new_size);
-
-                    for (size_t i = 0; i < new_size; i++) {
-                        float src_idx = i * ratio;
-                        size_t idx0 = static_cast<size_t>(src_idx);
-                        size_t idx1 = std::min(idx0 + 1, pcm_out.size() - 1);
-                        float frac = src_idx - idx0;
-                        resampled[i] = pcm_out[idx0] * (1.0f - frac) + pcm_out[idx1] * frac;
-                    }
-                    pcm_out = std::move(resampled);
+                    fprintf(stderr, "[whisper_wrapper] Input audio must be 16 kHz. Got: %d Hz. Pre-process with FFmpeg: -ar 16000\n", sample_rate);
+                    return false;
                 }
 
                 return true;
@@ -150,6 +143,7 @@ struct kl_whisper_context {
     std::string model_type_str;
     std::string languages_cache;
     bool using_gpu;
+    std::atomic<bool> abort_flag{false};
 };
 
 // ============================================================================
@@ -294,6 +288,11 @@ KL_WHISPER_API void kl_whisper_set_progress_callback(
     handle->progress_user_data = user_data;
 }
 
+KL_WHISPER_API void kl_whisper_cancel(KLWhisperHandle handle) {
+    if (!handle) return;
+    handle->abort_flag.store(true, std::memory_order_release);
+}
+
 // Internal progress callback adapter
 static void internal_progress_callback(
     struct whisper_context* /*ctx*/,
@@ -420,7 +419,7 @@ KL_WHISPER_API KLWhisperResult* kl_whisper_transcribe_pcm(
     params.beam_search.beam_size = cfg.beam_size;
     params.entropy_thold = cfg.entropy_threshold;
     params.suppress_blank = cfg.suppress_blank;
-    params.suppress_nst = cfg.suppress_non_speech;
+    params.suppress_non_speech_tokens = cfg.suppress_non_speech;
     params.no_speech_thold = cfg.no_speech_threshold;
 
     // Set progress callback if registered
@@ -428,6 +427,14 @@ KL_WHISPER_API KLWhisperResult* kl_whisper_transcribe_pcm(
         params.progress_callback = internal_progress_callback;
         params.progress_callback_user_data = handle;
     }
+
+    // Set abort callback — allows kl_whisper_cancel() to interrupt whisper_full
+    handle->abort_flag.store(false, std::memory_order_release);
+    params.abort_callback = [](void* data) -> bool {
+        auto* ctx = static_cast<kl_whisper_context*>(data);
+        return ctx->abort_flag.load(std::memory_order_acquire);
+    };
+    params.abort_callback_user_data = handle;
 
     // Run transcription
     auto start_time = std::chrono::high_resolution_clock::now();

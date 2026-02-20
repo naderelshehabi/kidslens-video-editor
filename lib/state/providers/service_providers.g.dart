@@ -245,7 +245,24 @@ final beepAudioServiceProvider = Provider<BeepAudioService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef BeepAudioServiceRef = ProviderRef<BeepAudioService>;
-String _$asrServiceHash() => r'7851b469c53b78fae1f6f459a5d0e390acbc1211';
+String _$asrCacheServiceHash() => r'3492b2aaa3199772b1e159db3bbd32300e43fa22';
+
+/// See also [asrCacheService].
+@ProviderFor(asrCacheService)
+final asrCacheServiceProvider = Provider<AsrCacheService>.internal(
+  asrCacheService,
+  name: r'asrCacheServiceProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$asrCacheServiceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef AsrCacheServiceRef = ProviderRef<AsrCacheService>;
+String _$asrServiceHash() => r'139405a1f408453779b92c741339e00015c45d33';
 
 /// See also [asrService].
 @ProviderFor(asrService)

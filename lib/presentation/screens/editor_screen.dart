@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -127,6 +129,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                                       project.selectedMediaId!,
                                     )
                                   : [],
+                              subtitleTrack: project.selectedMediaId != null
+                                  ? project.subtitleTrackForMedia(
+                                      project.selectedMediaId!,
+                                    )
+                                  : null,
                               onEditActionUpdated: _onEditActionUpdated,
                               editingBlurActionId: _editingBlurActionId,
                               onEditingBlurActionChanged:
@@ -203,6 +210,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                       ? project.subtitleTrackForMedia(project.selectedMediaId!)
                       : null,
                   onGenerateSubtitles: _generateSubtitles,
+                  onDeleteSubtitleTrack: _deleteSubtitleTrack,
                   isGeneratingSubtitles: _isGeneratingSubtitles,
                 ),
               ),
@@ -628,6 +636,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       if (shouldRegenerate != true) return;
     }
 
+    // Ensure model state is up-to-date before checking download status
+    await ref.read(modelNotifierProvider.notifier).loadAvailableModels();
+
     // Check if ASR model is available
     final settings = ref.read(settingsNotifierProvider);
     final asrModelId = settings.analysisSettings.modelConfig.asrModelId;
@@ -668,50 +679,39 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       return;
     }
 
+    // Initialize whisper bindings (fast, just loads the DLL reference)
+    final whisper = ref.read(whisperBindingsProvider);
+    await whisper.initialize();
+
+    if (!mounted) return;
+
+    // Show the progress dialog and run transcription in background
     setState(() => _isGeneratingSubtitles = true);
 
-    try {
-      // Get the shared WhisperBindings instance from provider and initialize it
-      final whisper = ref.read(whisperBindingsProvider);
-      await whisper.initialize();
+    // Read GPU / threading settings
+    final modelConfig = ref.read(settingsNotifierProvider).analysisSettings.modelConfig;
+    final gpuAvailable = whisper.isGpuAvailable;
+    final useGpu = gpuAvailable && modelConfig.useGpu;
 
-      // Check if native library is available for real transcription
-      if (!whisper.hasNativeSupport) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text(
-                'Whisper native library not loaded. Using placeholder subtitles. '
-                'Build the native library for real speech recognition.',
-              ),
-              duration: const Duration(seconds: 5),
-              action: SnackBarAction(
-                label: 'Learn More',
-                onPressed: () {
-                  // Could open documentation URL
-                },
-              ),
-            ),
-          );
-        }
-      }
-
-      final asrService = ref.read(asrServiceProvider);
-
-      // Transcribe the media using transcribeToResult for direct result
-      // Pass media duration for better placeholder generation
-      final transcript = await asrService.transcribeToResult(
-        selectedMedia.path,
-        mediaDuration: selectedMedia.duration,
-      );
-
-      // Convert transcript to subtitle track
-      final subtitleTrack = SubtitleTrack.fromTranscript(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
-        transcript: transcript,
+    final subtitleTrack = await showDialog<SubtitleTrack>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _SubtitleGenerationDialog(
+        mediaPath: selectedMedia.path,
         mediaId: selectedMedia.id,
-      );
+        mediaDuration: selectedMedia.duration,
+        asrModelId: asrModelId,
+        hasNativeSupport: whisper.hasNativeSupport,
+        useGpu: useGpu,
+        nThreads: modelConfig.cpuThreads,
+      ),
+    );
 
+    if (mounted) {
+      setState(() => _isGeneratingSubtitles = false);
+    }
+
+    if (subtitleTrack != null) {
       // Update project with new subtitle track
       ref
           .read(projectNotifierProvider.notifier)
@@ -725,19 +725,44 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ),
         );
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to generate subtitles: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
+    }
+  }
+
+  Future<void> _deleteSubtitleTrack() async {
+    final project = ref.read(projectNotifierProvider).currentProject;
+    if (project == null) return;
+    final mediaId = project.selectedMediaId;
+    if (mediaId == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Subtitles'),
+        content: const Text(
+          'Are you sure you want to delete the subtitle track for this media? '
+          'This action can be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
           ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isGeneratingSubtitles = false);
-      }
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      ref.read(projectNotifierProvider.notifier).removeSubtitleTrack(mediaId);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Subtitles deleted')),
+      );
     }
   }
 
@@ -1260,6 +1285,447 @@ class _MenuItem implements _MenuItemBase {
 
 class _MenuDivider implements _MenuItemBase {
   const _MenuDivider();
+}
+
+// ============================================================================
+// Subtitle Generation Dialog
+// ============================================================================
+
+/// Dialog that shows transcription progress and runs it in a background isolate.
+class _SubtitleGenerationDialog extends ConsumerStatefulWidget {
+  const _SubtitleGenerationDialog({
+    required this.mediaPath,
+    required this.mediaId,
+    required this.mediaDuration,
+    required this.asrModelId,
+    required this.hasNativeSupport,
+    required this.useGpu,
+    required this.nThreads,
+  });
+
+  final String mediaPath;
+  final String mediaId;
+  final Duration mediaDuration;
+  final String asrModelId;
+  final bool hasNativeSupport;
+  final bool useGpu;
+  final int nThreads;
+
+  @override
+  ConsumerState<_SubtitleGenerationDialog> createState() =>
+      _SubtitleGenerationDialogState();
+}
+
+class _SubtitleGenerationDialogState
+    extends ConsumerState<_SubtitleGenerationDialog> {
+  TranscriptionPhase _phase = TranscriptionPhase.initializing;
+  String _statusMessage = 'Initializing...';
+  String? _error;
+  double _progress = 0.0;
+  Duration? _currentTimestamp;
+  bool _cancelled = false;
+  DateTime? _startTime;
+  Timer? _elapsedTimer;
+  final Completer<void> _cancelToken = Completer<void>();
+
+  // Ordered phases for the stepper UI
+  static const _orderedPhases = [
+    (TranscriptionPhase.extractingAudio, 'Extract audio'),
+    (TranscriptionPhase.loadingModel, 'Load model'),
+    (TranscriptionPhase.transcribing, 'Transcribe speech'),
+    (TranscriptionPhase.complete, 'Finalize'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _startTime = DateTime.now();
+    // Tick every second to keep the elapsed / ETA display live
+    _elapsedTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) {
+        if (mounted) setState(() {});
+      },
+    );
+    _runTranscription();
+  }
+
+  @override
+  void dispose() {
+    _elapsedTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _runTranscription() async {
+    try {
+      // Show a note about placeholder mode if no native support
+      if (!widget.hasNativeSupport) {
+        _updatePhase(
+          TranscriptionPhase.transcribing,
+          0.10,
+          'Generating placeholder subtitles (native library not loaded)...',
+          null,
+        );
+      }
+
+      final asrService = ref.read(asrServiceProvider);
+
+      final transcript = await asrService.transcribeInBackground(
+        widget.mediaPath,
+        preferredModel: widget.asrModelId,
+        mediaDuration: widget.mediaDuration,
+        useGpu: widget.useGpu,
+        nThreads: widget.nThreads,
+        onProgress: _updatePhase,
+        cancelToken: _cancelToken,
+      );
+
+      final subtitleTrack = SubtitleTrack.fromTranscript(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        transcript: transcript,
+        mediaId: widget.mediaId,
+      );
+
+      if (mounted && !_cancelled) {
+        Navigator.of(context).pop(subtitleTrack);
+      }
+    } catch (e) {
+      if (_cancelled) {
+        // User already dismissed the dialog; nothing to do.
+        return;
+      }
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _phase = TranscriptionPhase.failed;
+          _statusMessage = 'Subtitle generation failed';
+        });
+      }
+    }
+  }
+
+  void _updatePhase(
+    TranscriptionPhase phase,
+    double progress,
+    String message,
+    Duration? currentTimestamp,
+  ) {
+    if (mounted && !_cancelled) {
+      setState(() {
+        _phase = phase;
+        _progress = progress.clamp(0.0, 1.0);
+        _statusMessage = message;
+        if (currentTimestamp != null) {
+          _currentTimestamp = currentTimestamp;
+        }
+      });
+    }
+  }
+
+  void _onCancel() {
+    if (!_cancelToken.isCompleted) {
+      _cancelToken.complete();
+    }
+    setState(() => _cancelled = true);
+    Navigator.of(context).pop(); // returns null → no subtitle track
+  }
+
+  int get _currentPhaseIndex =>
+      _orderedPhases.indexWhere((p) => p.$1 == _phase);
+
+  String get _elapsedFormatted {
+    if (_startTime == null) return '';
+    final elapsed = DateTime.now().difference(_startTime!);
+    final minutes = elapsed.inMinutes;
+    final seconds = elapsed.inSeconds % 60;
+    return '${minutes}m ${seconds.toString().padLeft(2, '0')}s';
+  }
+
+  String? get _etaFormatted {
+    if (_startTime == null || _progress <= 0.0 || _progress >= 1.0) {
+      return null;
+    }
+    final elapsed = DateTime.now().difference(_startTime!);
+    final estimatedTotal = elapsed * (1.0 / _progress);
+    final remaining = estimatedTotal - elapsed;
+    if (remaining.isNegative) return null;
+    final minutes = remaining.inMinutes;
+    final seconds = remaining.inSeconds % 60;
+    return '~${minutes}m ${seconds.toString().padLeft(2, '0')}s remaining';
+  }
+
+  int get _progressPercent => (_progress * 100).round().clamp(0, 100);
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes;
+    final seconds = d.inSeconds % 60;
+    return '${minutes}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  String? get _timestampProgress {
+    if (_currentTimestamp == null ||
+        widget.mediaDuration == Duration.zero) {
+      return null;
+    }
+    return 'Processing ${_formatDuration(_currentTimestamp!)} '
+        '/ ${_formatDuration(widget.mediaDuration)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final hasFailed = _error != null;
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(
+            hasFailed ? Icons.error_outline : Icons.subtitles,
+            color: hasFailed ? colorScheme.error : colorScheme.primary,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              hasFailed
+                  ? 'Subtitle Generation Failed'
+                  : 'Generating Subtitles',
+            ),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // GPU acceleration status
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Icon(
+                    widget.useGpu ? Icons.bolt : Icons.memory,
+                    size: 16,
+                    color: widget.useGpu
+                        ? Colors.amber
+                        : colorScheme.outline,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    widget.useGpu
+                        ? 'GPU Accelerated'
+                        : 'CPU Only',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: widget.useGpu
+                          ? Colors.amber
+                          : colorScheme.outline,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Progress indicator with percentage
+            if (!hasFailed) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: _progress > 0 ? _progress : null,
+                        minHeight: 6,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '$_progressPercent%',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Phase status message
+            Text(
+              _statusMessage,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: hasFailed
+                    ? colorScheme.error
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Phase stepper
+            ..._buildPhaseSteps(theme, colorScheme),
+
+            // Current audio timestamp
+            if (_timestampProgress != null && !hasFailed) ...[
+              const SizedBox(height: 12),
+              Text(
+                _timestampProgress!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+
+            // Elapsed time & ETA
+            if (_startTime != null && !hasFailed) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(
+                    'Elapsed: $_elapsedFormatted',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.outline,
+                    ),
+                  ),
+                  if (_etaFormatted != null) ...[
+                    const SizedBox(width: 16),
+                    Text(
+                      _etaFormatted!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.outline,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+
+            // Model info
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                'Model: ${widget.asrModelId}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.outline,
+                ),
+              ),
+            ),
+
+            // Error details
+            if (hasFailed) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _error!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onErrorContainer,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        if (hasFailed)
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          )
+        else
+          TextButton(
+            onPressed: _onCancel,
+            child: const Text('Cancel'),
+          ),
+      ],
+    );
+  }
+
+  List<Widget> _buildPhaseSteps(ThemeData theme, ColorScheme colorScheme) {
+    final currentIdx = _currentPhaseIndex;
+    final hasFailed = _error != null;
+
+    return [
+      for (int i = 0; i < _orderedPhases.length; i++)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            children: [
+              // Step indicator icon
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: _buildStepIcon(
+                  i,
+                  currentIdx,
+                  hasFailed,
+                  colorScheme,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Step label
+              Text(
+                _orderedPhases[i].$2,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: i <= currentIdx && !hasFailed
+                      ? colorScheme.onSurface
+                      : colorScheme.outline,
+                  fontWeight:
+                      i == currentIdx ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+              // Active spinner
+              if (i == currentIdx && !hasFailed) ...[
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+    ];
+  }
+
+  Widget _buildStepIcon(
+    int stepIndex,
+    int currentIndex,
+    bool hasFailed,
+    ColorScheme colorScheme,
+  ) {
+    if (hasFailed && stepIndex == currentIndex) {
+      return Icon(Icons.close, size: 18, color: colorScheme.error);
+    }
+    if (stepIndex < currentIndex) {
+      return Icon(Icons.check_circle, size: 18, color: colorScheme.primary);
+    }
+    if (stepIndex == currentIndex) {
+      return Icon(
+        Icons.radio_button_checked,
+        size: 18,
+        color: colorScheme.primary,
+      );
+    }
+    return Icon(
+      Icons.radio_button_unchecked,
+      size: 18,
+      color: colorScheme.outlineVariant,
+    );
+  }
 }
 
 /// Dialog for running content analysis
