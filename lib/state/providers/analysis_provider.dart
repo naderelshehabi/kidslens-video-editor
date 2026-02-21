@@ -22,6 +22,7 @@ class AnalysisState {
     this.result,
     this.errorMessage,
     this.isPaused = false,
+    this.isCancelling = false,
     this.detections = const [],
   });
 
@@ -32,6 +33,7 @@ class AnalysisState {
   final AnalysisResult? result;
   final String? errorMessage;
   final bool isPaused;
+  final bool isCancelling;
   final List<Detection> detections;
 
   AnalysisState copyWith({
@@ -42,6 +44,7 @@ class AnalysisState {
     AnalysisResult? result,
     String? errorMessage,
     bool? isPaused,
+    bool? isCancelling,
     List<Detection>? detections,
     bool clearError = false,
   }) =>
@@ -54,6 +57,7 @@ class AnalysisState {
         result: result ?? this.result,
         errorMessage: clearError ? null : errorMessage,
         isPaused: isPaused ?? this.isPaused,
+        isCancelling: isCancelling ?? this.isCancelling,
         detections: detections ?? this.detections,
       );
 }
@@ -86,6 +90,7 @@ class AnalysisNotifier extends _$AnalysisNotifier {
       status: AnalysisStatus.running,
       progress: 0,
       currentStep: 'Initializing analysis...',
+      isCancelling: false,
       clearError: true,
     );
 
@@ -119,14 +124,17 @@ class AnalysisNotifier extends _$AnalysisNotifier {
 
       _jobProgressSubscription = job.progress.listen((jobProgress) {
         final progress = jobProgress.progress;
+        final message = state.isCancelling
+            ? 'Cancelling... finishing current operation (${jobProgress.message}). This may take a few minutes.'
+            : jobProgress.message;
         if (progress != null) {
           state = state.copyWith(
             progress: progress,
-            currentStep: jobProgress.message,
+            currentStep: message,
           );
           projectNotifier.updateAnalysisProgress(progress);
         } else {
-          state = state.copyWith(currentStep: jobProgress.message);
+          state = state.copyWith(currentStep: message);
         }
       });
 
@@ -144,20 +152,23 @@ class AnalysisNotifier extends _$AnalysisNotifier {
           detections: detections,
           result: result,
           isPaused: false,
+          isCancelling: false,
         );
       }
     } on CancelledException {
       projectNotifier.updateAnalysisProgress(0);
       state = state.copyWith(
         status: AnalysisStatus.cancelled,
-        currentStep: 'Cancelled',
+        currentStep: 'Cancelled by user',
         isPaused: false,
+        isCancelling: false,
       );
     } catch (e) {
       state = state.copyWith(
         status: AnalysisStatus.failed,
         errorMessage: e.toString(),
         isPaused: false,
+        isCancelling: false,
       );
     } finally {
       await _jobProgressSubscription?.cancel();
@@ -177,6 +188,7 @@ class AnalysisNotifier extends _$AnalysisNotifier {
   void pause() {
     if (state.status == AnalysisStatus.running &&
         !state.isPaused &&
+        !state.isCancelling &&
         _activeJob != null) {
       _activeJob!.pause();
       state = state.copyWith(isPaused: true, currentStep: 'Paused');
@@ -186,6 +198,7 @@ class AnalysisNotifier extends _$AnalysisNotifier {
   void resume() {
     if (state.status == AnalysisStatus.running &&
         state.isPaused &&
+        !state.isCancelling &&
         _activeJob != null) {
       _activeJob!.resume();
       state = state.copyWith(isPaused: false, currentStep: 'Resumed');
@@ -193,10 +206,19 @@ class AnalysisNotifier extends _$AnalysisNotifier {
   }
 
   void cancel() {
-    _activeJob?.cancel();
-    unawaited(_jobProgressSubscription?.cancel());
-    ref.read(projectNotifierProvider.notifier).updateAnalysisProgress(0);
-    state = state.copyWith(status: AnalysisStatus.cancelled, isPaused: false);
+    if (state.status != AnalysisStatus.running ||
+        state.isCancelling ||
+        _activeJob == null) {
+      return;
+    }
+
+    _activeJob!.cancel();
+    state = state.copyWith(
+      isCancelling: true,
+      isPaused: false,
+      currentStep:
+          'Cancelling... finishing current operation. This may take a few minutes.',
+    );
   }
 
   void reset() {

@@ -41,6 +41,12 @@ mixin _$AnalysisProgress {
   /// Total items in current step
   int? get totalItems => throw _privateConstructorUsedError;
 
+  /// Media duration processed so far in milliseconds.
+  int? get processedDurationMs => throw _privateConstructorUsedError;
+
+  /// Total media duration in milliseconds.
+  int? get totalDurationMs => throw _privateConstructorUsedError;
+
   /// Serializes this AnalysisProgress to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -64,7 +70,9 @@ abstract class $AnalysisProgressCopyWith<$Res> {
       double stepProgress,
       int? estimatedSecondsRemaining,
       int? itemsProcessed,
-      int? totalItems});
+      int? totalItems,
+      int? processedDurationMs,
+      int? totalDurationMs});
 }
 
 /// @nodoc
@@ -89,6 +97,8 @@ class _$AnalysisProgressCopyWithImpl<$Res, $Val extends AnalysisProgress>
     Object? estimatedSecondsRemaining = freezed,
     Object? itemsProcessed = freezed,
     Object? totalItems = freezed,
+    Object? processedDurationMs = freezed,
+    Object? totalDurationMs = freezed,
   }) {
     return _then(_value.copyWith(
       stepName: null == stepName
@@ -119,6 +129,14 @@ class _$AnalysisProgressCopyWithImpl<$Res, $Val extends AnalysisProgress>
           ? _value.totalItems
           : totalItems // ignore: cast_nullable_to_non_nullable
               as int?,
+      processedDurationMs: freezed == processedDurationMs
+          ? _value.processedDurationMs
+          : processedDurationMs // ignore: cast_nullable_to_non_nullable
+              as int?,
+      totalDurationMs: freezed == totalDurationMs
+          ? _value.totalDurationMs
+          : totalDurationMs // ignore: cast_nullable_to_non_nullable
+              as int?,
     ) as $Val);
   }
 }
@@ -138,7 +156,9 @@ abstract class _$$AnalysisProgressImplCopyWith<$Res>
       double stepProgress,
       int? estimatedSecondsRemaining,
       int? itemsProcessed,
-      int? totalItems});
+      int? totalItems,
+      int? processedDurationMs,
+      int? totalDurationMs});
 }
 
 /// @nodoc
@@ -161,6 +181,8 @@ class __$$AnalysisProgressImplCopyWithImpl<$Res>
     Object? estimatedSecondsRemaining = freezed,
     Object? itemsProcessed = freezed,
     Object? totalItems = freezed,
+    Object? processedDurationMs = freezed,
+    Object? totalDurationMs = freezed,
   }) {
     return _then(_$AnalysisProgressImpl(
       stepName: null == stepName
@@ -191,6 +213,14 @@ class __$$AnalysisProgressImplCopyWithImpl<$Res>
           ? _value.totalItems
           : totalItems // ignore: cast_nullable_to_non_nullable
               as int?,
+      processedDurationMs: freezed == processedDurationMs
+          ? _value.processedDurationMs
+          : processedDurationMs // ignore: cast_nullable_to_non_nullable
+              as int?,
+      totalDurationMs: freezed == totalDurationMs
+          ? _value.totalDurationMs
+          : totalDurationMs // ignore: cast_nullable_to_non_nullable
+              as int?,
     ));
   }
 }
@@ -205,7 +235,9 @@ class _$AnalysisProgressImpl extends _AnalysisProgress {
       required this.stepProgress,
       this.estimatedSecondsRemaining,
       this.itemsProcessed,
-      this.totalItems})
+      this.totalItems,
+      this.processedDurationMs,
+      this.totalDurationMs})
       : super._();
 
   factory _$AnalysisProgressImpl.fromJson(Map<String, dynamic> json) =>
@@ -239,9 +271,17 @@ class _$AnalysisProgressImpl extends _AnalysisProgress {
   @override
   final int? totalItems;
 
+  /// Media duration processed so far in milliseconds.
+  @override
+  final int? processedDurationMs;
+
+  /// Total media duration in milliseconds.
+  @override
+  final int? totalDurationMs;
+
   @override
   String toString() {
-    return 'AnalysisProgress(stepName: $stepName, currentStep: $currentStep, totalSteps: $totalSteps, stepProgress: $stepProgress, estimatedSecondsRemaining: $estimatedSecondsRemaining, itemsProcessed: $itemsProcessed, totalItems: $totalItems)';
+    return 'AnalysisProgress(stepName: $stepName, currentStep: $currentStep, totalSteps: $totalSteps, stepProgress: $stepProgress, estimatedSecondsRemaining: $estimatedSecondsRemaining, itemsProcessed: $itemsProcessed, totalItems: $totalItems, processedDurationMs: $processedDurationMs, totalDurationMs: $totalDurationMs)';
   }
 
   @override
@@ -263,7 +303,11 @@ class _$AnalysisProgressImpl extends _AnalysisProgress {
             (identical(other.itemsProcessed, itemsProcessed) ||
                 other.itemsProcessed == itemsProcessed) &&
             (identical(other.totalItems, totalItems) ||
-                other.totalItems == totalItems));
+                other.totalItems == totalItems) &&
+            (identical(other.processedDurationMs, processedDurationMs) ||
+                other.processedDurationMs == processedDurationMs) &&
+            (identical(other.totalDurationMs, totalDurationMs) ||
+                other.totalDurationMs == totalDurationMs));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -276,7 +320,9 @@ class _$AnalysisProgressImpl extends _AnalysisProgress {
       stepProgress,
       estimatedSecondsRemaining,
       itemsProcessed,
-      totalItems);
+      totalItems,
+      processedDurationMs,
+      totalDurationMs);
 
   /// Create a copy of AnalysisProgress
   /// with the given fields replaced by the non-null parameter values.
@@ -303,7 +349,9 @@ abstract class _AnalysisProgress extends AnalysisProgress {
       required final double stepProgress,
       final int? estimatedSecondsRemaining,
       final int? itemsProcessed,
-      final int? totalItems}) = _$AnalysisProgressImpl;
+      final int? totalItems,
+      final int? processedDurationMs,
+      final int? totalDurationMs}) = _$AnalysisProgressImpl;
   const _AnalysisProgress._() : super._();
 
   factory _AnalysisProgress.fromJson(Map<String, dynamic> json) =
@@ -336,6 +384,14 @@ abstract class _AnalysisProgress extends AnalysisProgress {
   /// Total items in current step
   @override
   int? get totalItems;
+
+  /// Media duration processed so far in milliseconds.
+  @override
+  int? get processedDurationMs;
+
+  /// Total media duration in milliseconds.
+  @override
+  int? get totalDurationMs;
 
   /// Create a copy of AnalysisProgress
   /// with the given fields replaced by the non-null parameter values.

@@ -621,7 +621,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         builder: (context) => AlertDialog(
           title: const Text('Subtitles Exist'),
           content: const Text(
-              'Subtitles already exist for this media. Do you want to regenerate them?',),
+            'Subtitles already exist for this media. Do you want to regenerate them?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -671,11 +672,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         if (shouldDownload ?? false) {
           if (!mounted) return;
           // Navigate to model settings - ASR models tab is at index 0
-          unawaited(Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => const AnalysisSettingsScreen(initialTab: 0),
+          unawaited(
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const AnalysisSettingsScreen(initialTab: 0),
+              ),
             ),
-          ),);
+          );
         }
       }
       return;
@@ -691,7 +694,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     setState(() => _isGeneratingSubtitles = true);
 
     // Read GPU / threading settings
-    final modelConfig = ref.read(settingsNotifierProvider).analysisSettings.modelConfig;
+    final modelConfig =
+        ref.read(settingsNotifierProvider).analysisSettings.modelConfig;
     // Use runtime GPU detection (nvidia-smi, etc.) rather than the whisper
     // DLL's compile-time flag, which only reflects build-time CUDA linkage.
     final gpuManager = ref.read(gpuAccelerationManagerProvider);
@@ -728,7 +732,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Generated ${subtitleTrack.segments.length} subtitle segments',),
+              'Generated ${subtitleTrack.segments.length} subtitle segments',
+            ),
           ),
         );
       }
@@ -912,9 +917,21 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final analysisState = ref.read(analysisNotifierProvider);
 
     if (analysisState.status == AnalysisStatus.running) {
+      if (analysisState.isCancelling) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cancellation already in progress. Please wait...'),
+          ),
+        );
+        return;
+      }
       ref.read(analysisNotifierProvider.notifier).cancel();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Analysis cancelled')),
+        const SnackBar(
+          content: Text(
+            'Cancellation requested. Stopping may take a few minutes.',
+          ),
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1470,8 +1487,7 @@ class _SubtitleGenerationDialogState
   }
 
   String? get _timestampProgress {
-    if (_currentTimestamp == null ||
-        widget.mediaDuration == Duration.zero) {
+    if (_currentTimestamp == null || widget.mediaDuration == Duration.zero) {
       return null;
     }
     return 'Processing ${_formatDuration(_currentTimestamp!)} '
@@ -1494,9 +1510,7 @@ class _SubtitleGenerationDialogState
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              hasFailed
-                  ? 'Subtitle Generation Failed'
-                  : 'Generating Subtitles',
+              hasFailed ? 'Subtitle Generation Failed' : 'Generating Subtitles',
             ),
           ),
         ],
@@ -1515,19 +1529,13 @@ class _SubtitleGenerationDialogState
                   Icon(
                     widget.useGpu ? Icons.bolt : Icons.memory,
                     size: 16,
-                    color: widget.useGpu
-                        ? Colors.amber
-                        : colorScheme.outline,
+                    color: widget.useGpu ? Colors.amber : colorScheme.outline,
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    widget.useGpu
-                        ? 'GPU Accelerated'
-                        : 'CPU Only',
+                    widget.useGpu ? 'GPU Accelerated' : 'CPU Only',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: widget.useGpu
-                          ? Colors.amber
-                          : colorScheme.outline,
+                      color: widget.useGpu ? Colors.amber : colorScheme.outline,
                     ),
                   ),
                 ],
@@ -1762,7 +1770,9 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
   void initState() {
     super.initState();
     // Ensure defaults are populated, then seed local toggles.
-    ref.read(settingsNotifierProvider.notifier).ensureContentDetectionDefaults();
+    ref
+        .read(settingsNotifierProvider.notifier)
+        .ensureContentDetectionDefaults();
     final categories = ref
         .read(settingsNotifierProvider)
         .analysisSettings
@@ -1804,6 +1814,7 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
     final theme = Theme.of(context);
     final analysisState = ref.watch(analysisNotifierProvider);
     final isRunning = analysisState.status == AnalysisStatus.running;
+    final isCancelling = analysisState.isCancelling;
     final isComplete = analysisState.status == AnalysisStatus.completed;
     final isFailed = analysisState.status == AnalysisStatus.failed;
 
@@ -1935,6 +1946,15 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
                     analysisState.currentStep ?? 'Processing...',
                     style: theme.textTheme.bodyMedium,
                   ),
+                  if (isCancelling) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Cancellation requested. Stopping can take a few minutes while the current model operation finishes.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   LinearProgressIndicator(
                     value: analysisState.progress,
@@ -2056,13 +2076,23 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
             label: const Text('Start Analysis'),
           ),
         ] else if (isRunning) ...[
-          TextButton(
-            onPressed: () {
-              ref.read(analysisNotifierProvider.notifier).cancel();
-              Navigator.of(context).pop();
-            },
-            child: const Text('Cancel'),
-          ),
+          if (isCancelling)
+            FilledButton.icon(
+              onPressed: null,
+              icon: const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              label: const Text('Cancelling...'),
+            )
+          else
+            TextButton(
+              onPressed: () {
+                ref.read(analysisNotifierProvider.notifier).cancel();
+              },
+              child: const Text('Cancel'),
+            ),
         ] else ...[
           FilledButton(
             onPressed: () {
@@ -2081,8 +2111,7 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
 
     // Build settings from the persisted analysis settings, applying the
     // user's category enable/disable toggles from this dialog.
-    final baseSettings =
-        ref.read(settingsNotifierProvider).analysisSettings;
+    final baseSettings = ref.read(settingsNotifierProvider).analysisSettings;
     final updatedCategories =
         baseSettings.contentDetectionConfig.categories.map((c) {
       final enabled = _categoryEnabled[c.id] ?? c.enabled;

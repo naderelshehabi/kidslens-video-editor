@@ -159,7 +159,7 @@ final profanityServiceProvider = Provider<ProfanityService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ProfanityServiceRef = ProviderRef<ProfanityService>;
-String _$analysisServiceHash() => r'681faac96402d1dcab173d3957986c1741f4a834';
+String _$analysisServiceHash() => r'1997a77ef44474c064724e89d2eb24b7e0181679';
 
 /// See also [analysisService].
 @ProviderFor(analysisService)

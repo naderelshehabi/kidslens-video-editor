@@ -6,7 +6,7 @@ part of 'analysis_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$analysisNotifierHash() => r'aedc40e91d906649afcc8153ae465b88a8a817b0';
+String _$analysisNotifierHash() => r'2f0bf1bbe7d427d423665267c9877513eece09cb';
 
 /// Provider for managing analysis state
 ///

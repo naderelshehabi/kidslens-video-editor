@@ -15,6 +15,7 @@ void main() {
         expect(state.result, isNull);
         expect(state.errorMessage, isNull);
         expect(state.isPaused, isFalse);
+        expect(state.isCancelling, isFalse);
         expect(state.detections, isEmpty);
       });
 
@@ -112,7 +113,9 @@ void main() {
 
         expect(newState.status, equals(AnalysisStatus.running));
         expect(
-            state.status, equals(AnalysisStatus.pending),); // Original unchanged
+          state.status,
+          equals(AnalysisStatus.pending),
+        ); // Original unchanged
       });
 
       test('should copy with new progress', () {
@@ -198,6 +201,19 @@ void main() {
         );
 
         expect(progress.overallProgress, equals(0.0));
+      });
+
+      test('should prefer media-duration progress when available', () {
+        const progress = AnalysisProgress(
+          stepName: 'Analyzing',
+          currentStep: 4,
+          totalSteps: 4,
+          stepProgress: 1,
+          processedDurationMs: 15000,
+          totalDurationMs: 60000,
+        );
+
+        expect(progress.overallProgress, equals(0.25));
       });
     });
 

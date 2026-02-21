@@ -57,6 +57,12 @@ class AnalysisProgress with _$AnalysisProgress {
 
     /// Total items in current step
     int? totalItems,
+
+    /// Media duration processed so far in milliseconds.
+    int? processedDurationMs,
+
+    /// Total media duration in milliseconds.
+    int? totalDurationMs,
   }) = _AnalysisProgress;
 
   const AnalysisProgress._();
@@ -74,11 +80,26 @@ class AnalysisProgress with _$AnalysisProgress {
 
   /// Overall progress (0.0 to 1.0)
   double get overallProgress {
+    final durationProgress = mediaDurationProgress;
+    if (durationProgress != null) {
+      return durationProgress;
+    }
+
     if (totalSteps == 0) return 0;
     final stepContribution = 1.0 / totalSteps;
     final completedSteps = (currentStep - 1) * stepContribution;
     final currentStepContribution = stepProgress * stepContribution;
     return (completedSteps + currentStepContribution).clamp(0.0, 1.0);
+  }
+
+  /// Media-duration based progress (0.0..1.0), if timing data is available.
+  double? get mediaDurationProgress {
+    final processed = processedDurationMs;
+    final total = totalDurationMs;
+    if (processed == null || total == null || total <= 0) {
+      return null;
+    }
+    return (processed / total).clamp(0.0, 1.0);
   }
 
   /// Overall progress as percentage (0-100)

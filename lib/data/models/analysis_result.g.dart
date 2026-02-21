@@ -17,6 +17,8 @@ _$AnalysisProgressImpl _$$AnalysisProgressImplFromJson(
           (json['estimatedSecondsRemaining'] as num?)?.toInt(),
       itemsProcessed: (json['itemsProcessed'] as num?)?.toInt(),
       totalItems: (json['totalItems'] as num?)?.toInt(),
+      processedDurationMs: (json['processedDurationMs'] as num?)?.toInt(),
+      totalDurationMs: (json['totalDurationMs'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$$AnalysisProgressImplToJson(
@@ -29,6 +31,8 @@ Map<String, dynamic> _$$AnalysisProgressImplToJson(
       'estimatedSecondsRemaining': instance.estimatedSecondsRemaining,
       'itemsProcessed': instance.itemsProcessed,
       'totalItems': instance.totalItems,
+      'processedDurationMs': instance.processedDurationMs,
+      'totalDurationMs': instance.totalDurationMs,
     };
 
 _$AnalysisResultImpl _$$AnalysisResultImplFromJson(Map<String, dynamic> json) =>

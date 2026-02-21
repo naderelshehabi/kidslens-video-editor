@@ -91,20 +91,24 @@ class AnalysisService {
   }) async* {
     final effectiveMediaId = mediaId ?? mediaPath;
     await _checkState(cancellationToken);
+    final mediaMetadata = await ffmpeg.probeMedia(mediaPath);
+    final mediaDurationMs = mediaMetadata.duration.inMilliseconds <= 0
+        ? 1
+        : mediaMetadata.duration.inMilliseconds;
+    final hasVisualAnalysis =
+        settings.contentDetectionConfig.hasVisualCategories;
 
-    yield const AnalysisProgress(
-      stepName: 'Initializing',
-      currentStep: 1,
-      totalSteps: 4,
-      stepProgress: 0,
+    yield _durationProgress(
+      stepName: 'Initializing analysis',
+      processedDurationMs: 0,
+      totalDurationMs: mediaDurationMs,
     );
 
     // Phase 1: Extract audio and transcribe
-    yield const AnalysisProgress(
-      stepName: 'Extracting audio',
-      currentStep: 1,
-      totalSteps: 4,
-      stepProgress: 0,
+    yield _durationProgress(
+      stepName: 'Preparing audio for transcription',
+      processedDurationMs: 0,
+      totalDurationMs: mediaDurationMs,
     );
 
     final shouldTranscribe = _hasProfanityCategory(settings);
@@ -114,11 +118,11 @@ class AnalysisService {
       if (existingTranscript != null) {
         // Reuse existing transcript — skip Whisper entirely
         transcript = existingTranscript;
-        yield AnalysisProgress(
-          stepName: 'Using existing transcript',
-          currentStep: 1,
-          totalSteps: 4,
-          stepProgress: 1,
+        yield _durationProgress(
+          stepName:
+              'Using existing transcript (${transcript.segments.length} segments)',
+          processedDurationMs: hasVisualAnalysis ? 0 : mediaDurationMs,
+          totalDurationMs: mediaDurationMs,
           itemsProcessed: transcript.segments.length,
           totalItems: transcript.segments.length,
         );
@@ -128,23 +132,30 @@ class AnalysisService {
           settings,
           cancellationToken: cancellationToken,
         );
-        yield AnalysisProgress(
-          stepName: 'Audio transcription complete',
-          currentStep: 1,
-          totalSteps: 4,
-          stepProgress: 1,
+        yield _durationProgress(
+          stepName:
+              'Audio transcription complete (${transcript.segments.length} segments)',
+          processedDurationMs: hasVisualAnalysis ? 0 : mediaDurationMs,
+          totalDurationMs: mediaDurationMs,
           itemsProcessed: transcript.segments.length,
           totalItems: transcript.segments.length,
         );
       } else {
         transcript = checkpoint!.transcript;
+        yield _durationProgress(
+          stepName:
+              'Using transcription from checkpoint (${transcript!.segments.length} segments)',
+          processedDurationMs: hasVisualAnalysis ? 0 : mediaDurationMs,
+          totalDurationMs: mediaDurationMs,
+          itemsProcessed: transcript.segments.length,
+          totalItems: transcript.segments.length,
+        );
       }
     } else {
-      yield const AnalysisProgress(
-        stepName: 'Skipping audio transcription',
-        currentStep: 1,
-        totalSteps: 4,
-        stepProgress: 1,
+      yield _durationProgress(
+        stepName: 'Skipping audio transcription (audio categories disabled)',
+        processedDurationMs: 0,
+        totalDurationMs: mediaDurationMs,
         itemsProcessed: 0,
         totalItems: 0,
       );
@@ -155,35 +166,41 @@ class AnalysisService {
     if (shouldTranscribe) {
       await _checkState(cancellationToken);
       if (checkpoint?.profanityMatches == null) {
-        yield const AnalysisProgress(
-          stepName: 'Detecting profanity',
-          currentStep: 2,
-          totalSteps: 4,
-          stepProgress: 0,
+        yield _durationProgress(
+          stepName: 'Detecting profanity in transcript',
+          processedDurationMs: hasVisualAnalysis ? 0 : mediaDurationMs,
+          totalDurationMs: mediaDurationMs,
         );
         profanityMatches = await _detectProfanity(
           transcript!,
           settings,
           cancellationToken: cancellationToken,
         );
-        yield AnalysisProgress(
-          stepName: 'Profanity detection complete',
-          currentStep: 2,
-          totalSteps: 4,
-          stepProgress: 1,
+        yield _durationProgress(
+          stepName:
+              'Profanity detection complete (${profanityMatches.length} matches)',
+          processedDurationMs: hasVisualAnalysis ? 0 : mediaDurationMs,
+          totalDurationMs: mediaDurationMs,
           itemsProcessed: profanityMatches.length,
           totalItems: profanityMatches.length,
         );
       } else {
         profanityMatches = checkpoint!.profanityMatches!;
+        yield _durationProgress(
+          stepName:
+              'Using profanity results from checkpoint (${profanityMatches.length} matches)',
+          processedDurationMs: hasVisualAnalysis ? 0 : mediaDurationMs,
+          totalDurationMs: mediaDurationMs,
+          itemsProcessed: profanityMatches.length,
+          totalItems: profanityMatches.length,
+        );
       }
     } else {
       profanityMatches = [];
-      yield const AnalysisProgress(
-        stepName: 'Skipping profanity detection',
-        currentStep: 2,
-        totalSteps: 4,
-        stepProgress: 1,
+      yield _durationProgress(
+        stepName: 'Skipping profanity detection (no audio categories enabled)',
+        processedDurationMs: 0,
+        totalDurationMs: mediaDurationMs,
         itemsProcessed: 0,
         totalItems: 0,
       );
@@ -193,11 +210,12 @@ class AnalysisService {
     final moeResults = <MoEFrameResult>[];
     final startFrame = checkpoint?.lastAnalyzedFrame ?? 0;
 
-    yield AnalysisProgress(
-      stepName: 'Analyzing video frames',
-      currentStep: 3,
-      totalSteps: 4,
-      stepProgress: 0,
+    yield _durationProgress(
+      stepName: startFrame > 0
+          ? 'Resuming visual analysis from checkpoint'
+          : 'Starting visual frame analysis',
+      processedDurationMs: 0,
+      totalDurationMs: mediaDurationMs,
       itemsProcessed: startFrame,
     );
 
@@ -213,13 +231,15 @@ class AnalysisService {
         mediaPath,
         settings,
         startFrame,
+        totalDurationMs: mediaDurationMs,
         cancellationToken: cancellationToken,
       )) {
         moeResults.add(result.frame);
-        yield AnalysisProgress(
-          stepName: 'Analyzing video frames',
-          currentStep: 3,
-          totalSteps: 4,
+        yield _durationProgress(
+          stepName:
+              'Analyzing visual content (frame ${result.frameNumber}/${result.totalFrames})',
+          processedDurationMs: result.processedDurationMs,
+          totalDurationMs: mediaDurationMs,
           stepProgress: result.progress,
           itemsProcessed: result.frameNumber,
           totalItems: result.totalFrames,
@@ -228,11 +248,10 @@ class AnalysisService {
     }
 
     // Phase 4: Build unified timeline
-    yield const AnalysisProgress(
-      stepName: 'Building timeline',
-      currentStep: 4,
-      totalSteps: 4,
-      stepProgress: 0.5,
+    yield _durationProgress(
+      stepName: 'Building final timeline and detections',
+      processedDurationMs: mediaDurationMs,
+      totalDurationMs: mediaDurationMs,
     );
 
     final timeline = await _buildTimeline(
@@ -246,10 +265,10 @@ class AnalysisService {
     );
     onTimelineBuilt?.call(timeline);
 
-    yield AnalysisProgress(
-      stepName: 'Complete',
-      currentStep: 4,
-      totalSteps: 4,
+    yield _durationProgress(
+      stepName: 'Analysis complete',
+      processedDurationMs: mediaDurationMs,
+      totalDurationMs: mediaDurationMs,
       stepProgress: 1,
       itemsProcessed: moeResults.length,
       totalItems: moeResults.length,
@@ -376,6 +395,7 @@ class AnalysisService {
     String mediaPath,
     AnalysisSettings settings,
     int startFrame, {
+    required int totalDurationMs,
     CancellationToken? cancellationToken,
   }) async* {
     final config = settings.contentDetectionConfig;
@@ -427,6 +447,10 @@ class AnalysisService {
           frameNumber: frameNumber,
           totalFrames: totalFrames,
           progress: frameNumber / totalFrames,
+          processedDurationMs: frameData.timestamp.inMilliseconds.clamp(
+            0,
+            totalDurationMs,
+          ),
         );
       } catch (e) {
         // Per-frame resilience: emit empty result on failure and continue
@@ -439,6 +463,10 @@ class AnalysisService {
           frameNumber: frameNumber,
           totalFrames: totalFrames,
           progress: frameNumber / totalFrames,
+          processedDurationMs: frameData.timestamp.inMilliseconds.clamp(
+            0,
+            totalDurationMs,
+          ),
         );
       }
     }
@@ -590,6 +618,39 @@ class AnalysisService {
       );
     }
   }
+
+  AnalysisProgress _durationProgress({
+    required String stepName,
+    required int processedDurationMs,
+    required int totalDurationMs,
+    double? stepProgress,
+    int? itemsProcessed,
+    int? totalItems,
+    int? estimatedSecondsRemaining,
+  }) {
+    final clampedTotal = totalDurationMs <= 0 ? 1 : totalDurationMs;
+    final clampedProcessed = processedDurationMs.clamp(0, clampedTotal);
+    final progress = stepProgress ?? (clampedProcessed / clampedTotal);
+    return AnalysisProgress(
+      stepName:
+          '$stepName (${_formatDurationMs(clampedProcessed)} / ${_formatDurationMs(clampedTotal)})',
+      currentStep: 1,
+      totalSteps: 1,
+      stepProgress: progress.clamp(0.0, 1.0),
+      estimatedSecondsRemaining: estimatedSecondsRemaining,
+      itemsProcessed: itemsProcessed,
+      totalItems: totalItems,
+      processedDurationMs: clampedProcessed,
+      totalDurationMs: clampedTotal,
+    );
+  }
+
+  String _formatDurationMs(int ms) {
+    final d = Duration(milliseconds: ms);
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
 }
 
 class _MoEFrameProgress {
@@ -598,12 +659,14 @@ class _MoEFrameProgress {
     required this.frameNumber,
     required this.totalFrames,
     required this.progress,
+    required this.processedDurationMs,
   });
 
   final MoEFrameResult frame;
   final int frameNumber;
   final int totalFrames;
   final double progress;
+  final int processedDurationMs;
 }
 
 /// Exception thrown during analysis
