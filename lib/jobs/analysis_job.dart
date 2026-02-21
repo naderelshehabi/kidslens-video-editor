@@ -15,16 +15,21 @@ class AnalysisJob extends Job<AnalysisResult> {
     required this.media,
     required this.settings,
     required this.analysisService,
+    this.existingTranscript,
     super.cancellationToken,
   });
 
   final MediaFile media;
   final AnalysisSettings settings;
   final AnalysisService analysisService;
+  final Transcript? existingTranscript;
 
   AnalysisCheckpoint? _checkpoint;
   String? _checkpointPath;
   DateTime? _startTime;
+  List<Detection> _detectedDetections = const [];
+
+  List<Detection> get detectedDetections => _detectedDetections;
 
   @override
   Future<AnalysisResult> execute() async {
@@ -42,7 +47,16 @@ class AnalysisJob extends Job<AnalysisResult> {
     await for (final progress in analysisService.analyze(
       media.path,
       settings,
+      mediaId: media.id,
       checkpoint: _checkpoint,
+      existingTranscript: existingTranscript,
+      cancellationToken: cancellationToken,
+      onDetectionsBuilt: (builtDetections) {
+        _detectedDetections = List<Detection>.unmodifiable(builtDetections);
+        detections
+          ..clear()
+          ..addAll(builtDetections);
+      },
     )) {
       // Check for cancellation/pause
       await cancellationToken.checkState();
@@ -53,10 +67,12 @@ class AnalysisJob extends Job<AnalysisResult> {
       // Save checkpoint periodically
       if (progress.overallProgress > 0 &&
           (progress.overallProgress * 100).toInt() % 10 == 0) {
-        await _saveCheckpoint(AnalysisCheckpoint(
-          lastAnalyzedFrame: progress.itemsProcessed ?? 0,
-          timestamp: DateTime.now(),
-        ),);
+        await _saveCheckpoint(
+          AnalysisCheckpoint(
+            lastAnalyzedFrame: progress.itemsProcessed ?? 0,
+            timestamp: DateTime.now(),
+          ),
+        );
       }
     }
 
@@ -70,7 +86,7 @@ class AnalysisJob extends Job<AnalysisResult> {
     );
 
     // Build final result
-    return AnalysisResult(
+    final result = AnalysisResult(
       id: id,
       status: AnalysisStatus.completed,
       mediaFileId: media.id,
@@ -83,6 +99,8 @@ class AnalysisJob extends Job<AnalysisResult> {
       progress: lastProgress,
       settings: settings.toJson(),
     );
+    await clearCheckpoint();
+    return result;
   }
 
   Future<void> _saveCheckpoint(AnalysisCheckpoint checkpoint) async {
@@ -91,6 +109,7 @@ class AnalysisJob extends Job<AnalysisResult> {
 
     final json = checkpoint.toJson();
     final file = File(_checkpointPath!);
+    await file.parent.create(recursive: true);
     await file.writeAsString(jsonEncode(json));
   }
 

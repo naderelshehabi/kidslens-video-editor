@@ -92,7 +92,7 @@ class ContentCategoryDefaults {
     iconName: 'sports_mma',
     modelContributions: [
       ModelContribution(
-        modelId: 'violence-mobilenet',
+        modelId: 'violence-vit-classifier',
         displayName: 'Violence Classifier',
         modelType: HuggingFaceModelType.violence,
       ),
@@ -126,7 +126,7 @@ class ContentCategoryDefaults {
     iconName: 'water_drop',
     modelContributions: [
       ModelContribution(
-        modelId: 'gore-efficientnet-b2',
+        modelId: 'gore-classifier',
         displayName: 'Gore Classifier',
         modelType: HuggingFaceModelType.blood,
       ),
@@ -157,7 +157,7 @@ class ContentCategoryDefaults {
     supportsRegions: true,
     modelContributions: [
       ModelContribution(
-        modelId: 'weapons-yolov8-small',
+        modelId: 'weapons-classifier',
         displayName: 'Weapons Detector',
         modelType: HuggingFaceModelType.weapons,
       ),

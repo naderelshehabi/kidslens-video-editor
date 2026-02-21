@@ -58,9 +58,9 @@ _$ContentCategoryImpl _$$ContentCategoryImplFromJson(
       name: json['name'] as String,
       description: json['description'] as String,
       type: $enumDecode(_$CategoryTypeEnumMap, json['type']),
+      action: $enumDecode(_$RemediationActionEnumMap, json['action']),
       enabled: json['enabled'] as bool? ?? true,
       threshold: (json['threshold'] as num?)?.toDouble() ?? 0.5,
-      action: $enumDecode(_$RemediationActionEnumMap, json['action']),
       modelContributions: (json['modelContributions'] as List<dynamic>?)
               ?.map(
                   (e) => ModelContribution.fromJson(e as Map<String, dynamic>))
@@ -78,9 +78,9 @@ Map<String, dynamic> _$$ContentCategoryImplToJson(
       'name': instance.name,
       'description': instance.description,
       'type': _$CategoryTypeEnumMap[instance.type]!,
+      'action': _$RemediationActionEnumMap[instance.action]!,
       'enabled': instance.enabled,
       'threshold': instance.threshold,
-      'action': _$RemediationActionEnumMap[instance.action]!,
       'modelContributions': instance.modelContributions,
       'isBuiltIn': instance.isBuiltIn,
       'iconName': instance.iconName,

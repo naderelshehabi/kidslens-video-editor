@@ -23,6 +23,7 @@ import 'package:kidslens_video_editor/services/temporal_aggregator.dart';
 import 'package:kidslens_video_editor/services/thumbnail_service.dart';
 import 'package:kidslens_video_editor/services/visual_analysis_service.dart';
 import 'package:kidslens_video_editor/services/voting_service.dart';
+import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'service_providers.g.dart';
@@ -54,7 +55,14 @@ MediaService mediaService(Ref ref) =>
     MediaService(ref.watch(ffmpegBindingsProvider));
 
 @Riverpod(keepAlive: true)
-ModelManagerService modelManagerService(Ref ref) => ModelManagerService();
+ModelManagerService modelManagerService(Ref ref) {
+  final modelPath = ref.watch(
+    settingsNotifierProvider.select((s) => s.modelCachePath),
+  );
+  return ModelManagerService(
+    customModelsPath: (modelPath == null || modelPath.isEmpty) ? null : modelPath,
+  );
+}
 
 @Riverpod(keepAlive: true)
 ProfanityService profanityService(Ref ref) => ProfanityService();
@@ -64,9 +72,9 @@ AnalysisService analysisService(Ref ref) => AnalysisService(
       ffmpeg: ref.watch(ffmpegBindingsProvider),
       whisper: ref.watch(whisperBindingsProvider),
       mms: ref.watch(mmsBindingsProvider),
-      onnx: ref.watch(onnxBindingsProvider),
       modelManager: ref.watch(modelManagerServiceProvider),
       profanity: ref.watch(profanityServiceProvider),
+      asrService: ref.watch(asrServiceProvider),
       visualAnalysis: ref.watch(visualAnalysisServiceProvider),
     );
 

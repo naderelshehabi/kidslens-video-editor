@@ -13,10 +13,10 @@ _$SubtitleTrackImpl _$$SubtitleTrackImplFromJson(Map<String, dynamic> json) =>
       language: json['language'] as String,
       createdAt:
           const DateTimeConverter().fromJson(json['createdAt'] as String),
-      modelId: json['modelId'] as String?,
       segments: (json['segments'] as List<dynamic>)
           .map((e) => SubtitleSegment.fromJson(e as Map<String, dynamic>))
           .toList(),
+      modelId: json['modelId'] as String?,
     );
 
 Map<String, dynamic> _$$SubtitleTrackImplToJson(_$SubtitleTrackImpl instance) =>
@@ -25,8 +25,8 @@ Map<String, dynamic> _$$SubtitleTrackImplToJson(_$SubtitleTrackImpl instance) =>
       'mediaId': instance.mediaId,
       'language': instance.language,
       'createdAt': const DateTimeConverter().toJson(instance.createdAt),
-      'modelId': instance.modelId,
       'segments': instance.segments,
+      'modelId': instance.modelId,
     };
 
 _$SubtitleSegmentImpl _$$SubtitleSegmentImplFromJson(

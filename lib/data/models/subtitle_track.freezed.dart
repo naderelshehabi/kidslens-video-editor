@@ -33,11 +33,11 @@ mixin _$SubtitleTrack {
   @DateTimeConverter()
   DateTime get createdAt => throw _privateConstructorUsedError;
 
-  /// The ASR model used to generate the subtitles
-  String? get modelId => throw _privateConstructorUsedError;
-
   /// Subtitle segments with timing
   List<SubtitleSegment> get segments => throw _privateConstructorUsedError;
+
+  /// The ASR model used to generate the subtitles
+  String? get modelId => throw _privateConstructorUsedError;
 
   /// Serializes this SubtitleTrack to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -60,8 +60,8 @@ abstract class $SubtitleTrackCopyWith<$Res> {
       String mediaId,
       String language,
       @DateTimeConverter() DateTime createdAt,
-      String? modelId,
-      List<SubtitleSegment> segments});
+      List<SubtitleSegment> segments,
+      String? modelId});
 }
 
 /// @nodoc
@@ -83,8 +83,8 @@ class _$SubtitleTrackCopyWithImpl<$Res, $Val extends SubtitleTrack>
     Object? mediaId = null,
     Object? language = null,
     Object? createdAt = null,
-    Object? modelId = freezed,
     Object? segments = null,
+    Object? modelId = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -103,14 +103,14 @@ class _$SubtitleTrackCopyWithImpl<$Res, $Val extends SubtitleTrack>
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
-      modelId: freezed == modelId
-          ? _value.modelId
-          : modelId // ignore: cast_nullable_to_non_nullable
-              as String?,
       segments: null == segments
           ? _value.segments
           : segments // ignore: cast_nullable_to_non_nullable
               as List<SubtitleSegment>,
+      modelId: freezed == modelId
+          ? _value.modelId
+          : modelId // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -128,8 +128,8 @@ abstract class _$$SubtitleTrackImplCopyWith<$Res>
       String mediaId,
       String language,
       @DateTimeConverter() DateTime createdAt,
-      String? modelId,
-      List<SubtitleSegment> segments});
+      List<SubtitleSegment> segments,
+      String? modelId});
 }
 
 /// @nodoc
@@ -149,8 +149,8 @@ class __$$SubtitleTrackImplCopyWithImpl<$Res>
     Object? mediaId = null,
     Object? language = null,
     Object? createdAt = null,
-    Object? modelId = freezed,
     Object? segments = null,
+    Object? modelId = freezed,
   }) {
     return _then(_$SubtitleTrackImpl(
       id: null == id
@@ -169,14 +169,14 @@ class __$$SubtitleTrackImplCopyWithImpl<$Res>
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
-      modelId: freezed == modelId
-          ? _value.modelId
-          : modelId // ignore: cast_nullable_to_non_nullable
-              as String?,
       segments: null == segments
           ? _value._segments
           : segments // ignore: cast_nullable_to_non_nullable
               as List<SubtitleSegment>,
+      modelId: freezed == modelId
+          ? _value.modelId
+          : modelId // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -189,8 +189,8 @@ class _$SubtitleTrackImpl extends _SubtitleTrack {
       required this.mediaId,
       required this.language,
       @DateTimeConverter() required this.createdAt,
-      this.modelId,
-      required final List<SubtitleSegment> segments})
+      required final List<SubtitleSegment> segments,
+      this.modelId})
       : _segments = segments,
         super._();
 
@@ -214,10 +214,6 @@ class _$SubtitleTrackImpl extends _SubtitleTrack {
   @DateTimeConverter()
   final DateTime createdAt;
 
-  /// The ASR model used to generate the subtitles
-  @override
-  final String? modelId;
-
   /// Subtitle segments with timing
   final List<SubtitleSegment> _segments;
 
@@ -229,9 +225,13 @@ class _$SubtitleTrackImpl extends _SubtitleTrack {
     return EqualUnmodifiableListView(_segments);
   }
 
+  /// The ASR model used to generate the subtitles
+  @override
+  final String? modelId;
+
   @override
   String toString() {
-    return 'SubtitleTrack(id: $id, mediaId: $mediaId, language: $language, createdAt: $createdAt, modelId: $modelId, segments: $segments)';
+    return 'SubtitleTrack(id: $id, mediaId: $mediaId, language: $language, createdAt: $createdAt, segments: $segments, modelId: $modelId)';
   }
 
   @override
@@ -245,14 +245,14 @@ class _$SubtitleTrackImpl extends _SubtitleTrack {
                 other.language == language) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
-            (identical(other.modelId, modelId) || other.modelId == modelId) &&
-            const DeepCollectionEquality().equals(other._segments, _segments));
+            const DeepCollectionEquality().equals(other._segments, _segments) &&
+            (identical(other.modelId, modelId) || other.modelId == modelId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, id, mediaId, language, createdAt,
-      modelId, const DeepCollectionEquality().hash(_segments));
+      const DeepCollectionEquality().hash(_segments), modelId);
 
   /// Create a copy of SubtitleTrack
   /// with the given fields replaced by the non-null parameter values.
@@ -276,8 +276,8 @@ abstract class _SubtitleTrack extends SubtitleTrack {
       required final String mediaId,
       required final String language,
       @DateTimeConverter() required final DateTime createdAt,
-      final String? modelId,
-      required final List<SubtitleSegment> segments}) = _$SubtitleTrackImpl;
+      required final List<SubtitleSegment> segments,
+      final String? modelId}) = _$SubtitleTrackImpl;
   const _SubtitleTrack._() : super._();
 
   factory _SubtitleTrack.fromJson(Map<String, dynamic> json) =
@@ -300,13 +300,13 @@ abstract class _SubtitleTrack extends SubtitleTrack {
   @DateTimeConverter()
   DateTime get createdAt;
 
-  /// The ASR model used to generate the subtitles
-  @override
-  String? get modelId;
-
   /// Subtitle segments with timing
   @override
   List<SubtitleSegment> get segments;
+
+  /// The ASR model used to generate the subtitles
+  @override
+  String? get modelId;
 
   /// Create a copy of SubtitleTrack
   /// with the given fields replaced by the non-null parameter values.

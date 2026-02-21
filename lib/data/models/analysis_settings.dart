@@ -17,16 +17,16 @@ class ModelConfig with _$ModelConfig {
     required String visualModelId,
 
     /// ID of the NSFW detection model
-    @Default('nsfw-mobilenet-v2') String nsfwModelId,
+    @Default('nsfw-vit-base-quantized') String nsfwModelId,
 
     /// ID of the violence detection model
-    @Default('violence-mobilenet') String violenceModelId,
+    @Default('violence-vit-classifier') String violenceModelId,
 
     /// ID of the blood/gore detection model
-    @Default('gore-efficientnet-b2') String bloodModelId,
+    @Default('gore-classifier') String bloodModelId,
 
     /// ID of the weapons detection model
-    @Default('weapons-yolov8-small') String weaponsModelId,
+    @Default('weapons-classifier') String weaponsModelId,
 
     /// Language for ASR (e.g., 'en', 'es', 'auto')
     @Default('en') String asrLanguage,
@@ -70,7 +70,7 @@ class ModelConfig with _$ModelConfig {
   /// Creates default model configuration
   factory ModelConfig.defaults() => const ModelConfig(
         asrModelId: 'whisper-base',
-        visualModelId: 'nsfw-mobilenet-v2',
+        visualModelId: 'nsfw-vit-base-quantized',
       );
 }
 

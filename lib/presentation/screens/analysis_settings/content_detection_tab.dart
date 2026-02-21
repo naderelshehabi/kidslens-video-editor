@@ -24,13 +24,16 @@ class ContentDetectionTab extends ConsumerStatefulWidget {
 
 class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
   bool _showAdvanced = false;
+  bool _isDownloadingRequiredModels = false;
 
   @override
   void initState() {
     super.initState();
     // Ensure defaults are populated
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(settingsNotifierProvider.notifier).ensureContentDetectionDefaults();
+      ref
+          .read(settingsNotifierProvider.notifier)
+          .ensureContentDetectionDefaults();
     });
   }
 
@@ -41,11 +44,17 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
     final settingsState = ref.watch(settingsNotifierProvider);
     final modelState = ref.watch(modelNotifierProvider);
     final config = settingsState.analysisSettings.contentDetectionConfig;
+    final requiredModelIds = _requiredModelIds(settingsState);
+    final missingModelIds =
+        requiredModelIds.difference(modelState.downloadedModels);
+    final modelNameById = {
+      for (final model in modelState.availableModels)
+        model.id: model.displayName,
+    };
 
     final visualCategories =
         config.categories.where((c) => c.isVisual).toList();
-    final audioCategories =
-        config.categories.where((c) => c.isAudio).toList();
+    final audioCategories = config.categories.where((c) => c.isAudio).toList();
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -69,6 +78,14 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
         _buildPresetRow(context, config),
         const SizedBox(height: 24),
 
+        _buildRequiredModelsCard(
+          context,
+          requiredModelIds: requiredModelIds,
+          missingModelIds: missingModelIds,
+          modelNameById: modelNameById,
+        ),
+        const SizedBox(height: 24),
+
         // Visual categories section
         if (visualCategories.isNotEmpty) ...[
           _buildSectionHeader(
@@ -88,13 +105,10 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
                 onToggleEnabled: (enabled) => _toggleCategory(cat.id, enabled),
                 onThresholdChanged: (value) =>
                     _setCategoryThreshold(cat.id, value),
-                onActionChanged: (action) =>
-                    _setCategoryAction(cat.id, action),
+                onActionChanged: (action) => _setCategoryAction(cat.id, action),
                 onToggleModel: (modelId, {required enabled}) =>
                     _toggleModel(cat.id, modelId, enabled),
-                onDelete: cat.isBuiltIn
-                    ? null
-                    : () => _deleteCategory(cat.id),
+                onDelete: cat.isBuiltIn ? null : () => _deleteCategory(cat.id),
               ),
             ),
           ),
@@ -120,13 +134,10 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
                 onToggleEnabled: (enabled) => _toggleCategory(cat.id, enabled),
                 onThresholdChanged: (value) =>
                     _setCategoryThreshold(cat.id, value),
-                onActionChanged: (action) =>
-                    _setCategoryAction(cat.id, action),
+                onActionChanged: (action) => _setCategoryAction(cat.id, action),
                 onToggleModel: (modelId, {required enabled}) =>
                     _toggleModel(cat.id, modelId, enabled),
-                onDelete: cat.isBuiltIn
-                    ? null
-                    : () => _deleteCategory(cat.id),
+                onDelete: cat.isBuiltIn ? null : () => _deleteCategory(cat.id),
               ),
             ),
           ),
@@ -402,15 +413,117 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
     );
   }
 
+  Widget _buildRequiredModelsCard(
+    BuildContext context, {
+    required Set<String> requiredModelIds,
+    required Set<String> missingModelIds,
+    required Map<String, String> modelNameById,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final missing = missingModelIds.toList()..sort();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.download, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Text('Required Models', style: theme.textTheme.titleMedium),
+                const Spacer(),
+                Text(
+                  '${requiredModelIds.length} total',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              missing.isEmpty
+                  ? 'All required models are downloaded.'
+                  : '${missing.length} required model(s) are missing.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: missing.isEmpty
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (missing.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: missing
+                    .map(
+                      (id) => Chip(
+                        avatar: const Icon(Icons.cloud_download, size: 16),
+                        label: Text(modelNameById[id] ?? id),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: missing.isEmpty || _isDownloadingRequiredModels
+                  ? null
+                  : () => _downloadMissingModels(missing),
+              icon: _isDownloadingRequiredModels
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download_for_offline),
+              label: Text(
+                _isDownloadingRequiredModels
+                    ? 'Downloading...'
+                    : 'Download All Required',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Set<String> _requiredModelIds(SettingsState settingsState) {
+    final settings = settingsState.analysisSettings;
+    final ids = <String>{};
+
+    if (settings.contentDetectionConfig.hasVisualCategories) {
+      ids
+        ..add(settings.modelConfig.nudeNetModelId)
+        ..add(settings.modelConfig.clipVisionModelId)
+        ..add(settings.modelConfig.clipTextModelId);
+    }
+
+    if (settings.contentDetectionConfig.hasAudioCategories ||
+        settings.enableProfanity) {
+      ids.add(settings.modelConfig.asrModelId);
+    }
+    return ids;
+  }
+
   // ─────────────────────────────────────────────────────────────────
   // Actions
   // ─────────────────────────────────────────────────────────────────
 
   void _toggleCategory(String categoryId, bool enabled) {
     final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
-    final config =
-        ref.read(settingsNotifierProvider).analysisSettings.contentDetectionConfig;
-    final categories = config.categories.map((c) => c.id == categoryId ? c.copyWith(enabled: enabled) : c).toList();
+    final config = ref
+        .read(settingsNotifierProvider)
+        .analysisSettings
+        .contentDetectionConfig;
+    final categories = config.categories
+        .map((c) => c.id == categoryId ? c.copyWith(enabled: enabled) : c)
+        .toList();
     settingsNotifier
         .updateContentDetectionConfig(config.copyWith(categories: categories));
   }
@@ -462,7 +575,9 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
   }
 
   void _updateVotingConfig(VotingConfig votingConfig) {
-    ref.read(settingsNotifierProvider.notifier).updateVotingConfig(votingConfig);
+    ref
+        .read(settingsNotifierProvider.notifier)
+        .updateVotingConfig(votingConfig);
   }
 
   void _updateConfig(ContentDetectionConfig config) {
@@ -472,25 +587,35 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
   }
 
   void _applyPreset(_Preset preset) {
-    final config =
-        ref.read(settingsNotifierProvider).analysisSettings.contentDetectionConfig;
+    final config = ref
+        .read(settingsNotifierProvider)
+        .analysisSettings
+        .contentDetectionConfig;
     final defaults = ContentCategoryDefaults.allCategories;
 
     List<ContentCategory> updated;
     switch (preset) {
       case _Preset.strict:
         // Enable all, lower thresholds
-        updated = defaults.map((def) => def.copyWith(
-          enabled: true,
-          threshold: (def.threshold - 0.15).clamp(0.1, 0.95),
-        ),).toList();
+        updated = defaults
+            .map(
+              (def) => def.copyWith(
+                enabled: true,
+                threshold: (def.threshold - 0.15).clamp(0.1, 0.95),
+              ),
+            )
+            .toList();
       case _Preset.balanced:
         updated = List.of(defaults); // Reset to defaults
       case _Preset.permissive:
         // Keep enabled, raise thresholds
-        updated = defaults.map((def) => def.copyWith(
-          threshold: (def.threshold + 0.15).clamp(0.1, 0.95),
-        ),).toList();
+        updated = defaults
+            .map(
+              (def) => def.copyWith(
+                threshold: (def.threshold + 0.15).clamp(0.1, 0.95),
+              ),
+            )
+            .toList();
     }
 
     // Preserve any custom categories the user added
@@ -605,7 +730,8 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
               onPressed: () {
                 final name = nameController.text.trim();
                 if (name.isEmpty) return;
-                final id = name.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '_');
+                final id =
+                    name.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '_');
                 Navigator.pop(
                   context,
                   ContentCategory(
@@ -641,6 +767,29 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
       }
     });
   }
+
+  Future<void> _downloadMissingModels(List<String> modelIds) async {
+    if (modelIds.isEmpty) return;
+    setState(() => _isDownloadingRequiredModels = true);
+
+    final failed = <String>[];
+    for (final modelId in modelIds) {
+      try {
+        await ref.read(modelNotifierProvider.notifier).downloadModel(modelId);
+      } catch (_) {
+        failed.add(modelId);
+      }
+    }
+
+    if (!mounted) return;
+    setState(() => _isDownloadingRequiredModels = false);
+
+    final message = failed.isEmpty
+        ? 'All required models downloaded.'
+        : 'Failed to download: ${failed.join(', ')}';
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
 }
 
 enum _Preset { strict, balanced, permissive }
@@ -660,15 +809,15 @@ class _PresetButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Tooltip(
-      message: tooltip,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 16),
-        label: Text(label),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          visualDensity: VisualDensity.compact,
+        message: tooltip,
+        child: OutlinedButton.icon(
+          onPressed: onPressed,
+          icon: Icon(icon, size: 16),
+          label: Text(label),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            visualDensity: VisualDensity.compact,
+          ),
         ),
-      ),
-    );
+      );
 }

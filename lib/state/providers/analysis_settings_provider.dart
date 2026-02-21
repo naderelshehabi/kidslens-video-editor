@@ -75,10 +75,10 @@ class AnalysisSettingsState {
   /// Create with default recommended models
   factory AnalysisSettingsState.withDefaults() => const AnalysisSettingsState(
         visualModelIds: {
-          HuggingFaceModelType.nsfw: 'nsfw-efficientnet-b4',
-          HuggingFaceModelType.violence: 'violence-vit-base',
-          HuggingFaceModelType.blood: 'gore-efficientnet-b2',
-          HuggingFaceModelType.weapons: 'weapons-yolov8-small',
+          HuggingFaceModelType.nsfw: 'nsfw-vit-base-quantized',
+          HuggingFaceModelType.violence: 'violence-vit-classifier',
+          HuggingFaceModelType.blood: 'gore-classifier',
+          HuggingFaceModelType.weapons: 'weapons-classifier',
         },
       );
 
@@ -105,7 +105,7 @@ class AnalysisSettingsState {
   /// Selected ASR model ID
   final String asrModelId;
 
-  /// Selected visual model IDs mapped by type (e.g., nsfw -> 'nsfw-mobilenet-v2')
+  /// Selected visual model IDs mapped by type (e.g., nsfw -> 'nsfw-vit-base-quantized')
   final Map<HuggingFaceModelType, String> visualModelIds;
 
   /// Detection thresholds (0.0 - 1.0)
@@ -228,15 +228,19 @@ class AnalysisSettingsState {
       modelConfig: ModelConfig(
         asrModelId: asrModelId,
         visualModelId:
-            visualModelIds[HuggingFaceModelType.nsfw] ?? 'nsfw-mobilenet-v2',
+            visualModelIds[HuggingFaceModelType.nsfw] ??
+                'nsfw-vit-base-quantized',
         nsfwModelId:
-            visualModelIds[HuggingFaceModelType.nsfw] ?? 'nsfw-mobilenet-v2',
+            visualModelIds[HuggingFaceModelType.nsfw] ??
+                'nsfw-vit-base-quantized',
         violenceModelId:
-            visualModelIds[HuggingFaceModelType.violence] ?? 'violence-mobilenet',
+            visualModelIds[HuggingFaceModelType.violence] ??
+                'violence-vit-classifier',
         bloodModelId:
-            visualModelIds[HuggingFaceModelType.blood] ?? 'gore-efficientnet-b2',
+            visualModelIds[HuggingFaceModelType.blood] ?? 'gore-classifier',
         weaponsModelId:
-            visualModelIds[HuggingFaceModelType.weapons] ?? 'weapons-yolov8-small',
+            visualModelIds[HuggingFaceModelType.weapons] ??
+                'weapons-classifier',
         asrLanguage: asrLanguage,
         useGpu: useGpuAcceleration,
         cpuThreads: cpuThreads,

@@ -7,6 +7,7 @@ import 'package:kidslens_video_editor/presentation/screens/editor_screen.dart';
 import 'package:kidslens_video_editor/presentation/screens/settings_screen.dart';
 import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 import 'package:kidslens_video_editor/services/project_service.dart';
+import 'package:kidslens_video_editor/state/providers/model_provider.dart';
 import 'package:kidslens_video_editor/state/providers/project_provider.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -42,8 +43,12 @@ class _KidsLensAppState extends ConsumerState<KidsLensApp> {
   @override
   void initState() {
     super.initState();
-    // Load persisted settings
-    ref.read(settingsNotifierProvider.notifier).loadSettings();
+    // Load persisted settings first so model cache path is applied, then
+    // validate downloaded models against disk at startup.
+    Future<void>(() async {
+      await ref.read(settingsNotifierProvider.notifier).loadSettings();
+      await ref.read(modelNotifierProvider.notifier).loadAvailableModels();
+    });
   }
 
   @override

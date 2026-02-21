@@ -117,7 +117,7 @@ class ModelManagerService {
         throw ModelStorageException('Cannot create directory: $path');
       }
     }
-    
+
     // Test write access
     final testFile = File(p.join(path, '.write_test'));
     try {
@@ -126,7 +126,7 @@ class ModelManagerService {
     } catch (e) {
       throw ModelStorageException('Cannot write to directory: $path');
     }
-    
+
     return path;
   }
 
@@ -140,10 +140,12 @@ class ModelManagerService {
   }
 
   /// Get list of available models from HuggingFace registry
-  Future<List<HuggingFaceModel>> getAvailableModels() async => _registry.getAllModels();
+  Future<List<HuggingFaceModel>> getAvailableModels() async =>
+      _registry.getAllModels();
 
   /// Look up model info (accuracy, type, etc.) by ID
-  HuggingFaceModel? getModelInfo(String modelId) => _registry.getModelById(modelId);
+  HuggingFaceModel? getModelInfo(String modelId) =>
+      _registry.getModelById(modelId);
 
   /// Get list of downloaded model IDs
   Future<Set<String>> getDownloadedModels() async {
@@ -394,19 +396,31 @@ class ModelManagerService {
       return false;
     }
 
-    // Check for any model file
-    final files = dir.listSync();
-    return files.any((f) {
-      if (f is File) {
-        final ext = p.extension(f.path).toLowerCase();
-        return ['.bin', '.onnx', '.pt', '.pth'].contains(ext);
+    // Prefer exact registry file path when available.
+    final modelId = p.basename(modelDir);
+    final model = _registry.getModelById(modelId);
+    if (model != null) {
+      final expectedPath = p.join(modelDir, model.fileName);
+      if (File(expectedPath).existsSync()) {
+        return true;
       }
-      return false;
-    });
+    }
+
+    // Fallback: recursively check for any supported model file.
+    await for (final entity in dir.list(recursive: true, followLinks: false)) {
+      if (entity is! File) continue;
+      final ext = p.extension(entity.path).toLowerCase();
+      if (['.bin', '.onnx', '.pt', '.pth'].contains(ext)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   Future<void> _saveModelMetadata(
-      String modelId, HuggingFaceModel model,) async {
+    String modelId,
+    HuggingFaceModel model,
+  ) async {
     final dir = await modelsDirectory;
     final metadataPath = p.join(dir, modelId, _metadataFileName);
     final metadata = {

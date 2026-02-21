@@ -2089,36 +2089,23 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
       return c.copyWith(enabled: enabled);
     }).toList();
 
-    // Derive legacy per-type flags for backward-compatible analysis provider.
-    bool isEnabled(String id) => _categoryEnabled[id] ?? false;
-
     final settings = baseSettings.copyWith(
-      enableProfanity: isEnabled('profanity'),
-      enableNsfw: isEnabled('nsfw'),
-      enableViolence: isEnabled('violence'),
-      enableBlood: isEnabled('blood'),
-      enableWeapons: isEnabled('weapons'),
       contentDetectionConfig: baseSettings.contentDetectionConfig.copyWith(
         categories: updatedCategories,
       ),
     );
 
-    // If a transcript already exists for this media, pass it to avoid
-    // redundant ASR work.
     final project = ref.read(projectNotifierProvider).currentProject;
     final existingSubtitleTrack =
         project?.subtitleTrackForMedia(widget.mediaId);
-    // SubtitleTrack.toTranscript() converts back to a Transcript object.
     final existingTranscript = existingSubtitleTrack?.toTranscript();
-
-    // ignore: unused_local_variable
-    final _ = existingTranscript; // available for future analysis service use
 
     ref.read(analysisNotifierProvider.notifier).startAnalysis(
           mediaPath: widget.mediaPath,
           mediaId: widget.mediaId,
-          mediaDuration: widget.mediaDuration,
           settings: settings,
+          mediaDuration: widget.mediaDuration,
+          existingTranscript: existingTranscript,
         );
   }
 

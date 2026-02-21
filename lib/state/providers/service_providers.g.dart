@@ -125,7 +125,7 @@ final mediaServiceProvider = Provider<MediaService>.internal(
 // ignore: unused_element
 typedef MediaServiceRef = ProviderRef<MediaService>;
 String _$modelManagerServiceHash() =>
-    r'f842bed85c8b218a375f690773d2214b3d588a8a';
+    r'7ab713223ea26db713266a5fab2c937ff32d96f6';
 
 /// See also [modelManagerService].
 @ProviderFor(modelManagerService)
@@ -159,7 +159,7 @@ final profanityServiceProvider = Provider<ProfanityService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ProfanityServiceRef = ProviderRef<ProfanityService>;
-String _$analysisServiceHash() => r'ef7f54b263a390f18df82c1499fda8db0ec3d720';
+String _$analysisServiceHash() => r'681faac96402d1dcab173d3957986c1741f4a834';
 
 /// See also [analysisService].
 @ProviderFor(analysisService)

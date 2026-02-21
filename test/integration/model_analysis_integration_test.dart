@@ -158,12 +158,7 @@ void main() {
 
     test('VisualAnalysisSettings defaults should use valid model IDs', () {
       final registry = HuggingFaceModelRegistry.instance;
-      const settings = VisualAnalysisSettings(
-        nsfwModelId: 'nsfw-vit-base-quantized',
-        violenceModelId: 'violence-vit-classifier',
-        bloodModelId: 'gore-classifier',
-        weaponsModelId: 'weapons-classifier',
-      );
+      const settings = VisualAnalysisSettings();
 
       // Model IDs should exist in registry
       expect(
@@ -272,10 +267,10 @@ void main() {
       // Create AnalysisSettingsState with specific model selections
       const settingsState = AnalysisSettingsState(
         visualModelIds: {
-          HuggingFaceModelType.nsfw: 'nsfw-efficientnet-b4',
-          HuggingFaceModelType.violence: 'violence-vit-base',
-          HuggingFaceModelType.blood: 'gore-efficientnet-b2',
-          HuggingFaceModelType.weapons: 'weapons-detr-resnet50',
+          HuggingFaceModelType.nsfw: 'nsfw-vit-base-quantized',
+          HuggingFaceModelType.violence: 'violence-vit-classifier',
+          HuggingFaceModelType.blood: 'gore-classifier',
+          HuggingFaceModelType.weapons: 'weapons-classifier',
         },
       );
 
@@ -284,13 +279,13 @@ void main() {
 
       // Verify model IDs are correctly passed through
       expect(analysisSettings.modelConfig.nsfwModelId,
-          equals('nsfw-efficientnet-b4'),);
+          equals('nsfw-vit-base-quantized'),);
       expect(analysisSettings.modelConfig.violenceModelId,
-          equals('violence-vit-base'),);
+          equals('violence-vit-classifier'),);
       expect(analysisSettings.modelConfig.bloodModelId,
-          equals('gore-efficientnet-b2'),);
+          equals('gore-classifier'),);
       expect(analysisSettings.modelConfig.weaponsModelId,
-          equals('weapons-detr-resnet50'),);
+          equals('weapons-classifier'),);
     });
 
     test('should use default model IDs when not specified', () {
@@ -302,13 +297,13 @@ void main() {
 
       // Verify default model IDs are used
       expect(analysisSettings.modelConfig.nsfwModelId,
-          equals('nsfw-mobilenet-v2'),);
+          equals('nsfw-vit-base-quantized'),);
       expect(analysisSettings.modelConfig.violenceModelId,
-          equals('violence-mobilenet'),);
+          equals('violence-vit-classifier'),);
       expect(analysisSettings.modelConfig.bloodModelId,
-          equals('gore-efficientnet-b2'),);
+          equals('gore-classifier'),);
       expect(analysisSettings.modelConfig.weaponsModelId,
-          equals('weapons-yolov8-small'),);
+          equals('weapons-classifier'),);
     });
 
     test('default model IDs should exist in registry', () {

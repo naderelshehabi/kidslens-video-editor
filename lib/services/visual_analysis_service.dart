@@ -28,10 +28,10 @@ class VisualAnalysisSettings {
     this.weaponsThreshold = 0.5,
     this.batchSize = 8,
     this.useGpu = true,
-    this.nsfwModelId = 'nsfw-mobilenet-v2',
-    this.violenceModelId = 'violence-mobilenet',
-    this.bloodModelId = 'gore-efficientnet-b2',
-    this.weaponsModelId = 'weapons-yolov8-small',
+    this.nsfwModelId = 'nsfw-vit-base-quantized',
+    this.violenceModelId = 'violence-vit-classifier',
+    this.bloodModelId = 'gore-classifier',
+    this.weaponsModelId = 'weapons-classifier',
     this.visualContentConfig,
   });
 
@@ -495,7 +495,7 @@ class VisualAnalysisService {
         return _runNudeNetModel(frame, contribution);
 
       case HuggingFaceModelType.clip:
-        return _runClipModel(frame, contribution);
+        return _runClipModel(frame, category, contribution);
 
       default:
         debugPrint('MoE: Unsupported model type '
@@ -604,31 +604,23 @@ class VisualAnalysisService {
   /// Run CLIP model and produce a vote from zero-shot classification.
   Future<ModelVote?> _runClipModel(
     FrameData frame,
+    ContentCategory category,
     ModelContribution contribution,
   ) async {
     if (clipService == null) return null;
     if (_clipEmbeddings == null || _clipEmbeddings!.isEmpty) return null;
 
-    // Look up pre-computed embeddings for the parent category
-    // The embeddings are keyed by category ID (set up in precomputeClipEmbeddingsForCategories)
-    // We need to find the right embedding entry
-    String? embeddingKey;
-    for (final key in _clipEmbeddings!.keys) {
-      if (key.startsWith(contribution.modelId) ||
-          _clipEmbeddings!.containsKey(key)) {
-        embeddingKey = key;
-        break;
-      }
-    }
-
-    if (embeddingKey == null) return null;
+    // Embeddings are keyed by category ID (set by precomputeClipEmbeddingsForCategories).
+    final embeddingKey = category.id;
+    final embeddings = _clipEmbeddings![embeddingKey];
+    if (embeddings == null) return null;
 
     try {
       final scores = await clipService!.classifyFrame(
         Uint8List.fromList(frame.data),
         frame.width,
         frame.height,
-        {embeddingKey: _clipEmbeddings![embeddingKey]!},
+        {embeddingKey: embeddings},
       );
 
       final rawScore = scores[embeddingKey] ?? 0.0;

@@ -113,49 +113,49 @@ Map<String, dynamic> _$$VideoSkipImplToJson(_$VideoSkipImpl instance) =>
 _$VideoRegionBlurImpl _$$VideoRegionBlurImplFromJson(
         Map<String, dynamic> json) =>
     _$VideoRegionBlurImpl(
-      intensity: (json['intensity'] as num?)?.toInt() ?? 50,
       region: RegionBounds.fromJson(json['region'] as Map<String, dynamic>),
+      intensity: (json['intensity'] as num?)?.toInt() ?? 50,
       $type: json['runtimeType'] as String?,
     );
 
 Map<String, dynamic> _$$VideoRegionBlurImplToJson(
         _$VideoRegionBlurImpl instance) =>
     <String, dynamic>{
-      'intensity': instance.intensity,
       'region': instance.region,
+      'intensity': instance.intensity,
       'runtimeType': instance.$type,
     };
 
 _$VideoRegionPixelateImpl _$$VideoRegionPixelateImplFromJson(
         Map<String, dynamic> json) =>
     _$VideoRegionPixelateImpl(
-      blockSize: (json['blockSize'] as num?)?.toInt() ?? 10,
       region: RegionBounds.fromJson(json['region'] as Map<String, dynamic>),
+      blockSize: (json['blockSize'] as num?)?.toInt() ?? 10,
       $type: json['runtimeType'] as String?,
     );
 
 Map<String, dynamic> _$$VideoRegionPixelateImplToJson(
         _$VideoRegionPixelateImpl instance) =>
     <String, dynamic>{
-      'blockSize': instance.blockSize,
       'region': instance.region,
+      'blockSize': instance.blockSize,
       'runtimeType': instance.$type,
     };
 
 _$VideoRegionBlackBoxImpl _$$VideoRegionBlackBoxImplFromJson(
         Map<String, dynamic> json) =>
     _$VideoRegionBlackBoxImpl(
+      region: RegionBounds.fromJson(json['region'] as Map<String, dynamic>),
       color: json['color'] as String? ?? '#000000',
       opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
-      region: RegionBounds.fromJson(json['region'] as Map<String, dynamic>),
       $type: json['runtimeType'] as String?,
     );
 
 Map<String, dynamic> _$$VideoRegionBlackBoxImplToJson(
         _$VideoRegionBlackBoxImpl instance) =>
     <String, dynamic>{
+      'region': instance.region,
       'color': instance.color,
       'opacity': instance.opacity,
-      'region': instance.region,
       'runtimeType': instance.$type,
     };

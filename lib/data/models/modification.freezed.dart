@@ -281,11 +281,11 @@ mixin _$Modification {
     required TResult Function(int blockSize) videoPixelate,
     required TResult Function(String color, double opacity) videoBlackBox,
     required TResult Function() videoSkip,
-    required TResult Function(int intensity, RegionBounds region)
+    required TResult Function(RegionBounds region, int intensity)
         videoRegionBlur,
-    required TResult Function(int blockSize, RegionBounds region)
+    required TResult Function(RegionBounds region, int blockSize)
         videoRegionPixelate,
-    required TResult Function(String color, double opacity, RegionBounds region)
+    required TResult Function(RegionBounds region, String color, double opacity)
         videoRegionBlackBox,
   }) =>
       throw _privateConstructorUsedError;
@@ -298,9 +298,9 @@ mixin _$Modification {
     TResult? Function(int blockSize)? videoPixelate,
     TResult? Function(String color, double opacity)? videoBlackBox,
     TResult? Function()? videoSkip,
-    TResult? Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult? Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult? Function(String color, double opacity, RegionBounds region)?
+    TResult? Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult? Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult? Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
   }) =>
       throw _privateConstructorUsedError;
@@ -313,9 +313,9 @@ mixin _$Modification {
     TResult Function(int blockSize)? videoPixelate,
     TResult Function(String color, double opacity)? videoBlackBox,
     TResult Function()? videoSkip,
-    TResult Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult Function(String color, double opacity, RegionBounds region)?
+    TResult Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
     required TResult orElse(),
   }) =>
@@ -447,11 +447,11 @@ class _$AudioMuteImpl extends AudioMute {
     required TResult Function(int blockSize) videoPixelate,
     required TResult Function(String color, double opacity) videoBlackBox,
     required TResult Function() videoSkip,
-    required TResult Function(int intensity, RegionBounds region)
+    required TResult Function(RegionBounds region, int intensity)
         videoRegionBlur,
-    required TResult Function(int blockSize, RegionBounds region)
+    required TResult Function(RegionBounds region, int blockSize)
         videoRegionPixelate,
-    required TResult Function(String color, double opacity, RegionBounds region)
+    required TResult Function(RegionBounds region, String color, double opacity)
         videoRegionBlackBox,
   }) {
     return audioMute();
@@ -467,9 +467,9 @@ class _$AudioMuteImpl extends AudioMute {
     TResult? Function(int blockSize)? videoPixelate,
     TResult? Function(String color, double opacity)? videoBlackBox,
     TResult? Function()? videoSkip,
-    TResult? Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult? Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult? Function(String color, double opacity, RegionBounds region)?
+    TResult? Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult? Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult? Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
   }) {
     return audioMute?.call();
@@ -485,9 +485,9 @@ class _$AudioMuteImpl extends AudioMute {
     TResult Function(int blockSize)? videoPixelate,
     TResult Function(String color, double opacity)? videoBlackBox,
     TResult Function()? videoSkip,
-    TResult Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult Function(String color, double opacity, RegionBounds region)?
+    TResult Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
     required TResult orElse(),
   }) {
@@ -668,11 +668,11 @@ class _$AudioBeepImpl extends AudioBeep {
     required TResult Function(int blockSize) videoPixelate,
     required TResult Function(String color, double opacity) videoBlackBox,
     required TResult Function() videoSkip,
-    required TResult Function(int intensity, RegionBounds region)
+    required TResult Function(RegionBounds region, int intensity)
         videoRegionBlur,
-    required TResult Function(int blockSize, RegionBounds region)
+    required TResult Function(RegionBounds region, int blockSize)
         videoRegionPixelate,
-    required TResult Function(String color, double opacity, RegionBounds region)
+    required TResult Function(RegionBounds region, String color, double opacity)
         videoRegionBlackBox,
   }) {
     return audioBeep(frequency, volume);
@@ -688,9 +688,9 @@ class _$AudioBeepImpl extends AudioBeep {
     TResult? Function(int blockSize)? videoPixelate,
     TResult? Function(String color, double opacity)? videoBlackBox,
     TResult? Function()? videoSkip,
-    TResult? Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult? Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult? Function(String color, double opacity, RegionBounds region)?
+    TResult? Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult? Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult? Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
   }) {
     return audioBeep?.call(frequency, volume);
@@ -706,9 +706,9 @@ class _$AudioBeepImpl extends AudioBeep {
     TResult Function(int blockSize)? videoPixelate,
     TResult Function(String color, double opacity)? videoBlackBox,
     TResult Function()? videoSkip,
-    TResult Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult Function(String color, double opacity, RegionBounds region)?
+    TResult Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
     required TResult orElse(),
   }) {
@@ -915,11 +915,11 @@ class _$AudioReplaceImpl extends AudioReplace {
     required TResult Function(int blockSize) videoPixelate,
     required TResult Function(String color, double opacity) videoBlackBox,
     required TResult Function() videoSkip,
-    required TResult Function(int intensity, RegionBounds region)
+    required TResult Function(RegionBounds region, int intensity)
         videoRegionBlur,
-    required TResult Function(int blockSize, RegionBounds region)
+    required TResult Function(RegionBounds region, int blockSize)
         videoRegionPixelate,
-    required TResult Function(String color, double opacity, RegionBounds region)
+    required TResult Function(RegionBounds region, String color, double opacity)
         videoRegionBlackBox,
   }) {
     return audioReplace(audioPath, volume, loop);
@@ -935,9 +935,9 @@ class _$AudioReplaceImpl extends AudioReplace {
     TResult? Function(int blockSize)? videoPixelate,
     TResult? Function(String color, double opacity)? videoBlackBox,
     TResult? Function()? videoSkip,
-    TResult? Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult? Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult? Function(String color, double opacity, RegionBounds region)?
+    TResult? Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult? Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult? Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
   }) {
     return audioReplace?.call(audioPath, volume, loop);
@@ -953,9 +953,9 @@ class _$AudioReplaceImpl extends AudioReplace {
     TResult Function(int blockSize)? videoPixelate,
     TResult Function(String color, double opacity)? videoBlackBox,
     TResult Function()? videoSkip,
-    TResult Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult Function(String color, double opacity, RegionBounds region)?
+    TResult Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
     required TResult orElse(),
   }) {
@@ -1142,11 +1142,11 @@ class _$VideoBlurImpl extends VideoBlur {
     required TResult Function(int blockSize) videoPixelate,
     required TResult Function(String color, double opacity) videoBlackBox,
     required TResult Function() videoSkip,
-    required TResult Function(int intensity, RegionBounds region)
+    required TResult Function(RegionBounds region, int intensity)
         videoRegionBlur,
-    required TResult Function(int blockSize, RegionBounds region)
+    required TResult Function(RegionBounds region, int blockSize)
         videoRegionPixelate,
-    required TResult Function(String color, double opacity, RegionBounds region)
+    required TResult Function(RegionBounds region, String color, double opacity)
         videoRegionBlackBox,
   }) {
     return videoBlur(intensity);
@@ -1162,9 +1162,9 @@ class _$VideoBlurImpl extends VideoBlur {
     TResult? Function(int blockSize)? videoPixelate,
     TResult? Function(String color, double opacity)? videoBlackBox,
     TResult? Function()? videoSkip,
-    TResult? Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult? Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult? Function(String color, double opacity, RegionBounds region)?
+    TResult? Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult? Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult? Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
   }) {
     return videoBlur?.call(intensity);
@@ -1180,9 +1180,9 @@ class _$VideoBlurImpl extends VideoBlur {
     TResult Function(int blockSize)? videoPixelate,
     TResult Function(String color, double opacity)? videoBlackBox,
     TResult Function()? videoSkip,
-    TResult Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult Function(String color, double opacity, RegionBounds region)?
+    TResult Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
     required TResult orElse(),
   }) {
@@ -1360,11 +1360,11 @@ class _$VideoPixelateImpl extends VideoPixelate {
     required TResult Function(int blockSize) videoPixelate,
     required TResult Function(String color, double opacity) videoBlackBox,
     required TResult Function() videoSkip,
-    required TResult Function(int intensity, RegionBounds region)
+    required TResult Function(RegionBounds region, int intensity)
         videoRegionBlur,
-    required TResult Function(int blockSize, RegionBounds region)
+    required TResult Function(RegionBounds region, int blockSize)
         videoRegionPixelate,
-    required TResult Function(String color, double opacity, RegionBounds region)
+    required TResult Function(RegionBounds region, String color, double opacity)
         videoRegionBlackBox,
   }) {
     return videoPixelate(blockSize);
@@ -1380,9 +1380,9 @@ class _$VideoPixelateImpl extends VideoPixelate {
     TResult? Function(int blockSize)? videoPixelate,
     TResult? Function(String color, double opacity)? videoBlackBox,
     TResult? Function()? videoSkip,
-    TResult? Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult? Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult? Function(String color, double opacity, RegionBounds region)?
+    TResult? Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult? Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult? Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
   }) {
     return videoPixelate?.call(blockSize);
@@ -1398,9 +1398,9 @@ class _$VideoPixelateImpl extends VideoPixelate {
     TResult Function(int blockSize)? videoPixelate,
     TResult Function(String color, double opacity)? videoBlackBox,
     TResult Function()? videoSkip,
-    TResult Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult Function(String color, double opacity, RegionBounds region)?
+    TResult Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
     required TResult orElse(),
   }) {
@@ -1589,11 +1589,11 @@ class _$VideoBlackBoxImpl extends VideoBlackBox {
     required TResult Function(int blockSize) videoPixelate,
     required TResult Function(String color, double opacity) videoBlackBox,
     required TResult Function() videoSkip,
-    required TResult Function(int intensity, RegionBounds region)
+    required TResult Function(RegionBounds region, int intensity)
         videoRegionBlur,
-    required TResult Function(int blockSize, RegionBounds region)
+    required TResult Function(RegionBounds region, int blockSize)
         videoRegionPixelate,
-    required TResult Function(String color, double opacity, RegionBounds region)
+    required TResult Function(RegionBounds region, String color, double opacity)
         videoRegionBlackBox,
   }) {
     return videoBlackBox(color, opacity);
@@ -1609,9 +1609,9 @@ class _$VideoBlackBoxImpl extends VideoBlackBox {
     TResult? Function(int blockSize)? videoPixelate,
     TResult? Function(String color, double opacity)? videoBlackBox,
     TResult? Function()? videoSkip,
-    TResult? Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult? Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult? Function(String color, double opacity, RegionBounds region)?
+    TResult? Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult? Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult? Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
   }) {
     return videoBlackBox?.call(color, opacity);
@@ -1627,9 +1627,9 @@ class _$VideoBlackBoxImpl extends VideoBlackBox {
     TResult Function(int blockSize)? videoPixelate,
     TResult Function(String color, double opacity)? videoBlackBox,
     TResult Function()? videoSkip,
-    TResult Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult Function(String color, double opacity, RegionBounds region)?
+    TResult Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
     required TResult orElse(),
   }) {
@@ -1781,11 +1781,11 @@ class _$VideoSkipImpl extends VideoSkip {
     required TResult Function(int blockSize) videoPixelate,
     required TResult Function(String color, double opacity) videoBlackBox,
     required TResult Function() videoSkip,
-    required TResult Function(int intensity, RegionBounds region)
+    required TResult Function(RegionBounds region, int intensity)
         videoRegionBlur,
-    required TResult Function(int blockSize, RegionBounds region)
+    required TResult Function(RegionBounds region, int blockSize)
         videoRegionPixelate,
-    required TResult Function(String color, double opacity, RegionBounds region)
+    required TResult Function(RegionBounds region, String color, double opacity)
         videoRegionBlackBox,
   }) {
     return videoSkip();
@@ -1801,9 +1801,9 @@ class _$VideoSkipImpl extends VideoSkip {
     TResult? Function(int blockSize)? videoPixelate,
     TResult? Function(String color, double opacity)? videoBlackBox,
     TResult? Function()? videoSkip,
-    TResult? Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult? Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult? Function(String color, double opacity, RegionBounds region)?
+    TResult? Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult? Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult? Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
   }) {
     return videoSkip?.call();
@@ -1819,9 +1819,9 @@ class _$VideoSkipImpl extends VideoSkip {
     TResult Function(int blockSize)? videoPixelate,
     TResult Function(String color, double opacity)? videoBlackBox,
     TResult Function()? videoSkip,
-    TResult Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult Function(String color, double opacity, RegionBounds region)?
+    TResult Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
     required TResult orElse(),
   }) {
@@ -1908,7 +1908,7 @@ abstract class _$$VideoRegionBlurImplCopyWith<$Res> {
           $Res Function(_$VideoRegionBlurImpl) then) =
       __$$VideoRegionBlurImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({int intensity, RegionBounds region});
+  $Res call({RegionBounds region, int intensity});
 
   $RegionBoundsCopyWith<$Res> get region;
 }
@@ -1926,18 +1926,18 @@ class __$$VideoRegionBlurImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? intensity = null,
     Object? region = null,
+    Object? intensity = null,
   }) {
     return _then(_$VideoRegionBlurImpl(
-      intensity: null == intensity
-          ? _value.intensity
-          : intensity // ignore: cast_nullable_to_non_nullable
-              as int,
       region: null == region
           ? _value.region
           : region // ignore: cast_nullable_to_non_nullable
               as RegionBounds,
+      intensity: null == intensity
+          ? _value.intensity
+          : intensity // ignore: cast_nullable_to_non_nullable
+              as int,
     ));
   }
 
@@ -1956,28 +1956,28 @@ class __$$VideoRegionBlurImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$VideoRegionBlurImpl extends VideoRegionBlur {
   const _$VideoRegionBlurImpl(
-      {this.intensity = 50, required this.region, final String? $type})
+      {required this.region, this.intensity = 50, final String? $type})
       : $type = $type ?? 'videoRegionBlur',
         super._();
 
   factory _$VideoRegionBlurImpl.fromJson(Map<String, dynamic> json) =>
       _$$VideoRegionBlurImplFromJson(json);
 
+  /// Normalized bounding box for the region
+  @override
+  final RegionBounds region;
+
   /// Blur intensity (1-100, default: 50)
   @override
   @JsonKey()
   final int intensity;
-
-  /// Normalized bounding box for the region
-  @override
-  final RegionBounds region;
 
   @JsonKey(name: 'runtimeType')
   final String $type;
 
   @override
   String toString() {
-    return 'Modification.videoRegionBlur(intensity: $intensity, region: $region)';
+    return 'Modification.videoRegionBlur(region: $region, intensity: $intensity)';
   }
 
   @override
@@ -1985,14 +1985,14 @@ class _$VideoRegionBlurImpl extends VideoRegionBlur {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$VideoRegionBlurImpl &&
+            (identical(other.region, region) || other.region == region) &&
             (identical(other.intensity, intensity) ||
-                other.intensity == intensity) &&
-            (identical(other.region, region) || other.region == region));
+                other.intensity == intensity));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, intensity, region);
+  int get hashCode => Object.hash(runtimeType, region, intensity);
 
   /// Create a copy of Modification
   /// with the given fields replaced by the non-null parameter values.
@@ -2014,14 +2014,14 @@ class _$VideoRegionBlurImpl extends VideoRegionBlur {
     required TResult Function(int blockSize) videoPixelate,
     required TResult Function(String color, double opacity) videoBlackBox,
     required TResult Function() videoSkip,
-    required TResult Function(int intensity, RegionBounds region)
+    required TResult Function(RegionBounds region, int intensity)
         videoRegionBlur,
-    required TResult Function(int blockSize, RegionBounds region)
+    required TResult Function(RegionBounds region, int blockSize)
         videoRegionPixelate,
-    required TResult Function(String color, double opacity, RegionBounds region)
+    required TResult Function(RegionBounds region, String color, double opacity)
         videoRegionBlackBox,
   }) {
-    return videoRegionBlur(intensity, region);
+    return videoRegionBlur(region, intensity);
   }
 
   @override
@@ -2034,12 +2034,12 @@ class _$VideoRegionBlurImpl extends VideoRegionBlur {
     TResult? Function(int blockSize)? videoPixelate,
     TResult? Function(String color, double opacity)? videoBlackBox,
     TResult? Function()? videoSkip,
-    TResult? Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult? Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult? Function(String color, double opacity, RegionBounds region)?
+    TResult? Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult? Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult? Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
   }) {
-    return videoRegionBlur?.call(intensity, region);
+    return videoRegionBlur?.call(region, intensity);
   }
 
   @override
@@ -2052,14 +2052,14 @@ class _$VideoRegionBlurImpl extends VideoRegionBlur {
     TResult Function(int blockSize)? videoPixelate,
     TResult Function(String color, double opacity)? videoBlackBox,
     TResult Function()? videoSkip,
-    TResult Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult Function(String color, double opacity, RegionBounds region)?
+    TResult Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
     required TResult orElse(),
   }) {
     if (videoRegionBlur != null) {
-      return videoRegionBlur(intensity, region);
+      return videoRegionBlur(region, intensity);
     }
     return orElse();
   }
@@ -2129,18 +2129,18 @@ class _$VideoRegionBlurImpl extends VideoRegionBlur {
 
 abstract class VideoRegionBlur extends Modification {
   const factory VideoRegionBlur(
-      {final int intensity,
-      required final RegionBounds region}) = _$VideoRegionBlurImpl;
+      {required final RegionBounds region,
+      final int intensity}) = _$VideoRegionBlurImpl;
   const VideoRegionBlur._() : super._();
 
   factory VideoRegionBlur.fromJson(Map<String, dynamic> json) =
       _$VideoRegionBlurImpl.fromJson;
 
-  /// Blur intensity (1-100, default: 50)
-  int get intensity;
-
   /// Normalized bounding box for the region
   RegionBounds get region;
+
+  /// Blur intensity (1-100, default: 50)
+  int get intensity;
 
   /// Create a copy of Modification
   /// with the given fields replaced by the non-null parameter values.
@@ -2155,7 +2155,7 @@ abstract class _$$VideoRegionPixelateImplCopyWith<$Res> {
           $Res Function(_$VideoRegionPixelateImpl) then) =
       __$$VideoRegionPixelateImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({int blockSize, RegionBounds region});
+  $Res call({RegionBounds region, int blockSize});
 
   $RegionBoundsCopyWith<$Res> get region;
 }
@@ -2173,18 +2173,18 @@ class __$$VideoRegionPixelateImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? blockSize = null,
     Object? region = null,
+    Object? blockSize = null,
   }) {
     return _then(_$VideoRegionPixelateImpl(
-      blockSize: null == blockSize
-          ? _value.blockSize
-          : blockSize // ignore: cast_nullable_to_non_nullable
-              as int,
       region: null == region
           ? _value.region
           : region // ignore: cast_nullable_to_non_nullable
               as RegionBounds,
+      blockSize: null == blockSize
+          ? _value.blockSize
+          : blockSize // ignore: cast_nullable_to_non_nullable
+              as int,
     ));
   }
 
@@ -2203,28 +2203,28 @@ class __$$VideoRegionPixelateImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$VideoRegionPixelateImpl extends VideoRegionPixelate {
   const _$VideoRegionPixelateImpl(
-      {this.blockSize = 10, required this.region, final String? $type})
+      {required this.region, this.blockSize = 10, final String? $type})
       : $type = $type ?? 'videoRegionPixelate',
         super._();
 
   factory _$VideoRegionPixelateImpl.fromJson(Map<String, dynamic> json) =>
       _$$VideoRegionPixelateImplFromJson(json);
 
+  /// Normalized bounding box for the region
+  @override
+  final RegionBounds region;
+
   /// Size of pixelation blocks in pixels (default: 10)
   @override
   @JsonKey()
   final int blockSize;
-
-  /// Normalized bounding box for the region
-  @override
-  final RegionBounds region;
 
   @JsonKey(name: 'runtimeType')
   final String $type;
 
   @override
   String toString() {
-    return 'Modification.videoRegionPixelate(blockSize: $blockSize, region: $region)';
+    return 'Modification.videoRegionPixelate(region: $region, blockSize: $blockSize)';
   }
 
   @override
@@ -2232,14 +2232,14 @@ class _$VideoRegionPixelateImpl extends VideoRegionPixelate {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$VideoRegionPixelateImpl &&
+            (identical(other.region, region) || other.region == region) &&
             (identical(other.blockSize, blockSize) ||
-                other.blockSize == blockSize) &&
-            (identical(other.region, region) || other.region == region));
+                other.blockSize == blockSize));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, blockSize, region);
+  int get hashCode => Object.hash(runtimeType, region, blockSize);
 
   /// Create a copy of Modification
   /// with the given fields replaced by the non-null parameter values.
@@ -2261,14 +2261,14 @@ class _$VideoRegionPixelateImpl extends VideoRegionPixelate {
     required TResult Function(int blockSize) videoPixelate,
     required TResult Function(String color, double opacity) videoBlackBox,
     required TResult Function() videoSkip,
-    required TResult Function(int intensity, RegionBounds region)
+    required TResult Function(RegionBounds region, int intensity)
         videoRegionBlur,
-    required TResult Function(int blockSize, RegionBounds region)
+    required TResult Function(RegionBounds region, int blockSize)
         videoRegionPixelate,
-    required TResult Function(String color, double opacity, RegionBounds region)
+    required TResult Function(RegionBounds region, String color, double opacity)
         videoRegionBlackBox,
   }) {
-    return videoRegionPixelate(blockSize, region);
+    return videoRegionPixelate(region, blockSize);
   }
 
   @override
@@ -2281,12 +2281,12 @@ class _$VideoRegionPixelateImpl extends VideoRegionPixelate {
     TResult? Function(int blockSize)? videoPixelate,
     TResult? Function(String color, double opacity)? videoBlackBox,
     TResult? Function()? videoSkip,
-    TResult? Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult? Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult? Function(String color, double opacity, RegionBounds region)?
+    TResult? Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult? Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult? Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
   }) {
-    return videoRegionPixelate?.call(blockSize, region);
+    return videoRegionPixelate?.call(region, blockSize);
   }
 
   @override
@@ -2299,14 +2299,14 @@ class _$VideoRegionPixelateImpl extends VideoRegionPixelate {
     TResult Function(int blockSize)? videoPixelate,
     TResult Function(String color, double opacity)? videoBlackBox,
     TResult Function()? videoSkip,
-    TResult Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult Function(String color, double opacity, RegionBounds region)?
+    TResult Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
     required TResult orElse(),
   }) {
     if (videoRegionPixelate != null) {
-      return videoRegionPixelate(blockSize, region);
+      return videoRegionPixelate(region, blockSize);
     }
     return orElse();
   }
@@ -2376,18 +2376,18 @@ class _$VideoRegionPixelateImpl extends VideoRegionPixelate {
 
 abstract class VideoRegionPixelate extends Modification {
   const factory VideoRegionPixelate(
-      {final int blockSize,
-      required final RegionBounds region}) = _$VideoRegionPixelateImpl;
+      {required final RegionBounds region,
+      final int blockSize}) = _$VideoRegionPixelateImpl;
   const VideoRegionPixelate._() : super._();
 
   factory VideoRegionPixelate.fromJson(Map<String, dynamic> json) =
       _$VideoRegionPixelateImpl.fromJson;
 
-  /// Size of pixelation blocks in pixels (default: 10)
-  int get blockSize;
-
   /// Normalized bounding box for the region
   RegionBounds get region;
+
+  /// Size of pixelation blocks in pixels (default: 10)
+  int get blockSize;
 
   /// Create a copy of Modification
   /// with the given fields replaced by the non-null parameter values.
@@ -2402,7 +2402,7 @@ abstract class _$$VideoRegionBlackBoxImplCopyWith<$Res> {
           $Res Function(_$VideoRegionBlackBoxImpl) then) =
       __$$VideoRegionBlackBoxImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({String color, double opacity, RegionBounds region});
+  $Res call({RegionBounds region, String color, double opacity});
 
   $RegionBoundsCopyWith<$Res> get region;
 }
@@ -2420,11 +2420,15 @@ class __$$VideoRegionBlackBoxImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
+    Object? region = null,
     Object? color = null,
     Object? opacity = null,
-    Object? region = null,
   }) {
     return _then(_$VideoRegionBlackBoxImpl(
+      region: null == region
+          ? _value.region
+          : region // ignore: cast_nullable_to_non_nullable
+              as RegionBounds,
       color: null == color
           ? _value.color
           : color // ignore: cast_nullable_to_non_nullable
@@ -2433,10 +2437,6 @@ class __$$VideoRegionBlackBoxImplCopyWithImpl<$Res>
           ? _value.opacity
           : opacity // ignore: cast_nullable_to_non_nullable
               as double,
-      region: null == region
-          ? _value.region
-          : region // ignore: cast_nullable_to_non_nullable
-              as RegionBounds,
     ));
   }
 
@@ -2455,15 +2455,19 @@ class __$$VideoRegionBlackBoxImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$VideoRegionBlackBoxImpl extends VideoRegionBlackBox {
   const _$VideoRegionBlackBoxImpl(
-      {this.color = '#000000',
+      {required this.region,
+      this.color = '#000000',
       this.opacity = 1.0,
-      required this.region,
       final String? $type})
       : $type = $type ?? 'videoRegionBlackBox',
         super._();
 
   factory _$VideoRegionBlackBoxImpl.fromJson(Map<String, dynamic> json) =>
       _$$VideoRegionBlackBoxImplFromJson(json);
+
+  /// Normalized bounding box for the region
+  @override
+  final RegionBounds region;
 
   /// Color in hex format (default: black)
   @override
@@ -2475,16 +2479,12 @@ class _$VideoRegionBlackBoxImpl extends VideoRegionBlackBox {
   @JsonKey()
   final double opacity;
 
-  /// Normalized bounding box for the region
-  @override
-  final RegionBounds region;
-
   @JsonKey(name: 'runtimeType')
   final String $type;
 
   @override
   String toString() {
-    return 'Modification.videoRegionBlackBox(color: $color, opacity: $opacity, region: $region)';
+    return 'Modification.videoRegionBlackBox(region: $region, color: $color, opacity: $opacity)';
   }
 
   @override
@@ -2492,14 +2492,14 @@ class _$VideoRegionBlackBoxImpl extends VideoRegionBlackBox {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$VideoRegionBlackBoxImpl &&
+            (identical(other.region, region) || other.region == region) &&
             (identical(other.color, color) || other.color == color) &&
-            (identical(other.opacity, opacity) || other.opacity == opacity) &&
-            (identical(other.region, region) || other.region == region));
+            (identical(other.opacity, opacity) || other.opacity == opacity));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, color, opacity, region);
+  int get hashCode => Object.hash(runtimeType, region, color, opacity);
 
   /// Create a copy of Modification
   /// with the given fields replaced by the non-null parameter values.
@@ -2521,14 +2521,14 @@ class _$VideoRegionBlackBoxImpl extends VideoRegionBlackBox {
     required TResult Function(int blockSize) videoPixelate,
     required TResult Function(String color, double opacity) videoBlackBox,
     required TResult Function() videoSkip,
-    required TResult Function(int intensity, RegionBounds region)
+    required TResult Function(RegionBounds region, int intensity)
         videoRegionBlur,
-    required TResult Function(int blockSize, RegionBounds region)
+    required TResult Function(RegionBounds region, int blockSize)
         videoRegionPixelate,
-    required TResult Function(String color, double opacity, RegionBounds region)
+    required TResult Function(RegionBounds region, String color, double opacity)
         videoRegionBlackBox,
   }) {
-    return videoRegionBlackBox(color, opacity, region);
+    return videoRegionBlackBox(region, color, opacity);
   }
 
   @override
@@ -2541,12 +2541,12 @@ class _$VideoRegionBlackBoxImpl extends VideoRegionBlackBox {
     TResult? Function(int blockSize)? videoPixelate,
     TResult? Function(String color, double opacity)? videoBlackBox,
     TResult? Function()? videoSkip,
-    TResult? Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult? Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult? Function(String color, double opacity, RegionBounds region)?
+    TResult? Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult? Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult? Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
   }) {
-    return videoRegionBlackBox?.call(color, opacity, region);
+    return videoRegionBlackBox?.call(region, color, opacity);
   }
 
   @override
@@ -2559,14 +2559,14 @@ class _$VideoRegionBlackBoxImpl extends VideoRegionBlackBox {
     TResult Function(int blockSize)? videoPixelate,
     TResult Function(String color, double opacity)? videoBlackBox,
     TResult Function()? videoSkip,
-    TResult Function(int intensity, RegionBounds region)? videoRegionBlur,
-    TResult Function(int blockSize, RegionBounds region)? videoRegionPixelate,
-    TResult Function(String color, double opacity, RegionBounds region)?
+    TResult Function(RegionBounds region, int intensity)? videoRegionBlur,
+    TResult Function(RegionBounds region, int blockSize)? videoRegionPixelate,
+    TResult Function(RegionBounds region, String color, double opacity)?
         videoRegionBlackBox,
     required TResult orElse(),
   }) {
     if (videoRegionBlackBox != null) {
-      return videoRegionBlackBox(color, opacity, region);
+      return videoRegionBlackBox(region, color, opacity);
     }
     return orElse();
   }
@@ -2636,22 +2636,22 @@ class _$VideoRegionBlackBoxImpl extends VideoRegionBlackBox {
 
 abstract class VideoRegionBlackBox extends Modification {
   const factory VideoRegionBlackBox(
-      {final String color,
-      final double opacity,
-      required final RegionBounds region}) = _$VideoRegionBlackBoxImpl;
+      {required final RegionBounds region,
+      final String color,
+      final double opacity}) = _$VideoRegionBlackBoxImpl;
   const VideoRegionBlackBox._() : super._();
 
   factory VideoRegionBlackBox.fromJson(Map<String, dynamic> json) =
       _$VideoRegionBlackBoxImpl.fromJson;
+
+  /// Normalized bounding box for the region
+  RegionBounds get region;
 
   /// Color in hex format (default: black)
   String get color;
 
   /// Opacity level (0.0 to 1.0, default: 1.0)
   double get opacity;
-
-  /// Normalized bounding box for the region
-  RegionBounds get region;
 
   /// Create a copy of Modification
   /// with the given fields replaced by the non-null parameter values.

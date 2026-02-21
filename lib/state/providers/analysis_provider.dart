@@ -1,8 +1,13 @@
 import 'dart:async';
-import 'dart:math' as math;
+import 'dart:io';
 
 import 'package:kidslens_video_editor/data/models/models.dart';
+import 'package:kidslens_video_editor/jobs/analysis_job.dart';
+import 'package:kidslens_video_editor/jobs/cancellation_token.dart';
+import 'package:kidslens_video_editor/jobs/job_system.dart';
 import 'package:kidslens_video_editor/state/providers/project_provider.dart';
+import 'package:kidslens_video_editor/state/providers/service_providers.dart';
+import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'analysis_provider.g.dart';
@@ -56,12 +61,14 @@ class AnalysisState {
 /// Provider for managing analysis state
 @Riverpod(keepAlive: true)
 class AnalysisNotifier extends _$AnalysisNotifier {
-  StreamSubscription<AnalysisProgress>? _progressSubscription;
+  AnalysisJob? _activeJob;
+  StreamSubscription<JobProgress>? _jobProgressSubscription;
 
   @override
   AnalysisState build() {
     ref.onDispose(() {
-      _progressSubscription?.cancel();
+      _activeJob?.cancel();
+      _jobProgressSubscription?.cancel();
     });
     return const AnalysisState();
   }
@@ -71,7 +78,10 @@ class AnalysisNotifier extends _$AnalysisNotifier {
     required String mediaId,
     required AnalysisSettings settings,
     required Duration mediaDuration,
+    Transcript? existingTranscript,
   }) async {
+    await _jobProgressSubscription?.cancel();
+    _activeJob?.cancel();
     state = state.copyWith(
       status: AnalysisStatus.running,
       progress: 0,
@@ -79,175 +89,81 @@ class AnalysisNotifier extends _$AnalysisNotifier {
       clearError: true,
     );
 
+    final projectNotifier = ref.read(projectNotifierProvider.notifier)
+      ..removeAllDetections(mediaId)
+      ..updateAnalysisProgress(0);
+
     try {
-      final random = math.Random();
-      final detections = <Detection>[];
-      final totalDurationMs = mediaDuration.inMilliseconds;
-      
-      // Ensure we have enough duration to work with
-      if (totalDurationMs < 3000) {
+      final analysisService = ref.read(analysisServiceProvider);
+      final file = File(mediaPath);
+      final fileSize = file.existsSync() ? file.lengthSync() : 0;
+      final media = MediaFile(
+        id: mediaId,
+        path: mediaPath,
+        name: p.basename(mediaPath),
+        duration: mediaDuration,
+        width: 0,
+        height: 0,
+        fileSize: fileSize,
+        mediaType: MediaType.video,
+      );
+
+      final job = AnalysisJob(
+        id: 'analysis_${DateTime.now().millisecondsSinceEpoch}',
+        media: media,
+        settings: settings,
+        analysisService: analysisService,
+        existingTranscript: existingTranscript,
+      );
+      _activeJob = job;
+
+      _jobProgressSubscription = job.progress.listen((jobProgress) {
+        final progress = jobProgress.progress;
+        if (progress != null) {
+          state = state.copyWith(
+            progress: progress,
+            currentStep: jobProgress.message,
+          );
+          projectNotifier.updateAnalysisProgress(progress);
+        } else {
+          state = state.copyWith(currentStep: jobProgress.message);
+        }
+      });
+
+      final result = await job.run();
+      if (state.status != AnalysisStatus.cancelled) {
+        final detections = job.detectedDetections.toList()
+          ..sort((a, b) => a.startTime.compareTo(b.startTime));
+        projectNotifier
+          ..addDetections(detections)
+          ..updateAnalysisProgress(1);
         state = state.copyWith(
           status: AnalysisStatus.completed,
           progress: 1,
-          currentStep: 'Analysis complete (video too short for demo detections)',
-          detections: [],
+          currentStep: 'Analysis complete',
+          detections: detections,
+          result: result,
+          isPaused: false,
         );
-        return;
       }
-      
-      // Step 1: Audio transcription (0-30%)
+    } on CancelledException {
+      projectNotifier.updateAnalysisProgress(0);
       state = state.copyWith(
-        currentStep: 'Transcribing audio...',
-        progress: 0.05,
-      );
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      
-      // Generate sample profanity detections (audio-based)
-      if (settings.enableProfanity) {
-        final numProfanityDetections = 2 + random.nextInt(3); // 2-4 detections
-        for (var i = 0; i < numProfanityDetections; i++) {
-          final startMs = random.nextInt(totalDurationMs - 2000);
-          final durationMs = 500 + random.nextInt(1500); // 0.5-2 seconds
-          detections.add(Detection(
-            id: 'det_profanity_$i',
-            mediaId: mediaId,
-            type: ContentType.profanity,
-            startTime: Duration(milliseconds: startMs),
-            endTime: Duration(milliseconds: startMs + durationMs),
-            confidence: 0.75 + random.nextDouble() * 0.2,
-            description: _getRandomProfanityDescription(random),
-          ),);
-        }
-      }
-      
-      state = state.copyWith(progress: 0.30);
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-      
-      // Step 2: Frame analysis (30-70%)
-      state = state.copyWith(
-        currentStep: 'Analyzing video frames...',
-        progress: 0.35,
-      );
-      await Future<void>.delayed(const Duration(milliseconds: 600));
-      
-      // Generate sample violence detections
-      if (settings.enableViolence) {
-        final numViolenceDetections = 1 + random.nextInt(2); // 1-2 detections
-        for (var i = 0; i < numViolenceDetections; i++) {
-          final startMs = random.nextInt(totalDurationMs - 5000);
-          final durationMs = 2000 + random.nextInt(4000); // 2-6 seconds
-          detections.add(Detection(
-            id: 'det_violence_$i',
-            mediaId: mediaId,
-            type: ContentType.violence,
-            startTime: Duration(milliseconds: startMs),
-            endTime: Duration(milliseconds: startMs + durationMs),
-            confidence: 0.70 + random.nextDouble() * 0.25,
-            description: 'Potential violent content detected',
-          ),);
-        }
-      }
-      
-      state = state.copyWith(progress: 0.55);
-      await Future<void>.delayed(const Duration(milliseconds: 400));
-      
-      // Generate sample NSFW detections  
-      if (settings.enableNsfw) {
-        if (random.nextDouble() > 0.6) { // 40% chance
-          final startMs = random.nextInt(totalDurationMs - 3000);
-          final durationMs = 1500 + random.nextInt(2500);
-          detections.add(Detection(
-            id: 'det_nsfw_0',
-            mediaId: mediaId,
-            type: ContentType.nsfw,
-            startTime: Duration(milliseconds: startMs),
-            endTime: Duration(milliseconds: startMs + durationMs),
-            confidence: 0.65 + random.nextDouble() * 0.30,
-            description: 'Potential inappropriate visual content',
-          ),);
-        }
-      }
-      
-      state = state.copyWith(progress: 0.70);
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-      
-      // Step 3: Content classification (70-90%)
-      state = state.copyWith(
-        currentStep: 'Classifying content...',
-        progress: 0.75,
-      );
-      await Future<void>.delayed(const Duration(milliseconds: 400));
-      
-      // Generate sample blood detections
-      if (settings.enableBlood) {
-        if (random.nextDouble() > 0.7) { // 30% chance
-          final startMs = random.nextInt(totalDurationMs - 4000);
-          final durationMs = 2000 + random.nextInt(3000);
-          detections.add(Detection(
-            id: 'det_blood_0',
-            mediaId: mediaId,
-            type: ContentType.blood,
-            startTime: Duration(milliseconds: startMs),
-            endTime: Duration(milliseconds: startMs + durationMs),
-            confidence: 0.60 + random.nextDouble() * 0.35,
-            description: 'Potential blood/gore content',
-          ),);
-        }
-      }
-      
-      // Generate sample weapons detections
-      if (settings.enableWeapons) {
-        if (random.nextDouble() > 0.65) { // 35% chance
-          final startMs = random.nextInt(totalDurationMs - 3000);
-          final durationMs = 1500 + random.nextInt(2000);
-          detections.add(Detection(
-            id: 'det_weapons_0',
-            mediaId: mediaId,
-            type: ContentType.weapons,
-            startTime: Duration(milliseconds: startMs),
-            endTime: Duration(milliseconds: startMs + durationMs),
-            confidence: 0.55 + random.nextDouble() * 0.40,
-            description: 'Potential weapons detected',
-          ),);
-        }
-      }
-      
-      state = state.copyWith(progress: 0.90);
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-      
-      // Step 4: Finalizing (90-100%)
-      state = state.copyWith(
-        currentStep: 'Finalizing results...',
-        progress: 0.95,
-      );
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-      
-      // Sort detections by start time and update project
-      detections.sort((a, b) => a.startTime.compareTo(b.startTime));
-      ref.read(projectNotifierProvider.notifier).addDetections(detections);
-      
-      state = state.copyWith(
-        status: AnalysisStatus.completed,
-        progress: 1,
-        currentStep: 'Analysis complete',
-        detections: detections,
+        status: AnalysisStatus.cancelled,
+        currentStep: 'Cancelled',
+        isPaused: false,
       );
     } catch (e) {
       state = state.copyWith(
         status: AnalysisStatus.failed,
         errorMessage: e.toString(),
+        isPaused: false,
       );
+    } finally {
+      await _jobProgressSubscription?.cancel();
+      _jobProgressSubscription = null;
+      _activeJob = null;
     }
-  }
-  
-  String _getRandomProfanityDescription(math.Random random) {
-    final descriptions = [
-      'Mild profanity detected in audio',
-      'Strong language detected',
-      'Inappropriate word detected',
-      'Profane expression detected',
-    ];
-    return descriptions[random.nextInt(descriptions.length)];
   }
 
   void updateProgress(AnalysisProgress progress) {
@@ -259,24 +175,35 @@ class AnalysisNotifier extends _$AnalysisNotifier {
   }
 
   void pause() {
-    if (state.status == AnalysisStatus.running && !state.isPaused) {
-      state = state.copyWith(isPaused: true);
+    if (state.status == AnalysisStatus.running &&
+        !state.isPaused &&
+        _activeJob != null) {
+      _activeJob!.pause();
+      state = state.copyWith(isPaused: true, currentStep: 'Paused');
     }
   }
 
   void resume() {
-    if (state.status == AnalysisStatus.running && state.isPaused) {
-      state = state.copyWith(isPaused: false);
+    if (state.status == AnalysisStatus.running &&
+        state.isPaused &&
+        _activeJob != null) {
+      _activeJob!.resume();
+      state = state.copyWith(isPaused: false, currentStep: 'Resumed');
     }
   }
 
   void cancel() {
-    _progressSubscription?.cancel();
-    state = state.copyWith(status: AnalysisStatus.cancelled);
+    _activeJob?.cancel();
+    unawaited(_jobProgressSubscription?.cancel());
+    ref.read(projectNotifierProvider.notifier).updateAnalysisProgress(0);
+    state = state.copyWith(status: AnalysisStatus.cancelled, isPaused: false);
   }
 
   void reset() {
-    _progressSubscription?.cancel();
+    _activeJob?.cancel();
+    unawaited(_jobProgressSubscription?.cancel());
+    _activeJob = null;
+    _jobProgressSubscription = null;
     state = const AnalysisState();
   }
 }

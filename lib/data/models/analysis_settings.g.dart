@@ -10,12 +10,11 @@ _$ModelConfigImpl _$$ModelConfigImplFromJson(Map<String, dynamic> json) =>
     _$ModelConfigImpl(
       asrModelId: json['asrModelId'] as String,
       visualModelId: json['visualModelId'] as String,
-      nsfwModelId: json['nsfwModelId'] as String? ?? 'nsfw-mobilenet-v2',
+      nsfwModelId: json['nsfwModelId'] as String? ?? 'nsfw-vit-base-quantized',
       violenceModelId:
-          json['violenceModelId'] as String? ?? 'violence-mobilenet',
-      bloodModelId: json['bloodModelId'] as String? ?? 'gore-efficientnet-b2',
-      weaponsModelId:
-          json['weaponsModelId'] as String? ?? 'weapons-yolov8-small',
+          json['violenceModelId'] as String? ?? 'violence-vit-classifier',
+      bloodModelId: json['bloodModelId'] as String? ?? 'gore-classifier',
+      weaponsModelId: json['weaponsModelId'] as String? ?? 'weapons-classifier',
       asrLanguage: json['asrLanguage'] as String? ?? 'en',
       useGpu: json['useGpu'] as bool? ?? true,
       cpuThreads: (json['cpuThreads'] as num?)?.toInt() ?? 4,

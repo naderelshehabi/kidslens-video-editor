@@ -12,6 +12,9 @@ _$VisualContentCategoryImpl _$$VisualContentCategoryImplFromJson(
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String,
+      detectionSource: $enumDecode(
+          _$CategoryDetectionSourceEnumMap, json['detectionSource'],
+          unknownValue: CategoryDetectionSource.clip),
       detectionLabels: (json['detectionLabels'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
@@ -24,9 +27,6 @@ _$VisualContentCategoryImpl _$$VisualContentCategoryImplFromJson(
               ?.map((e) => e as String)
               .toList() ??
           const [],
-      detectionSource: $enumDecode(
-          _$CategoryDetectionSourceEnumMap, json['detectionSource'],
-          unknownValue: CategoryDetectionSource.clip),
       enabled: json['enabled'] as bool? ?? true,
       threshold: (json['threshold'] as num?)?.toDouble() ?? 0.5,
       clipThreshold: (json['clipThreshold'] as num?)?.toDouble() ?? 3.0,
@@ -43,11 +43,11 @@ Map<String, dynamic> _$$VisualContentCategoryImplToJson(
       'id': instance.id,
       'name': instance.name,
       'description': instance.description,
+      'detectionSource':
+          _$CategoryDetectionSourceEnumMap[instance.detectionSource]!,
       'detectionLabels': instance.detectionLabels,
       'clipPrompts': instance.clipPrompts,
       'clipNegativePrompts': instance.clipNegativePrompts,
-      'detectionSource':
-          _$CategoryDetectionSourceEnumMap[instance.detectionSource]!,
       'enabled': instance.enabled,
       'threshold': instance.threshold,
       'clipThreshold': instance.clipThreshold,

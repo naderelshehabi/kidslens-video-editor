@@ -85,15 +85,13 @@ class ModelState {
 /// Provider for managing AI models
 @Riverpod(keepAlive: true)
 class ModelNotifier extends _$ModelNotifier {
-  late final ModelManagerService _modelManager;
-  late final HuggingFaceModelRegistry _registry;
+  static final HuggingFaceModelRegistry _registry =
+      HuggingFaceModelRegistry.instance;
+
+  ModelManagerService get _modelManager => ref.read(modelManagerServiceProvider);
 
   @override
-  ModelState build() {
-    _modelManager = ref.watch(modelManagerServiceProvider);
-    _registry = HuggingFaceModelRegistry.instance;
-    return const ModelState();
-  }
+  ModelState build() => const ModelState();
 
   /// Load available models from registry and check downloaded status
   Future<void> loadAvailableModels() async {
@@ -330,7 +328,8 @@ class ModelNotifier extends _$ModelNotifier {
     final asrModelId =
         state.selectedModels[HuggingFaceModelType.asr] ?? 'whisper-small';
     final visualModelId =
-        state.selectedModels[HuggingFaceModelType.nsfw] ?? 'nsfw-mobilenet-v2';
+        state.selectedModels[HuggingFaceModelType.nsfw] ??
+            'nsfw-vit-base-quantized';
 
     final config = ModelConfig(
       asrModelId: asrModelId,

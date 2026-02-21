@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kidslens_video_editor/data/models/analysis_settings_migration.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -230,7 +231,23 @@ class SettingsNotifier extends _$SettingsNotifier {
       final jsonString = prefs.getString(_prefsKey);
       if (jsonString != null) {
         final json = jsonDecode(jsonString) as Map<String, dynamic>;
+        final analysisSettingsJson = json['analysisSettings'];
+        if (analysisSettingsJson is Map<String, dynamic> &&
+            AnalysisSettingsMigration.needsMigration(analysisSettingsJson)) {
+          AnalysisSettingsMigration.migrateFromV1(analysisSettingsJson);
+        }
         state = SettingsState.fromJson(json);
+        if (state.analysisSettings.contentDetectionConfig.categories.isEmpty) {
+          state = state.copyWith(
+            analysisSettings: state.analysisSettings.copyWith(
+              contentDetectionConfig:
+                  state.analysisSettings.contentDetectionConfig.copyWith(
+                categories: ContentCategoryDefaults.allCategories,
+              ),
+            ),
+          );
+          _debounceSave();
+        }
       }
     } catch (e) {
       // If loading fails, keep default settings

@@ -30,6 +30,11 @@ mixin _$VisualContentCategory {
   /// Description of what this category detects
   String get description => throw _privateConstructorUsedError;
 
+  /// Detection source (nudeNet, clip, or both)
+  @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
+  CategoryDetectionSource get detectionSource =>
+      throw _privateConstructorUsedError;
+
   /// NudeNet class labels for detection (empty for CLIP-only categories)
   List<String> get detectionLabels => throw _privateConstructorUsedError;
 
@@ -38,11 +43,6 @@ mixin _$VisualContentCategory {
 
   /// CLIP negative prompts for discriminative scoring
   List<String> get clipNegativePrompts => throw _privateConstructorUsedError;
-
-  /// Detection source (nudeNet, clip, or both)
-  @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
-  CategoryDetectionSource get detectionSource =>
-      throw _privateConstructorUsedError;
 
   /// Whether this category is enabled
   bool get enabled => throw _privateConstructorUsedError;
@@ -83,11 +83,11 @@ abstract class $VisualContentCategoryCopyWith<$Res> {
       {String id,
       String name,
       String description,
+      @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
+      CategoryDetectionSource detectionSource,
       List<String> detectionLabels,
       List<String> clipPrompts,
       List<String> clipNegativePrompts,
-      @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
-      CategoryDetectionSource detectionSource,
       bool enabled,
       double threshold,
       double clipThreshold,
@@ -116,10 +116,10 @@ class _$VisualContentCategoryCopyWithImpl<$Res,
     Object? id = null,
     Object? name = null,
     Object? description = null,
+    Object? detectionSource = null,
     Object? detectionLabels = null,
     Object? clipPrompts = null,
     Object? clipNegativePrompts = null,
-    Object? detectionSource = null,
     Object? enabled = null,
     Object? threshold = null,
     Object? clipThreshold = null,
@@ -140,6 +140,10 @@ class _$VisualContentCategoryCopyWithImpl<$Res,
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
               as String,
+      detectionSource: null == detectionSource
+          ? _value.detectionSource
+          : detectionSource // ignore: cast_nullable_to_non_nullable
+              as CategoryDetectionSource,
       detectionLabels: null == detectionLabels
           ? _value.detectionLabels
           : detectionLabels // ignore: cast_nullable_to_non_nullable
@@ -152,10 +156,6 @@ class _$VisualContentCategoryCopyWithImpl<$Res,
           ? _value.clipNegativePrompts
           : clipNegativePrompts // ignore: cast_nullable_to_non_nullable
               as List<String>,
-      detectionSource: null == detectionSource
-          ? _value.detectionSource
-          : detectionSource // ignore: cast_nullable_to_non_nullable
-              as CategoryDetectionSource,
       enabled: null == enabled
           ? _value.enabled
           : enabled // ignore: cast_nullable_to_non_nullable
@@ -197,11 +197,11 @@ abstract class _$$VisualContentCategoryImplCopyWith<$Res>
       {String id,
       String name,
       String description,
+      @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
+      CategoryDetectionSource detectionSource,
       List<String> detectionLabels,
       List<String> clipPrompts,
       List<String> clipNegativePrompts,
-      @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
-      CategoryDetectionSource detectionSource,
       bool enabled,
       double threshold,
       double clipThreshold,
@@ -228,10 +228,10 @@ class __$$VisualContentCategoryImplCopyWithImpl<$Res>
     Object? id = null,
     Object? name = null,
     Object? description = null,
+    Object? detectionSource = null,
     Object? detectionLabels = null,
     Object? clipPrompts = null,
     Object? clipNegativePrompts = null,
-    Object? detectionSource = null,
     Object? enabled = null,
     Object? threshold = null,
     Object? clipThreshold = null,
@@ -252,6 +252,10 @@ class __$$VisualContentCategoryImplCopyWithImpl<$Res>
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
               as String,
+      detectionSource: null == detectionSource
+          ? _value.detectionSource
+          : detectionSource // ignore: cast_nullable_to_non_nullable
+              as CategoryDetectionSource,
       detectionLabels: null == detectionLabels
           ? _value._detectionLabels
           : detectionLabels // ignore: cast_nullable_to_non_nullable
@@ -264,10 +268,6 @@ class __$$VisualContentCategoryImplCopyWithImpl<$Res>
           ? _value._clipNegativePrompts
           : clipNegativePrompts // ignore: cast_nullable_to_non_nullable
               as List<String>,
-      detectionSource: null == detectionSource
-          ? _value.detectionSource
-          : detectionSource // ignore: cast_nullable_to_non_nullable
-              as CategoryDetectionSource,
       enabled: null == enabled
           ? _value.enabled
           : enabled // ignore: cast_nullable_to_non_nullable
@@ -303,11 +303,11 @@ class _$VisualContentCategoryImpl extends _VisualContentCategory {
       {required this.id,
       required this.name,
       required this.description,
+      @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
+      required this.detectionSource,
       final List<String> detectionLabels = const [],
       final List<String> clipPrompts = const [],
       final List<String> clipNegativePrompts = const [],
-      @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
-      required this.detectionSource,
       this.enabled = true,
       this.threshold = 0.5,
       this.clipThreshold = 3.0,
@@ -334,6 +334,11 @@ class _$VisualContentCategoryImpl extends _VisualContentCategory {
   /// Description of what this category detects
   @override
   final String description;
+
+  /// Detection source (nudeNet, clip, or both)
+  @override
+  @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
+  final CategoryDetectionSource detectionSource;
 
   /// NudeNet class labels for detection (empty for CLIP-only categories)
   final List<String> _detectionLabels;
@@ -372,11 +377,6 @@ class _$VisualContentCategoryImpl extends _VisualContentCategory {
     return EqualUnmodifiableListView(_clipNegativePrompts);
   }
 
-  /// Detection source (nudeNet, clip, or both)
-  @override
-  @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
-  final CategoryDetectionSource detectionSource;
-
   /// Whether this category is enabled
   @override
   @JsonKey()
@@ -408,7 +408,7 @@ class _$VisualContentCategoryImpl extends _VisualContentCategory {
 
   @override
   String toString() {
-    return 'VisualContentCategory(id: $id, name: $name, description: $description, detectionLabels: $detectionLabels, clipPrompts: $clipPrompts, clipNegativePrompts: $clipNegativePrompts, detectionSource: $detectionSource, enabled: $enabled, threshold: $threshold, clipThreshold: $clipThreshold, action: $action, iconName: $iconName, isBuiltIn: $isBuiltIn)';
+    return 'VisualContentCategory(id: $id, name: $name, description: $description, detectionSource: $detectionSource, detectionLabels: $detectionLabels, clipPrompts: $clipPrompts, clipNegativePrompts: $clipNegativePrompts, enabled: $enabled, threshold: $threshold, clipThreshold: $clipThreshold, action: $action, iconName: $iconName, isBuiltIn: $isBuiltIn)';
   }
 
   @override
@@ -420,14 +420,14 @@ class _$VisualContentCategoryImpl extends _VisualContentCategory {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.description, description) ||
                 other.description == description) &&
+            (identical(other.detectionSource, detectionSource) ||
+                other.detectionSource == detectionSource) &&
             const DeepCollectionEquality()
                 .equals(other._detectionLabels, _detectionLabels) &&
             const DeepCollectionEquality()
                 .equals(other._clipPrompts, _clipPrompts) &&
             const DeepCollectionEquality()
                 .equals(other._clipNegativePrompts, _clipNegativePrompts) &&
-            (identical(other.detectionSource, detectionSource) ||
-                other.detectionSource == detectionSource) &&
             (identical(other.enabled, enabled) || other.enabled == enabled) &&
             (identical(other.threshold, threshold) ||
                 other.threshold == threshold) &&
@@ -447,10 +447,10 @@ class _$VisualContentCategoryImpl extends _VisualContentCategory {
       id,
       name,
       description,
+      detectionSource,
       const DeepCollectionEquality().hash(_detectionLabels),
       const DeepCollectionEquality().hash(_clipPrompts),
       const DeepCollectionEquality().hash(_clipNegativePrompts),
-      detectionSource,
       enabled,
       threshold,
       clipThreshold,
@@ -480,11 +480,11 @@ abstract class _VisualContentCategory extends VisualContentCategory {
       {required final String id,
       required final String name,
       required final String description,
+      @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
+      required final CategoryDetectionSource detectionSource,
       final List<String> detectionLabels,
       final List<String> clipPrompts,
       final List<String> clipNegativePrompts,
-      @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
-      required final CategoryDetectionSource detectionSource,
       final bool enabled,
       final double threshold,
       final double clipThreshold,
@@ -509,6 +509,11 @@ abstract class _VisualContentCategory extends VisualContentCategory {
   @override
   String get description;
 
+  /// Detection source (nudeNet, clip, or both)
+  @override
+  @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
+  CategoryDetectionSource get detectionSource;
+
   /// NudeNet class labels for detection (empty for CLIP-only categories)
   @override
   List<String> get detectionLabels;
@@ -520,11 +525,6 @@ abstract class _VisualContentCategory extends VisualContentCategory {
   /// CLIP negative prompts for discriminative scoring
   @override
   List<String> get clipNegativePrompts;
-
-  /// Detection source (nudeNet, clip, or both)
-  @override
-  @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
-  CategoryDetectionSource get detectionSource;
 
   /// Whether this category is enabled
   @override

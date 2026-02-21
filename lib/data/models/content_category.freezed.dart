@@ -420,15 +420,15 @@ mixin _$ContentCategory {
   /// Whether this category detects visual or audio content.
   CategoryType get type => throw _privateConstructorUsedError;
 
+  /// The action to apply when content in this category is detected.
+  RemediationAction get action => throw _privateConstructorUsedError;
+
   /// Whether this category is enabled for detection.
   bool get enabled => throw _privateConstructorUsedError;
 
   /// Detection threshold (0.0 to 1.0). The MoE consensus score must meet
   /// or exceed this threshold to trigger a detection.
   double get threshold => throw _privateConstructorUsedError;
-
-  /// The action to apply when content in this category is detected.
-  RemediationAction get action => throw _privateConstructorUsedError;
 
   /// Models that contribute to this category's detection via MoE voting.
   List<ModelContribution> get modelContributions =>
@@ -464,9 +464,9 @@ abstract class $ContentCategoryCopyWith<$Res> {
       String name,
       String description,
       CategoryType type,
+      RemediationAction action,
       bool enabled,
       double threshold,
-      RemediationAction action,
       List<ModelContribution> modelContributions,
       bool isBuiltIn,
       String? iconName,
@@ -492,9 +492,9 @@ class _$ContentCategoryCopyWithImpl<$Res, $Val extends ContentCategory>
     Object? name = null,
     Object? description = null,
     Object? type = null,
+    Object? action = null,
     Object? enabled = null,
     Object? threshold = null,
-    Object? action = null,
     Object? modelContributions = null,
     Object? isBuiltIn = null,
     Object? iconName = freezed,
@@ -517,6 +517,10 @@ class _$ContentCategoryCopyWithImpl<$Res, $Val extends ContentCategory>
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
               as CategoryType,
+      action: null == action
+          ? _value.action
+          : action // ignore: cast_nullable_to_non_nullable
+              as RemediationAction,
       enabled: null == enabled
           ? _value.enabled
           : enabled // ignore: cast_nullable_to_non_nullable
@@ -525,10 +529,6 @@ class _$ContentCategoryCopyWithImpl<$Res, $Val extends ContentCategory>
           ? _value.threshold
           : threshold // ignore: cast_nullable_to_non_nullable
               as double,
-      action: null == action
-          ? _value.action
-          : action // ignore: cast_nullable_to_non_nullable
-              as RemediationAction,
       modelContributions: null == modelContributions
           ? _value.modelContributions
           : modelContributions // ignore: cast_nullable_to_non_nullable
@@ -562,9 +562,9 @@ abstract class _$$ContentCategoryImplCopyWith<$Res>
       String name,
       String description,
       CategoryType type,
+      RemediationAction action,
       bool enabled,
       double threshold,
-      RemediationAction action,
       List<ModelContribution> modelContributions,
       bool isBuiltIn,
       String? iconName,
@@ -588,9 +588,9 @@ class __$$ContentCategoryImplCopyWithImpl<$Res>
     Object? name = null,
     Object? description = null,
     Object? type = null,
+    Object? action = null,
     Object? enabled = null,
     Object? threshold = null,
-    Object? action = null,
     Object? modelContributions = null,
     Object? isBuiltIn = null,
     Object? iconName = freezed,
@@ -613,6 +613,10 @@ class __$$ContentCategoryImplCopyWithImpl<$Res>
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
               as CategoryType,
+      action: null == action
+          ? _value.action
+          : action // ignore: cast_nullable_to_non_nullable
+              as RemediationAction,
       enabled: null == enabled
           ? _value.enabled
           : enabled // ignore: cast_nullable_to_non_nullable
@@ -621,10 +625,6 @@ class __$$ContentCategoryImplCopyWithImpl<$Res>
           ? _value.threshold
           : threshold // ignore: cast_nullable_to_non_nullable
               as double,
-      action: null == action
-          ? _value.action
-          : action // ignore: cast_nullable_to_non_nullable
-              as RemediationAction,
       modelContributions: null == modelContributions
           ? _value._modelContributions
           : modelContributions // ignore: cast_nullable_to_non_nullable
@@ -653,9 +653,9 @@ class _$ContentCategoryImpl extends _ContentCategory {
       required this.name,
       required this.description,
       required this.type,
+      required this.action,
       this.enabled = true,
       this.threshold = 0.5,
-      required this.action,
       final List<ModelContribution> modelContributions = const [],
       this.isBuiltIn = true,
       this.iconName,
@@ -682,6 +682,10 @@ class _$ContentCategoryImpl extends _ContentCategory {
   @override
   final CategoryType type;
 
+  /// The action to apply when content in this category is detected.
+  @override
+  final RemediationAction action;
+
   /// Whether this category is enabled for detection.
   @override
   @JsonKey()
@@ -692,10 +696,6 @@ class _$ContentCategoryImpl extends _ContentCategory {
   @override
   @JsonKey()
   final double threshold;
-
-  /// The action to apply when content in this category is detected.
-  @override
-  final RemediationAction action;
 
   /// Models that contribute to this category's detection via MoE voting.
   final List<ModelContribution> _modelContributions;
@@ -726,7 +726,7 @@ class _$ContentCategoryImpl extends _ContentCategory {
 
   @override
   String toString() {
-    return 'ContentCategory(id: $id, name: $name, description: $description, type: $type, enabled: $enabled, threshold: $threshold, action: $action, modelContributions: $modelContributions, isBuiltIn: $isBuiltIn, iconName: $iconName, supportsRegions: $supportsRegions)';
+    return 'ContentCategory(id: $id, name: $name, description: $description, type: $type, action: $action, enabled: $enabled, threshold: $threshold, modelContributions: $modelContributions, isBuiltIn: $isBuiltIn, iconName: $iconName, supportsRegions: $supportsRegions)';
   }
 
   @override
@@ -739,10 +739,10 @@ class _$ContentCategoryImpl extends _ContentCategory {
             (identical(other.description, description) ||
                 other.description == description) &&
             (identical(other.type, type) || other.type == type) &&
+            (identical(other.action, action) || other.action == action) &&
             (identical(other.enabled, enabled) || other.enabled == enabled) &&
             (identical(other.threshold, threshold) ||
                 other.threshold == threshold) &&
-            (identical(other.action, action) || other.action == action) &&
             const DeepCollectionEquality()
                 .equals(other._modelContributions, _modelContributions) &&
             (identical(other.isBuiltIn, isBuiltIn) ||
@@ -761,9 +761,9 @@ class _$ContentCategoryImpl extends _ContentCategory {
       name,
       description,
       type,
+      action,
       enabled,
       threshold,
-      action,
       const DeepCollectionEquality().hash(_modelContributions),
       isBuiltIn,
       iconName,
@@ -792,9 +792,9 @@ abstract class _ContentCategory extends ContentCategory {
       required final String name,
       required final String description,
       required final CategoryType type,
+      required final RemediationAction action,
       final bool enabled,
       final double threshold,
-      required final RemediationAction action,
       final List<ModelContribution> modelContributions,
       final bool isBuiltIn,
       final String? iconName,
@@ -820,6 +820,10 @@ abstract class _ContentCategory extends ContentCategory {
   @override
   CategoryType get type;
 
+  /// The action to apply when content in this category is detected.
+  @override
+  RemediationAction get action;
+
   /// Whether this category is enabled for detection.
   @override
   bool get enabled;
@@ -828,10 +832,6 @@ abstract class _ContentCategory extends ContentCategory {
   /// or exceed this threshold to trigger a detection.
   @override
   double get threshold;
-
-  /// The action to apply when content in this category is detected.
-  @override
-  RemediationAction get action;
 
   /// Models that contribute to this category's detection via MoE voting.
   @override

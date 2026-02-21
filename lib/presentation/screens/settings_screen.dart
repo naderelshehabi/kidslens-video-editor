@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kidslens_video_editor/state/providers/model_provider.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -256,6 +257,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ref.read(settingsNotifierProvider.notifier).setModelCachePath(newPath);
         setState(() => _modelCachePath = newPath);
       }
+
+      await ref.read(modelNotifierProvider.notifier).loadAvailableModels();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
