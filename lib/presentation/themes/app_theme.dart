@@ -46,10 +46,16 @@ class AppTheme {
   // Detection type colors - Consistent with the safe/joy theme
   static const Color profanityColor = Color(0xFFFFCA28); // Amber 400
   static const Color nsfwColor = Color(0xFFAB47BC); // Purple 400
-  static const Color nudityColor = Color(0xFFAB47BC); 
+  static const Color nudityColor = Color(0xFF6A1B9A); // Deep Purple 800
   static const Color violenceColor = Color(0xFFFF7043); // Deep Orange 400
   static const Color bloodColor = Color(0xFFE53935); // Red 600
   static const Color weaponsColor = Color(0xFF78909C); // Blue Grey 400
+
+  // Visual content category colors
+  static const Color sexualContentColor = Color(0xFFC62828); // Dark Red 800
+  static const Color kissingColor = Color(0xFFEC407A); // Pink 400
+  static const Color immodestDressColor = Color(0xFFFFA000); // Amber 700
+  static const Color customColor = Color(0xFF9E9E9E); // Grey 500
 
   /// Light theme - Cheerful Blue/Amber palette for family-friendly editing
   static ThemeData get lightTheme => ThemeData(
@@ -181,17 +187,27 @@ class AppTheme {
   static Color getDetectionColor(String type) {
     switch (type.toLowerCase()) {
       case 'profanity':
-        return profanityColor; 
+        return profanityColor;
       case 'nsfw':
-        return nsfwColor; 
+        return nsfwColor;
       case 'nudity':
-        return nudityColor; 
+        return nudityColor;
+      case 'sexual_content':
+      case 'sexualcontent':
+        return sexualContentColor;
+      case 'kissing':
+        return kissingColor;
+      case 'immodest_dress':
+      case 'immodestdress':
+        return immodestDressColor;
       case 'violence':
-        return violenceColor; 
+        return violenceColor;
       case 'blood':
-        return bloodColor; 
+        return bloodColor;
       case 'weapons':
-        return weaponsColor; 
+        return weaponsColor;
+      case 'custom':
+        return customColor;
       default:
         return const Color(0xFF90A4AE); // Blue Grey 300 - neutral fallback
     }
@@ -202,13 +218,18 @@ class AppTheme {
 
   /// Get text color for detection badges (ensures accessibility)
   static Color getDetectionTextColor(String type) {
-    // Use white text on darker backgrounds, dark text on lighter
     switch (type.toLowerCase()) {
       case 'blood':
       case 'violence':
       case 'nsfw':
       case 'nudity':
+      case 'sexual_content':
+      case 'sexualcontent':
+      case 'kissing':
         return Colors.white;
+      case 'immodest_dress':
+      case 'immodestdress':
+      case 'custom':
       default:
         return Colors.black87;
     }

@@ -85,5 +85,10 @@ class DetectionMarker extends StatelessWidget {
       ContentType.violence => Icons.warning,
       ContentType.blood => Icons.water_drop,
       ContentType.weapons => Icons.gpp_bad,
+      ContentType.nudity => Icons.visibility_off,
+      ContentType.sexualContent => Icons.block,
+      ContentType.kissing => Icons.favorite,
+      ContentType.immodestDress => Icons.checkroom,
+      ContentType.custom => Icons.category,
     };
 }

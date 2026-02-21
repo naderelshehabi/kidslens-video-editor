@@ -19,3 +19,8 @@ export 'subtitle_track.dart';
 export 'timeline.dart';
 export 'transcript.dart';
 export 'transcription_progress.dart';
+export 'content_category.dart';
+export 'content_category_defaults.dart';
+export 'visual_content_category.dart';
+export 'visual_content_defaults.dart';
+export 'voting_config.dart';

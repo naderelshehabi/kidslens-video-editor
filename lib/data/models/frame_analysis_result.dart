@@ -205,6 +205,77 @@ class DetectedWeapon with _$DetectedWeapon {
       _$DetectedWeaponFromJson(json);
 }
 
+/// Represents a detected region from NudeNet (raw model output)
+@freezed
+class DetectedRegion with _$DetectedRegion {
+  const factory DetectedRegion({
+    /// Raw model label (e.g. 'FEMALE_BREAST_EXPOSED')
+    required String label,
+
+    /// Detection confidence score (0-1)
+    required double confidence,
+
+    /// X coordinate of top-left corner (normalized 0-1)
+    required double x,
+
+    /// Y coordinate of top-left corner (normalized 0-1)
+    required double y,
+
+    /// Width of region (normalized 0-1)
+    required double width,
+
+    /// Height of region (normalized 0-1)
+    required double height,
+  }) = _DetectedRegion;
+
+  factory DetectedRegion.fromJson(Map<String, dynamic> json) =>
+      _$DetectedRegionFromJson(json);
+}
+
+/// Visual content detection result combining NudeNet regions and CLIP scores
+@freezed
+class VisualContentResult with _$VisualContentResult {
+  const factory VisualContentResult({
+    /// Detected regions from NudeNet (bounding boxes)
+    @Default([]) List<DetectedRegion> detectedRegions,
+
+    /// CLIP temperature-scaled discriminative scores per category ID
+    @Default({}) Map<String, double> clipScores,
+  }) = _VisualContentResult;
+
+  const VisualContentResult._();
+
+  factory VisualContentResult.fromJson(Map<String, dynamic> json) =>
+      _$VisualContentResultFromJson(json);
+
+  /// Creates a safe result with no detections
+  factory VisualContentResult.safe() => const VisualContentResult();
+
+  /// Whether any NudeNet regions were detected
+  bool get hasRegions => detectedRegions.isNotEmpty;
+
+  /// Whether any CLIP categories triggered
+  bool get hasClipDetections => clipScores.isNotEmpty;
+
+  /// Whether any visual content was detected
+  bool get hasAnyDetections => hasRegions || hasClipDetections;
+
+  /// Get regions matching a specific label
+  List<DetectedRegion> regionsForLabel(String label) =>
+      detectedRegions.where((r) => r.label == label).toList();
+
+  /// Get regions above a confidence threshold
+  List<DetectedRegion> regionsAboveThreshold(double threshold) =>
+      detectedRegions.where((r) => r.confidence >= threshold).toList();
+
+  /// Get CLIP score for a category, or null if not present
+  double? clipScoreForCategory(String categoryId) => clipScores[categoryId];
+
+  /// Whether a CLIP category exceeds its threshold
+  bool clipCategoryExceedsThreshold(String categoryId, double threshold) =>
+      (clipScores[categoryId] ?? double.negativeInfinity) >= threshold;
+}
+
 /// Complete analysis result for a single video frame
 @freezed
 class FrameAnalysisResult with _$FrameAnalysisResult {
@@ -229,6 +300,9 @@ class FrameAnalysisResult with _$FrameAnalysisResult {
 
     /// Weapons detection result (optional)
     WeaponsResult? weapons,
+
+    /// Visual content detection result (NudeNet + CLIP)
+    VisualContentResult? visualContent,
 
     /// Processing time for this frame in milliseconds
     int? processingTimeMs,
@@ -256,6 +330,7 @@ class FrameAnalysisResult with _$FrameAnalysisResult {
         violence: ViolenceResult.safe(),
         blood: BloodResult.safe(),
         weapons: WeaponsResult.safe(),
+        visualContent: VisualContentResult.safe(),
       );
 
   /// Whether this frame has any NSFW content at threshold
@@ -271,6 +346,10 @@ class FrameAnalysisResult with _$FrameAnalysisResult {
   /// Whether this frame has weapons at threshold
   bool hasWeaponsAt(double threshold) =>
       weapons?.isDetectedAtThreshold(threshold) ?? false;
+
+  /// Whether this frame has visual content detections
+  bool get hasVisualContentDetections =>
+      visualContent?.hasAnyDetections ?? false;
 
   /// Whether this frame is completely safe at given thresholds
   bool isSafeAt({

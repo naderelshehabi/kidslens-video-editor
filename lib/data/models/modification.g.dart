@@ -6,6 +6,22 @@ part of 'modification.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_$RegionBoundsImpl _$$RegionBoundsImplFromJson(Map<String, dynamic> json) =>
+    _$RegionBoundsImpl(
+      x: (json['x'] as num).toDouble(),
+      y: (json['y'] as num).toDouble(),
+      width: (json['width'] as num).toDouble(),
+      height: (json['height'] as num).toDouble(),
+    );
+
+Map<String, dynamic> _$$RegionBoundsImplToJson(_$RegionBoundsImpl instance) =>
+    <String, dynamic>{
+      'x': instance.x,
+      'y': instance.y,
+      'width': instance.width,
+      'height': instance.height,
+    };
+
 _$AudioMuteImpl _$$AudioMuteImplFromJson(Map<String, dynamic> json) =>
     _$AudioMuteImpl(
       $type: json['runtimeType'] as String?,
@@ -91,5 +107,55 @@ _$VideoSkipImpl _$$VideoSkipImplFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$$VideoSkipImplToJson(_$VideoSkipImpl instance) =>
     <String, dynamic>{
+      'runtimeType': instance.$type,
+    };
+
+_$VideoRegionBlurImpl _$$VideoRegionBlurImplFromJson(
+        Map<String, dynamic> json) =>
+    _$VideoRegionBlurImpl(
+      intensity: (json['intensity'] as num?)?.toInt() ?? 50,
+      region: RegionBounds.fromJson(json['region'] as Map<String, dynamic>),
+      $type: json['runtimeType'] as String?,
+    );
+
+Map<String, dynamic> _$$VideoRegionBlurImplToJson(
+        _$VideoRegionBlurImpl instance) =>
+    <String, dynamic>{
+      'intensity': instance.intensity,
+      'region': instance.region,
+      'runtimeType': instance.$type,
+    };
+
+_$VideoRegionPixelateImpl _$$VideoRegionPixelateImplFromJson(
+        Map<String, dynamic> json) =>
+    _$VideoRegionPixelateImpl(
+      blockSize: (json['blockSize'] as num?)?.toInt() ?? 10,
+      region: RegionBounds.fromJson(json['region'] as Map<String, dynamic>),
+      $type: json['runtimeType'] as String?,
+    );
+
+Map<String, dynamic> _$$VideoRegionPixelateImplToJson(
+        _$VideoRegionPixelateImpl instance) =>
+    <String, dynamic>{
+      'blockSize': instance.blockSize,
+      'region': instance.region,
+      'runtimeType': instance.$type,
+    };
+
+_$VideoRegionBlackBoxImpl _$$VideoRegionBlackBoxImplFromJson(
+        Map<String, dynamic> json) =>
+    _$VideoRegionBlackBoxImpl(
+      color: json['color'] as String? ?? '#000000',
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      region: RegionBounds.fromJson(json['region'] as Map<String, dynamic>),
+      $type: json['runtimeType'] as String?,
+    );
+
+Map<String, dynamic> _$$VideoRegionBlackBoxImplToJson(
+        _$VideoRegionBlackBoxImpl instance) =>
+    <String, dynamic>{
+      'color': instance.color,
+      'opacity': instance.opacity,
+      'region': instance.region,
       'runtimeType': instance.$type,
     };

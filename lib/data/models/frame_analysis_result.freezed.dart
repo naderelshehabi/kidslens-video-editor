@@ -1380,6 +1380,502 @@ abstract class _DetectedWeapon implements DetectedWeapon {
       throw _privateConstructorUsedError;
 }
 
+DetectedRegion _$DetectedRegionFromJson(Map<String, dynamic> json) {
+  return _DetectedRegion.fromJson(json);
+}
+
+/// @nodoc
+mixin _$DetectedRegion {
+  /// Raw model label (e.g. 'FEMALE_BREAST_EXPOSED')
+  String get label => throw _privateConstructorUsedError;
+
+  /// Detection confidence score (0-1)
+  double get confidence => throw _privateConstructorUsedError;
+
+  /// X coordinate of top-left corner (normalized 0-1)
+  double get x => throw _privateConstructorUsedError;
+
+  /// Y coordinate of top-left corner (normalized 0-1)
+  double get y => throw _privateConstructorUsedError;
+
+  /// Width of region (normalized 0-1)
+  double get width => throw _privateConstructorUsedError;
+
+  /// Height of region (normalized 0-1)
+  double get height => throw _privateConstructorUsedError;
+
+  /// Serializes this DetectedRegion to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of DetectedRegion
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $DetectedRegionCopyWith<DetectedRegion> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $DetectedRegionCopyWith<$Res> {
+  factory $DetectedRegionCopyWith(
+          DetectedRegion value, $Res Function(DetectedRegion) then) =
+      _$DetectedRegionCopyWithImpl<$Res, DetectedRegion>;
+  @useResult
+  $Res call(
+      {String label,
+      double confidence,
+      double x,
+      double y,
+      double width,
+      double height});
+}
+
+/// @nodoc
+class _$DetectedRegionCopyWithImpl<$Res, $Val extends DetectedRegion>
+    implements $DetectedRegionCopyWith<$Res> {
+  _$DetectedRegionCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of DetectedRegion
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? label = null,
+    Object? confidence = null,
+    Object? x = null,
+    Object? y = null,
+    Object? width = null,
+    Object? height = null,
+  }) {
+    return _then(_value.copyWith(
+      label: null == label
+          ? _value.label
+          : label // ignore: cast_nullable_to_non_nullable
+              as String,
+      confidence: null == confidence
+          ? _value.confidence
+          : confidence // ignore: cast_nullable_to_non_nullable
+              as double,
+      x: null == x
+          ? _value.x
+          : x // ignore: cast_nullable_to_non_nullable
+              as double,
+      y: null == y
+          ? _value.y
+          : y // ignore: cast_nullable_to_non_nullable
+              as double,
+      width: null == width
+          ? _value.width
+          : width // ignore: cast_nullable_to_non_nullable
+              as double,
+      height: null == height
+          ? _value.height
+          : height // ignore: cast_nullable_to_non_nullable
+              as double,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$DetectedRegionImplCopyWith<$Res>
+    implements $DetectedRegionCopyWith<$Res> {
+  factory _$$DetectedRegionImplCopyWith(_$DetectedRegionImpl value,
+          $Res Function(_$DetectedRegionImpl) then) =
+      __$$DetectedRegionImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String label,
+      double confidence,
+      double x,
+      double y,
+      double width,
+      double height});
+}
+
+/// @nodoc
+class __$$DetectedRegionImplCopyWithImpl<$Res>
+    extends _$DetectedRegionCopyWithImpl<$Res, _$DetectedRegionImpl>
+    implements _$$DetectedRegionImplCopyWith<$Res> {
+  __$$DetectedRegionImplCopyWithImpl(
+      _$DetectedRegionImpl _value, $Res Function(_$DetectedRegionImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of DetectedRegion
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? label = null,
+    Object? confidence = null,
+    Object? x = null,
+    Object? y = null,
+    Object? width = null,
+    Object? height = null,
+  }) {
+    return _then(_$DetectedRegionImpl(
+      label: null == label
+          ? _value.label
+          : label // ignore: cast_nullable_to_non_nullable
+              as String,
+      confidence: null == confidence
+          ? _value.confidence
+          : confidence // ignore: cast_nullable_to_non_nullable
+              as double,
+      x: null == x
+          ? _value.x
+          : x // ignore: cast_nullable_to_non_nullable
+              as double,
+      y: null == y
+          ? _value.y
+          : y // ignore: cast_nullable_to_non_nullable
+              as double,
+      width: null == width
+          ? _value.width
+          : width // ignore: cast_nullable_to_non_nullable
+              as double,
+      height: null == height
+          ? _value.height
+          : height // ignore: cast_nullable_to_non_nullable
+              as double,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$DetectedRegionImpl implements _DetectedRegion {
+  const _$DetectedRegionImpl(
+      {required this.label,
+      required this.confidence,
+      required this.x,
+      required this.y,
+      required this.width,
+      required this.height});
+
+  factory _$DetectedRegionImpl.fromJson(Map<String, dynamic> json) =>
+      _$$DetectedRegionImplFromJson(json);
+
+  /// Raw model label (e.g. 'FEMALE_BREAST_EXPOSED')
+  @override
+  final String label;
+
+  /// Detection confidence score (0-1)
+  @override
+  final double confidence;
+
+  /// X coordinate of top-left corner (normalized 0-1)
+  @override
+  final double x;
+
+  /// Y coordinate of top-left corner (normalized 0-1)
+  @override
+  final double y;
+
+  /// Width of region (normalized 0-1)
+  @override
+  final double width;
+
+  /// Height of region (normalized 0-1)
+  @override
+  final double height;
+
+  @override
+  String toString() {
+    return 'DetectedRegion(label: $label, confidence: $confidence, x: $x, y: $y, width: $width, height: $height)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$DetectedRegionImpl &&
+            (identical(other.label, label) || other.label == label) &&
+            (identical(other.confidence, confidence) ||
+                other.confidence == confidence) &&
+            (identical(other.x, x) || other.x == x) &&
+            (identical(other.y, y) || other.y == y) &&
+            (identical(other.width, width) || other.width == width) &&
+            (identical(other.height, height) || other.height == height));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, label, confidence, x, y, width, height);
+
+  /// Create a copy of DetectedRegion
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$DetectedRegionImplCopyWith<_$DetectedRegionImpl> get copyWith =>
+      __$$DetectedRegionImplCopyWithImpl<_$DetectedRegionImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$DetectedRegionImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _DetectedRegion implements DetectedRegion {
+  const factory _DetectedRegion(
+      {required final String label,
+      required final double confidence,
+      required final double x,
+      required final double y,
+      required final double width,
+      required final double height}) = _$DetectedRegionImpl;
+
+  factory _DetectedRegion.fromJson(Map<String, dynamic> json) =
+      _$DetectedRegionImpl.fromJson;
+
+  /// Raw model label (e.g. 'FEMALE_BREAST_EXPOSED')
+  @override
+  String get label;
+
+  /// Detection confidence score (0-1)
+  @override
+  double get confidence;
+
+  /// X coordinate of top-left corner (normalized 0-1)
+  @override
+  double get x;
+
+  /// Y coordinate of top-left corner (normalized 0-1)
+  @override
+  double get y;
+
+  /// Width of region (normalized 0-1)
+  @override
+  double get width;
+
+  /// Height of region (normalized 0-1)
+  @override
+  double get height;
+
+  /// Create a copy of DetectedRegion
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$DetectedRegionImplCopyWith<_$DetectedRegionImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+VisualContentResult _$VisualContentResultFromJson(Map<String, dynamic> json) {
+  return _VisualContentResult.fromJson(json);
+}
+
+/// @nodoc
+mixin _$VisualContentResult {
+  /// Detected regions from NudeNet (bounding boxes)
+  List<DetectedRegion> get detectedRegions =>
+      throw _privateConstructorUsedError;
+
+  /// CLIP temperature-scaled discriminative scores per category ID
+  Map<String, double> get clipScores => throw _privateConstructorUsedError;
+
+  /// Serializes this VisualContentResult to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of VisualContentResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $VisualContentResultCopyWith<VisualContentResult> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $VisualContentResultCopyWith<$Res> {
+  factory $VisualContentResultCopyWith(
+          VisualContentResult value, $Res Function(VisualContentResult) then) =
+      _$VisualContentResultCopyWithImpl<$Res, VisualContentResult>;
+  @useResult
+  $Res call(
+      {List<DetectedRegion> detectedRegions, Map<String, double> clipScores});
+}
+
+/// @nodoc
+class _$VisualContentResultCopyWithImpl<$Res, $Val extends VisualContentResult>
+    implements $VisualContentResultCopyWith<$Res> {
+  _$VisualContentResultCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of VisualContentResult
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? detectedRegions = null,
+    Object? clipScores = null,
+  }) {
+    return _then(_value.copyWith(
+      detectedRegions: null == detectedRegions
+          ? _value.detectedRegions
+          : detectedRegions // ignore: cast_nullable_to_non_nullable
+              as List<DetectedRegion>,
+      clipScores: null == clipScores
+          ? _value.clipScores
+          : clipScores // ignore: cast_nullable_to_non_nullable
+              as Map<String, double>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$VisualContentResultImplCopyWith<$Res>
+    implements $VisualContentResultCopyWith<$Res> {
+  factory _$$VisualContentResultImplCopyWith(_$VisualContentResultImpl value,
+          $Res Function(_$VisualContentResultImpl) then) =
+      __$$VisualContentResultImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {List<DetectedRegion> detectedRegions, Map<String, double> clipScores});
+}
+
+/// @nodoc
+class __$$VisualContentResultImplCopyWithImpl<$Res>
+    extends _$VisualContentResultCopyWithImpl<$Res, _$VisualContentResultImpl>
+    implements _$$VisualContentResultImplCopyWith<$Res> {
+  __$$VisualContentResultImplCopyWithImpl(_$VisualContentResultImpl _value,
+      $Res Function(_$VisualContentResultImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of VisualContentResult
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? detectedRegions = null,
+    Object? clipScores = null,
+  }) {
+    return _then(_$VisualContentResultImpl(
+      detectedRegions: null == detectedRegions
+          ? _value._detectedRegions
+          : detectedRegions // ignore: cast_nullable_to_non_nullable
+              as List<DetectedRegion>,
+      clipScores: null == clipScores
+          ? _value._clipScores
+          : clipScores // ignore: cast_nullable_to_non_nullable
+              as Map<String, double>,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$VisualContentResultImpl extends _VisualContentResult {
+  const _$VisualContentResultImpl(
+      {final List<DetectedRegion> detectedRegions = const [],
+      final Map<String, double> clipScores = const {}})
+      : _detectedRegions = detectedRegions,
+        _clipScores = clipScores,
+        super._();
+
+  factory _$VisualContentResultImpl.fromJson(Map<String, dynamic> json) =>
+      _$$VisualContentResultImplFromJson(json);
+
+  /// Detected regions from NudeNet (bounding boxes)
+  final List<DetectedRegion> _detectedRegions;
+
+  /// Detected regions from NudeNet (bounding boxes)
+  @override
+  @JsonKey()
+  List<DetectedRegion> get detectedRegions {
+    if (_detectedRegions is EqualUnmodifiableListView) return _detectedRegions;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_detectedRegions);
+  }
+
+  /// CLIP temperature-scaled discriminative scores per category ID
+  final Map<String, double> _clipScores;
+
+  /// CLIP temperature-scaled discriminative scores per category ID
+  @override
+  @JsonKey()
+  Map<String, double> get clipScores {
+    if (_clipScores is EqualUnmodifiableMapView) return _clipScores;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_clipScores);
+  }
+
+  @override
+  String toString() {
+    return 'VisualContentResult(detectedRegions: $detectedRegions, clipScores: $clipScores)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$VisualContentResultImpl &&
+            const DeepCollectionEquality()
+                .equals(other._detectedRegions, _detectedRegions) &&
+            const DeepCollectionEquality()
+                .equals(other._clipScores, _clipScores));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      const DeepCollectionEquality().hash(_detectedRegions),
+      const DeepCollectionEquality().hash(_clipScores));
+
+  /// Create a copy of VisualContentResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$VisualContentResultImplCopyWith<_$VisualContentResultImpl> get copyWith =>
+      __$$VisualContentResultImplCopyWithImpl<_$VisualContentResultImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$VisualContentResultImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _VisualContentResult extends VisualContentResult {
+  const factory _VisualContentResult(
+      {final List<DetectedRegion> detectedRegions,
+      final Map<String, double> clipScores}) = _$VisualContentResultImpl;
+  const _VisualContentResult._() : super._();
+
+  factory _VisualContentResult.fromJson(Map<String, dynamic> json) =
+      _$VisualContentResultImpl.fromJson;
+
+  /// Detected regions from NudeNet (bounding boxes)
+  @override
+  List<DetectedRegion> get detectedRegions;
+
+  /// CLIP temperature-scaled discriminative scores per category ID
+  @override
+  Map<String, double> get clipScores;
+
+  /// Create a copy of VisualContentResult
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$VisualContentResultImplCopyWith<_$VisualContentResultImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
 FrameAnalysisResult _$FrameAnalysisResultFromJson(Map<String, dynamic> json) {
   return _FrameAnalysisResult.fromJson(json);
 }
@@ -1407,6 +1903,9 @@ mixin _$FrameAnalysisResult {
 
   /// Weapons detection result (optional)
   WeaponsResult? get weapons => throw _privateConstructorUsedError;
+
+  /// Visual content detection result (NudeNet + CLIP)
+  VisualContentResult? get visualContent => throw _privateConstructorUsedError;
 
   /// Processing time for this frame in milliseconds
   int? get processingTimeMs => throw _privateConstructorUsedError;
@@ -1438,6 +1937,7 @@ abstract class $FrameAnalysisResultCopyWith<$Res> {
       bool isSceneChange,
       BloodResult? blood,
       WeaponsResult? weapons,
+      VisualContentResult? visualContent,
       int? processingTimeMs,
       String? frameHash});
 
@@ -1445,6 +1945,7 @@ abstract class $FrameAnalysisResultCopyWith<$Res> {
   $ViolenceResultCopyWith<$Res> get violence;
   $BloodResultCopyWith<$Res>? get blood;
   $WeaponsResultCopyWith<$Res>? get weapons;
+  $VisualContentResultCopyWith<$Res>? get visualContent;
 }
 
 /// @nodoc
@@ -1469,6 +1970,7 @@ class _$FrameAnalysisResultCopyWithImpl<$Res, $Val extends FrameAnalysisResult>
     Object? isSceneChange = null,
     Object? blood = freezed,
     Object? weapons = freezed,
+    Object? visualContent = freezed,
     Object? processingTimeMs = freezed,
     Object? frameHash = freezed,
   }) {
@@ -1501,6 +2003,10 @@ class _$FrameAnalysisResultCopyWithImpl<$Res, $Val extends FrameAnalysisResult>
           ? _value.weapons
           : weapons // ignore: cast_nullable_to_non_nullable
               as WeaponsResult?,
+      visualContent: freezed == visualContent
+          ? _value.visualContent
+          : visualContent // ignore: cast_nullable_to_non_nullable
+              as VisualContentResult?,
       processingTimeMs: freezed == processingTimeMs
           ? _value.processingTimeMs
           : processingTimeMs // ignore: cast_nullable_to_non_nullable
@@ -1559,6 +2065,20 @@ class _$FrameAnalysisResultCopyWithImpl<$Res, $Val extends FrameAnalysisResult>
       return _then(_value.copyWith(weapons: value) as $Val);
     });
   }
+
+  /// Create a copy of FrameAnalysisResult
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $VisualContentResultCopyWith<$Res>? get visualContent {
+    if (_value.visualContent == null) {
+      return null;
+    }
+
+    return $VisualContentResultCopyWith<$Res>(_value.visualContent!, (value) {
+      return _then(_value.copyWith(visualContent: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -1577,6 +2097,7 @@ abstract class _$$FrameAnalysisResultImplCopyWith<$Res>
       bool isSceneChange,
       BloodResult? blood,
       WeaponsResult? weapons,
+      VisualContentResult? visualContent,
       int? processingTimeMs,
       String? frameHash});
 
@@ -1588,6 +2109,8 @@ abstract class _$$FrameAnalysisResultImplCopyWith<$Res>
   $BloodResultCopyWith<$Res>? get blood;
   @override
   $WeaponsResultCopyWith<$Res>? get weapons;
+  @override
+  $VisualContentResultCopyWith<$Res>? get visualContent;
 }
 
 /// @nodoc
@@ -1610,6 +2133,7 @@ class __$$FrameAnalysisResultImplCopyWithImpl<$Res>
     Object? isSceneChange = null,
     Object? blood = freezed,
     Object? weapons = freezed,
+    Object? visualContent = freezed,
     Object? processingTimeMs = freezed,
     Object? frameHash = freezed,
   }) {
@@ -1642,6 +2166,10 @@ class __$$FrameAnalysisResultImplCopyWithImpl<$Res>
           ? _value.weapons
           : weapons // ignore: cast_nullable_to_non_nullable
               as WeaponsResult?,
+      visualContent: freezed == visualContent
+          ? _value.visualContent
+          : visualContent // ignore: cast_nullable_to_non_nullable
+              as VisualContentResult?,
       processingTimeMs: freezed == processingTimeMs
           ? _value.processingTimeMs
           : processingTimeMs // ignore: cast_nullable_to_non_nullable
@@ -1665,6 +2193,7 @@ class _$FrameAnalysisResultImpl extends _FrameAnalysisResult {
       this.isSceneChange = false,
       this.blood,
       this.weapons,
+      this.visualContent,
       this.processingTimeMs,
       this.frameHash})
       : super._();
@@ -1702,6 +2231,10 @@ class _$FrameAnalysisResultImpl extends _FrameAnalysisResult {
   @override
   final WeaponsResult? weapons;
 
+  /// Visual content detection result (NudeNet + CLIP)
+  @override
+  final VisualContentResult? visualContent;
+
   /// Processing time for this frame in milliseconds
   @override
   final int? processingTimeMs;
@@ -1712,7 +2245,7 @@ class _$FrameAnalysisResultImpl extends _FrameAnalysisResult {
 
   @override
   String toString() {
-    return 'FrameAnalysisResult(frameNumber: $frameNumber, timestamp: $timestamp, nsfw: $nsfw, violence: $violence, isSceneChange: $isSceneChange, blood: $blood, weapons: $weapons, processingTimeMs: $processingTimeMs, frameHash: $frameHash)';
+    return 'FrameAnalysisResult(frameNumber: $frameNumber, timestamp: $timestamp, nsfw: $nsfw, violence: $violence, isSceneChange: $isSceneChange, blood: $blood, weapons: $weapons, visualContent: $visualContent, processingTimeMs: $processingTimeMs, frameHash: $frameHash)';
   }
 
   @override
@@ -1731,6 +2264,8 @@ class _$FrameAnalysisResultImpl extends _FrameAnalysisResult {
                 other.isSceneChange == isSceneChange) &&
             (identical(other.blood, blood) || other.blood == blood) &&
             (identical(other.weapons, weapons) || other.weapons == weapons) &&
+            (identical(other.visualContent, visualContent) ||
+                other.visualContent == visualContent) &&
             (identical(other.processingTimeMs, processingTimeMs) ||
                 other.processingTimeMs == processingTimeMs) &&
             (identical(other.frameHash, frameHash) ||
@@ -1739,8 +2274,18 @@ class _$FrameAnalysisResultImpl extends _FrameAnalysisResult {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, frameNumber, timestamp, nsfw,
-      violence, isSceneChange, blood, weapons, processingTimeMs, frameHash);
+  int get hashCode => Object.hash(
+      runtimeType,
+      frameNumber,
+      timestamp,
+      nsfw,
+      violence,
+      isSceneChange,
+      blood,
+      weapons,
+      visualContent,
+      processingTimeMs,
+      frameHash);
 
   /// Create a copy of FrameAnalysisResult
   /// with the given fields replaced by the non-null parameter values.
@@ -1768,6 +2313,7 @@ abstract class _FrameAnalysisResult extends FrameAnalysisResult {
       final bool isSceneChange,
       final BloodResult? blood,
       final WeaponsResult? weapons,
+      final VisualContentResult? visualContent,
       final int? processingTimeMs,
       final String? frameHash}) = _$FrameAnalysisResultImpl;
   const _FrameAnalysisResult._() : super._();
@@ -1803,6 +2349,10 @@ abstract class _FrameAnalysisResult extends FrameAnalysisResult {
   /// Weapons detection result (optional)
   @override
   WeaponsResult? get weapons;
+
+  /// Visual content detection result (NudeNet + CLIP)
+  @override
+  VisualContentResult? get visualContent;
 
   /// Processing time for this frame in milliseconds
   @override

@@ -183,6 +183,20 @@ class VisualModelsTab extends ConsumerWidget {
           Icons.mic,
           Colors.blue,
         );
+      case HuggingFaceModelType.nudeNet:
+        return (
+          'NudeNet Detection',
+          'Body part detection with bounding boxes',
+          Icons.person_search,
+          AppTheme.nsfwColor,
+        );
+      case HuggingFaceModelType.clip:
+        return (
+          'CLIP Classification',
+          'Zero-shot scene classification',
+          Icons.image_search,
+          Colors.indigo,
+        );
     }
   }
 

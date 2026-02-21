@@ -54,6 +54,11 @@ const _$ContentTypeEnumMap = {
   ContentType.blood: 'blood',
   ContentType.profanity: 'profanity',
   ContentType.weapons: 'weapons',
+  ContentType.nudity: 'nudity',
+  ContentType.sexualContent: 'sexualContent',
+  ContentType.kissing: 'kissing',
+  ContentType.immodestDress: 'immodestDress',
+  ContentType.custom: 'custom',
 };
 
 const _$DetectionUserStatusEnumMap = {

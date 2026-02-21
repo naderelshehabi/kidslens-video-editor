@@ -104,6 +104,47 @@ Map<String, dynamic> _$$DetectedWeaponImplToJson(
       'height': instance.height,
     };
 
+_$DetectedRegionImpl _$$DetectedRegionImplFromJson(Map<String, dynamic> json) =>
+    _$DetectedRegionImpl(
+      label: json['label'] as String,
+      confidence: (json['confidence'] as num).toDouble(),
+      x: (json['x'] as num).toDouble(),
+      y: (json['y'] as num).toDouble(),
+      width: (json['width'] as num).toDouble(),
+      height: (json['height'] as num).toDouble(),
+    );
+
+Map<String, dynamic> _$$DetectedRegionImplToJson(
+        _$DetectedRegionImpl instance) =>
+    <String, dynamic>{
+      'label': instance.label,
+      'confidence': instance.confidence,
+      'x': instance.x,
+      'y': instance.y,
+      'width': instance.width,
+      'height': instance.height,
+    };
+
+_$VisualContentResultImpl _$$VisualContentResultImplFromJson(
+        Map<String, dynamic> json) =>
+    _$VisualContentResultImpl(
+      detectedRegions: (json['detectedRegions'] as List<dynamic>?)
+              ?.map((e) => DetectedRegion.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      clipScores: (json['clipScores'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, (e as num).toDouble()),
+          ) ??
+          const {},
+    );
+
+Map<String, dynamic> _$$VisualContentResultImplToJson(
+        _$VisualContentResultImpl instance) =>
+    <String, dynamic>{
+      'detectedRegions': instance.detectedRegions,
+      'clipScores': instance.clipScores,
+    };
+
 _$FrameAnalysisResultImpl _$$FrameAnalysisResultImplFromJson(
         Map<String, dynamic> json) =>
     _$FrameAnalysisResultImpl(
@@ -120,6 +161,10 @@ _$FrameAnalysisResultImpl _$$FrameAnalysisResultImplFromJson(
       weapons: json['weapons'] == null
           ? null
           : WeaponsResult.fromJson(json['weapons'] as Map<String, dynamic>),
+      visualContent: json['visualContent'] == null
+          ? null
+          : VisualContentResult.fromJson(
+              json['visualContent'] as Map<String, dynamic>),
       processingTimeMs: (json['processingTimeMs'] as num?)?.toInt(),
       frameHash: json['frameHash'] as String?,
     );
@@ -134,6 +179,7 @@ Map<String, dynamic> _$$FrameAnalysisResultImplToJson(
       'isSceneChange': instance.isSceneChange,
       'blood': instance.blood,
       'weapons': instance.weapons,
+      'visualContent': instance.visualContent,
       'processingTimeMs': instance.processingTimeMs,
       'frameHash': instance.frameHash,
     };

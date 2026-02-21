@@ -1,7 +1,9 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'package:kidslens_video_editor/data/models/content_category.dart';
 import 'package:kidslens_video_editor/data/models/converters.dart';
 import 'package:kidslens_video_editor/data/models/edit_action.dart';
+import 'package:kidslens_video_editor/data/models/visual_content_category.dart';
 
 part 'detection.freezed.dart';
 part 'detection.g.dart';
@@ -19,6 +21,16 @@ enum ContentType {
   profanity,
   @JsonValue('weapons')
   weapons,
+  @JsonValue('nudity')
+  nudity,
+  @JsonValue('sexualContent')
+  sexualContent,
+  @JsonValue('kissing')
+  kissing,
+  @JsonValue('immodestDress')
+  immodestDress,
+  @JsonValue('custom')
+  custom,
 }
 
 /// User review status for a detection
@@ -90,6 +102,12 @@ class Detection with _$Detection {
   factory Detection.fromJson(Map<String, dynamic> json) =>
       _$DetectionFromJson(json);
 
+  /// Key for storing the visual content category ID in metadata
+  static const String visualContentCategoryKey = 'visualContentCategory';
+
+  /// Key for storing bounding box coordinates in metadata
+  static const String boundingBoxKey = 'boundingBox';
+
   /// Creates a profanity detection
   factory Detection.profanity({
     required String id,
@@ -126,6 +144,11 @@ class Detection with _$Detection {
       ContentType.violence: 'Violent content detected',
       ContentType.blood: 'Blood/gore detected',
       ContentType.weapons: 'Weapon detected',
+      ContentType.nudity: 'Nudity detected',
+      ContentType.sexualContent: 'Sexual content detected',
+      ContentType.kissing: 'Kissing detected',
+      ContentType.immodestDress: 'Immodest dress detected',
+      ContentType.custom: 'Custom content detected',
     };
 
     return Detection(
@@ -137,6 +160,44 @@ class Detection with _$Detection {
       confidence: confidence,
       description: description ?? defaultDescriptions[type] ?? 'Content detected',
       source: 'visual',
+    );
+  }
+
+  /// Creates a visual content category detection (nudity, kissing, etc.)
+  ///
+  /// Uses [ContentType.nsfw] as the base type and stores the specific
+  /// category ID in metadata to avoid extending the ContentType enum.
+  factory Detection.visualContent({
+    required String id,
+    required String mediaId,
+    required Duration startTime,
+    required Duration endTime,
+    required double confidence,
+    required String categoryId,
+    required String categoryName,
+    VisualContentAction? action,
+    Map<String, double>? boundingBox,
+  }) {
+    final meta = <String, dynamic>{
+      visualContentCategoryKey: categoryId,
+    };
+    if (boundingBox != null) {
+      meta[boundingBoxKey] = boundingBox;
+    }
+    if (action != null) {
+      meta['action'] = action.name;
+    }
+
+    return Detection(
+      id: id,
+      mediaId: mediaId,
+      type: ContentType.nsfw,
+      startTime: startTime,
+      endTime: endTime,
+      confidence: confidence,
+      description: '$categoryName detected',
+      source: 'visual',
+      metadata: meta,
     );
   }
 
@@ -160,6 +221,26 @@ class Detection with _$Detection {
 
   /// Whether this detection is for visual content
   bool get isVisualDetection => type != ContentType.profanity;
+
+  /// Whether this detection is a visual content category detection
+  bool get isVisualContentCategory =>
+      metadata?[visualContentCategoryKey] != null;
+
+  /// Get the visual content category ID from metadata
+  String? get visualContentCategoryId =>
+      metadata?[visualContentCategoryKey] as String?;
+
+  /// Get the bounding box from metadata (normalized coordinates)
+  Map<String, double>? get boundingBox {
+    final box = metadata?[boundingBoxKey];
+    if (box is Map) {
+      return box.map((k, v) => MapEntry(k.toString(), (v as num).toDouble()));
+    }
+    return null;
+  }
+
+  /// Whether this detection has a bounding box
+  bool get hasBoundingBox => metadata?[boundingBoxKey] != null;
 
   /// Whether this detection has high confidence (>= 0.9)
   bool get isHighConfidence => confidence >= 0.9;
@@ -207,6 +288,16 @@ class Detection with _$Detection {
 
   /// Display name for the content type
   String get typeDisplayName {
+    // For visual content categories, use the category ID as a friendlier name
+    final categoryId = visualContentCategoryId;
+    if (categoryId != null) {
+      return categoryId
+          .replaceAll('_', ' ')
+          .split(' ')
+          .map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '')
+          .join(' ');
+    }
+
     switch (type) {
       case ContentType.nsfw:
         return 'NSFW';
@@ -218,6 +309,16 @@ class Detection with _$Detection {
         return 'Profanity';
       case ContentType.weapons:
         return 'Weapons';
+      case ContentType.nudity:
+        return 'Nudity';
+      case ContentType.sexualContent:
+        return 'Sexual Content';
+      case ContentType.kissing:
+        return 'Kissing';
+      case ContentType.immodestDress:
+        return 'Immodest Dress';
+      case ContentType.custom:
+        return categoryId ?? 'Custom';
     }
   }
 
@@ -234,6 +335,16 @@ class Detection with _$Detection {
         return 'volume_off';
       case ContentType.weapons:
         return 'warning';
+      case ContentType.nudity:
+        return 'visibility_off';
+      case ContentType.sexualContent:
+        return 'block';
+      case ContentType.kissing:
+        return 'favorite';
+      case ContentType.immodestDress:
+        return 'checkroom';
+      case ContentType.custom:
+        return 'category';
     }
   }
 
@@ -251,6 +362,24 @@ class Detection with _$Detection {
 
   /// Suggested edit action based on detection type
   EditActionType get suggestedAction {
+    // Check metadata for visual content category action (from RemediationAction)
+    final actionStr = metadata?['action'] as String?;
+    if (actionStr != null) {
+      switch (actionStr) {
+        case 'blurRegion':
+        case 'pixelateRegion':
+        case 'blackBoxRegion':
+        case 'blurFullFrame':
+          return EditActionType.blur;
+        case 'cutScene':
+          return EditActionType.skip;
+        case 'mute':
+          return EditActionType.mute;
+        case 'beep':
+          return EditActionType.beep;
+      }
+    }
+
     switch (type) {
       case ContentType.profanity:
         return EditActionType.mute;
@@ -259,6 +388,15 @@ class Detection with _$Detection {
         return EditActionType.blur;
       case ContentType.violence:
       case ContentType.weapons:
+        return EditActionType.blur;
+      case ContentType.nudity:
+        return EditActionType.blur;
+      case ContentType.sexualContent:
+      case ContentType.kissing:
+        return EditActionType.skip;
+      case ContentType.immodestDress:
+        return EditActionType.blur;
+      case ContentType.custom:
         return EditActionType.blur;
     }
   }

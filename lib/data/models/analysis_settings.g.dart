@@ -24,6 +24,11 @@ _$ModelConfigImpl _$$ModelConfigImplFromJson(Map<String, dynamic> json) =>
       translateToEnglish: json['translateToEnglish'] as bool? ?? false,
       wordLevelTimestamps: json['wordLevelTimestamps'] as bool? ?? false,
       beamSize: (json['beamSize'] as num?)?.toInt() ?? 3,
+      nudeNetModelId: json['nudeNetModelId'] as String? ?? 'nudenet-v3-medium',
+      clipVisionModelId:
+          json['clipVisionModelId'] as String? ?? 'clip-vit-b32-vision-fp16',
+      clipTextModelId:
+          json['clipTextModelId'] as String? ?? 'clip-vit-b32-text-fp16',
     );
 
 Map<String, dynamic> _$$ModelConfigImplToJson(_$ModelConfigImpl instance) =>
@@ -42,6 +47,9 @@ Map<String, dynamic> _$$ModelConfigImplToJson(_$ModelConfigImpl instance) =>
       'translateToEnglish': instance.translateToEnglish,
       'wordLevelTimestamps': instance.wordLevelTimestamps,
       'beamSize': instance.beamSize,
+      'nudeNetModelId': instance.nudeNetModelId,
+      'clipVisionModelId': instance.clipVisionModelId,
+      'clipTextModelId': instance.clipTextModelId,
     };
 
 _$ProfanityConfigImpl _$$ProfanityConfigImplFromJson(
@@ -83,6 +91,58 @@ Map<String, dynamic> _$$ProfanityConfigImplToJson(
       'useContextAnalysis': instance.useContextAnalysis,
     };
 
+_$VisualContentConfigImpl _$$VisualContentConfigImplFromJson(
+        Map<String, dynamic> json) =>
+    _$VisualContentConfigImpl(
+      enableNudeNetDetection: json['enableNudeNetDetection'] as bool? ?? true,
+      enableClipClassification:
+          json['enableClipClassification'] as bool? ?? true,
+      useNsfwPreFilter: json['useNsfwPreFilter'] as bool? ?? true,
+      preFilterThreshold:
+          (json['preFilterThreshold'] as num?)?.toDouble() ?? 0.30,
+      categories: (json['categories'] as List<dynamic>?)
+              ?.map((e) =>
+                  VisualContentCategory.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+
+Map<String, dynamic> _$$VisualContentConfigImplToJson(
+        _$VisualContentConfigImpl instance) =>
+    <String, dynamic>{
+      'enableNudeNetDetection': instance.enableNudeNetDetection,
+      'enableClipClassification': instance.enableClipClassification,
+      'useNsfwPreFilter': instance.useNsfwPreFilter,
+      'preFilterThreshold': instance.preFilterThreshold,
+      'categories': instance.categories,
+    };
+
+_$ContentDetectionConfigImpl _$$ContentDetectionConfigImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ContentDetectionConfigImpl(
+      categories: (json['categories'] as List<dynamic>?)
+              ?.map((e) => ContentCategory.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      votingConfig: json['votingConfig'] == null
+          ? const VotingConfig()
+          : VotingConfig.fromJson(json['votingConfig'] as Map<String, dynamic>),
+      useNsfwPreFilter: json['useNsfwPreFilter'] as bool? ?? true,
+      preFilterThreshold:
+          (json['preFilterThreshold'] as num?)?.toDouble() ?? 0.30,
+      schemaVersion: (json['schemaVersion'] as num?)?.toInt() ?? 2,
+    );
+
+Map<String, dynamic> _$$ContentDetectionConfigImplToJson(
+        _$ContentDetectionConfigImpl instance) =>
+    <String, dynamic>{
+      'categories': instance.categories,
+      'votingConfig': instance.votingConfig,
+      'useNsfwPreFilter': instance.useNsfwPreFilter,
+      'preFilterThreshold': instance.preFilterThreshold,
+      'schemaVersion': instance.schemaVersion,
+    };
+
 _$AnalysisSettingsImpl _$$AnalysisSettingsImplFromJson(
         Map<String, dynamic> json) =>
     _$AnalysisSettingsImpl(
@@ -107,6 +167,14 @@ _$AnalysisSettingsImpl _$$AnalysisSettingsImplFromJson(
       detectionBufferMs: (json['detectionBufferMs'] as num?)?.toInt() ?? 100,
       maxConcurrentAnalyses:
           (json['maxConcurrentAnalyses'] as num?)?.toInt() ?? 4,
+      visualContentConfig: json['visualContentConfig'] == null
+          ? const VisualContentConfig()
+          : VisualContentConfig.fromJson(
+              json['visualContentConfig'] as Map<String, dynamic>),
+      contentDetectionConfig: json['contentDetectionConfig'] == null
+          ? const ContentDetectionConfig()
+          : ContentDetectionConfig.fromJson(
+              json['contentDetectionConfig'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$$AnalysisSettingsImplToJson(
@@ -129,4 +197,6 @@ Map<String, dynamic> _$$AnalysisSettingsImplToJson(
       'mergeAdjacentDetections': instance.mergeAdjacentDetections,
       'detectionBufferMs': instance.detectionBufferMs,
       'maxConcurrentAnalyses': instance.maxConcurrentAnalyses,
+      'visualContentConfig': instance.visualContentConfig,
+      'contentDetectionConfig': instance.contentDetectionConfig,
     };

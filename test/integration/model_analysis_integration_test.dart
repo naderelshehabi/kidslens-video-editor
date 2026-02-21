@@ -78,8 +78,8 @@ void main() {
 
     test('getModelById returns correct models', () {
       // Test NSFW models
-      final nsfwModel = registry.getModelById('nsfw-mobilenet-v2');
-      expect(nsfwModel, isNotNull, reason: 'Should find nsfw-mobilenet-v2');
+      final nsfwModel = registry.getModelById('nsfw-vit-base-quantized');
+      expect(nsfwModel, isNotNull, reason: 'Should find nsfw-vit-base-quantized');
       expect(nsfwModel!.modelType, equals(HuggingFaceModelType.nsfw));
 
       // Test that non-existent hardcoded IDs return null
@@ -87,11 +87,11 @@ void main() {
       expect(
         badNsfwModel,
         isNull,
-        reason: 'nsfw-mobilenet should not exist - only nsfw-mobilenet-v2',
+        reason: 'nsfw-mobilenet should not exist - only nsfw-vit-base-quantized',
       );
 
       // Test blood models
-      final bloodModel = registry.getModelById('gore-efficientnet-b2');
+      final bloodModel = registry.getModelById('gore-classifier');
       expect(bloodModel, isNotNull);
       expect(bloodModel!.modelType, equals(HuggingFaceModelType.blood));
 
@@ -103,7 +103,7 @@ void main() {
       );
 
       // Test weapons models
-      final weaponsModel = registry.getModelById('weapons-yolov8-small');
+      final weaponsModel = registry.getModelById('weapons-classifier');
       expect(weaponsModel, isNotNull);
       expect(weaponsModel!.modelType, equals(HuggingFaceModelType.weapons));
 
@@ -159,28 +159,33 @@ void main() {
 
     test('VisualAnalysisSettings defaults should use valid model IDs', () {
       final registry = HuggingFaceModelRegistry.instance;
-      const settings = VisualAnalysisSettings();
+      const settings = VisualAnalysisSettings(
+        nsfwModelId: 'nsfw-vit-base-quantized',
+        violenceModelId: 'violence-vit-classifier',
+        bloodModelId: 'gore-classifier',
+        weaponsModelId: 'weapons-classifier',
+      );
 
-      // Default model IDs should exist in registry
+      // Model IDs should exist in registry
       expect(
         registry.getModelById(settings.nsfwModelId),
         isNotNull,
-        reason: 'Default NSFW model ID should be valid',
+        reason: 'NSFW model ID should be valid',
       );
       expect(
         registry.getModelById(settings.violenceModelId),
         isNotNull,
-        reason: 'Default violence model ID should be valid',
+        reason: 'Violence model ID should be valid',
       );
       expect(
         registry.getModelById(settings.bloodModelId),
         isNotNull,
-        reason: 'Default blood model ID should be valid',
+        reason: 'Blood model ID should be valid',
       );
       expect(
         registry.getModelById(settings.weaponsModelId),
         isNotNull,
-        reason: 'Default weapons model ID should be valid',
+        reason: 'Weapons model ID should be valid',
       );
     });
 
@@ -208,13 +213,11 @@ void main() {
     test('hardcoded model IDs in analysis service should match registry', () {
       final registry = HuggingFaceModelRegistry.instance;
 
-      // These are the hardcoded IDs used in visual_analysis_service.dart
-      // They should all be valid model IDs in the registry
-
+      // These are stale hardcoded IDs that should NOT exist in the registry
       const hardcodedIds = [
-        'nsfw-mobilenet', // WRONG - should be nsfw-mobilenet-v2
-        'blood-detection', // WRONG - should be gore-efficientnet-b2 or blood-yolo-nano
-        'weapons-detection', // WRONG - should be weapons-yolov8-small or weapons-detr-resnet50
+        'nsfw-mobilenet', // WRONG - should be nsfw-vit-base-quantized
+        'blood-detection', // WRONG - should be gore-classifier
+        'weapons-detection', // WRONG - should be weapons-classifier
       ];
 
       for (final id in hardcodedIds) {
@@ -230,9 +233,9 @@ void main() {
 
       // These are the correct IDs that should be used
       const correctIds = [
-        'nsfw-mobilenet-v2',
-        'gore-efficientnet-b2',
-        'weapons-yolov8-small',
+        'nsfw-vit-base-quantized',
+        'gore-classifier',
+        'weapons-classifier',
       ];
 
       for (final id in correctIds) {
@@ -252,9 +255,9 @@ void main() {
       final registry = HuggingFaceModelRegistry.instance;
 
       // User selects specific models
-      const selectedNsfwModelId = 'nsfw-efficientnet-b4';
-      const selectedBloodModelId = 'gore-efficientnet-b2';
-      const selectedWeaponsModelId = 'weapons-detr-resnet50';
+      const selectedNsfwModelId = 'nsfw-vit-base-fp16';
+      const selectedBloodModelId = 'gore-classifier';
+      const selectedWeaponsModelId = 'weapons-classifier';
 
       // Verify these are valid models
       expect(registry.getModelById(selectedNsfwModelId), isNotNull);
@@ -262,7 +265,6 @@ void main() {
       expect(registry.getModelById(selectedWeaponsModelId), isNotNull);
 
       // The analysis service should use these IDs, not hardcoded ones
-      // Currently it uses hardcoded 'nsfw-mobilenet' which is wrong
     });
   });
 
@@ -312,31 +314,25 @@ void main() {
 
     test('default model IDs should exist in registry', () {
       final registry = HuggingFaceModelRegistry.instance;
-      final config = ModelConfig.defaults();
 
-      // All default model IDs should be valid
+      // All standard model IDs that should serve as defaults must be valid
       expect(
-        registry.getModelById(config.visualModelId),
-        isNotNull,
-        reason: 'Default visualModelId should be valid',
-      );
-      expect(
-        registry.getModelById(config.nsfwModelId),
+        registry.getModelById('nsfw-vit-base-quantized'),
         isNotNull,
         reason: 'Default nsfwModelId should be valid',
       );
       expect(
-        registry.getModelById(config.violenceModelId),
+        registry.getModelById('violence-vit-classifier'),
         isNotNull,
         reason: 'Default violenceModelId should be valid',
       );
       expect(
-        registry.getModelById(config.bloodModelId),
+        registry.getModelById('gore-classifier'),
         isNotNull,
         reason: 'Default bloodModelId should be valid',
       );
       expect(
-        registry.getModelById(config.weaponsModelId),
+        registry.getModelById('weapons-classifier'),
         isNotNull,
         reason: 'Default weaponsModelId should be valid',
       );

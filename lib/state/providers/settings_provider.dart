@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -362,6 +363,166 @@ class SettingsNotifier extends _$SettingsNotifier {
   void resetToDefaults() {
     state = SettingsState();
     saveSettings();
+  }
+
+  // ============================================================
+  // Visual Content Config Methods
+  // ============================================================
+
+  /// Update the entire visual content config
+  void updateVisualContentConfig(VisualContentConfig config) {
+    state = state.copyWith(
+      analysisSettings: state.analysisSettings.copyWith(
+        visualContentConfig: config,
+      ),
+    );
+    _debounceSave();
+  }
+
+  /// Update a single visual content category by ID
+  void updateVisualContentCategory(
+    String categoryId,
+    VisualContentCategory updated,
+  ) {
+    final config = state.analysisSettings.visualContentConfig;
+    final categories = config.categories.map((c) {
+      return c.id == categoryId ? updated : c;
+    }).toList();
+    updateVisualContentConfig(config.copyWith(categories: categories));
+  }
+
+  /// Add a custom category
+  void addCustomCategory(VisualContentCategory category) {
+    final config = state.analysisSettings.visualContentConfig;
+    updateVisualContentConfig(
+      config.copyWith(categories: [...config.categories, category]),
+    );
+  }
+
+  /// Remove a custom category by ID
+  void removeCustomCategory(String categoryId) {
+    final config = state.analysisSettings.visualContentConfig;
+    updateVisualContentConfig(
+      config.copyWith(
+        categories: config.categories.where((c) => c.id != categoryId).toList(),
+      ),
+    );
+  }
+
+  /// Ensure visual content defaults are populated (call at runtime)
+  void ensureVisualContentDefaults() {
+    final config = state.analysisSettings.visualContentConfig;
+    if (config.categories.isEmpty) {
+      updateVisualContentConfig(
+        config.copyWith(categories: VisualContentDefaults.builtInCategories),
+      );
+    }
+  }
+
+  // ============================================================
+  // Content Detection Config Methods (v2 unified categories)
+  // ============================================================
+
+  /// Update the entire content detection config
+  void updateContentDetectionConfig(ContentDetectionConfig config) {
+    state = state.copyWith(
+      analysisSettings: state.analysisSettings.copyWith(
+        contentDetectionConfig: config,
+      ),
+    );
+    _debounceSave();
+  }
+
+  /// Update a single content category by ID
+  void updateContentCategory(String categoryId, ContentCategory updated) {
+    final config = state.analysisSettings.contentDetectionConfig;
+    final categories = config.categories.map((c) {
+      return c.id == categoryId ? updated : c;
+    }).toList();
+    updateContentDetectionConfig(config.copyWith(categories: categories));
+  }
+
+  /// Toggle a model contribution on/off within a category
+  void toggleModelContribution(
+    String categoryId,
+    String modelId,
+    bool enabled,
+  ) {
+    final config = state.analysisSettings.contentDetectionConfig;
+    final categories = config.categories.map((c) {
+      if (c.id != categoryId) return c;
+      final updatedContributions = c.modelContributions.map((m) {
+        return m.modelId == modelId ? m.copyWith(enabled: enabled) : m;
+      }).toList();
+      return c.copyWith(modelContributions: updatedContributions);
+    }).toList();
+    updateContentDetectionConfig(config.copyWith(categories: categories));
+  }
+
+  /// Update the detection threshold for a category
+  void setCategoryThreshold(String categoryId, double threshold) {
+    final config = state.analysisSettings.contentDetectionConfig;
+    final categories = config.categories.map((c) {
+      return c.id == categoryId
+          ? c.copyWith(threshold: threshold.clamp(0.0, 1.0))
+          : c;
+    }).toList();
+    updateContentDetectionConfig(config.copyWith(categories: categories));
+  }
+
+  /// Update the remediation action for a category
+  void setCategoryAction(String categoryId, RemediationAction action) {
+    final config = state.analysisSettings.contentDetectionConfig;
+    final categories = config.categories.map((c) {
+      return c.id == categoryId ? c.copyWith(action: action) : c;
+    }).toList();
+    updateContentDetectionConfig(config.copyWith(categories: categories));
+  }
+
+  /// Update the voting configuration
+  void updateVotingConfig(VotingConfig config) {
+    final detectionConfig = state.analysisSettings.contentDetectionConfig;
+    updateContentDetectionConfig(
+      detectionConfig.copyWith(votingConfig: config),
+    );
+  }
+
+  /// Add a new custom content category
+  void addCustomContentCategory(ContentCategory category) {
+    final config = state.analysisSettings.contentDetectionConfig;
+    updateContentDetectionConfig(
+      config.copyWith(categories: [...config.categories, category]),
+    );
+  }
+
+  /// Remove a custom content category by ID
+  void removeCustomContentCategory(String categoryId) {
+    final config = state.analysisSettings.contentDetectionConfig;
+    updateContentDetectionConfig(
+      config.copyWith(
+        categories:
+            config.categories.where((c) => c.id != categoryId).toList(),
+      ),
+    );
+  }
+
+  /// Ensure content detection defaults are populated (call at runtime)
+  void ensureContentDetectionDefaults() {
+    final config = state.analysisSettings.contentDetectionConfig;
+    if (config.categories.isEmpty) {
+      updateContentDetectionConfig(
+        config.copyWith(categories: ContentCategoryDefaults.allCategories),
+      );
+    }
+  }
+
+  Timer? _saveDebounceTimer;
+
+  void _debounceSave() {
+    _saveDebounceTimer?.cancel();
+    _saveDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      saveSettings();
+    });
   }
 }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/data/models/detection.dart';
+import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
+import 'package:kidslens_video_editor/presentation/widgets/detection_region_overlay.dart';
 import 'package:kidslens_video_editor/state/providers/project_provider.dart';
 
 /// Sort options for detections
@@ -468,8 +470,14 @@ class _DetectionCard extends StatelessWidget {
   final VoidCallback onAdjust;
   final VoidCallback? onJumpTo;
 
-  Color _getTypeColor(ContentType type) {
-    switch (type) {
+  Color _getTypeColor(Detection detection) {
+    // Use visual content category color if available
+    final categoryId = detection.visualContentCategoryId;
+    if (categoryId != null) {
+      return AppTheme.getDetectionColor(categoryId);
+    }
+
+    switch (detection.type) {
       case ContentType.profanity:
         return const Color(0xFFFFB300);
       case ContentType.nsfw:
@@ -480,6 +488,16 @@ class _DetectionCard extends StatelessWidget {
         return const Color(0xFFEF5350);
       case ContentType.weapons:
         return const Color(0xFF90A4AE);
+      case ContentType.nudity:
+        return const Color(0xFFEC407A);
+      case ContentType.sexualContent:
+        return const Color(0xFFEC407A);
+      case ContentType.kissing:
+        return Colors.pink.shade300;
+      case ContentType.immodestDress:
+        return Colors.orange.shade300;
+      case ContentType.custom:
+        return Colors.grey;
     }
   }
 
@@ -495,6 +513,16 @@ class _DetectionCard extends StatelessWidget {
         return Icons.bloodtype_rounded;
       case ContentType.weapons:
         return Icons.gpp_bad_rounded;
+      case ContentType.nudity:
+        return Icons.visibility_off_rounded;
+      case ContentType.sexualContent:
+        return Icons.block_rounded;
+      case ContentType.kissing:
+        return Icons.favorite_rounded;
+      case ContentType.immodestDress:
+        return Icons.checkroom_rounded;
+      case ContentType.custom:
+        return Icons.category_rounded;
     }
   }
 
@@ -511,7 +539,7 @@ class _DetectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final typeColor = _getTypeColor(detection.type);
+    final typeColor = _getTypeColor(detection);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -527,7 +555,7 @@ class _DetectionCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Thumbnail placeholder
+              // Thumbnail placeholder with optional bounding box overlay
               Container(
                 width: 120,
                 height: 80,
@@ -541,6 +569,21 @@ class _DetectionCard extends StatelessWidget {
                       color:
                           colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                     ),
+                    // Bounding box overlay for visual content detections
+                    if (detection.hasBoundingBox)
+                      Positioned.fill(
+                        child: DetectionRegionOverlay(
+                          regions: [
+                            DetectionRegion(
+                              x: detection.boundingBox!['x'] ?? 0,
+                              y: detection.boundingBox!['y'] ?? 0,
+                              width: detection.boundingBox!['width'] ?? 0,
+                              height: detection.boundingBox!['height'] ?? 0,
+                              categoryId: detection.visualContentCategoryId,
+                            ),
+                          ],
+                        ),
+                      ),
                     if (isSelectionMode)
                       Positioned(
                         top: 4,

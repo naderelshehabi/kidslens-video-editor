@@ -6,7 +6,7 @@ import 'package:kidslens_video_editor/data/models/huggingface_model.dart';
 void main() {
   group('HuggingFaceModelType enum', () {
     test('should have all expected values', () {
-      expect(HuggingFaceModelType.values, hasLength(5));
+      expect(HuggingFaceModelType.values, hasLength(7));
       expect(HuggingFaceModelType.values, contains(HuggingFaceModelType.asr));
       expect(HuggingFaceModelType.values, contains(HuggingFaceModelType.nsfw));
       expect(
@@ -18,6 +18,11 @@ void main() {
         HuggingFaceModelType.values,
         contains(HuggingFaceModelType.weapons),
       );
+      expect(
+        HuggingFaceModelType.values,
+        contains(HuggingFaceModelType.nudeNet),
+      );
+      expect(HuggingFaceModelType.values, contains(HuggingFaceModelType.clip));
     });
   });
 

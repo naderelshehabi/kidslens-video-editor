@@ -25,6 +25,14 @@ enum HuggingFaceModelType {
   /// Weapons detection
   @JsonValue('weapons')
   weapons,
+
+  /// NudeNet body part detection (bounding boxes)
+  @JsonValue('nudeNet')
+  nudeNet,
+
+  /// CLIP zero-shot classification (embeddings)
+  @JsonValue('clip')
+  clip,
 }
 
 /// A HuggingFace model with download and hardware information

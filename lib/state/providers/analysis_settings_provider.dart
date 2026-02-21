@@ -26,6 +26,8 @@ class AnalysisSettingsState {
     this.asrLanguage = 'en',
     this.useGpuAcceleration = true,
     this.cpuThreads = 4,
+    this.visualContentConfig = const VisualContentConfig(),
+    this.contentDetectionConfig = const ContentDetectionConfig(),
   });
 
   /// Create from JSON for persistence
@@ -59,6 +61,14 @@ class AnalysisSettingsState {
       asrLanguage: json['asrLanguage'] as String? ?? 'en',
       useGpuAcceleration: json['useGpuAcceleration'] as bool? ?? true,
       cpuThreads: json['cpuThreads'] as int? ?? 4,
+      visualContentConfig: json['visualContentConfig'] != null
+          ? VisualContentConfig.fromJson(
+              json['visualContentConfig'] as Map<String, dynamic>)
+          : const VisualContentConfig(),
+      contentDetectionConfig: json['contentDetectionConfig'] != null
+          ? ContentDetectionConfig.fromJson(
+              json['contentDetectionConfig'] as Map<String, dynamic>)
+          : const ContentDetectionConfig(),
     );
   }
 
@@ -124,6 +134,12 @@ class AnalysisSettingsState {
   /// Number of CPU threads for inference
   final int cpuThreads;
 
+  /// Visual content detection configuration (NudeNet + CLIP)
+  final VisualContentConfig visualContentConfig;
+
+  /// Unified content detection configuration (v2, MoE voting)
+  final ContentDetectionConfig contentDetectionConfig;
+
   AnalysisSettingsState copyWith({
     String? asrModelId,
     Map<HuggingFaceModelType, String>? visualModelIds,
@@ -141,6 +157,8 @@ class AnalysisSettingsState {
     String? asrLanguage,
     bool? useGpuAcceleration,
     int? cpuThreads,
+    VisualContentConfig? visualContentConfig,
+    ContentDetectionConfig? contentDetectionConfig,
   }) =>
       AnalysisSettingsState(
         asrModelId: asrModelId ?? this.asrModelId,
@@ -159,6 +177,9 @@ class AnalysisSettingsState {
         asrLanguage: asrLanguage ?? this.asrLanguage,
         useGpuAcceleration: useGpuAcceleration ?? this.useGpuAcceleration,
         cpuThreads: cpuThreads ?? this.cpuThreads,
+        visualContentConfig: visualContentConfig ?? this.visualContentConfig,
+        contentDetectionConfig:
+            contentDetectionConfig ?? this.contentDetectionConfig,
       );
 
   /// Get threshold for a specific visual detection type
@@ -174,6 +195,9 @@ class AnalysisSettingsState {
         return weaponsThreshold;
       case HuggingFaceModelType.asr:
         return 1; // ASR doesn't have a threshold
+      case HuggingFaceModelType.nudeNet:
+      case HuggingFaceModelType.clip:
+        return 0.5; // Visual content categories manage their own thresholds
     }
   }
 
@@ -190,6 +214,9 @@ class AnalysisSettingsState {
         return enableWeapons;
       case HuggingFaceModelType.asr:
         return true; // ASR is always enabled
+      case HuggingFaceModelType.nudeNet:
+      case HuggingFaceModelType.clip:
+        return true; // Managed by visual content config
     }
   }
 
@@ -225,6 +252,8 @@ class AnalysisSettingsState {
       enableWeapons: enableWeapons,
       enableProfanity: enableProfanity,
       frameSamplingRate: frameSamplingRate,
+      visualContentConfig: visualContentConfig,
+      contentDetectionConfig: contentDetectionConfig,
     );
 
   /// Convert to JSON for persistence
@@ -247,6 +276,8 @@ class AnalysisSettingsState {
         'asrLanguage': asrLanguage,
         'useGpuAcceleration': useGpuAcceleration,
         'cpuThreads': cpuThreads,
+        'visualContentConfig': visualContentConfig.toJson(),
+        'contentDetectionConfig': contentDetectionConfig.toJson(),
       };
 }
 

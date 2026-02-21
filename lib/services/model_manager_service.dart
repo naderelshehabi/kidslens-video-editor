@@ -142,6 +142,9 @@ class ModelManagerService {
   /// Get list of available models from HuggingFace registry
   Future<List<HuggingFaceModel>> getAvailableModels() async => _registry.getAllModels();
 
+  /// Look up model info (accuracy, type, etc.) by ID
+  HuggingFaceModel? getModelInfo(String modelId) => _registry.getModelById(modelId);
+
   /// Get list of downloaded model IDs
   Future<Set<String>> getDownloadedModels() async {
     final dir = await modelsDirectory;
@@ -201,6 +204,7 @@ class ModelManagerService {
       // Determine file name based on model type
       final fileName = model.fileName;
       final file = File(p.join(modelDir.path, fileName));
+      await file.parent.create(recursive: true);
       final sink = file.openWrite();
 
       await for (final chunk in response.stream) {
@@ -314,7 +318,7 @@ class ModelManagerService {
     final possibleExtensions = ['.bin', '.onnx', '.pt', '.pth'];
     for (final ext in possibleExtensions) {
       final files = modelDir
-          .listSync()
+          .listSync(recursive: true)
           .whereType<File>()
           .where((f) => f.path.endsWith(ext));
       if (files.isNotEmpty) {

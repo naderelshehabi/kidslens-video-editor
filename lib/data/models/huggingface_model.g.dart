@@ -59,4 +59,6 @@ const _$HuggingFaceModelTypeEnumMap = {
   HuggingFaceModelType.violence: 'violence',
   HuggingFaceModelType.blood: 'blood',
   HuggingFaceModelType.weapons: 'weapons',
+  HuggingFaceModelType.nudeNet: 'nudeNet',
+  HuggingFaceModelType.clip: 'clip',
 };

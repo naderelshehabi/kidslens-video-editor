@@ -1750,19 +1750,53 @@ class _AnalysisDialog extends ConsumerStatefulWidget {
 }
 
 class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
-  bool _enableProfanity = true;
-  bool _enableViolence = true;
-  bool _enableNsfw = true;
-  bool _enableBlood = true;
-  bool _enableWeapons = true;
   bool _hasStarted = false;
-  bool _showAdvanced = false;
 
-  // Threshold settings
-  double _nsfwThreshold = 0.6;
-  double _violenceThreshold = 0.6;
-  double _bloodThreshold = 0.6;
-  double _weaponsThreshold = 0.6;
+  /// Local copy of category enable states, keyed by category ID.
+  /// Initialised from the persisted [ContentDetectionConfig] in [initState].
+  late Map<String, bool> _categoryEnabled;
+
+  @override
+  void initState() {
+    super.initState();
+    // Ensure defaults are populated, then seed local toggles.
+    final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
+    settingsNotifier.ensureContentDetectionDefaults();
+    final categories = ref
+        .read(settingsNotifierProvider)
+        .analysisSettings
+        .contentDetectionConfig
+        .categories;
+    _categoryEnabled = {
+      for (final c in categories) c.id: c.enabled,
+    };
+  }
+
+  /// Resolve a [ContentCategory.iconName] string to a Material [IconData].
+  IconData _iconForCategory(ContentCategory category) {
+    switch (category.iconName) {
+      case 'no_adult_content':
+        return Icons.no_adult_content;
+      case 'sports_mma':
+        return Icons.sports_mma;
+      case 'water_drop':
+        return Icons.water_drop;
+      case 'gpp_bad':
+        return Icons.gpp_bad;
+      case 'visibility_off':
+        return Icons.visibility_off;
+      case 'block':
+        return Icons.block;
+      case 'favorite':
+        return Icons.favorite;
+      case 'checkroom':
+        return Icons.checkroom;
+      case 'volume_off':
+        return Icons.volume_off;
+      default:
+        return category.isVisual ? Icons.image_search : Icons.mic;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1771,6 +1805,13 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
     final isRunning = analysisState.status == AnalysisStatus.running;
     final isComplete = analysisState.status == AnalysisStatus.completed;
     final isFailed = analysisState.status == AnalysisStatus.failed;
+
+    // Read categories from content detection config
+    final categories = ref
+        .watch(settingsNotifierProvider)
+        .analysisSettings
+        .contentDetectionConfig
+        .categories;
 
     return AlertDialog(
       title: Row(
@@ -1792,77 +1833,101 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
             children: [
               if (!_hasStarted) ...[
                 Text(
-                  'Select content types to detect:',
+                  'Select content categories to detect:',
                   style: theme.textTheme.titleSmall,
                 ),
-                const SizedBox(height: 16),
-                _buildCheckbox('Profanity', _enableProfanity, (v) {
-                  setState(() => _enableProfanity = v ?? false);
-                }),
-                _buildCheckbox('Violence', _enableViolence, (v) {
-                  setState(() => _enableViolence = v ?? false);
-                }),
-                _buildCheckbox('NSFW', _enableNsfw, (v) {
-                  setState(() => _enableNsfw = v ?? false);
-                }),
-                _buildCheckbox('Blood/Gore', _enableBlood, (v) {
-                  setState(() => _enableBlood = v ?? false);
-                }),
-                _buildCheckbox('Weapons', _enableWeapons, (v) {
-                  setState(() => _enableWeapons = v ?? false);
-                }),
-                const SizedBox(height: 16),
-                // Advanced settings toggle
-                InkWell(
-                  onTap: () => setState(() => _showAdvanced = !_showAdvanced),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _showAdvanced ? Icons.expand_less : Icons.expand_more,
-                        size: 20,
+                const SizedBox(height: 8),
+                // Visual categories section
+                if (categories.any((c) => c.isVisual)) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 4),
+                    child: Text(
+                      'Visual',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Detection Sensitivity',
-                        style: theme.textTheme.titleSmall,
-                      ),
-                    ],
-                  ),
-                ),
-                if (_showAdvanced) ...[
-                  const SizedBox(height: 12),
-                  _buildThresholdSlider(
-                    'NSFW Threshold',
-                    _nsfwThreshold,
-                    (v) => setState(() => _nsfwThreshold = v),
-                    enabled: _enableNsfw,
-                  ),
-                  _buildThresholdSlider(
-                    'Violence Threshold',
-                    _violenceThreshold,
-                    (v) => setState(() => _violenceThreshold = v),
-                    enabled: _enableViolence,
-                  ),
-                  _buildThresholdSlider(
-                    'Blood Threshold',
-                    _bloodThreshold,
-                    (v) => setState(() => _bloodThreshold = v),
-                    enabled: _enableBlood,
-                  ),
-                  _buildThresholdSlider(
-                    'Weapons Threshold',
-                    _weaponsThreshold,
-                    (v) => setState(() => _weaponsThreshold = v),
-                    enabled: _enableWeapons,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Lower values = more sensitive (more detections)\nHigher values = less sensitive (fewer false positives)',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.outline,
                     ),
                   ),
+                  ...categories.where((c) => c.isVisual).map(
+                        (category) => SwitchListTile(
+                          secondary: Icon(
+                            _iconForCategory(category),
+                            size: 22,
+                            color: (_categoryEnabled[category.id] ?? false)
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.outline,
+                          ),
+                          title: Text(
+                            category.name,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                          subtitle: Text(
+                            category.description,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.outline,
+                            ),
+                          ),
+                          value: _categoryEnabled[category.id] ?? false,
+                          dense: true,
+                          onChanged: (value) {
+                            setState(() {
+                              _categoryEnabled[category.id] = value;
+                            });
+                          },
+                        ),
+                      ),
                 ],
+                // Audio categories section
+                if (categories.any((c) => c.isAudio)) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12, bottom: 4),
+                    child: Text(
+                      'Audio',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  ...categories.where((c) => c.isAudio).map(
+                        (category) => SwitchListTile(
+                          secondary: Icon(
+                            _iconForCategory(category),
+                            size: 22,
+                            color: (_categoryEnabled[category.id] ?? false)
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.outline,
+                          ),
+                          title: Text(
+                            category.name,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                          subtitle: Text(
+                            category.description,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.outline,
+                            ),
+                          ),
+                          value: _categoryEnabled[category.id] ?? false,
+                          dense: true,
+                          onChanged: (value) {
+                            setState(() {
+                              _categoryEnabled[category.id] = value;
+                            });
+                          },
+                        ),
+                      ),
+                ],
+                const SizedBox(height: 12),
+                Text(
+                  'Adjust per-category thresholds and models in '
+                  'Analysis Settings > Content Detection.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
               ] else ...[
                 if (isRunning) ...[
                   Text(
@@ -2010,75 +2075,43 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
     );
   }
 
-  Widget _buildCheckbox(
-    String label,
-    bool value,
-    ValueChanged<bool?> onChanged,
-  ) =>
-      CheckboxListTile(
-        title: Text(label),
-        value: value,
-        onChanged: onChanged,
-        dense: true,
-        controlAffinity: ListTileControlAffinity.leading,
-      );
-
-  Widget _buildThresholdSlider(
-    String label,
-    double value,
-    ValueChanged<double> onChanged, {
-    bool enabled = true,
-  }) {
-    final theme = Theme.of(context);
-    return Opacity(
-      opacity: enabled ? 1.0 : 0.5,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: theme.textTheme.bodySmall),
-              Text(
-                '${(value * 100).round()}%',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 3,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-            ),
-            child: Slider(
-              value: value,
-              min: 0.1,
-              divisions: 9,
-              onChanged: enabled ? onChanged : null,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _startAnalysis() {
     setState(() => _hasStarted = true);
 
-    // Create settings with defaults, overriding enable flags and thresholds based on user selection
-    final settings = AnalysisSettings.defaults().copyWith(
-      enableProfanity: _enableProfanity,
-      enableViolence: _enableViolence,
-      enableNsfw: _enableNsfw,
-      enableBlood: _enableBlood,
-      enableWeapons: _enableWeapons,
-      nsfwThreshold: _nsfwThreshold,
-      violenceThreshold: _violenceThreshold,
-      bloodThreshold: _bloodThreshold,
-      weaponsThreshold: _weaponsThreshold,
+    // Build settings from the persisted analysis settings, applying the
+    // user's category enable/disable toggles from this dialog.
+    final baseSettings =
+        ref.read(settingsNotifierProvider).analysisSettings;
+    final updatedCategories =
+        baseSettings.contentDetectionConfig.categories.map((c) {
+      final enabled = _categoryEnabled[c.id] ?? c.enabled;
+      return c.copyWith(enabled: enabled);
+    }).toList();
+
+    // Derive legacy per-type flags for backward-compatible analysis provider.
+    bool _isEnabled(String id) => _categoryEnabled[id] ?? false;
+
+    final settings = baseSettings.copyWith(
+      enableProfanity: _isEnabled('profanity'),
+      enableNsfw: _isEnabled('nsfw'),
+      enableViolence: _isEnabled('violence'),
+      enableBlood: _isEnabled('blood'),
+      enableWeapons: _isEnabled('weapons'),
+      contentDetectionConfig: baseSettings.contentDetectionConfig.copyWith(
+        categories: updatedCategories,
+      ),
     );
+
+    // If a transcript already exists for this media, pass it to avoid
+    // redundant ASR work.
+    final project = ref.read(projectNotifierProvider).currentProject;
+    final existingSubtitleTrack =
+        project?.subtitleTrackForMedia(widget.mediaId);
+    // SubtitleTrack.toTranscript() converts back to a Transcript object.
+    final existingTranscript = existingSubtitleTrack?.toTranscript();
+
+    // ignore: unused_local_variable
+    final _ = existingTranscript; // available for future analysis service use
 
     ref.read(analysisNotifierProvider.notifier).startAnalysis(
           mediaPath: widget.mediaPath,
@@ -2100,6 +2133,8 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
         return Icons.local_hospital;
       case ContentType.weapons:
         return Icons.gpp_maybe;
+      default:
+        return Icons.help_outline;
     }
   }
 
@@ -2115,6 +2150,8 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
         return Colors.deepOrange;
       case ContentType.weapons:
         return Colors.blueGrey;
+      default:
+        return Colors.grey;
     }
   }
 

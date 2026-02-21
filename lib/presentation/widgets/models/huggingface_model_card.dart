@@ -309,6 +309,8 @@ class HuggingFaceModelCard extends StatelessWidget {
       HuggingFaceModelType.violence => 'mAP on Violence Detection benchmark',
       HuggingFaceModelType.blood => 'Precision/Recall on Gore Detection dataset',
       HuggingFaceModelType.weapons => 'mAP@50 on COCO Weapons subset',
+      HuggingFaceModelType.nudeNet => 'mAP@50 on NudeNet validation dataset',
+      HuggingFaceModelType.clip => 'Top-1 accuracy on ImageNet zero-shot',
     };
     return 'Accuracy: ${model.accuracyPercent}%\n\nMeasured using: $accuracyType\n\nHigher is better. Scores ≥94% are excellent, ≥88% are good.';
   }

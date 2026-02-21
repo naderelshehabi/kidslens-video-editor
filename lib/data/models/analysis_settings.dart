@@ -1,4 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:kidslens_video_editor/data/models/content_category.dart';
+import 'package:kidslens_video_editor/data/models/visual_content_category.dart';
+import 'package:kidslens_video_editor/data/models/voting_config.dart';
 
 part 'analysis_settings.freezed.dart';
 part 'analysis_settings.g.dart';
@@ -48,6 +51,15 @@ class ModelConfig with _$ModelConfig {
 
     /// Beam search size for ASR decoding (1-5, higher = more accurate but slower)
     @Default(3) int beamSize,
+
+    /// ID of the NudeNet detection model
+    @Default('nudenet-v3-medium') String nudeNetModelId,
+
+    /// ID of the CLIP vision encoder model
+    @Default('clip-vit-b32-vision-fp16') String clipVisionModelId,
+
+    /// ID of the CLIP text encoder model
+    @Default('clip-vit-b32-text-fp16') String clipTextModelId,
   }) = _ModelConfig;
 
   const ModelConfig._();
@@ -119,6 +131,127 @@ class ProfanityConfig with _$ProfanityConfig {
       );
 }
 
+/// Configuration for visual content detection (NudeNet + CLIP)
+@freezed
+class VisualContentConfig with _$VisualContentConfig {
+  const factory VisualContentConfig({
+    /// Whether NudeNet detection is enabled
+    @Default(true) bool enableNudeNetDetection,
+
+    /// Whether CLIP classification is enabled
+    @Default(true) bool enableClipClassification,
+
+    /// Whether to use NSFW pre-filter before NudeNet (performance optimization)
+    @Default(true) bool useNsfwPreFilter,
+
+    /// Minimum NSFW score to trigger NudeNet (min 0.05 enforced)
+    @Default(0.30) double preFilterThreshold,
+
+    /// Visual content categories (empty default; populated at runtime)
+    @Default([]) List<VisualContentCategory> categories,
+  }) = _VisualContentConfig;
+
+  const VisualContentConfig._();
+
+  factory VisualContentConfig.fromJson(Map<String, dynamic> json) =>
+      _$VisualContentConfigFromJson(json);
+
+  /// Pre-filter threshold with enforced minimum of 0.05
+  double get effectivePreFilterThreshold =>
+      preFilterThreshold < 0.05 ? 0.05 : preFilterThreshold;
+
+  /// Whether any NudeNet categories are enabled
+  bool get hasNudeNetCategories => categories.any(
+        (c) => c.enabled && c.usesNudeNet,
+      );
+
+  /// Whether any CLIP categories are enabled
+  bool get hasClipCategories => categories.any(
+        (c) => c.enabled && c.usesClip,
+      );
+
+  /// Whether any category is enabled
+  bool get hasAnyEnabled => categories.any((c) => c.enabled);
+
+  /// Enabled categories only
+  List<VisualContentCategory> get enabledCategories =>
+      categories.where((c) => c.enabled).toList();
+}
+
+/// Unified content detection configuration (v2).
+///
+/// Replaces the legacy per-type enable/threshold fields and [VisualContentConfig]
+/// with a category-based system supporting MoE voting.
+@freezed
+class ContentDetectionConfig with _$ContentDetectionConfig {
+  const factory ContentDetectionConfig({
+    /// All content categories (visual + audio).
+    @Default([]) List<ContentCategory> categories,
+
+    /// Voting configuration for MoE consensus.
+    @Default(VotingConfig()) VotingConfig votingConfig,
+
+    /// Whether to use NSFW pre-filter before NudeNet (performance).
+    @Default(true) bool useNsfwPreFilter,
+
+    /// NSFW score threshold to trigger NudeNet (min 0.05 enforced).
+    @Default(0.30) double preFilterThreshold,
+
+    /// Schema version for migration (v2 = unified categories).
+    @Default(2) int schemaVersion,
+  }) = _ContentDetectionConfig;
+
+  const ContentDetectionConfig._();
+
+  factory ContentDetectionConfig.fromJson(Map<String, dynamic> json) =>
+      _$ContentDetectionConfigFromJson(json);
+
+  /// Pre-filter threshold with enforced minimum of 0.05.
+  double get effectivePreFilterThreshold =>
+      preFilterThreshold < 0.05 ? 0.05 : preFilterThreshold;
+
+  /// Visual categories only.
+  List<ContentCategory> get visualCategories =>
+      categories.where((c) => c.isVisual).toList();
+
+  /// Audio categories only.
+  List<ContentCategory> get audioCategories =>
+      categories.where((c) => c.isAudio).toList();
+
+  /// Enabled categories (enabled + has at least one enabled model).
+  List<ContentCategory> get enabledCategories =>
+      categories.where((c) => c.enabled && c.hasEnabledModels).toList();
+
+  /// Enabled visual categories.
+  List<ContentCategory> get enabledVisualCategories =>
+      enabledCategories.where((c) => c.isVisual).toList();
+
+  /// Enabled audio categories.
+  List<ContentCategory> get enabledAudioCategories =>
+      enabledCategories.where((c) => c.isAudio).toList();
+
+  /// Categories that require NudeNet models.
+  List<ContentCategory> get nudeNetCategories =>
+      enabledCategories.where((c) => c.hasNudeNetModels).toList();
+
+  /// Categories that require CLIP models.
+  List<ContentCategory> get clipCategories =>
+      enabledCategories.where((c) => c.hasClipModels).toList();
+
+  /// Whether any category is enabled.
+  bool get hasAnyEnabled => enabledCategories.isNotEmpty;
+
+  /// Whether any visual category is enabled.
+  bool get hasVisualCategories => enabledVisualCategories.isNotEmpty;
+
+  /// Whether any audio category is enabled.
+  bool get hasAudioCategories => enabledAudioCategories.isNotEmpty;
+
+  /// All unique model IDs required by enabled categories.
+  Set<String> get requiredModelIds =>
+      enabledCategories.expand((c) => c.requiredModelIds).toSet();
+}
+
 /// Complete analysis settings for the video editor
 @freezed
 class AnalysisSettings with _$AnalysisSettings {
@@ -173,6 +306,12 @@ class AnalysisSettings with _$AnalysisSettings {
 
     /// Maximum concurrent frame analyses
     @Default(4) int maxConcurrentAnalyses,
+
+    /// Visual content detection configuration (NudeNet + CLIP)
+    @Default(VisualContentConfig()) VisualContentConfig visualContentConfig,
+
+    /// Unified content detection configuration (v2, MoE voting).
+    @Default(ContentDetectionConfig()) ContentDetectionConfig contentDetectionConfig,
   }) = _AnalysisSettings;
 
   const AnalysisSettings._();
@@ -231,10 +370,12 @@ class AnalysisSettings with _$AnalysisSettings {
 
   /// Whether any visual detection is enabled
   bool get hasVisualDetection =>
-      enableNsfw || enableViolence || enableBlood || enableWeapons;
+      enableNsfw || enableViolence || enableBlood || enableWeapons ||
+      contentDetectionConfig.hasVisualCategories;
 
   /// Whether any audio detection is enabled
-  bool get hasAudioDetection => enableProfanity;
+  bool get hasAudioDetection =>
+      enableProfanity || contentDetectionConfig.hasAudioCategories;
 
   /// Whether any detection is enabled
   bool get hasAnyDetection => hasVisualDetection || hasAudioDetection;
@@ -321,6 +462,22 @@ class AnalysisSettings with _$AnalysisSettings {
     }
     if (maxConcurrentAnalyses < 1) {
       issues.add('Max concurrent analyses must be at least 1');
+    }
+
+    // Validate visual content config
+    if (visualContentConfig.preFilterThreshold < 0.05) {
+      issues.add('Pre-filter threshold must be at least 0.05');
+    }
+    for (final category in visualContentConfig.categories) {
+      if (!category.isBuiltIn) {
+        final hasLabels = category.detectionLabels.isNotEmpty;
+        final hasPrompts = category.clipPrompts.isNotEmpty;
+        if (!hasLabels && !hasPrompts) {
+          issues.add(
+            'Custom category "${category.name}" has no detection labels or prompts',
+          );
+        }
+      }
     }
 
     return issues;

@@ -3,6 +3,27 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'modification.freezed.dart';
 part 'modification.g.dart';
 
+/// Normalized bounding box for region-based modifications
+@freezed
+class RegionBounds with _$RegionBounds {
+  const factory RegionBounds({
+    /// X coordinate of top-left corner (normalized 0-1)
+    required double x,
+
+    /// Y coordinate of top-left corner (normalized 0-1)
+    required double y,
+
+    /// Width of region (normalized 0-1)
+    required double width,
+
+    /// Height of region (normalized 0-1)
+    required double height,
+  }) = _RegionBounds;
+
+  factory RegionBounds.fromJson(Map<String, dynamic> json) =>
+      _$RegionBoundsFromJson(json);
+}
+
 /// Sealed class hierarchy representing modifications that can be applied to media
 @freezed
 sealed class Modification with _$Modification {
@@ -60,6 +81,38 @@ sealed class Modification with _$Modification {
   /// Skips the video region entirely (cuts it from the output)
   const factory Modification.videoSkip() = VideoSkip;
 
+  // ============ Region-Based Video Modifications ============
+
+  /// Applies Gaussian blur to a specific bounding box region
+  const factory Modification.videoRegionBlur({
+    /// Blur intensity (1-100, default: 50)
+    @Default(50) int intensity,
+
+    /// Normalized bounding box for the region
+    required RegionBounds region,
+  }) = VideoRegionBlur;
+
+  /// Applies pixelation/mosaic effect to a specific bounding box region
+  const factory Modification.videoRegionPixelate({
+    /// Size of pixelation blocks in pixels (default: 10)
+    @Default(10) int blockSize,
+
+    /// Normalized bounding box for the region
+    required RegionBounds region,
+  }) = VideoRegionPixelate;
+
+  /// Covers a specific bounding box region with a solid color
+  const factory Modification.videoRegionBlackBox({
+    /// Color in hex format (default: black)
+    @Default('#000000') String color,
+
+    /// Opacity level (0.0 to 1.0, default: 1.0)
+    @Default(1.0) double opacity,
+
+    /// Normalized bounding box for the region
+    required RegionBounds region,
+  }) = VideoRegionBlackBox;
+
   factory Modification.fromJson(Map<String, dynamic> json) =>
       _$ModificationFromJson(json);
 
@@ -72,6 +125,9 @@ sealed class Modification with _$Modification {
         VideoPixelate() => false,
         VideoBlackBox() => false,
         VideoSkip() => false,
+        VideoRegionBlur() => false,
+        VideoRegionPixelate() => false,
+        VideoRegionBlackBox() => false,
       };
 
   /// Whether this modification affects video
@@ -83,6 +139,9 @@ sealed class Modification with _$Modification {
         VideoPixelate() => true,
         VideoBlackBox() => true,
         VideoSkip() => true,
+        VideoRegionBlur() => true,
+        VideoRegionPixelate() => true,
+        VideoRegionBlackBox() => true,
       };
 
   /// Whether this modification removes content (vs replacing/obscuring)
@@ -94,6 +153,17 @@ sealed class Modification with _$Modification {
         VideoPixelate() => false,
         VideoBlackBox() => false,
         VideoSkip() => true,
+        VideoRegionBlur() => false,
+        VideoRegionPixelate() => false,
+        VideoRegionBlackBox() => false,
+      };
+
+  /// Whether this modification targets a specific region (vs full-frame)
+  bool get isRegionModification => switch (this) {
+        VideoRegionBlur() => true,
+        VideoRegionPixelate() => true,
+        VideoRegionBlackBox() => true,
+        _ => false,
       };
 
   /// Human-readable display name for the modification
@@ -105,6 +175,10 @@ sealed class Modification with _$Modification {
         VideoPixelate(:final blockSize) => 'Pixelate (${blockSize}px)',
         VideoBlackBox() => 'Black Box',
         VideoSkip() => 'Skip/Cut',
+        VideoRegionBlur(:final intensity) => 'Region Blur ($intensity%)',
+        VideoRegionPixelate(:final blockSize) =>
+          'Region Pixelate (${blockSize}px)',
+        VideoRegionBlackBox() => 'Region Black Box',
       };
 
   /// Short code for the modification type
@@ -116,6 +190,9 @@ sealed class Modification with _$Modification {
         VideoPixelate() => 'PIXEL',
         VideoBlackBox() => 'BBOX',
         VideoSkip() => 'SKIP',
+        VideoRegionBlur() => 'RBLUR',
+        VideoRegionPixelate() => 'RPIXEL',
+        VideoRegionBlackBox() => 'RBBOX',
       };
 
   /// Icon name for the modification type
@@ -127,21 +204,33 @@ sealed class Modification with _$Modification {
         VideoPixelate() => 'grid_on',
         VideoBlackBox() => 'crop_square',
         VideoSkip() => 'content_cut',
+        VideoRegionBlur() => 'blur_on',
+        VideoRegionPixelate() => 'grid_on',
+        VideoRegionBlackBox() => 'crop_square',
       };
 
   /// FFmpeg filter string for this modification
+  ///
+  /// Note: Region-based modifications return empty strings here because they
+  /// use a separate split→crop→effect→overlay filter chain built in
+  /// [ExportService]. They are partitioned out before reaching the linear
+  /// filter chain.
   String toFFmpegFilter() => switch (this) {
         AudioMute() => 'volume=0',
         AudioBeep(:final frequency, :final volume) =>
           'sine=frequency=$frequency:sample_rate=44100,volume=$volume',
         AudioReplace(:final audioPath, :final volume) =>
           'amovie=$audioPath,volume=$volume',
-        VideoBlur(:final intensity) => 'boxblur=${intensity ~/ 5}:${intensity ~/ 5}',
+        VideoBlur(:final intensity) =>
+          'boxblur=${intensity ~/ 5}:${intensity ~/ 5}',
         VideoPixelate(:final blockSize) =>
           'scale=iw/$blockSize:ih/$blockSize,scale=iw*$blockSize:ih*$blockSize:flags=neighbor',
         VideoBlackBox(:final color, :final opacity) =>
           'drawbox=color=${color.replaceFirst('#', '')}@$opacity:t=fill',
-        VideoSkip() => 'select=0', // Will need special handling in export
+        VideoSkip() => 'select=0',
+        VideoRegionBlur() => '',
+        VideoRegionPixelate() => '',
+        VideoRegionBlackBox() => '',
       };
 }
 

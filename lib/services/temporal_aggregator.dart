@@ -323,6 +323,16 @@ class TemporalAggregatorService {
         return result.hasWeaponsAt(threshold);
       case ContentType.profanity:
         return false; // Profanity is audio-based, not frame-based
+      case ContentType.nudity:
+        return false; // Uses MoE pipeline, not legacy per-frame system
+      case ContentType.sexualContent:
+        return false; // Uses MoE pipeline, not legacy per-frame system
+      case ContentType.kissing:
+        return false; // Uses MoE pipeline, not legacy per-frame system
+      case ContentType.immodestDress:
+        return false; // Uses MoE pipeline, not legacy per-frame system
+      case ContentType.custom:
+        return false; // Uses MoE pipeline, not legacy per-frame system
     }
   }
 
@@ -339,6 +349,16 @@ class TemporalAggregatorService {
         return result.weapons?.score ?? 0;
       case ContentType.profanity:
         return 0;
+      case ContentType.nudity:
+        return 0; // Uses MoE pipeline, not legacy per-frame system
+      case ContentType.sexualContent:
+        return 0; // Uses MoE pipeline, not legacy per-frame system
+      case ContentType.kissing:
+        return 0; // Uses MoE pipeline, not legacy per-frame system
+      case ContentType.immodestDress:
+        return 0; // Uses MoE pipeline, not legacy per-frame system
+      case ContentType.custom:
+        return 0; // Uses MoE pipeline, not legacy per-frame system
     }
   }
 
@@ -349,5 +369,10 @@ class TemporalAggregatorService {
     ContentType.blood: 0.5,
     ContentType.weapons: 0.5,
     ContentType.profanity: 0.5,
+    ContentType.nudity: 0.5,
+    ContentType.sexualContent: 0.5,
+    ContentType.kissing: 0.5,
+    ContentType.immodestDress: 0.5,
+    ContentType.custom: 0.5,
   };
 }

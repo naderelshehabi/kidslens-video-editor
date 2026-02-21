@@ -60,6 +60,8 @@ void main() {
               HuggingFaceModelType.violence,
               HuggingFaceModelType.blood,
               HuggingFaceModelType.weapons,
+              HuggingFaceModelType.nudeNet,
+              HuggingFaceModelType.clip,
             ]),
           );
         }
@@ -85,10 +87,10 @@ void main() {
       });
 
       test('should find existing visual model by ID', () {
-        final model = registry.getModelById('nsfw-mobilenet-v2');
+        final model = registry.getModelById('nsfw-vit-base-quantized');
 
         expect(model, isNotNull);
-        expect(model!.id, equals('nsfw-mobilenet-v2'));
+        expect(model!.id, equals('nsfw-vit-base-quantized'));
         expect(model.modelType, equals(HuggingFaceModelType.nsfw));
       });
 
@@ -125,13 +127,13 @@ void main() {
       });
 
       test('should generate correct URL for visual model', () {
-        final model = registry.getModelById('nsfw-mobilenet-v2')!;
+        final model = registry.getModelById('nsfw-vit-base-quantized')!;
         final url = registry.getDownloadUrl(model);
 
         expect(
           url,
           equals(
-            'https://huggingface.co/kidslens/nsfw-mobilenet-v2/resolve/main/nsfw-mobilenet-v2.onnx',
+            'https://huggingface.co/AdamCodd/vit-base-nsfw-detector/resolve/main/onnx/model_quantized.onnx',
           ),
         );
       });

@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/presentation/screens/analysis_settings/asr_models_tab.dart';
+import 'package:kidslens_video_editor/presentation/screens/analysis_settings/content_detection_tab.dart';
 import 'package:kidslens_video_editor/presentation/screens/analysis_settings/model_config_tab.dart';
 import 'package:kidslens_video_editor/presentation/screens/analysis_settings/performance_tab.dart';
 import 'package:kidslens_video_editor/presentation/screens/analysis_settings/thresholds_tab.dart';
-import 'package:kidslens_video_editor/presentation/screens/analysis_settings/visual_models_tab.dart';
 import 'package:kidslens_video_editor/state/providers/model_provider.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 
 /// Navigation tab items for analysis settings
 enum AnalysisSettingsTab {
   asrModels('ASR Models', Icons.mic),
-  visualModels('Visual Models', Icons.visibility),
+  contentDetection('Content Detection', Icons.shield),
   thresholds('Thresholds', Icons.tune),
   configuration('Configuration', Icons.settings),
   performance('Performance', Icons.speed);
@@ -150,8 +150,8 @@ class _AnalysisSettingsScreenState
     switch (_selectedTab) {
       case AnalysisSettingsTab.asrModels:
         return const AsrModelsTab();
-      case AnalysisSettingsTab.visualModels:
-        return const VisualModelsTab();
+      case AnalysisSettingsTab.contentDetection:
+        return const ContentDetectionTab();
       case AnalysisSettingsTab.thresholds:
         return const ThresholdsTab();
       case AnalysisSettingsTab.configuration:

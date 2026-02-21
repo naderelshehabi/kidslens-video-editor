@@ -26,7 +26,7 @@ final detectionThresholdsProvider = Provider<DetectionThresholds>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef DetectionThresholdsRef = ProviderRef<DetectionThresholds>;
-String _$settingsNotifierHash() => r'3ef8c04e7b50ebf6efa04673ad19cfe01ee41ce4';
+String _$settingsNotifierHash() => r'b45e8d68c04f8ae1b5fdd47a7b76d2a4e8a05bba';
 
 /// Provider for managing application settings
 ///

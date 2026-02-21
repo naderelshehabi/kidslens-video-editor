@@ -130,6 +130,9 @@ class TimelineTrack extends StatelessWidget {
         VideoPixelate() => Colors.indigo,
         VideoBlackBox() => Colors.grey,
         VideoSkip() => Colors.orange,
+        VideoRegionBlur() => Colors.deepPurple,
+        VideoRegionPixelate() => Colors.deepPurpleAccent,
+        VideoRegionBlackBox() => Colors.blueGrey,
       };
 
   IconData _getModificationIcon(Modification mod) => switch (mod) {
@@ -140,5 +143,8 @@ class TimelineTrack extends StatelessWidget {
         VideoPixelate() => Icons.grid_view,
         VideoBlackBox() => Icons.crop_square,
         VideoSkip() => Icons.skip_next,
+        VideoRegionBlur() => Icons.blur_on,
+        VideoRegionPixelate() => Icons.grid_view,
+        VideoRegionBlackBox() => Icons.crop_square,
       };
 }

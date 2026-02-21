@@ -613,10 +613,15 @@ void main() {
         HuggingFaceModelType.values,
         contains(HuggingFaceModelType.weapons),
       );
+      expect(
+        HuggingFaceModelType.values,
+        contains(HuggingFaceModelType.nudeNet),
+      );
+      expect(HuggingFaceModelType.values, contains(HuggingFaceModelType.clip));
     });
 
-    test('should have 5 model types', () {
-      expect(HuggingFaceModelType.values, hasLength(5));
+    test('should have 7 model types', () {
+      expect(HuggingFaceModelType.values, hasLength(7));
     });
   });
 

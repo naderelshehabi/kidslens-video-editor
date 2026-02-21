@@ -297,6 +297,91 @@ class HuggingFaceModelRegistry {
           'Weapons detection (uses NSFW model as placeholder - needs custom training)',
       license: 'Apache-2.0',
     ),
+
+    // ============================================================
+    // NudeNet Detection Models (bounding box detection)
+    // ============================================================
+
+    // NudeNet v3 Medium - primary detection model
+    const HuggingFaceModel(
+      id: 'nudenet-v3-medium',
+      displayName: 'NudeNet v3 Medium',
+      huggingFaceId: 'zhangsongbo365/nudenet_onnx',
+      fileName: '640m.onnx',
+      parameters: '25M',
+      parameterCount: 25000000,
+      sizeBytes: 104 * _mb,
+      ramRequired: 1 * _gb,
+      speedMultiplier: 5,
+      accuracyPercent: 92,
+      modelType: HuggingFaceModelType.nudeNet,
+      badge: 'Recommended',
+      description:
+          'Body part detection with bounding boxes (18 classes, 640x640 input)',
+      license: 'AGPL-3.0',
+      minVramBytes: 512 * _mb,
+    ),
+
+    // NudeNet v3 Nano - fast/low-VRAM fallback
+    const HuggingFaceModel(
+      id: 'nudenet-v3-nano',
+      displayName: 'NudeNet v3 Nano',
+      huggingFaceId: 'zhangsongbo365/nudenet_onnx',
+      fileName: '320n.onnx',
+      parameters: '3M',
+      parameterCount: 3000000,
+      sizeBytes: 12 * _mb,
+      ramRequired: 512 * _mb,
+      speedMultiplier: 12,
+      accuracyPercent: 84,
+      modelType: HuggingFaceModelType.nudeNet,
+      description:
+          'Fast body part detection for preview or low-VRAM systems (18 classes, 320x320 input)',
+      license: 'AGPL-3.0',
+    ),
+
+    // ============================================================
+    // CLIP Models (zero-shot classification via embeddings)
+    // ============================================================
+
+    // CLIP ViT-B/32 Vision Encoder (FP16)
+    const HuggingFaceModel(
+      id: 'clip-vit-b32-vision-fp16',
+      displayName: 'CLIP ViT-B/32 Vision (FP16)',
+      huggingFaceId: 'Xenova/clip-vit-base-patch32',
+      fileName: 'onnx/vision_model_fp16.onnx',
+      parameters: '88M',
+      parameterCount: 88000000,
+      sizeBytes: 176 * _mb,
+      ramRequired: 1 * _gb,
+      speedMultiplier: 6,
+      accuracyPercent: 90,
+      modelType: HuggingFaceModelType.clip,
+      badge: 'Vision Encoder',
+      description:
+          'CLIP vision encoder for zero-shot scene classification (224x224 input, 512-dim output)',
+      license: 'MIT',
+      minVramBytes: 512 * _mb,
+    ),
+
+    // CLIP ViT-B/32 Text Encoder (FP16)
+    const HuggingFaceModel(
+      id: 'clip-vit-b32-text-fp16',
+      displayName: 'CLIP ViT-B/32 Text (FP16)',
+      huggingFaceId: 'Xenova/clip-vit-base-patch32',
+      fileName: 'onnx/text_model_fp16.onnx',
+      parameters: '63M',
+      parameterCount: 63000000,
+      sizeBytes: 127 * _mb,
+      ramRequired: 512 * _mb,
+      speedMultiplier: 15,
+      accuracyPercent: 90,
+      modelType: HuggingFaceModelType.clip,
+      badge: 'Text Encoder',
+      description:
+          'CLIP text encoder for prompt embedding (77 token input, 512-dim output)',
+      license: 'MIT',
+    ),
   ];
 
   // ============================================================
@@ -375,6 +460,14 @@ class HuggingFaceModelRegistry {
   /// Get weapons detection models
   List<HuggingFaceModel> getWeaponsModels() =>
       getModelsByType(HuggingFaceModelType.weapons);
+
+  /// Get NudeNet detection models
+  List<HuggingFaceModel> getNudeNetModels() =>
+      getModelsByType(HuggingFaceModelType.nudeNet);
+
+  /// Get CLIP embedding models
+  List<HuggingFaceModel> getClipModels() =>
+      getModelsByType(HuggingFaceModelType.clip);
 
   /// Get models sorted by parameter count (ascending)
   List<HuggingFaceModel> getModelsSortedBySize(HuggingFaceModelType type) {

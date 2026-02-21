@@ -199,6 +199,9 @@ void main() {
           const VideoPixelate(),
           const VideoBlackBox(),
           const VideoSkip(),
+          Modification.videoRegionBlur(intensity: 50, region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4)),
+          Modification.videoRegionPixelate(blockSize: 10, region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4)),
+          Modification.videoRegionBlackBox(color: '#000000', opacity: 1.0, region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4)),
         ];
 
         final results = modifications.map((mod) => switch (mod) {
@@ -209,6 +212,9 @@ void main() {
             VideoPixelate() => 'pixelate',
             VideoBlackBox() => 'blackbox',
             VideoSkip() => 'skip',
+            VideoRegionBlur() => 'regionblur',
+            VideoRegionPixelate() => 'regionpixelate',
+            VideoRegionBlackBox() => 'regionblackbox',
           },).toList();
 
         expect(results, equals([
@@ -219,6 +225,9 @@ void main() {
           'pixelate',
           'blackbox',
           'skip',
+          'regionblur',
+          'regionpixelate',
+          'regionblackbox',
         ]),);
       });
 

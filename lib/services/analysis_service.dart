@@ -7,6 +7,9 @@ import 'package:kidslens_video_editor/native/bindings/onnx_bindings.dart';
 import 'package:kidslens_video_editor/native/bindings/whisper_bindings.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
 import 'package:kidslens_video_editor/services/profanity_service.dart';
+import 'package:kidslens_video_editor/data/models/content_category.dart';
+import 'package:kidslens_video_editor/services/visual_analysis_service.dart';
+import 'package:kidslens_video_editor/services/voting_service.dart';
 
 /// Checkpoint for resuming analysis
 class AnalysisCheckpoint {
@@ -15,6 +18,7 @@ class AnalysisCheckpoint {
     this.transcript,
     this.profanityMatches,
     this.lastAnalyzedFrame = 0,
+    this.frameResults,
   });
 
   factory AnalysisCheckpoint.fromJson(Map<String, dynamic> json) => AnalysisCheckpoint(
@@ -27,18 +31,25 @@ class AnalysisCheckpoint {
               .toList()
           : null,
       lastAnalyzedFrame: json['lastAnalyzedFrame'] as int? ?? 0,
+      frameResults: json['frameResults'] != null
+          ? (json['frameResults'] as List)
+              .map((e) => FrameAnalysisResult.fromJson(e as Map<String, dynamic>))
+              .toList()
+          : null,
       timestamp: DateTime.parse(json['timestamp'] as String),
     );
 
   final Transcript? transcript;
   final List<ProfanityMatch>? profanityMatches;
   final int lastAnalyzedFrame;
+  final List<FrameAnalysisResult>? frameResults;
   final DateTime timestamp;
 
   Map<String, dynamic> toJson() => {
         'transcript': transcript?.toJson(),
         'profanityMatches': profanityMatches?.map((e) => e.toJson()).toList(),
         'lastAnalyzedFrame': lastAnalyzedFrame,
+        'frameResults': frameResults?.map((e) => e.toJson()).toList(),
         'timestamp': timestamp.toIso8601String(),
       };
 }
@@ -52,6 +63,7 @@ class AnalysisService {
     required this.onnx,
     required this.modelManager,
     required this.profanity,
+    this.visualAnalysis,
   });
 
   final FFmpegBindings ffmpeg;
@@ -60,12 +72,14 @@ class AnalysisService {
   final ONNXBindings onnx;
   final ModelManagerService modelManager;
   final ProfanityService profanity;
+  final VisualAnalysisService? visualAnalysis;
 
   /// Run complete analysis on a media file
   Stream<AnalysisProgress> analyze(
     String mediaPath,
     AnalysisSettings settings, {
     AnalysisCheckpoint? checkpoint,
+    Transcript? existingTranscript,
   }) async* {
     yield const AnalysisProgress(
       stepName: 'Initializing',
@@ -83,7 +97,18 @@ class AnalysisService {
     );
 
     Transcript? transcript;
-    if (checkpoint?.transcript == null) {
+    if (existingTranscript != null) {
+      // Reuse existing transcript — skip Whisper entirely
+      transcript = existingTranscript;
+      yield AnalysisProgress(
+        stepName: 'Using existing transcript',
+        currentStep: 1,
+        totalSteps: 4,
+        stepProgress: 1,
+        itemsProcessed: transcript.segments.length,
+        totalItems: transcript.segments.length,
+      );
+    } else if (checkpoint?.transcript == null) {
       transcript = await _transcribeAudio(mediaPath, settings);
       yield AnalysisProgress(
         stepName: 'Audio transcription complete',
@@ -123,6 +148,11 @@ class AnalysisService {
     final frameResults = <FrameAnalysisResult>[];
     final startFrame = checkpoint?.lastAnalyzedFrame ?? 0;
 
+    // Restore previous frame results if resuming
+    if (checkpoint?.frameResults != null) {
+      frameResults.addAll(checkpoint!.frameResults!);
+    }
+
     yield AnalysisProgress(
       stepName: 'Analyzing video frames',
       currentStep: 3,
@@ -131,7 +161,7 @@ class AnalysisService {
       itemsProcessed: startFrame,
     );
 
-    if (settings.enableNsfw || settings.enableViolence || settings.enableBlood) {
+    if (_hasVisualCategories(settings)) {
       await for (final result in _analyzeFrames(mediaPath, settings, startFrame)) {
         frameResults.add(result.frame);
         yield AnalysisProgress(
@@ -194,7 +224,7 @@ class AnalysisService {
     Transcript transcript,
     AnalysisSettings settings,
   ) async {
-    if (!settings.enableProfanity) return [];
+    if (!settings.enableProfanity && !_hasProfanityCategory(settings)) return [];
 
     profanity
       ..addCustomWords(settings.profanityConfig.customWords)
@@ -234,80 +264,93 @@ class AnalysisService {
     await for (final frameData in ffmpeg.extractFrames(mediaPath, fps: samplingFps)) {
       frameNumber++;
 
-      // Run NSFW detection
-      var nsfwResult = NsfwResult.safe();
-      if (nsfwModelPath != null) {
-        final nsfwScores = await onnx.runInference(
-          nsfwModelPath,
-          frameData.rgbData,
-          frameData.width,
-          frameData.height,
-        );
-        nsfwResult = NsfwResult(
-          porn: nsfwScores['porn'] ?? 0.0,
-          sexy: nsfwScores['sexy'] ?? 0.0,
-          hentai: nsfwScores['hentai'] ?? 0.0,
-          drawings: nsfwScores['drawings'] ?? 0.0,
-          neutral: nsfwScores['neutral'] ?? 0.0,
-        );
-      }
+      try {
+        // Run NSFW detection
+        var nsfwResult = NsfwResult.safe();
+        if (nsfwModelPath != null) {
+          final nsfwScores = await onnx.runInference(
+            nsfwModelPath,
+            frameData.rgbData,
+            frameData.width,
+            frameData.height,
+          );
+          nsfwResult = NsfwResult(
+            porn: nsfwScores['porn'] ?? 0.0,
+            sexy: nsfwScores['sexy'] ?? 0.0,
+            hentai: nsfwScores['hentai'] ?? 0.0,
+            drawings: nsfwScores['drawings'] ?? 0.0,
+            neutral: nsfwScores['neutral'] ?? 0.0,
+          );
+        }
 
-      // Run violence detection
-      var violenceResult = ViolenceResult.safe();
-      if (violenceModelPath != null) {
-        final violenceScores = await onnx.runInference(
-          violenceModelPath,
-          frameData.rgbData,
-          frameData.width,
-          frameData.height,
-        );
-        violenceResult = ViolenceResult(
-          violent: violenceScores['violent'] ?? 0.0,
-          nonViolent: violenceScores['non_violent'] ?? 0.0,
-        );
-      }
+        // Run violence detection
+        var violenceResult = ViolenceResult.safe();
+        if (violenceModelPath != null) {
+          final violenceScores = await onnx.runInference(
+            violenceModelPath,
+            frameData.rgbData,
+            frameData.width,
+            frameData.height,
+          );
+          violenceResult = ViolenceResult(
+            violent: violenceScores['violent'] ?? 0.0,
+            nonViolent: violenceScores['non_violent'] ?? 0.0,
+          );
+        }
 
-      // Run blood/gore detection
-      BloodResult? bloodResult;
-      if (bloodModelPath != null) {
-        final bloodScores = await onnx.runInference(
-          bloodModelPath,
-          frameData.rgbData,
-          frameData.width,
-          frameData.height,
-        );
-        bloodResult = BloodResult(
-          score: bloodScores['blood'] ?? bloodScores['gore'] ?? 0.0,
-        );
-      }
+        // Run blood/gore detection
+        BloodResult? bloodResult;
+        if (bloodModelPath != null) {
+          final bloodScores = await onnx.runInference(
+            bloodModelPath,
+            frameData.rgbData,
+            frameData.width,
+            frameData.height,
+          );
+          bloodResult = BloodResult(
+            score: bloodScores['blood'] ?? bloodScores['gore'] ?? 0.0,
+          );
+        }
 
-      // Run weapons detection
-      WeaponsResult? weaponsResult;
-      if (weaponsModelPath != null) {
-        final weaponsScores = await onnx.runInference(
-          weaponsModelPath,
-          frameData.rgbData,
-          frameData.width,
-          frameData.height,
-        );
-        weaponsResult = WeaponsResult(
-          score: weaponsScores['weapons'] ?? weaponsScores['weapon'] ?? 0.0,
-        );
-      }
+        // Run weapons detection
+        WeaponsResult? weaponsResult;
+        if (weaponsModelPath != null) {
+          final weaponsScores = await onnx.runInference(
+            weaponsModelPath,
+            frameData.rgbData,
+            frameData.width,
+            frameData.height,
+          );
+          weaponsResult = WeaponsResult(
+            score: weaponsScores['weapons'] ?? weaponsScores['weapon'] ?? 0.0,
+          );
+        }
 
-      yield _FrameAnalysisProgress(
-        frame: FrameAnalysisResult(
+        yield _FrameAnalysisProgress(
+          frame: FrameAnalysisResult(
+            frameNumber: frameNumber,
+            timestamp: frameData.timestamp,
+            nsfw: nsfwResult,
+            violence: violenceResult,
+            blood: bloodResult,
+            weapons: weaponsResult,
+          ),
           frameNumber: frameNumber,
-          timestamp: frameData.timestamp,
-          nsfw: nsfwResult,
-          violence: violenceResult,
-          blood: bloodResult,
-          weapons: weaponsResult,
-        ),
-        frameNumber: frameNumber,
-        totalFrames: totalFrames,
-        progress: frameNumber / totalFrames,
-      );
+          totalFrames: totalFrames,
+          progress: frameNumber / totalFrames,
+        );
+      } catch (e) {
+        // Per-frame resilience: emit safe result on failure and continue
+        yield _FrameAnalysisProgress(
+          frame: FrameAnalysisResult.safe(
+            frameNumber: frameNumber,
+            timestamp: frameData.timestamp,
+          ),
+          frameNumber: frameNumber,
+          totalFrames: totalFrames,
+          progress: frameNumber / totalFrames,
+        );
+      }
     }
   }
 
@@ -370,6 +413,16 @@ class AnalysisService {
         return 'Profanity detected';
       case ContentType.weapons:
         return 'Weapon detected';
+      case ContentType.nudity:
+        return 'Nudity detected';
+      case ContentType.sexualContent:
+        return 'Sexual content detected';
+      case ContentType.kissing:
+        return 'Kissing detected';
+      case ContentType.immodestDress:
+        return 'Immodest dress detected';
+      case ContentType.custom:
+        return 'Custom content detected';
     }
   }
 
@@ -437,6 +490,20 @@ class AnalysisService {
 
     return segments;
   }
+
+  /// Whether the settings have any visual detection categories enabled.
+  bool _hasVisualCategories(AnalysisSettings settings) =>
+      settings.enableNsfw ||
+      settings.enableViolence ||
+      settings.enableBlood ||
+      settings.enableWeapons ||
+      settings.contentDetectionConfig.hasVisualCategories;
+
+  /// Whether the settings have a profanity category enabled.
+  bool _hasProfanityCategory(AnalysisSettings settings) =>
+      settings.contentDetectionConfig.enabledAudioCategories.any(
+        (c) => c.id == 'profanity',
+      );
 }
 
 class _FrameAnalysisProgress {
