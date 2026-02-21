@@ -566,11 +566,11 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                         children: [
                           // Video track with thumbnails
                           _buildVideoTrack(
-                              context, timelineWidth, playbackState),
+                              context, timelineWidth, playbackState,),
 
                           // Audio track with waveform
                           _buildAudioTrack(
-                              context, timelineWidth, playbackState),
+                              context, timelineWidth, playbackState,),
 
                           // Detections track
                           _buildTrack(
@@ -595,7 +595,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
 
                           // Subtitles track
                           _buildSubtitlesTrack(
-                              context, timelineWidth, playbackState),
+                              context, timelineWidth, playbackState,),
                         ],
                       ),
                     ),
@@ -610,7 +610,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
   }
 
   Widget _buildVideoTrack(
-      BuildContext context, double timelineWidth, PlaybackState playbackState) {
+      BuildContext context, double timelineWidth, PlaybackState playbackState,) {
     final colorScheme = Theme.of(context).colorScheme;
     final duration = widget.media?.duration ?? Duration.zero;
     // Match the loading logic with settings
@@ -692,7 +692,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
             _buildDragSelectionOverlay(trackHeight, timelineWidth, duration),
           if (playbackState.hasSelection && duration.inMilliseconds > 0)
             _buildSelectionRegion(
-                trackHeight, playbackState, timelineWidth, duration),
+                trackHeight, playbackState, timelineWidth, duration,),
           // Playhead
           _buildPlayhead(trackHeight, playbackState, timelineWidth),
         ],
@@ -701,7 +701,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
   }
 
   Widget _buildAudioTrack(
-      BuildContext context, double timelineWidth, PlaybackState playbackState) {
+      BuildContext context, double timelineWidth, PlaybackState playbackState,) {
     final colorScheme = Theme.of(context).colorScheme;
     final duration = widget.media?.duration ?? Duration.zero;
 
@@ -739,7 +739,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
   }
 
   Widget _buildSubtitlesTrack(
-      BuildContext context, double timelineWidth, PlaybackState playbackState) {
+      BuildContext context, double timelineWidth, PlaybackState playbackState,) {
     final colorScheme = Theme.of(context).colorScheme;
     final duration = widget.media?.duration ?? Duration.zero;
     const trackHeight = 30.0;
@@ -816,13 +816,13 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SizedBox(
+                  const SizedBox(
                     width: 12,
                     height: 12,
                     child: CircularProgressIndicator(
                       strokeWidth: 1.5,
                       valueColor:
-                          const AlwaysStoppedAnimation<Color>(trackColor),
+                          AlwaysStoppedAnimation<Color>(trackColor),
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -841,7 +841,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
             _buildDragSelectionOverlay(trackHeight, timelineWidth, duration),
           if (playbackState.hasSelection && duration.inMilliseconds > 0)
             _buildSelectionRegion(
-                trackHeight, playbackState, timelineWidth, duration),
+                trackHeight, playbackState, timelineWidth, duration,),
           // Playhead
           _buildPlayhead(trackHeight, playbackState, timelineWidth),
         ],
@@ -850,7 +850,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
   }
 
   Widget _buildDragSelectionOverlay(
-      double height, double timelineWidth, Duration duration) {
+      double height, double timelineWidth, Duration duration,) {
     if (_dragSelectionStart == null || _dragSelectionEnd == null) {
       return const SizedBox.shrink();
     }
@@ -883,7 +883,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                   milliseconds:
                       (width / timelineWidth * duration.inMilliseconds)
                           .round()
-                          .abs())),
+                          .abs(),),),
               style: const TextStyle(color: Colors.white, fontSize: 9),
             ),
           ),
@@ -975,7 +975,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
             _buildDragSelectionOverlay(height, timelineWidth, duration),
           if (playbackState.hasSelection && duration.inMilliseconds > 0)
             _buildSelectionRegion(
-                height, playbackState, timelineWidth, duration),
+                height, playbackState, timelineWidth, duration,),
           // Playhead
           _buildPlayhead(height, playbackState, timelineWidth),
         ],
@@ -984,7 +984,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
   }
 
   Widget _buildSelectionRegion(double height, PlaybackState playbackState,
-      double timelineWidth, Duration duration) {
+      double timelineWidth, Duration duration,) {
     final startX = (playbackState.selectionStart!.inMilliseconds /
             duration.inMilliseconds) *
         timelineWidth;
@@ -1010,7 +1010,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
   }
 
   Widget _buildPlayhead(
-      double height, PlaybackState playbackState, double timelineWidth) {
+      double height, PlaybackState playbackState, double timelineWidth,) {
     final duration = widget.media?.duration ?? Duration.zero;
     if (duration.inMilliseconds == 0) return const SizedBox.shrink();
 
@@ -1126,7 +1126,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
           content: Text('Cut added to timeline'),
-          duration: Duration(seconds: 1)),
+          duration: Duration(seconds: 1),),
     );
   }
 
@@ -1147,7 +1147,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
           content: Text('Mute added to timeline'),
-          duration: Duration(seconds: 1)),
+          duration: Duration(seconds: 1),),
     );
   }
 
@@ -1177,7 +1177,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
           content: Text('Blur added - drag handles to adjust region'),
-          duration: Duration(seconds: 2)),
+          duration: Duration(seconds: 2),),
     );
   }
 
@@ -1198,7 +1198,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
           content: Text('Beep added to timeline'),
-          duration: Duration(seconds: 1)),
+          duration: Duration(seconds: 1),),
     );
   }
 
@@ -1410,14 +1410,14 @@ class _EditActionMarkerState extends State<_EditActionMarker> {
                           .withValues(alpha: _isDragging ? 0.9 : 0.7),
                       borderRadius: BorderRadius.circular(2),
                       border: Border.all(
-                          color: widget.editColor, width: _isDragging ? 2 : 1),
+                          color: widget.editColor, width: _isDragging ? 2 : 1,),
                     ),
                     child: Tooltip(
                       message:
                           '${widget.action.typeLabel}\n${widget.formatDuration(widget.action.startTime)} - ${widget.formatDuration(widget.action.endTime)}',
                       child: Center(
                         child: Icon(widget.editIcon,
-                            size: 12, color: Colors.white),
+                            size: 12, color: Colors.white,),
                       ),
                     ),
                   ),
@@ -1841,7 +1841,7 @@ class _ThumbnailStripPainter extends CustomPainter {
             destHeight,
           );
           canvas.drawImageRect(image, srcRect, destRect,
-              Paint()..filterQuality = FilterQuality.medium);
+              Paint()..filterQuality = FilterQuality.medium,);
         } else {
           // Crop to fill the slot
           final cropWidth = image.height * (thumbnailWidth / destHeight);
@@ -1853,7 +1853,7 @@ class _ThumbnailStripPainter extends CustomPainter {
             image.height.toDouble(),
           );
           canvas.drawImageRect(image, croppedSrcRect, rect,
-              Paint()..filterQuality = FilterQuality.medium);
+              Paint()..filterQuality = FilterQuality.medium,);
         }
 
         // Draw subtle border around thumbnail
@@ -1920,12 +1920,12 @@ class _ThumbnailStripPainter extends CustomPainter {
           canvas
             ..drawRect(
               Rect.fromLTWH(iconRect.left - perfSize - 1, perfY - perfSize / 2,
-                  perfSize, perfSize),
+                  perfSize, perfSize,),
               Paint()..color = primaryColor.withValues(alpha: 0.3),
             )
             ..drawRect(
               Rect.fromLTWH(
-                  iconRect.right + 1, perfY - perfSize / 2, perfSize, perfSize),
+                  iconRect.right + 1, perfY - perfSize / 2, perfSize, perfSize,),
               Paint()..color = primaryColor.withValues(alpha: 0.3),
             );
         }

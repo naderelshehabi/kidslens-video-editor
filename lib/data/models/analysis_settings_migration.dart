@@ -31,36 +31,33 @@ class AnalysisSettingsMigration {
   /// 3. Merges them into `ContentCategory` objects with `ModelContribution`s
   /// 4. Writes the result as `contentDetectionConfig`
   static Map<String, dynamic> migrateFromV1(Map<String, dynamic> json) {
-    final categories = <Map<String, dynamic>>[];
-
     // --- Migrate legacy per-type flags to content categories ---
-    categories.add(_migrateLegacyCategory(
-      json: json,
-      defaults: ContentCategoryDefaults.nsfw,
-      enableKey: 'enableNsfw',
-      thresholdKey: 'nsfwThreshold',
-    ));
-
-    categories.add(_migrateLegacyCategory(
-      json: json,
-      defaults: ContentCategoryDefaults.violence,
-      enableKey: 'enableViolence',
-      thresholdKey: 'violenceThreshold',
-    ));
-
-    categories.add(_migrateLegacyCategory(
-      json: json,
-      defaults: ContentCategoryDefaults.blood,
-      enableKey: 'enableBlood',
-      thresholdKey: 'bloodThreshold',
-    ));
-
-    categories.add(_migrateLegacyCategory(
-      json: json,
-      defaults: ContentCategoryDefaults.weapons,
-      enableKey: 'enableWeapons',
-      thresholdKey: 'weaponsThreshold',
-    ));
+    final categories = <Map<String, dynamic>>[
+      _migrateLegacyCategory(
+        json: json,
+        defaults: ContentCategoryDefaults.nsfw,
+        enableKey: 'enableNsfw',
+        thresholdKey: 'nsfwThreshold',
+      ),
+      _migrateLegacyCategory(
+        json: json,
+        defaults: ContentCategoryDefaults.violence,
+        enableKey: 'enableViolence',
+        thresholdKey: 'violenceThreshold',
+      ),
+      _migrateLegacyCategory(
+        json: json,
+        defaults: ContentCategoryDefaults.blood,
+        enableKey: 'enableBlood',
+        thresholdKey: 'bloodThreshold',
+      ),
+      _migrateLegacyCategory(
+        json: json,
+        defaults: ContentCategoryDefaults.weapons,
+        enableKey: 'enableWeapons',
+        thresholdKey: 'weaponsThreshold',
+      ),
+    ];
 
     // --- Migrate VisualContentConfig categories ---
     final vccJson =

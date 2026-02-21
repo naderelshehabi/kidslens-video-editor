@@ -1,6 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'package:kidslens_video_editor/data/models/content_category.dart';
 import 'package:kidslens_video_editor/data/models/converters.dart';
 import 'package:kidslens_video_editor/data/models/edit_action.dart';
 import 'package:kidslens_video_editor/data/models/visual_content_category.dart';
@@ -97,17 +96,6 @@ class Detection with _$Detection {
     Map<String, dynamic>? metadata,
   }) = _Detection;
 
-  const Detection._();
-
-  factory Detection.fromJson(Map<String, dynamic> json) =>
-      _$DetectionFromJson(json);
-
-  /// Key for storing the visual content category ID in metadata
-  static const String visualContentCategoryKey = 'visualContentCategory';
-
-  /// Key for storing bounding box coordinates in metadata
-  static const String boundingBoxKey = 'boundingBox';
-
   /// Creates a profanity detection
   factory Detection.profanity({
     required String id,
@@ -200,6 +188,17 @@ class Detection with _$Detection {
       metadata: meta,
     );
   }
+
+  const Detection._();
+
+  factory Detection.fromJson(Map<String, dynamic> json) =>
+      _$DetectionFromJson(json);
+
+  /// Key for storing the visual content category ID in metadata
+  static const String visualContentCategoryKey = 'visualContentCategory';
+
+  /// Key for storing bounding box coordinates in metadata
+  static const String boundingBoxKey = 'boundingBox';
 
   /// Duration of the detection
   Duration get duration => endTime - startTime;

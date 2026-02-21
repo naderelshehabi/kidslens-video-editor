@@ -14,72 +14,72 @@ void main() {
     // Create a test transcript with word-level timing
     testTranscript = Transcript(
       segments: [
-        TranscriptSegment(
+        const TranscriptSegment(
           id: '0',
-          startTime: const Duration(seconds: 0),
-          endTime: const Duration(seconds: 3),
+          startTime: Duration(),
+          endTime: Duration(seconds: 3),
           text: 'Hello world, this is a test.',
           words: [
             TranscriptWord(
               word: 'Hello',
-              startTime: const Duration(milliseconds: 0),
-              endTime: const Duration(milliseconds: 500),
+              startTime: Duration(),
+              endTime: Duration(milliseconds: 500),
               confidence: 0.95,
             ),
             TranscriptWord(
               word: 'world,',
-              startTime: const Duration(milliseconds: 550),
-              endTime: const Duration(milliseconds: 900),
+              startTime: Duration(milliseconds: 550),
+              endTime: Duration(milliseconds: 900),
               confidence: 0.92,
             ),
             TranscriptWord(
               word: 'this',
-              startTime: const Duration(milliseconds: 1000),
-              endTime: const Duration(milliseconds: 1200),
+              startTime: Duration(milliseconds: 1000),
+              endTime: Duration(milliseconds: 1200),
               confidence: 0.98,
             ),
             TranscriptWord(
               word: 'is',
-              startTime: const Duration(milliseconds: 1250),
-              endTime: const Duration(milliseconds: 1400),
+              startTime: Duration(milliseconds: 1250),
+              endTime: Duration(milliseconds: 1400),
               confidence: 0.99,
             ),
             TranscriptWord(
               word: 'a',
-              startTime: const Duration(milliseconds: 1450),
-              endTime: const Duration(milliseconds: 1550),
+              startTime: Duration(milliseconds: 1450),
+              endTime: Duration(milliseconds: 1550),
               confidence: 0.97,
             ),
             TranscriptWord(
               word: 'test.',
-              startTime: const Duration(milliseconds: 1600),
-              endTime: const Duration(milliseconds: 2000),
+              startTime: Duration(milliseconds: 1600),
+              endTime: Duration(milliseconds: 2000),
               confidence: 0.96,
             ),
           ],
         ),
-        TranscriptSegment(
+        const TranscriptSegment(
           id: '1',
-          startTime: const Duration(seconds: 5),
-          endTime: const Duration(seconds: 8),
+          startTime: Duration(seconds: 5),
+          endTime: Duration(seconds: 8),
           text: 'Another sentence here.',
           words: [
             TranscriptWord(
               word: 'Another',
-              startTime: const Duration(seconds: 5),
-              endTime: const Duration(seconds: 5, milliseconds: 500),
+              startTime: Duration(seconds: 5),
+              endTime: Duration(seconds: 5, milliseconds: 500),
               confidence: 0.94,
             ),
             TranscriptWord(
               word: 'sentence',
-              startTime: const Duration(seconds: 5, milliseconds: 600),
-              endTime: const Duration(seconds: 6, milliseconds: 200),
+              startTime: Duration(seconds: 5, milliseconds: 600),
+              endTime: Duration(seconds: 6, milliseconds: 200),
               confidence: 0.91,
             ),
             TranscriptWord(
               word: 'here.',
-              startTime: const Duration(seconds: 6, milliseconds: 300),
-              endTime: const Duration(seconds: 6, milliseconds: 800),
+              startTime: Duration(seconds: 6, milliseconds: 300),
+              endTime: Duration(seconds: 6, milliseconds: 800),
               confidence: 0.93,
             ),
           ],
@@ -118,7 +118,7 @@ void main() {
         expect(
           content,
           matches(
-              RegExp(r'\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}')),
+              RegExp(r'\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}'),),
         );
       });
 
@@ -157,7 +157,7 @@ void main() {
         expect(
           content,
           matches(
-              RegExp(r'\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}')),
+              RegExp(r'\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}'),),
         );
       });
     });
@@ -251,7 +251,7 @@ void main() {
           }
           // Content lines should respect the max chars
           expect(line.length,
-              lessThanOrEqualTo(42)); // Some tolerance for edge cases
+              lessThanOrEqualTo(42),); // Some tolerance for edge cases
         }
       });
     });
@@ -290,10 +290,10 @@ void main() {
       test('handles segment without word timings', () {
         final simpleTranscript = Transcript(
           segments: [
-            TranscriptSegment(
+            const TranscriptSegment(
               id: '0',
-              startTime: const Duration(seconds: 0),
-              endTime: const Duration(seconds: 5),
+              startTime: Duration(),
+              endTime: Duration(seconds: 5),
               text: 'This is a simple segment without word timings.',
               words: [],
             ),

@@ -230,7 +230,6 @@ void main() {
   group('pattern matching', () {
     test('should match region modifications in switch', () {
       const mod = VideoRegionBlur(
-        intensity: 50,
         region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
       );
 

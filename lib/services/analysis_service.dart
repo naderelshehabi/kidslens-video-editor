@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/native/bindings/ffmpeg_bindings.dart';
@@ -7,9 +8,7 @@ import 'package:kidslens_video_editor/native/bindings/onnx_bindings.dart';
 import 'package:kidslens_video_editor/native/bindings/whisper_bindings.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
 import 'package:kidslens_video_editor/services/profanity_service.dart';
-import 'package:kidslens_video_editor/data/models/content_category.dart';
 import 'package:kidslens_video_editor/services/visual_analysis_service.dart';
-import 'package:kidslens_video_editor/services/voting_service.dart';
 
 /// Checkpoint for resuming analysis
 class AnalysisCheckpoint {
@@ -146,6 +145,7 @@ class AnalysisService {
 
     // Phase 3: Analyze video frames
     final frameResults = <FrameAnalysisResult>[];
+    final moeResults = <MoEFrameResult>[];
     final startFrame = checkpoint?.lastAnalyzedFrame ?? 0;
 
     // Restore previous frame results if resuming
@@ -162,16 +162,35 @@ class AnalysisService {
     );
 
     if (_hasVisualCategories(settings)) {
-      await for (final result in _analyzeFrames(mediaPath, settings, startFrame)) {
-        frameResults.add(result.frame);
-        yield AnalysisProgress(
-          stepName: 'Analyzing video frames',
-          currentStep: 3,
-          totalSteps: 4,
-          stepProgress: result.progress,
-          itemsProcessed: result.frameNumber,
-          totalItems: result.totalFrames,
-        );
+      final useMoE = visualAnalysis != null &&
+          settings.contentDetectionConfig.hasVisualCategories;
+
+      if (useMoE) {
+        // MoE pipeline: use ContentDetectionConfig with per-category model voting
+        await for (final result in _analyzeFramesMoE(mediaPath, settings, startFrame)) {
+          moeResults.add(result.frame);
+          yield AnalysisProgress(
+            stepName: 'Analyzing video frames',
+            currentStep: 3,
+            totalSteps: 4,
+            stepProgress: result.progress,
+            itemsProcessed: result.frameNumber,
+            totalItems: result.totalFrames,
+          );
+        }
+      } else {
+        // Legacy pipeline: use per-type enable flags and model IDs
+        await for (final result in _analyzeFrames(mediaPath, settings, startFrame)) {
+          frameResults.add(result.frame);
+          yield AnalysisProgress(
+            stepName: 'Analyzing video frames',
+            currentStep: 3,
+            totalSteps: 4,
+            stepProgress: result.progress,
+            itemsProcessed: result.frameNumber,
+            totalItems: result.totalFrames,
+          );
+        }
       }
     }
 
@@ -189,6 +208,7 @@ class AnalysisService {
       profanityMatches,
       frameResults,
       settings,
+      moeResults: moeResults,
     );
 
     yield AnalysisProgress(
@@ -358,40 +378,47 @@ class AnalysisService {
     String mediaPath,
     List<ProfanityMatch> profanityMatches,
     List<FrameAnalysisResult> frameResults,
-    AnalysisSettings settings,
-  ) async {
+    AnalysisSettings settings, {
+    List<MoEFrameResult> moeResults = const [],
+  }) async {
     final detections = <Detection>[];
     final metadata = await ffmpeg.probeMedia(mediaPath);
 
-    // Convert profanity matches to detections
+    // Convert profanity matches to detections (word stored in metadata)
     for (final match in profanityMatches) {
       if (match.confidence >= settings.profanityConfig.fuzzyThreshold) {
-        detections.add(Detection(
+        detections.add(Detection.profanity(
           id: 'profanity_${detections.length}',
-          mediaId: mediaPath, // Use path as mediaId for now
-          type: ContentType.profanity,
+          mediaId: mediaPath,
           startTime: match.word.startTime,
           endTime: match.word.endTime,
           confidence: match.confidence,
-          description: 'Profanity detected: "${match.word.word}"',
-          source: 'audio',
+          word: match.word.word,
         ),);
       }
     }
 
-    // Convert frame results to detections using temporal aggregation
-    final aggregatedSegments = _aggregateFrameResults(frameResults, settings);
-    for (final segment in aggregatedSegments) {
-      detections.add(Detection(
-        id: '${segment.type.name}_${detections.length}',
-        mediaId: mediaPath, // Use path as mediaId for now
-        type: segment.type,
-        startTime: segment.start,
-        endTime: segment.end,
-        confidence: segment.confidence,
-        description: _getDescriptionForType(segment.type),
-        source: 'video',
-      ),);
+    // Convert MoE frame results to detections (new pipeline)
+    if (moeResults.isNotEmpty) {
+      final moeDetections = _aggregateMoEResults(moeResults, settings, mediaPath);
+      detections.addAll(moeDetections);
+    }
+
+    // Convert legacy frame results to detections using temporal aggregation
+    if (frameResults.isNotEmpty) {
+      final aggregatedSegments = _aggregateFrameResults(frameResults, settings);
+      for (final segment in aggregatedSegments) {
+        detections.add(Detection(
+          id: '${segment.type.name}_${detections.length}',
+          mediaId: mediaPath,
+          type: segment.type,
+          startTime: segment.start,
+          endTime: segment.end,
+          confidence: segment.confidence,
+          description: _getDescriptionForType(segment.type),
+          source: 'video',
+        ),);
+      }
     }
 
     return UnifiedTimeline.fromDetections(
@@ -491,6 +518,183 @@ class AnalysisService {
     return segments;
   }
 
+  /// Analyze frames using the MoE pipeline (ContentDetectionConfig).
+  ///
+  /// Delegates to [VisualAnalysisService.analyzeFrameWithMoE] for per-category
+  /// weighted voting across multiple models.
+  Stream<_MoEFrameProgress> _analyzeFramesMoE(
+    String mediaPath,
+    AnalysisSettings settings,
+    int startFrame,
+  ) async* {
+    final config = settings.contentDetectionConfig;
+    final service = visualAnalysis!;
+
+    // Compute total frames for progress reporting
+    final metadata = await ffmpeg.probeMedia(mediaPath);
+    final fps = metadata.frameRate;
+    final totalSeconds = metadata.duration.inMilliseconds / 1000.0;
+    final samplingRate = settings.frameSamplingRate;
+    final samplingFps = fps / samplingRate;
+    final totalFrames = (totalSeconds * samplingFps).ceil();
+
+    // Pre-load all classifier models (ONNX)
+    await service.ensureMoEModelsLoaded(config);
+
+    // Pre-compute CLIP text embeddings for any CLIP-based categories
+    if (config.clipCategories.isNotEmpty) {
+      await service.precomputeClipEmbeddingsForCategories(
+        config.enabledVisualCategories,
+      );
+    }
+
+    var frameNumber = startFrame;
+    await for (final frameData in ffmpeg.extractFrames(
+      mediaPath,
+      fps: samplingFps,
+      startFrame: startFrame > 0 ? startFrame : null,
+    )) {
+      frameNumber++;
+      // Convert media-layer FrameData (rgbData: List<int>) to models FrameData
+      // (data: Uint8List) expected by VisualAnalysisService.
+      final modelsFrame = FrameData(
+        timestamp: frameData.timestamp,
+        width: frameData.width,
+        height: frameData.height,
+        data: Uint8List.fromList(frameData.rgbData),
+        frameNumber: frameData.frameNumber,
+      );
+      try {
+        final result = await service.analyzeFrameWithMoE(modelsFrame, config);
+        yield _MoEFrameProgress(
+          frame: result,
+          frameNumber: frameNumber,
+          totalFrames: totalFrames,
+          progress: frameNumber / totalFrames,
+        );
+      } catch (e) {
+        // Per-frame resilience: emit empty result on failure and continue
+        yield _MoEFrameProgress(
+          frame: MoEFrameResult(
+            timestamp: frameData.timestamp,
+            frameNumber: frameNumber,
+            categoryResults: {},
+          ),
+          frameNumber: frameNumber,
+          totalFrames: totalFrames,
+          progress: frameNumber / totalFrames,
+        );
+      }
+    }
+  }
+
+  /// Aggregate [MoEFrameResult] list into [Detection] objects.
+  ///
+  /// Groups consecutive triggered frames per category into segments,
+  /// using per-category thresholds and remediation actions.
+  List<Detection> _aggregateMoEResults(
+    List<MoEFrameResult> moeResults,
+    AnalysisSettings settings,
+    String mediaPath,
+  ) {
+    final detections = <Detection>[];
+    final config = settings.contentDetectionConfig;
+
+    // Build lookup for enabled visual categories
+    final categoryMap = <String, ContentCategory>{
+      for (final cat in config.enabledVisualCategories) cat.id: cat,
+    };
+
+    for (final entry in categoryMap.entries) {
+      final categoryId = entry.key;
+      final category = entry.value;
+      final contentType = _contentTypeForCategoryId(categoryId);
+
+      Duration? segmentStart;
+      Duration? segmentEnd;
+      var confidenceSum = 0.0;
+      var confidenceCount = 0;
+
+      for (final frame in moeResults) {
+        final result = frame.categoryResults[categoryId];
+        if (result != null && result.triggered) {
+          segmentStart ??= frame.timestamp;
+          segmentEnd = frame.timestamp;
+          confidenceSum += result.finalScore;
+          confidenceCount++;
+        } else {
+          // Close any open segment
+          if (segmentStart != null && segmentEnd != null) {
+            detections.add(Detection(
+              id: '${categoryId}_${detections.length}',
+              mediaId: mediaPath,
+              type: contentType,
+              startTime: segmentStart,
+              endTime: segmentEnd,
+              confidence:
+                  confidenceCount > 0 ? confidenceSum / confidenceCount : 0.5,
+              description: '${category.name} detected',
+              source: 'video',
+              metadata: {
+                'categoryId': categoryId,
+                'action': category.action.name,
+              },
+            ),);
+            segmentStart = null;
+            segmentEnd = null;
+            confidenceSum = 0.0;
+            confidenceCount = 0;
+          }
+        }
+      }
+
+      // Close any segment still open at end of video
+      if (segmentStart != null && segmentEnd != null) {
+        detections.add(Detection(
+          id: '${categoryId}_${detections.length}',
+          mediaId: mediaPath,
+          type: contentType,
+          startTime: segmentStart,
+          endTime: segmentEnd,
+          confidence:
+              confidenceCount > 0 ? confidenceSum / confidenceCount : 0.5,
+          description: '${category.name} detected',
+          source: 'video',
+          metadata: {
+            'categoryId': categoryId,
+            'action': category.action.name,
+          },
+        ),);
+      }
+    }
+
+    return detections;
+  }
+
+  /// Map built-in category IDs to [ContentType] enum values.
+  ContentType _contentTypeForCategoryId(String categoryId) {
+    switch (categoryId) {
+      case 'nsfw':
+        return ContentType.nsfw;
+      case 'violence':
+        return ContentType.violence;
+      case 'blood':
+        return ContentType.blood;
+      case 'weapons':
+        return ContentType.weapons;
+      case 'nudity':
+        return ContentType.nudity;
+      case 'sexual_content':
+        return ContentType.sexualContent;
+      case 'kissing':
+        return ContentType.kissing;
+      case 'immodest_dress':
+        return ContentType.immodestDress;
+      default:
+        return ContentType.custom;
+    }
+  }
+
   /// Whether the settings have any visual detection categories enabled.
   bool _hasVisualCategories(AnalysisSettings settings) =>
       settings.enableNsfw ||
@@ -515,6 +719,20 @@ class _FrameAnalysisProgress {
   });
 
   final FrameAnalysisResult frame;
+  final int frameNumber;
+  final int totalFrames;
+  final double progress;
+}
+
+class _MoEFrameProgress {
+  _MoEFrameProgress({
+    required this.frame,
+    required this.frameNumber,
+    required this.totalFrames,
+    required this.progress,
+  });
+
+  final MoEFrameResult frame;
   final int frameNumber;
   final int totalFrames;
   final double progress;

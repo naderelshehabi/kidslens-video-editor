@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kidslens_video_editor/data/models/content_category.dart';
 import 'package:kidslens_video_editor/data/models/frame_analysis_result.dart';
-import 'package:kidslens_video_editor/data/models/huggingface_model.dart';
 import 'package:kidslens_video_editor/data/models/voting_config.dart';
 import 'package:kidslens_video_editor/services/voting_service.dart';
 
@@ -40,7 +39,7 @@ void main() {
       final result = votingService.computeConsensus(
         category: _testCategory(),
         votes: [
-          const ModelVote(modelId: 'm1', score: 0.8, weight: 1.0),
+          const ModelVote(modelId: 'm1', score: 0.8, weight: 1),
         ],
         config: defaultConfig,
       );
@@ -57,13 +56,13 @@ void main() {
         final result = votingService.computeConsensus(
           category: _testCategory(),
           votes: [
-            const ModelVote(modelId: 'm1', score: 0.8, weight: 2.0),
-            const ModelVote(modelId: 'm2', score: 0.4, weight: 1.0),
+            const ModelVote(modelId: 'm1', score: 0.8, weight: 2),
+            const ModelVote(modelId: 'm2', score: 0.4, weight: 1),
           ],
-          config: const VotingConfig(strategy: VotingStrategy.weightedAverage),
+          config: const VotingConfig(),
         );
 
-        final expected = (0.8 * 2.0 + 0.4 * 1.0) / (2.0 + 1.0);
+        const expected = (0.8 * 2.0 + 0.4 * 1.0) / (2.0 + 1.0);
         expect(result.finalScore, closeTo(expected, 0.001));
       });
 
@@ -71,10 +70,10 @@ void main() {
         final result = votingService.computeConsensus(
           category: _testCategory(),
           votes: [
-            const ModelVote(modelId: 'm1', score: 0.6, weight: 1.0),
-            const ModelVote(modelId: 'm2', score: 0.4, weight: 1.0),
+            const ModelVote(modelId: 'm1', score: 0.6, weight: 1),
+            const ModelVote(modelId: 'm2', score: 0.4, weight: 1),
           ],
-          config: const VotingConfig(strategy: VotingStrategy.weightedAverage),
+          config: const VotingConfig(),
         );
 
         expect(result.finalScore, closeTo(0.5, 0.001));
@@ -86,9 +85,9 @@ void main() {
         final result = votingService.computeConsensus(
           category: _testCategory(),
           votes: [
-            const ModelVote(modelId: 'm1', score: 0.3, weight: 1.0),
-            const ModelVote(modelId: 'm2', score: 0.9, weight: 1.0),
-            const ModelVote(modelId: 'm3', score: 0.5, weight: 1.0),
+            const ModelVote(modelId: 'm1', score: 0.3, weight: 1),
+            const ModelVote(modelId: 'm2', score: 0.9, weight: 1),
+            const ModelVote(modelId: 'm3', score: 0.5, weight: 1),
           ],
           config: const VotingConfig(strategy: VotingStrategy.maximum),
         );
@@ -102,9 +101,9 @@ void main() {
         final result = votingService.computeConsensus(
           category: _testCategory(),
           votes: [
-            const ModelVote(modelId: 'm1', score: 0.3, weight: 1.0),
-            const ModelVote(modelId: 'm2', score: 0.9, weight: 1.0),
-            const ModelVote(modelId: 'm3', score: 0.5, weight: 1.0),
+            const ModelVote(modelId: 'm1', score: 0.3, weight: 1),
+            const ModelVote(modelId: 'm2', score: 0.9, weight: 1),
+            const ModelVote(modelId: 'm3', score: 0.5, weight: 1),
           ],
           config: const VotingConfig(strategy: VotingStrategy.minimum),
         );
@@ -116,9 +115,9 @@ void main() {
     group('threshold triggering', () {
       test('triggered is true when finalScore >= category threshold', () {
         final result = votingService.computeConsensus(
-          category: _testCategory(threshold: 0.5),
+          category: _testCategory(),
           votes: [
-            const ModelVote(modelId: 'm1', score: 0.7, weight: 1.0),
+            const ModelVote(modelId: 'm1', score: 0.7, weight: 1),
           ],
           config: defaultConfig,
         );
@@ -128,9 +127,9 @@ void main() {
 
       test('triggered is true when finalScore exactly equals threshold', () {
         final result = votingService.computeConsensus(
-          category: _testCategory(threshold: 0.5),
+          category: _testCategory(),
           votes: [
-            const ModelVote(modelId: 'm1', score: 0.5, weight: 1.0),
+            const ModelVote(modelId: 'm1', score: 0.5, weight: 1),
           ],
           config: defaultConfig,
         );
@@ -140,9 +139,9 @@ void main() {
 
       test('triggered is false when finalScore < category threshold', () {
         final result = votingService.computeConsensus(
-          category: _testCategory(threshold: 0.5),
+          category: _testCategory(),
           votes: [
-            const ModelVote(modelId: 'm1', score: 0.3, weight: 1.0),
+            const ModelVote(modelId: 'm1', score: 0.3, weight: 1),
           ],
           config: defaultConfig,
         );
@@ -157,7 +156,7 @@ void main() {
         final result = votingService.computeConsensus(
           category: _testCategory(threshold: 0.3),
           votes: [
-            const ModelVote(modelId: 'm1', score: 0.9, weight: 1.0),
+            const ModelVote(modelId: 'm1', score: 0.9, weight: 1),
           ],
           config: const VotingConfig(minVoters: 2),
         );
@@ -172,8 +171,8 @@ void main() {
         final result = votingService.computeConsensus(
           category: _testCategory(threshold: 0.3),
           votes: [
-            const ModelVote(modelId: 'm1', score: 0.8, weight: 1.0),
-            const ModelVote(modelId: 'm2', score: 0.6, weight: 1.0),
+            const ModelVote(modelId: 'm1', score: 0.8, weight: 1),
+            const ModelVote(modelId: 'm2', score: 0.6, weight: 1),
           ],
           config: const VotingConfig(minVoters: 2),
         );
@@ -191,7 +190,7 @@ void main() {
             const ModelVote(
               modelId: 'm1',
               score: 0.8,
-              weight: 1.0,
+              weight: 1,
               regions: [
                 DetectedRegion(
                   label: 'test',
@@ -206,7 +205,7 @@ void main() {
             const ModelVote(
               modelId: 'm2',
               score: 0.7,
-              weight: 1.0,
+              weight: 1,
               regions: [
                 DetectedRegion(
                   label: 'test',
@@ -236,13 +235,13 @@ void main() {
             const ModelVote(
               modelId: 'm1',
               score: 0.8,
-              weight: 1.0,
+              weight: 1,
               regions: [
                 DetectedRegion(
                   label: 'test',
                   confidence: 0.9,
-                  x: 0.0,
-                  y: 0.0,
+                  x: 0,
+                  y: 0,
                   width: 0.1,
                   height: 0.1,
                 ),
@@ -251,7 +250,7 @@ void main() {
             const ModelVote(
               modelId: 'm2',
               score: 0.7,
-              weight: 1.0,
+              weight: 1,
               regions: [
                 DetectedRegion(
                   label: 'test',
@@ -275,7 +274,7 @@ void main() {
         final result = votingService.computeConsensus(
           category: _testCategory(),
           votes: [
-            const ModelVote(modelId: 'm1', score: 0.8, weight: 1.0),
+            const ModelVote(modelId: 'm1', score: 0.8, weight: 1),
           ],
           config: defaultConfig,
         );
@@ -316,8 +315,8 @@ void main() {
       const regionA = DetectedRegion(
         label: 'test',
         confidence: 0.9,
-        x: 0.0,
-        y: 0.0,
+        x: 0,
+        y: 0,
         width: 0.1,
         height: 0.1,
       );
@@ -339,8 +338,8 @@ void main() {
       const regionA = DetectedRegion(
         label: 'test',
         confidence: 0.9,
-        x: 0.0,
-        y: 0.0,
+        x: 0,
+        y: 0,
         width: 0.4,
         height: 0.4,
       );
@@ -365,8 +364,8 @@ void main() {
       const regionA = DetectedRegion(
         label: 'test',
         confidence: 0.9,
-        x: 0.0,
-        y: 0.0,
+        x: 0,
+        y: 0,
         width: 0.5,
         height: 0.5,
       );
@@ -375,7 +374,7 @@ void main() {
         label: 'test',
         confidence: 0.8,
         x: 0.5,
-        y: 0.0,
+        y: 0,
         width: 0.5,
         height: 0.5,
       );
@@ -414,8 +413,8 @@ void main() {
       const regionA = DetectedRegion(
         label: 'face',
         confidence: 0.9,
-        x: 0.0,
-        y: 0.0,
+        x: 0,
+        y: 0,
         width: 0.1,
         height: 0.1,
       );
@@ -499,16 +498,16 @@ void main() {
       const regionA = DetectedRegion(
         label: 'test',
         confidence: 0.95,
-        x: 0.0,
-        y: 0.0,
+        x: 0,
+        y: 0,
         width: 0.4,
         height: 0.4,
       );
       const regionB = DetectedRegion(
         label: 'test',
         confidence: 0.85,
-        x: 0.0,
-        y: 0.0,
+        x: 0,
+        y: 0,
         width: 0.4,
         height: 0.4,
       );

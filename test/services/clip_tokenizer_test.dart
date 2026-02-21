@@ -54,18 +54,18 @@ void main() {
         test('all token IDs are non-negative', () {
           for (var i = 0; i < entry.value.length; i++) {
             expect(entry.value[i], greaterThanOrEqualTo(0),
-                reason: 'Token at index $i should be non-negative');
+                reason: 'Token at index $i should be non-negative',);
           }
         });
 
         test('token IDs before eotToken are non-zero (actual tokens)', () {
           final eotIndex = entry.value.indexOf(ClipTokenizer.eotToken);
           expect(eotIndex, greaterThan(0),
-              reason: 'eotToken should not be at index 0');
+              reason: 'eotToken should not be at index 0',);
           for (var i = 0; i < eotIndex; i++) {
             expect(entry.value[i], isNot(0),
                 reason: 'Token at index $i (before eotToken) should be '
-                    'non-zero');
+                    'non-zero',);
           }
         });
       });

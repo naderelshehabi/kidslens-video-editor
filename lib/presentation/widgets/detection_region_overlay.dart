@@ -36,8 +36,7 @@ class DetectionRegion {
 /// - **Full-frame mode** (`showLabels: true`): 2px stroke, category labels
 class DetectionRegionOverlay extends StatelessWidget {
   const DetectionRegionOverlay({
-    super.key,
-    required this.regions,
+    required this.regions, super.key,
     this.showLabels = false,
     this.showConfidence = false,
     this.child,
@@ -56,8 +55,7 @@ class DetectionRegionOverlay extends StatelessWidget {
   final Widget? child;
 
   @override
-  Widget build(BuildContext context) {
-    return Stack(
+  Widget build(BuildContext context) => Stack(
       children: [
         if (child != null) child!,
         Positioned.fill(
@@ -92,7 +90,6 @@ class DetectionRegionOverlay extends StatelessWidget {
           ),
       ],
     );
-  }
 }
 
 class _RegionPainter extends CustomPainter {

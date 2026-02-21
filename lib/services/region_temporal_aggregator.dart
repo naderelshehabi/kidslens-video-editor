@@ -5,7 +5,6 @@ import 'package:kidslens_video_editor/data/models/frame_analysis_result.dart';
 import 'package:kidslens_video_editor/data/models/modification.dart';
 import 'package:kidslens_video_editor/data/models/visual_content_category.dart';
 import 'package:kidslens_video_editor/services/visual_analysis_service.dart';
-import 'package:kidslens_video_editor/services/voting_service.dart';
 
 /// A bounding box at a specific timestamp in the video.
 class TimestampedBoundingBox {
@@ -63,8 +62,8 @@ class TrackedRegion {
     var pw = w + padX * 2;
     var ph = h + padY * 2;
     // Clamp to image bounds
-    px = math.max(0.0, px);
-    py = math.max(0.0, py);
+    px = math.max(0, px);
+    py = math.max(0, py);
     pw = math.min(pw, 1.0 - px);
     ph = math.min(ph, 1.0 - py);
     return RegionBounds(x: px, y: py, width: pw, height: ph);
@@ -325,7 +324,7 @@ class RegionTemporalAggregator {
         endTime: timestamp,
         keyframes: [keyframe],
         averageConfidence: confidence,
-      ));
+      ),);
     }
   }
 
@@ -360,7 +359,7 @@ class RegionTemporalAggregator {
       startTime: timestamp,
       endTime: timestamp,
       action: action,
-    ));
+    ),);
   }
 
   /// Expire active regions that haven't been updated within maxGapDuration.
@@ -418,13 +417,11 @@ class RegionTemporalAggregator {
 
       _addOrExtendSceneAction(
         categoryId: entry.key,
-        timestamp: timestamp,
+        timestamp: earliest,
         action: VisualContentAction.blurRegion, // Full-frame blur fallback
       );
 
-      for (final r in regionsToRemove) {
-        _activeRegions.remove(r);
-      }
+      regionsToRemove.forEach(_activeRegions.remove);
     }
   }
 
@@ -444,7 +441,7 @@ class RegionTemporalAggregator {
     final ix2 = math.min(x1 + w1, x2 + w2);
     final iy2 = math.min(y1 + h1, y2 + h2);
 
-    if (ix2 <= ix1 || iy2 <= iy1) return 0.0;
+    if (ix2 <= ix1 || iy2 <= iy1) return 0;
 
     final intersection = (ix2 - ix1) * (iy2 - iy1);
     final union = w1 * h1 + w2 * h2 - intersection;
@@ -617,7 +614,7 @@ class MoETemporalAggregator {
         endTime: timestamp,
         keyframes: [keyframe],
         averageConfidence: confidence,
-      ));
+      ),);
     }
   }
 
@@ -651,7 +648,7 @@ class MoETemporalAggregator {
       endTime: timestamp,
       action: action,
       confidence: confidence,
-    ));
+    ),);
   }
 
   void _expireStaleRegions(Duration currentTime) {
@@ -701,9 +698,7 @@ class MoETemporalAggregator {
             .reduce(math.max),
       );
 
-      for (final r in regionsToRemove) {
-        _activeRegions.remove(r);
-      }
+      regionsToRemove.forEach(_activeRegions.remove);
     }
   }
 
@@ -716,7 +711,7 @@ class MoETemporalAggregator {
     final ix2 = math.min(x1 + w1, x2 + w2);
     final iy2 = math.min(y1 + h1, y2 + h2);
 
-    if (ix2 <= ix1 || iy2 <= iy1) return 0.0;
+    if (ix2 <= ix1 || iy2 <= iy1) return 0;
 
     final intersection = (ix2 - ix1) * (iy2 - iy1);
     final union = w1 * h1 + w2 * h2 - intersection;

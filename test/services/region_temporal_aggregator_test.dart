@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kidslens_video_editor/data/models/frame_analysis_result.dart';
-import 'package:kidslens_video_editor/data/models/modification.dart';
 import 'package:kidslens_video_editor/data/models/visual_content_category.dart';
 import 'package:kidslens_video_editor/services/region_temporal_aggregator.dart';
 
@@ -45,7 +44,6 @@ VisualContentCategory _kissingCategory() => const VisualContentCategory(
       name: 'Kissing',
       description: 'Test',
       detectionSource: CategoryDetectionSource.clip,
-      clipThreshold: 3.0,
       action: VisualContentAction.cutScene,
     );
 
@@ -56,7 +54,7 @@ VisualContentCategory _sexualCategory() => const VisualContentCategory(
       detectionSource: CategoryDetectionSource.both,
       detectionLabels: ['FEMALE_BREAST_EXPOSED'],
       threshold: 0.4,
-      clipThreshold: 4.0,
+      clipThreshold: 4,
     );
 
 // ---------------------------------------------------------------------------
@@ -107,7 +105,7 @@ void main() {
       // padX = 0.5 * 0.10 = 0.05, padY = 0.05
       // Before clamp: x=-0.05, y=-0.05, w=0.6, h=0.6
       // After clamp:  x=0.0,   y=0.0,   w=min(0.6, 1.0)=0.6, h=0.6
-      final b = TrackedRegion.padAndClamp(0.0, 0.0, 0.5, 0.5);
+      final b = TrackedRegion.padAndClamp(0, 0, 0.5, 0.5);
 
       expect(b.x, equals(0.0));
       expect(b.y, equals(0.0));
@@ -134,7 +132,7 @@ void main() {
       // padX=0.01, padY=0.01
       // Before clamp: x=-0.01, y=-0.01, w=0.12, h=0.12
       // After clamp: x=0, y=0, w=min(0.12, 1.0)=0.12, h=0.12
-      final b = TrackedRegion.padAndClamp(0.0, 0.0, 0.1, 0.1);
+      final b = TrackedRegion.padAndClamp(0, 0, 0.1, 0.1);
 
       expect(b.x, equals(0.0));
       expect(b.y, equals(0.0));
@@ -153,17 +151,17 @@ void main() {
         _makeFrame(
           frameNumber: 0,
           timestamp: Duration.zero,
-          regions: [_region(x: 0.3, y: 0.3, width: 0.2, height: 0.2)],
+          regions: [_region()],
         ),
         _makeFrame(
           frameNumber: 1,
           timestamp: const Duration(milliseconds: 200),
-          regions: [_region(x: 0.31, y: 0.31, width: 0.2, height: 0.2)],
+          regions: [_region(x: 0.31, y: 0.31)],
         ),
         _makeFrame(
           frameNumber: 2,
           timestamp: const Duration(milliseconds: 400),
-          regions: [_region(x: 0.32, y: 0.32, width: 0.2, height: 0.2)],
+          regions: [_region(x: 0.32, y: 0.32)],
         ),
       ];
 
@@ -186,7 +184,7 @@ void main() {
           frameNumber: 0,
           timestamp: Duration.zero,
           regions: [
-            _region(x: 0.0, y: 0.0, width: 0.1, height: 0.1),
+            _region(x: 0, y: 0, width: 0.1, height: 0.1),
           ],
         ),
         _makeFrame(
@@ -210,12 +208,12 @@ void main() {
         _makeFrame(
           frameNumber: 0,
           timestamp: Duration.zero,
-          regions: [_region(x: 0.0, y: 0.0, width: 0.2, height: 0.2)],
+          regions: [_region(x: 0, y: 0)],
         ),
         _makeFrame(
           frameNumber: 1,
           timestamp: const Duration(milliseconds: 200),
-          regions: [_region(x: 0.15, y: 0.15, width: 0.2, height: 0.2)],
+          regions: [_region(x: 0.15, y: 0.15)],
         ),
       ];
 
@@ -267,13 +265,13 @@ void main() {
         _makeFrame(
           frameNumber: 0,
           timestamp: Duration.zero,
-          regions: [_region(x: 0.3, y: 0.3, width: 0.2, height: 0.2)],
+          regions: [_region()],
         ),
         _makeFrame(
           frameNumber: 1,
           timestamp: const Duration(milliseconds: 500),
           isSceneChange: true,
-          regions: [_region(x: 0.3, y: 0.3, width: 0.2, height: 0.2)],
+          regions: [_region()],
         ),
       ];
 
@@ -448,7 +446,7 @@ void main() {
         _makeFrame(
           frameNumber: 0,
           timestamp: Duration.zero,
-          regions: [_region(label: 'FEMALE_BREAST_EXPOSED', confidence: 0.8)],
+          regions: [_region()],
           // No CLIP score for "sexual" category — should be ignored.
           clipScores: {},
         ),
@@ -465,7 +463,7 @@ void main() {
         _makeFrame(
           frameNumber: 0,
           timestamp: Duration.zero,
-          regions: [_region(label: 'FEMALE_BREAST_EXPOSED', confidence: 0.8)],
+          regions: [_region()],
           clipScores: {'sexual': 5.0}, // above clipThreshold 4.0
         ),
       ];
@@ -481,7 +479,7 @@ void main() {
         _makeFrame(
           frameNumber: 0,
           timestamp: Duration.zero,
-          regions: [_region(label: 'FEMALE_BREAST_EXPOSED', confidence: 0.8)],
+          regions: [_region()],
           clipScores: {'sexual': 2.0}, // below clipThreshold 4.0
         ),
       ];
@@ -502,12 +500,10 @@ void main() {
       final manyRegions = List.generate(
         22,
         (i) => _region(
-          label: 'FEMALE_BREAST_EXPOSED',
           x: (i % 10) * 0.1,
           y: (i ~/ 10) * 0.1,
           width: 0.05,
           height: 0.05,
-          confidence: 0.8,
         ),
       );
 

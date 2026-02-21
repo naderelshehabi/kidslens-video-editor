@@ -6,11 +6,11 @@ import 'package:kidslens_video_editor/services/asr_cache_service.dart';
 
 Transcript _makeTranscript({String language = 'en'}) => Transcript(
       segments: [
-        TranscriptSegment(
+        const TranscriptSegment(
           id: 'seg_0',
           text: 'Hello world',
           startTime: Duration.zero,
-          endTime: const Duration(seconds: 2),
+          endTime: Duration(seconds: 2),
           words: [],
         ),
       ],
@@ -27,8 +27,8 @@ void main() {
     tempCacheDir = Directory.systemTemp
         .createTempSync('asr_cache_test_${DateTime.now().millisecondsSinceEpoch}_');
     tempAudioFile = File(
-        '${Directory.systemTemp.path}/test_audio_${DateTime.now().millisecondsSinceEpoch}.wav');
-    tempAudioFile.writeAsStringSync('fake wav data');
+        '${Directory.systemTemp.path}/test_audio_${DateTime.now().millisecondsSinceEpoch}.wav',)
+      ..writeAsStringSync('fake wav data');
 
     cache = AsrCacheService();
     await cache.init(cacheDirectory: tempCacheDir);
@@ -74,7 +74,7 @@ void main() {
     });
 
     test('different model IDs produce different cache entries', () async {
-      final transcript1 = _makeTranscript(language: 'en');
+      final transcript1 = _makeTranscript();
       final transcript2 = _makeTranscript(language: 'es');
 
       await cache.store(
@@ -110,7 +110,7 @@ void main() {
     });
 
     test('different languages produce different cache entries', () async {
-      final transcriptEn = _makeTranscript(language: 'en');
+      final transcriptEn = _makeTranscript();
       final transcriptEs = _makeTranscript(language: 'es');
 
       await cache.store(
@@ -147,12 +147,11 @@ void main() {
     test('null language vs explicit language produce different cache entries',
         () async {
       final transcriptAuto = _makeTranscript(language: 'detected');
-      final transcriptEn = _makeTranscript(language: 'en');
+      final transcriptEn = _makeTranscript();
 
       await cache.store(
         audioPath: tempAudioFile.path,
         modelId: 'whisper-base',
-        language: null,
         transcript: transcriptAuto,
       );
 
@@ -166,7 +165,6 @@ void main() {
       final resultAuto = await cache.lookup(
         audioPath: tempAudioFile.path,
         modelId: 'whisper-base',
-        language: null,
       );
       final resultEn = await cache.lookup(
         audioPath: tempAudioFile.path,

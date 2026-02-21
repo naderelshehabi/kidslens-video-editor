@@ -14,15 +14,15 @@ double computeIoU(DetectionBox a, DetectionBox b) {
   final x2 = min(a.x + a.width, b.x + b.width);
   final y2 = min(a.y + a.height, b.y + b.height);
 
-  final intersectionW = max(0.0, x2 - x1);
-  final intersectionH = max(0.0, y2 - y1);
+  final intersectionW = max(0, x2 - x1);
+  final intersectionH = max(0, y2 - y1);
   final intersection = intersectionW * intersectionH;
 
   final areaA = a.width * a.height;
   final areaB = b.width * b.height;
   final union = areaA + areaB - intersection;
 
-  if (union <= 0) return 0.0;
+  if (union <= 0) return 0;
   return intersection / union;
 }
 
@@ -104,8 +104,8 @@ void main() {
     });
 
     test('non-overlapping boxes should return IoU = 0.0', () {
-      final a = makeBox(x: 0.0, y: 0.0, width: 0.1, height: 0.1);
-      final b = makeBox(x: 0.5, y: 0.5, width: 0.1, height: 0.1);
+      final a = makeBox();
+      final b = makeBox(x: 0.5, y: 0.5);
       expect(computeIoU(a, b), 0.0);
     });
 
@@ -115,7 +115,7 @@ void main() {
       // Intersection: (0.2, 0.2) to (0.4, 0.4), area = 0.04
       // Union: 0.16 + 0.16 - 0.04 = 0.28
       // IoU: 0.04 / 0.28 = 1/7
-      final a = makeBox(x: 0.0, y: 0.0, width: 0.4, height: 0.4);
+      final a = makeBox(width: 0.4, height: 0.4);
       final b = makeBox(x: 0.2, y: 0.2, width: 0.4, height: 0.4);
       expect(computeIoU(a, b), closeTo(1.0 / 7.0, 1e-9));
     });
@@ -126,27 +126,27 @@ void main() {
       // Intersection = inner area = 0.25
       // Union = 1.0 + 0.25 - 0.25 = 1.0
       // IoU = 0.25 / 1.0 = 0.25
-      final outer = makeBox(x: 0.0, y: 0.0, width: 1.0, height: 1.0);
+      final outer = makeBox(width: 1, height: 1);
       final inner = makeBox(x: 0.25, y: 0.25, width: 0.5, height: 0.5);
       expect(computeIoU(outer, inner), closeTo(0.25, 1e-9));
     });
 
     test('zero-size box should return IoU = 0.0', () {
-      final a = makeBox(x: 0.5, y: 0.5, width: 0.0, height: 0.0);
+      final a = makeBox(x: 0.5, y: 0.5, width: 0, height: 0);
       final b = makeBox(x: 0.5, y: 0.5, width: 0.3, height: 0.3);
       expect(computeIoU(a, b), 0.0);
     });
 
     test('adjacent boxes (touching edges, not overlapping) should return IoU = 0.0', () {
       // Box A ends at x = 0.5, Box B starts at x = 0.5
-      final a = makeBox(x: 0.0, y: 0.0, width: 0.5, height: 0.5);
-      final b = makeBox(x: 0.5, y: 0.0, width: 0.5, height: 0.5);
+      final a = makeBox(width: 0.5, height: 0.5);
+      final b = makeBox(x: 0.5, width: 0.5, height: 0.5);
       // Intersection width = max(0, min(0.5, 1.0) - max(0.0, 0.5)) = max(0, 0.0) = 0.0
       expect(computeIoU(a, b), 0.0);
     });
 
     test('symmetry: IoU(a, b) == IoU(b, a)', () {
-      final a = makeBox(x: 0.0, y: 0.0, width: 0.3, height: 0.4);
+      final a = makeBox(width: 0.3, height: 0.4);
       final b = makeBox(x: 0.1, y: 0.1, width: 0.5, height: 0.5);
       expect(computeIoU(a, b), closeTo(computeIoU(b, a), 1e-9));
     });
@@ -171,7 +171,6 @@ void main() {
     test('two overlapping boxes of same class should keep higher confidence', () {
       // Nearly identical boxes, high overlap
       final highConf = makeBox(
-        classId: 0,
         className: 'person',
         confidence: 0.95,
         x: 0.1,
@@ -180,7 +179,6 @@ void main() {
         height: 0.5,
       );
       final lowConf = makeBox(
-        classId: 0,
         className: 'person',
         confidence: 0.6,
         x: 0.12,
@@ -196,9 +194,7 @@ void main() {
 
     test('two overlapping boxes of different classes should both be kept', () {
       final person = makeBox(
-        classId: 0,
         className: 'person',
-        confidence: 0.9,
         x: 0.1,
         y: 0.1,
         width: 0.5,
@@ -221,15 +217,12 @@ void main() {
     test('three boxes with two overlapping should suppress correct one', () {
       // Box A and Box B overlap heavily; Box C is separate
       final boxA = makeBox(
-        classId: 0,
-        confidence: 0.9,
         x: 0.1,
         y: 0.1,
         width: 0.4,
         height: 0.4,
       );
       final boxB = makeBox(
-        classId: 0,
         confidence: 0.7,
         x: 0.12,
         y: 0.12,
@@ -237,12 +230,9 @@ void main() {
         height: 0.4,
       );
       final boxC = makeBox(
-        classId: 0,
         confidence: 0.8,
         x: 0.8,
         y: 0.8,
-        width: 0.1,
-        height: 0.1,
       );
 
       final result = nonMaxSuppression([boxB, boxC, boxA], 0.45);
@@ -257,7 +247,6 @@ void main() {
     test('multiple classes each with overlaps should apply per-class suppression', () {
       // Class 0: two overlapping boxes
       final c0High = makeBox(
-        classId: 0,
         className: 'person',
         confidence: 0.95,
         x: 0.1,
@@ -266,7 +255,6 @@ void main() {
         height: 0.4,
       );
       final c0Low = makeBox(
-        classId: 0,
         className: 'person',
         confidence: 0.5,
         x: 0.12,
@@ -305,28 +293,16 @@ void main() {
 
     test('non-overlapping boxes of same class should all be kept', () {
       final boxA = makeBox(
-        classId: 0,
-        confidence: 0.9,
-        x: 0.0,
-        y: 0.0,
-        width: 0.1,
-        height: 0.1,
+        
       );
       final boxB = makeBox(
-        classId: 0,
         confidence: 0.8,
         x: 0.5,
         y: 0.5,
-        width: 0.1,
-        height: 0.1,
       );
       final boxC = makeBox(
-        classId: 0,
         confidence: 0.7,
         x: 0.9,
-        y: 0.0,
-        width: 0.1,
-        height: 0.1,
       );
 
       final result = nonMaxSuppression([boxA, boxB, boxC], 0.45);
@@ -342,7 +318,6 @@ void main() {
       final boxes = List.generate(
         5,
         (i) => makeBox(
-          classId: 0,
           confidence: 0.9 - i * 0.1, // 0.9, 0.8, 0.7, 0.6, 0.5
           x: 0.2,
           y: 0.2,
@@ -361,24 +336,17 @@ void main() {
       // Two identical boxes have IoU = 1.0. Use threshold = 1.0:
       // IoU = 1.0 is NOT > 1.0, so both should be kept.
       final boxA = makeBox(
-        classId: 0,
-        confidence: 0.9,
-        x: 0.0,
-        y: 0.0,
         width: 0.5,
         height: 0.5,
       );
       final boxB = makeBox(
-        classId: 0,
         confidence: 0.8,
-        x: 0.0,
-        y: 0.0,
         width: 0.5,
         height: 0.5,
       );
 
       // At threshold 1.0, IoU = 1.0 is NOT > 1.0, so nothing is suppressed
-      final result = nonMaxSuppression([boxA, boxB], 1.0);
+      final result = nonMaxSuppression([boxA, boxB], 1);
       expect(result, hasLength(2));
     });
 
@@ -386,18 +354,11 @@ void main() {
       // Two identical boxes have IoU = 1.0
       // With threshold 0.45, IoU = 1.0 > 0.45, so lower confidence is suppressed
       final boxA = makeBox(
-        classId: 0,
-        confidence: 0.9,
-        x: 0.0,
-        y: 0.0,
         width: 0.5,
         height: 0.5,
       );
       final boxB = makeBox(
-        classId: 0,
         confidence: 0.8,
-        x: 0.0,
-        y: 0.0,
         width: 0.5,
         height: 0.5,
       );
@@ -410,9 +371,9 @@ void main() {
     test('boxes are sorted by confidence descending and highest is kept', () {
       // Feed boxes in reverse confidence order to verify sorting works
       final boxes = [
-        makeBox(classId: 0, confidence: 0.3, x: 0.1, y: 0.1, width: 0.4, height: 0.4),
-        makeBox(classId: 0, confidence: 0.5, x: 0.12, y: 0.12, width: 0.4, height: 0.4),
-        makeBox(classId: 0, confidence: 0.95, x: 0.11, y: 0.11, width: 0.4, height: 0.4),
+        makeBox(confidence: 0.3, x: 0.1, y: 0.1, width: 0.4, height: 0.4),
+        makeBox(confidence: 0.5, x: 0.12, y: 0.12, width: 0.4, height: 0.4),
+        makeBox(confidence: 0.95, x: 0.11, y: 0.11, width: 0.4, height: 0.4),
       ];
 
       final result = nonMaxSuppression(boxes, 0.45);
@@ -425,7 +386,6 @@ void main() {
       final boxes = List.generate(
         200,
         (i) => makeBox(
-          classId: 0,
           confidence: 1.0 - i * 0.004, // 1.0 down to 0.204
           x: 0.3 + (i % 5) * 0.001,
           y: 0.3 + (i % 5) * 0.001,
@@ -444,15 +404,10 @@ void main() {
     test('threshold of 0.0 should suppress all overlapping boxes', () {
       // Any IoU > 0.0 gets suppressed
       final boxA = makeBox(
-        classId: 0,
-        confidence: 0.9,
-        x: 0.0,
-        y: 0.0,
         width: 0.5,
         height: 0.5,
       );
       final boxB = makeBox(
-        classId: 0,
         confidence: 0.8,
         x: 0.1,
         y: 0.1,
@@ -460,19 +415,19 @@ void main() {
         height: 0.5,
       );
       // These overlap, so IoU > 0. With threshold 0.0, B should be suppressed.
-      final result = nonMaxSuppression([boxA, boxB], 0.0);
+      final result = nonMaxSuppression([boxA, boxB], 0);
       expect(result, hasLength(1));
       expect(result.first.confidence, 0.9);
     });
 
     test('threshold of 1.0 should keep all boxes (nothing has IoU > 1.0)', () {
       final boxes = [
-        makeBox(classId: 0, confidence: 0.9, x: 0.0, y: 0.0, width: 0.5, height: 0.5),
-        makeBox(classId: 0, confidence: 0.8, x: 0.0, y: 0.0, width: 0.5, height: 0.5),
-        makeBox(classId: 0, confidence: 0.7, x: 0.0, y: 0.0, width: 0.5, height: 0.5),
+        makeBox(width: 0.5, height: 0.5),
+        makeBox(confidence: 0.8, width: 0.5, height: 0.5),
+        makeBox(confidence: 0.7, width: 0.5, height: 0.5),
       ];
 
-      final result = nonMaxSuppression(boxes, 1.0);
+      final result = nonMaxSuppression(boxes, 1);
       expect(result, hasLength(3));
     });
   });
@@ -486,8 +441,8 @@ void main() {
     setUp(() {
       detectionResult = DetectionResult(
         boxes: [
-          makeBox(classId: 0, className: 'person', confidence: 0.95),
-          makeBox(classId: 0, className: 'person', confidence: 0.6),
+          makeBox(className: 'person', confidence: 0.95),
+          makeBox(className: 'person', confidence: 0.6),
           makeBox(classId: 1, className: 'car', confidence: 0.85),
           makeBox(classId: 1, className: 'car', confidence: 0.4),
           makeBox(classId: 2, className: 'dog', confidence: 0.75),
@@ -538,7 +493,7 @@ void main() {
     });
 
     test('isEmpty returns true when no boxes are present', () {
-      final empty = const DetectionResult(boxes: []);
+      const empty = DetectionResult(boxes: []);
       expect(empty.isEmpty, isTrue);
       expect(empty.count, 0);
     });
@@ -548,7 +503,7 @@ void main() {
     });
 
     test('inferenceTimeMs can be null', () {
-      final noTime = const DetectionResult(boxes: []);
+      const noTime = DetectionResult(boxes: []);
       expect(noTime.inferenceTimeMs, isNull);
     });
   });

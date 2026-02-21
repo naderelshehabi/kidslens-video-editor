@@ -147,15 +147,13 @@ class ContentCategory with _$ContentCategory {
     /// Whether this category detects visual or audio content.
     required CategoryType type,
 
-    /// Whether this category is enabled for detection.
+    /// The action to apply when content in this category is detected.
+    required RemediationAction action, /// Whether this category is enabled for detection.
     @Default(true) bool enabled,
 
     /// Detection threshold (0.0 to 1.0). The MoE consensus score must meet
     /// or exceed this threshold to trigger a detection.
     @Default(0.5) double threshold,
-
-    /// The action to apply when content in this category is detected.
-    required RemediationAction action,
 
     /// Models that contribute to this category's detection via MoE voting.
     @Default([]) List<ModelContribution> modelContributions,

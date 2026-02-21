@@ -208,7 +208,6 @@ class ContentCategoryDefaults {
     name: 'Sexual Content',
     description: 'Explicit sexual acts and situations',
     type: CategoryType.visual,
-    threshold: 0.5,
     action: RemediationAction.cutScene,
     iconName: 'block',
     supportsRegions: true,
@@ -241,7 +240,6 @@ class ContentCategoryDefaults {
     name: 'Kissing',
     description: 'Romantic kissing scenes',
     type: CategoryType.visual,
-    threshold: 0.5,
     action: RemediationAction.cutScene,
     iconName: 'favorite',
     modelContributions: [

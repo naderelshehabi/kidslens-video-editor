@@ -21,11 +21,9 @@ class SubtitleTrack with _$SubtitleTrack {
     /// When the subtitles were generated
     @DateTimeConverter() required DateTime createdAt,
 
-    /// The ASR model used to generate the subtitles
-    String? modelId,
-
     /// Subtitle segments with timing
-    required List<SubtitleSegment> segments,
+    required List<SubtitleSegment> segments, /// The ASR model used to generate the subtitles
+    String? modelId,
   }) = _SubtitleTrack;
 
   const SubtitleTrack._();

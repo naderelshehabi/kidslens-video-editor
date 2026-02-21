@@ -36,7 +36,6 @@ void main() {
         modelId: 'nsfw-vit-base',
         displayName: 'NSFW ViT Base',
         modelType: HuggingFaceModelType.nsfw,
-        enabled: true,
         weightOverride: 0.9,
         detectionLabels: ['FEMALE_BREAST_EXPOSED'],
         clipPrompts: ['explicit content'],
@@ -93,7 +92,6 @@ void main() {
       modelId: 'model-a',
       displayName: 'Model A',
       modelType: HuggingFaceModelType.nsfw,
-      enabled: true,
     );
 
     const disabledContribution = ModelContribution(
@@ -107,7 +105,6 @@ void main() {
       modelId: 'nudenet-model',
       displayName: 'NudeNet',
       modelType: HuggingFaceModelType.nudeNet,
-      enabled: true,
       detectionLabels: ['FEMALE_BREAST_EXPOSED'],
     );
 
@@ -115,7 +112,6 @@ void main() {
       modelId: 'clip-model',
       displayName: 'CLIP',
       modelType: HuggingFaceModelType.clip,
-      enabled: true,
       clipPrompts: ['test prompt'],
     );
 
@@ -160,7 +156,6 @@ void main() {
         description: 'Test category',
         type: CategoryType.visual,
         action: RemediationAction.blurFullFrame,
-        modelContributions: [],
       );
 
       expect(category.hasEnabledModels, false);
@@ -183,7 +178,7 @@ void main() {
       final enabled = category.enabledModels;
       expect(enabled.length, 2);
       expect(enabled.map((m) => m.modelId),
-          containsAll(['model-a', 'nudenet-model']));
+          containsAll(['model-a', 'nudenet-model']),);
       expect(enabled.any((m) => m.modelId == 'model-b'), false);
     });
 
@@ -310,7 +305,6 @@ void main() {
         name: 'Violence',
         description: 'Violent actions',
         type: CategoryType.visual,
-        enabled: true,
         threshold: 0.65,
         action: RemediationAction.cutScene,
         modelContributions: [
@@ -318,13 +312,10 @@ void main() {
             modelId: 'violence-detector',
             displayName: 'Violence Detector',
             modelType: HuggingFaceModelType.violence,
-            enabled: true,
             weightOverride: 0.8,
           ),
         ],
-        isBuiltIn: true,
         iconName: 'sports_mma',
-        supportsRegions: false,
       );
 
       final json = jsonDecode(jsonEncode(original.toJson())) as Map<String, dynamic>;
@@ -338,7 +329,7 @@ void main() {
       expect(restored.threshold, original.threshold);
       expect(restored.action, original.action);
       expect(restored.modelContributions.length,
-          original.modelContributions.length);
+          original.modelContributions.length,);
       expect(restored.isBuiltIn, original.isBuiltIn);
       expect(restored.iconName, original.iconName);
       expect(restored.supportsRegions, original.supportsRegions);
@@ -410,7 +401,7 @@ void main() {
       expect(RemediationAction.blurRegion.displayName, 'Blur Region');
       expect(RemediationAction.pixelateRegion.displayName, 'Pixelate Region');
       expect(
-          RemediationAction.blackBoxRegion.displayName, 'Black Box Region');
+          RemediationAction.blackBoxRegion.displayName, 'Black Box Region',);
       expect(RemediationAction.blurFullFrame.displayName, 'Blur Full Frame');
       expect(RemediationAction.cutScene.displayName, 'Cut Scene');
       expect(RemediationAction.mute.displayName, 'Mute');

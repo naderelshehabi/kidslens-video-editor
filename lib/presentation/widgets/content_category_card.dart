@@ -24,7 +24,7 @@ class ContentCategoryCard extends StatefulWidget {
   final ValueChanged<bool> onToggleEnabled;
   final ValueChanged<double> onThresholdChanged;
   final ValueChanged<RemediationAction> onActionChanged;
-  final void Function(String modelId, bool enabled) onToggleModel;
+  final void Function(String modelId, {required bool enabled}) onToggleModel;
   final VoidCallback? onDelete;
   final Set<String> downloadedModelIds;
 
@@ -148,7 +148,7 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
             Switch(
               value: _cat.enabled,
               onChanged: widget.onToggleEnabled,
-              activeColor: _categoryColor,
+              activeThumbColor: _categoryColor,
             ),
             // Expand/collapse icon
             Icon(
@@ -165,7 +165,7 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
+    return ColoredBox(
       color: colorScheme.surfaceContainerLow,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -325,8 +325,8 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
           Switch(
             value: model.enabled,
             onChanged: (enabled) =>
-                widget.onToggleModel(model.modelId, enabled),
-            activeColor: _categoryColor,
+                widget.onToggleModel(model.modelId, enabled: enabled),
+            activeThumbColor: _categoryColor,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],
@@ -408,8 +408,6 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
         return Icons.text_fields;
       case HuggingFaceModelType.asr:
         return Icons.mic;
-      default:
-        return Icons.model_training;
     }
   }
 }
@@ -422,8 +420,7 @@ class _TypeBadge extends StatelessWidget {
   final Color color;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
@@ -438,5 +435,4 @@ class _TypeBadge extends StatelessWidget {
         ),
       ),
     );
-  }
 }

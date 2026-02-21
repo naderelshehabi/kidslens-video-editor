@@ -169,7 +169,7 @@ class ClipTokenizer {
     while (true) {
       // Find the pair with the lowest rank
       int? minRank;
-      int minIdx = -1;
+      var minIdx = -1;
 
       for (var i = 0; i < word.length - 1; i++) {
         final rank = _getRank(word[i], word[i + 1]);
@@ -213,9 +213,7 @@ class ClipTokenizer {
   }
 
   /// Clean whitespace in text.
-  static String _whitespaceClean(String text) {
-    return text.replaceAll(RegExp(r'\s+'), ' ').trim();
-  }
+  static String _whitespaceClean(String text) => text.replaceAll(RegExp(r'\s+'), ' ').trim();
 
   /// Build byte-to-unicode mapping (standard CLIP BPE byte encoding).
   ///
@@ -223,13 +221,14 @@ class ClipTokenizer {
   /// characters and whitespace that would interfere with BPE processing.
   static Map<int, String> _bytesToUnicode() {
     // Printable ASCII + Latin-1 Supplement ranges
-    final bs = <int>[];
-    bs.addAll(List.generate('~'.codeUnitAt(0) - '!'.codeUnitAt(0) + 1,
-        (i) => '!'.codeUnitAt(0) + i));
-    bs.addAll(List.generate('¬'.codeUnitAt(0) - '¡'.codeUnitAt(0) + 1,
-        (i) => '¡'.codeUnitAt(0) + i));
-    bs.addAll(List.generate('ÿ'.codeUnitAt(0) - '®'.codeUnitAt(0) + 1,
-        (i) => '®'.codeUnitAt(0) + i));
+    final bs = <int>[
+      ...List.generate('~'.codeUnitAt(0) - '!'.codeUnitAt(0) + 1,
+          (i) => '!'.codeUnitAt(0) + i,),
+      ...List.generate('¬'.codeUnitAt(0) - '¡'.codeUnitAt(0) + 1,
+          (i) => '¡'.codeUnitAt(0) + i,),
+      ...List.generate('ÿ'.codeUnitAt(0) - '®'.codeUnitAt(0) + 1,
+          (i) => '®'.codeUnitAt(0) + i,),
+    ];
 
     final cs = List<int>.from(bs);
     var n = 0;

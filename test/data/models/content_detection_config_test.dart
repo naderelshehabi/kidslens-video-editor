@@ -11,14 +11,12 @@ void main() {
     modelId: 'nsfw-model',
     displayName: 'NSFW Model',
     modelType: HuggingFaceModelType.nsfw,
-    enabled: true,
   );
 
   const enabledNudeNetModel = ModelContribution(
     modelId: 'nudenet-model',
     displayName: 'NudeNet Model',
     modelType: HuggingFaceModelType.nudeNet,
-    enabled: true,
     detectionLabels: ['FEMALE_BREAST_EXPOSED'],
   );
 
@@ -26,7 +24,6 @@ void main() {
     modelId: 'clip-model',
     displayName: 'CLIP Model',
     modelType: HuggingFaceModelType.clip,
-    enabled: true,
     clipPrompts: ['test prompt'],
   );
 
@@ -42,8 +39,6 @@ void main() {
     name: 'Visual A',
     description: 'A visual category',
     type: CategoryType.visual,
-    enabled: true,
-    threshold: 0.5,
     action: RemediationAction.blurFullFrame,
     modelContributions: [enabledNsfwModel],
   );
@@ -53,7 +48,6 @@ void main() {
     name: 'Visual NudeNet',
     description: 'NudeNet visual category',
     type: CategoryType.visual,
-    enabled: true,
     threshold: 0.45,
     action: RemediationAction.blurRegion,
     modelContributions: [enabledNudeNetModel],
@@ -64,8 +58,6 @@ void main() {
     name: 'Visual CLIP',
     description: 'CLIP visual category',
     type: CategoryType.visual,
-    enabled: true,
-    threshold: 0.5,
     action: RemediationAction.cutScene,
     modelContributions: [enabledClipModel],
   );
@@ -75,7 +67,6 @@ void main() {
     name: 'Audio A',
     description: 'An audio category',
     type: CategoryType.audio,
-    enabled: true,
     threshold: 0.8,
     action: RemediationAction.beep,
     modelContributions: [
@@ -83,7 +74,6 @@ void main() {
         modelId: 'asr-model',
         displayName: 'ASR Model',
         modelType: HuggingFaceModelType.asr,
-        enabled: true,
       ),
     ],
   );
@@ -103,7 +93,6 @@ void main() {
     name: 'No Models',
     description: 'Category with no enabled models',
     type: CategoryType.visual,
-    enabled: true,
     action: RemediationAction.blurFullFrame,
     modelContributions: [disabledModel],
   );
@@ -120,7 +109,7 @@ void main() {
     });
 
     test('with empty categories returns empty for all computed lists', () {
-      const config = ContentDetectionConfig(categories: []);
+      const config = ContentDetectionConfig();
 
       expect(config.visualCategories, isEmpty);
       expect(config.audioCategories, isEmpty);
@@ -136,11 +125,11 @@ void main() {
     });
 
     test('visualCategories returns only visual categories', () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         visualCategoryEnabled,
         audioCategoryEnabled,
         visualCategoryWithClip,
-      ]);
+      ],);
 
       final visual = config.visualCategories;
       expect(visual.length, 2);
@@ -149,10 +138,10 @@ void main() {
     });
 
     test('audioCategories returns only audio categories', () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         visualCategoryEnabled,
         audioCategoryEnabled,
-      ]);
+      ],);
 
       final audio = config.audioCategories;
       expect(audio.length, 1);
@@ -161,10 +150,10 @@ void main() {
     });
 
     test('enabledCategories filters out disabled categories', () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         visualCategoryEnabled,
         disabledCategory,
-      ]);
+      ],);
 
       final enabled = config.enabledCategories;
       expect(enabled.length, 1);
@@ -172,10 +161,10 @@ void main() {
     });
 
     test('enabledCategories filters out categories with no enabled models', () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         visualCategoryEnabled,
         categoryNoEnabledModels,
-      ]);
+      ],);
 
       final enabled = config.enabledCategories;
       expect(enabled.length, 1);
@@ -183,12 +172,12 @@ void main() {
     });
 
     test('enabledVisualCategories returns enabled visual subset', () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         visualCategoryEnabled,
         audioCategoryEnabled,
         disabledCategory,
         visualCategoryWithClip,
-      ]);
+      ],);
 
       final enabledVisual = config.enabledVisualCategories;
       expect(enabledVisual.length, 2);
@@ -196,10 +185,10 @@ void main() {
     });
 
     test('enabledAudioCategories returns enabled audio subset', () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         visualCategoryEnabled,
         audioCategoryEnabled,
-      ]);
+      ],);
 
       final enabledAudio = config.enabledAudioCategories;
       expect(enabledAudio.length, 1);
@@ -208,11 +197,11 @@ void main() {
 
     test('nudeNetCategories filters enabled categories by NudeNet model type',
         () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         visualCategoryEnabled,
         visualCategoryWithNudeNet,
         visualCategoryWithClip,
-      ]);
+      ],);
 
       final nudeNet = config.nudeNetCategories;
       expect(nudeNet.length, 1);
@@ -220,11 +209,11 @@ void main() {
     });
 
     test('clipCategories filters enabled categories by CLIP model type', () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         visualCategoryEnabled,
         visualCategoryWithNudeNet,
         visualCategoryWithClip,
-      ]);
+      ],);
 
       final clip = config.clipCategories;
       expect(clip.length, 1);
@@ -232,67 +221,67 @@ void main() {
     });
 
     test('hasAnyEnabled returns true when at least one category is enabled', () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         visualCategoryEnabled,
-      ]);
+      ],);
 
       expect(config.hasAnyEnabled, true);
     });
 
     test('hasAnyEnabled returns false when no categories are enabled', () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         disabledCategory,
         categoryNoEnabledModels,
-      ]);
+      ],);
 
       expect(config.hasAnyEnabled, false);
     });
 
     test('hasVisualCategories returns true when visual categories are enabled',
         () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         visualCategoryEnabled,
-      ]);
+      ],);
 
       expect(config.hasVisualCategories, true);
     });
 
     test(
         'hasVisualCategories returns false when only audio categories exist', () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         audioCategoryEnabled,
-      ]);
+      ],);
 
       expect(config.hasVisualCategories, false);
     });
 
     test('hasAudioCategories returns true when audio categories are enabled',
         () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         audioCategoryEnabled,
-      ]);
+      ],);
 
       expect(config.hasAudioCategories, true);
     });
 
     test(
         'hasAudioCategories returns false when only visual categories exist', () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         visualCategoryEnabled,
-      ]);
+      ],);
 
       expect(config.hasAudioCategories, false);
     });
 
     test('requiredModelIds aggregates from all enabled categories', () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         visualCategoryEnabled,
         visualCategoryWithNudeNet,
         visualCategoryWithClip,
         audioCategoryEnabled,
         disabledCategory, // Should be excluded
         categoryNoEnabledModels, // Should be excluded
-      ]);
+      ],);
 
       final modelIds = config.requiredModelIds;
       expect(modelIds, contains('nsfw-model'));
@@ -304,15 +293,15 @@ void main() {
     });
 
     test('requiredModelIds returns empty set with no enabled categories', () {
-      final config = ContentDetectionConfig(categories: [
+      const config = ContentDetectionConfig(categories: [
         disabledCategory,
-      ]);
+      ],);
 
       expect(config.requiredModelIds, isEmpty);
     });
 
     test('effectivePreFilterThreshold returns value when >= 0.05', () {
-      const config = ContentDetectionConfig(preFilterThreshold: 0.30);
+      const config = ContentDetectionConfig();
       expect(config.effectivePreFilterThreshold, 0.30);
     });
 
@@ -322,7 +311,7 @@ void main() {
     });
 
     test('effectivePreFilterThreshold enforces minimum for zero', () {
-      const config = ContentDetectionConfig(preFilterThreshold: 0.0);
+      const config = ContentDetectionConfig(preFilterThreshold: 0);
       expect(config.effectivePreFilterThreshold, 0.05);
     });
 
@@ -364,7 +353,7 @@ void main() {
         'kissing',
         'immodest_dress',
         'profanity',
-      ]));
+      ]),);
     });
 
     test('default categories are all enabled and built-in', () {
@@ -372,9 +361,9 @@ void main() {
 
       for (final category in allCategories) {
         expect(category.enabled, true,
-            reason: '${category.id} should be enabled');
+            reason: '${category.id} should be enabled',);
         expect(category.isBuiltIn, true,
-            reason: '${category.id} should be built-in');
+            reason: '${category.id} should be built-in',);
       }
     });
 

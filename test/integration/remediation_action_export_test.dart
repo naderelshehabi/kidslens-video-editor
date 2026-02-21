@@ -228,9 +228,9 @@ void main() {
         );
 
         expect(mod.isVideoModification, true,
-            reason: '${action.name} should produce a video modification');
+            reason: '${action.name} should produce a video modification',);
         expect(action.isVisual, true,
-            reason: '${action.name} should be a visual action');
+            reason: '${action.name} should be a visual action',);
       }
     });
 
@@ -248,9 +248,9 @@ void main() {
         );
 
         expect(mod.isAudioModification, true,
-            reason: '${action.name} should produce an audio modification');
+            reason: '${action.name} should produce an audio modification',);
         expect(action.isAudio, true,
-            reason: '${action.name} should be an audio action');
+            reason: '${action.name} should be an audio action',);
       }
     });
 
@@ -270,9 +270,9 @@ void main() {
         );
 
         expect(action.isRegionLevel, true,
-            reason: '${action.name} should be region-level');
+            reason: '${action.name} should be region-level',);
         expect(mod.isRegionModification, true,
-            reason: '${action.name} should produce a region modification');
+            reason: '${action.name} should produce a region modification',);
       }
     });
   });
@@ -280,7 +280,7 @@ void main() {
   group('Modification FFmpeg filter generation', () {
     test('all 7 RemediationActions produce valid Modifications with filters',
         () {
-      final allActions = RemediationAction.values;
+      const allActions = RemediationAction.values;
       expect(allActions.length, 7);
 
       for (final action in allActions) {
@@ -296,11 +296,11 @@ void main() {
         // (region-based filters return '' since they use a separate chain)
         final filter = mod.toFFmpegFilter();
         expect(filter, isA<String>(),
-            reason: '${action.name} should produce a filter string');
+            reason: '${action.name} should produce a filter string',);
 
         if (!mod.isRegionModification) {
           expect(filter.isNotEmpty, true,
-              reason: '${action.name} non-region filter should be non-empty');
+              reason: '${action.name} non-region filter should be non-empty',);
         }
       }
     });

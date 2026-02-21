@@ -199,9 +199,9 @@ void main() {
           const VideoPixelate(),
           const VideoBlackBox(),
           const VideoSkip(),
-          Modification.videoRegionBlur(intensity: 50, region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4)),
-          Modification.videoRegionPixelate(blockSize: 10, region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4)),
-          Modification.videoRegionBlackBox(color: '#000000', opacity: 1.0, region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4)),
+          const Modification.videoRegionBlur(region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4)),
+          const Modification.videoRegionPixelate(region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4)),
+          const Modification.videoRegionBlackBox(region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4)),
         ];
 
         final results = modifications.map((mod) => switch (mod) {

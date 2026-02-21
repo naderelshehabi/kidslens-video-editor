@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kidslens_video_editor/data/models/huggingface_model.dart';
@@ -364,7 +366,7 @@ void main() {
           cpuThreads: 2,
         );
 
-        final json = original.toJson();
+        final json = jsonDecode(jsonEncode(original.toJson())) as Map<String, dynamic>;
         final restored = AnalysisSettingsState.fromJson(json);
 
         expect(restored.asrModelId, equals(original.asrModelId));

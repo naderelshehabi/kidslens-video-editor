@@ -32,10 +32,10 @@ void main() {
 
       // 3. Simulate a model vote above threshold
       final votes = [
-        ModelVote(
+        const ModelVote(
           modelId: 'nsfw-vit-base-quantized',
           score: 0.85,
-          weight: 1.0,
+          weight: 1,
         ),
       ];
 
@@ -74,7 +74,7 @@ void main() {
           const ModelVote(
             modelId: 'violence-mobilenet',
             score: 0.75,
-            weight: 1.0,
+            weight: 1,
           ),
         ],
         config: config.votingConfig,
@@ -116,7 +116,7 @@ void main() {
           const ModelVote(
             modelId: 'nudenet-v3-medium',
             score: 0.92,
-            weight: 1.0,
+            weight: 1,
             regions: [detectedRegion],
           ),
         ],
@@ -164,7 +164,7 @@ void main() {
           const ModelVote(
             modelId: 'whisper-small',
             score: 0.95,
-            weight: 1.0,
+            weight: 1,
           ),
         ],
         config: config.votingConfig,
@@ -196,7 +196,7 @@ void main() {
           const ModelVote(
             modelId: 'nsfw-vit-base-quantized',
             score: 0.3, // Below 0.6 threshold
-            weight: 1.0,
+            weight: 1,
           ),
         ],
         config: config.votingConfig,
@@ -226,13 +226,11 @@ void main() {
             modelId: 'model-a',
             displayName: 'Model A',
             modelType: HuggingFaceModelType.nsfw,
-            enabled: true,
           ),
           ModelContribution(
             modelId: 'model-b',
             displayName: 'Model B',
             modelType: HuggingFaceModelType.nsfw,
-            enabled: true,
           ),
         ],
       );
@@ -242,10 +240,10 @@ void main() {
       final result = votingService.computeConsensus(
         category: category,
         votes: [
-          const ModelVote(modelId: 'model-a', score: 0.4, weight: 1.0),
-          const ModelVote(modelId: 'model-b', score: 0.8, weight: 1.0),
+          const ModelVote(modelId: 'model-a', score: 0.4, weight: 1),
+          const ModelVote(modelId: 'model-b', score: 0.8, weight: 1),
         ],
-        config: const VotingConfig(strategy: VotingStrategy.weightedAverage),
+        config: const VotingConfig(),
       );
 
       expect(result.finalScore, closeTo(0.6, 0.001));
@@ -259,22 +257,19 @@ void main() {
         name: 'Test Visual',
         description: 'Test',
         type: CategoryType.visual,
-        threshold: 0.5,
         action: RemediationAction.blurFullFrame,
         modelContributions: [
           ModelContribution(
             modelId: 'accurate-model',
             displayName: 'Accurate',
             modelType: HuggingFaceModelType.nsfw,
-            enabled: true,
-            weightOverride: 3.0,
+            weightOverride: 3,
           ),
           ModelContribution(
             modelId: 'weak-model',
             displayName: 'Weak',
             modelType: HuggingFaceModelType.nsfw,
-            enabled: true,
-            weightOverride: 1.0,
+            weightOverride: 1,
           ),
         ],
       );
@@ -284,10 +279,10 @@ void main() {
       final result = votingService.computeConsensus(
         category: category,
         votes: [
-          const ModelVote(modelId: 'accurate-model', score: 0.2, weight: 3.0),
-          const ModelVote(modelId: 'weak-model', score: 0.9, weight: 1.0),
+          const ModelVote(modelId: 'accurate-model', score: 0.2, weight: 3),
+          const ModelVote(modelId: 'weak-model', score: 0.9, weight: 1),
         ],
-        config: const VotingConfig(strategy: VotingStrategy.weightedAverage),
+        config: const VotingConfig(),
       );
 
       expect(result.finalScore, closeTo(0.375, 0.001));
@@ -307,8 +302,8 @@ void main() {
       final result = votingService.computeConsensus(
         category: category,
         votes: [
-          const ModelVote(modelId: 'model-a', score: 0.3, weight: 1.0),
-          const ModelVote(modelId: 'model-b', score: 0.85, weight: 1.0),
+          const ModelVote(modelId: 'model-a', score: 0.3, weight: 1),
+          const ModelVote(modelId: 'model-b', score: 0.85, weight: 1),
         ],
         config: const VotingConfig(strategy: VotingStrategy.maximum),
       );
@@ -323,7 +318,6 @@ void main() {
         name: 'Test Visual',
         description: 'Test',
         type: CategoryType.visual,
-        threshold: 0.5,
         action: RemediationAction.blurFullFrame,
       );
 
@@ -331,8 +325,8 @@ void main() {
       final result = votingService.computeConsensus(
         category: category,
         votes: [
-          const ModelVote(modelId: 'model-a', score: 0.3, weight: 1.0),
-          const ModelVote(modelId: 'model-b', score: 0.9, weight: 1.0),
+          const ModelVote(modelId: 'model-a', score: 0.3, weight: 1),
+          const ModelVote(modelId: 'model-b', score: 0.9, weight: 1),
         ],
         config: const VotingConfig(strategy: VotingStrategy.minimum),
       );
@@ -354,13 +348,13 @@ void main() {
       final result = votingService.computeConsensus(
         category: category,
         votes: [
-          const ModelVote(modelId: 'model-a', score: 0.99, weight: 1.0),
+          const ModelVote(modelId: 'model-a', score: 0.99, weight: 1),
         ],
         config: const VotingConfig(minVoters: 2),
       );
 
       expect(result.triggered, false,
-          reason: 'need at least 2 voters but only got 1');
+          reason: 'need at least 2 voters but only got 1',);
       expect(result.finalScore, 0.0);
     });
   });
@@ -388,7 +382,7 @@ void main() {
           const ModelVote(
             modelId: 'nudenet-v3-medium',
             score: 0.85,
-            weight: 1.0,
+            weight: 1,
             regions: [
               DetectedRegion(
                 label: 'FEMALE_BREAST_EXPOSED',
@@ -403,7 +397,7 @@ void main() {
           const ModelVote(
             modelId: 'clip-model',
             score: 0.7,
-            weight: 1.0,
+            weight: 1,
             regions: [
               DetectedRegion(
                 label: 'FEMALE_BREAST_EXPOSED',
@@ -444,13 +438,13 @@ void main() {
           const ModelVote(
             modelId: 'model-a',
             score: 0.85,
-            weight: 1.0,
+            weight: 1,
             regions: [
               DetectedRegion(
                 label: 'A',
                 confidence: 0.9,
-                x: 0.0,
-                y: 0.0,
+                x: 0,
+                y: 0,
                 width: 0.1,
                 height: 0.1,
               ),
@@ -459,7 +453,7 @@ void main() {
           const ModelVote(
             modelId: 'model-b',
             score: 0.7,
-            weight: 1.0,
+            weight: 1,
             regions: [
               DetectedRegion(
                 label: 'B',
@@ -496,7 +490,7 @@ void main() {
           const ModelVote(
             modelId: 'nudenet',
             score: 0.9,
-            weight: 1.0,
+            weight: 1,
             regions: [
               DetectedRegion(
                 label: 'body-part',
@@ -534,7 +528,7 @@ void main() {
 
         final mod = ExportService.modificationFromRemediationAction(
           action: category.action,
-          startTime: const Duration(seconds: 0),
+          startTime: const Duration(),
           endTime: const Duration(seconds: 1),
           region: bounds,
         );
@@ -558,13 +552,13 @@ void main() {
       // Check visual actions are visual
       for (final category in config.enabledVisualCategories) {
         expect(category.action.isVisual, true,
-            reason: '${category.id} should have a visual action');
+            reason: '${category.id} should have a visual action',);
       }
 
       // Check audio actions are audio
       for (final category in config.enabledAudioCategories) {
         expect(category.action.isAudio, true,
-            reason: '${category.id} should have an audio action');
+            reason: '${category.id} should have an audio action',);
       }
     });
 
@@ -626,7 +620,7 @@ void main() {
             ModelVote(
               modelId: category.enabledModels.first.modelId,
               score: 0.5,
-              weight: 1.0,
+              weight: 1,
             ),
           ],
           config: config.votingConfig,

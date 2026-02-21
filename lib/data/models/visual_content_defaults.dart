@@ -26,7 +26,6 @@ class VisualContentDefaults {
       'BUTTOCKS_EXPOSED',
     ],
     threshold: 0.45,
-    action: VisualContentAction.blurRegion,
     iconName: 'visibility_off',
   );
 
@@ -52,7 +51,7 @@ class VisualContentDefaults {
       'wrestling match',
     ],
     threshold: 0.40,
-    clipThreshold: 4.0,
+    clipThreshold: 4,
     action: VisualContentAction.cutScene,
     iconName: 'block',
   );
@@ -71,7 +70,6 @@ class VisualContentDefaults {
       'two people talking face to face',
       'people hugging',
     ],
-    clipThreshold: 3.0,
     action: VisualContentAction.cutScene,
     iconName: 'favorite',
   );
@@ -92,7 +90,6 @@ class VisualContentDefaults {
       'person in business attire',
     ],
     clipThreshold: 2.5,
-    action: VisualContentAction.blurRegion,
     iconName: 'checkroom',
   );
 }

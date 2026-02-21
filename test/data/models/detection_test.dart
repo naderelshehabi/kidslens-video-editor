@@ -6,12 +6,17 @@ import 'package:kidslens_video_editor/data/models/detection.dart';
 void main() {
   group('ContentType enum', () {
     test('should have all expected values', () {
-      expect(ContentType.values, hasLength(5));
+      expect(ContentType.values, hasLength(10));
       expect(ContentType.values, contains(ContentType.nsfw));
       expect(ContentType.values, contains(ContentType.violence));
       expect(ContentType.values, contains(ContentType.blood));
       expect(ContentType.values, contains(ContentType.profanity));
       expect(ContentType.values, contains(ContentType.weapons));
+      expect(ContentType.values, contains(ContentType.nudity));
+      expect(ContentType.values, contains(ContentType.sexualContent));
+      expect(ContentType.values, contains(ContentType.kissing));
+      expect(ContentType.values, contains(ContentType.immodestDress));
+      expect(ContentType.values, contains(ContentType.custom));
     });
 
     test('should have correct JSON values', () {
@@ -20,6 +25,11 @@ void main() {
       expect(ContentType.blood.name, equals('blood'));
       expect(ContentType.profanity.name, equals('profanity'));
       expect(ContentType.weapons.name, equals('weapons'));
+      expect(ContentType.nudity.name, equals('nudity'));
+      expect(ContentType.sexualContent.name, equals('sexualContent'));
+      expect(ContentType.kissing.name, equals('kissing'));
+      expect(ContentType.immodestDress.name, equals('immodestDress'));
+      expect(ContentType.custom.name, equals('custom'));
     });
   });
 

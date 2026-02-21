@@ -621,7 +621,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         builder: (context) => AlertDialog(
           title: const Text('Subtitles Exist'),
           content: const Text(
-              'Subtitles already exist for this media. Do you want to regenerate them?'),
+              'Subtitles already exist for this media. Do you want to regenerate them?',),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -668,13 +668,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ),
         );
 
-        if (shouldDownload == true) {
+        if (shouldDownload ?? false) {
+          if (!mounted) return;
           // Navigate to model settings - ASR models tab is at index 0
-          Navigator.of(context).push(
+          unawaited(Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => const AnalysisSettingsScreen(initialTab: 0),
             ),
-          );
+          ),);
         }
       }
       return;
@@ -698,6 +699,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final gpuAvailable = accelerator.type != AcceleratorType.cpu;
     final useGpu = gpuAvailable && modelConfig.useGpu;
 
+    if (!mounted) return;
     final subtitleTrack = await showDialog<SubtitleTrack>(
       context: context,
       barrierDismissible: false,
@@ -726,7 +728,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Generated ${subtitleTrack.segments.length} subtitle segments'),
+                'Generated ${subtitleTrack.segments.length} subtitle segments',),
           ),
         );
       }
@@ -763,7 +765,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       ),
     );
 
-    if (confirmed == true && mounted) {
+    if ((confirmed ?? false) && mounted) {
       ref.read(projectNotifierProvider.notifier).removeSubtitleTrack(mediaId);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Subtitles deleted')),
@@ -1326,7 +1328,7 @@ class _SubtitleGenerationDialogState
   TranscriptionPhase _phase = TranscriptionPhase.initializing;
   String _statusMessage = 'Initializing...';
   String? _error;
-  double _progress = 0.0;
+  double _progress = 0;
   Duration? _currentTimestamp;
   bool _cancelled = false;
   DateTime? _startTime;
@@ -1464,7 +1466,7 @@ class _SubtitleGenerationDialogState
   String _formatDuration(Duration d) {
     final minutes = d.inMinutes;
     final seconds = d.inSeconds % 60;
-    return '${minutes}:${seconds.toString().padLeft(2, '0')}';
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
   String? get _timestampProgress {
@@ -1760,8 +1762,7 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
   void initState() {
     super.initState();
     // Ensure defaults are populated, then seed local toggles.
-    final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
-    settingsNotifier.ensureContentDetectionDefaults();
+    ref.read(settingsNotifierProvider.notifier).ensureContentDetectionDefaults();
     final categories = ref
         .read(settingsNotifierProvider)
         .analysisSettings
@@ -2089,14 +2090,14 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
     }).toList();
 
     // Derive legacy per-type flags for backward-compatible analysis provider.
-    bool _isEnabled(String id) => _categoryEnabled[id] ?? false;
+    bool isEnabled(String id) => _categoryEnabled[id] ?? false;
 
     final settings = baseSettings.copyWith(
-      enableProfanity: _isEnabled('profanity'),
-      enableNsfw: _isEnabled('nsfw'),
-      enableViolence: _isEnabled('violence'),
-      enableBlood: _isEnabled('blood'),
-      enableWeapons: _isEnabled('weapons'),
+      enableProfanity: isEnabled('profanity'),
+      enableNsfw: isEnabled('nsfw'),
+      enableViolence: isEnabled('violence'),
+      enableBlood: isEnabled('blood'),
+      enableWeapons: isEnabled('weapons'),
       contentDetectionConfig: baseSettings.contentDetectionConfig.copyWith(
         categories: updatedCategories,
       ),

@@ -63,11 +63,11 @@ class AnalysisSettingsState {
       cpuThreads: json['cpuThreads'] as int? ?? 4,
       visualContentConfig: json['visualContentConfig'] != null
           ? VisualContentConfig.fromJson(
-              json['visualContentConfig'] as Map<String, dynamic>)
+              json['visualContentConfig'] as Map<String, dynamic>,)
           : const VisualContentConfig(),
       contentDetectionConfig: json['contentDetectionConfig'] != null
           ? ContentDetectionConfig.fromJson(
-              json['contentDetectionConfig'] as Map<String, dynamic>)
+              json['contentDetectionConfig'] as Map<String, dynamic>,)
           : const ContentDetectionConfig(),
     );
   }

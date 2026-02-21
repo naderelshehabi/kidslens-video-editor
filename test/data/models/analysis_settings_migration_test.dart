@@ -14,7 +14,7 @@ void main() {
             'asrModelId': 'whisper-base',
             'visualModelId': 'nsfw-mobilenet-v2',
           },
-          'profanityConfig': {},
+          'profanityConfig': <String, dynamic>{},
           'nsfwThreshold': 0.6,
           'violenceThreshold': 0.6,
           'bloodThreshold': 0.6,
@@ -25,7 +25,7 @@ void main() {
           'enableWeapons': false,
           'enableProfanity': true,
           'frameSamplingRate': 5,
-        })) as Map<String, dynamic>;
+        }),) as Map<String, dynamic>;
 
         final settings = AnalysisSettings.fromJson(oldJson);
 
@@ -44,9 +44,9 @@ void main() {
             'asrModelId': 'whisper-base',
             'visualModelId': 'nsfw-mobilenet-v2',
           },
-          'profanityConfig': {},
+          'profanityConfig': <String, dynamic>{},
           'visualContentConfig': null,
-        })) as Map<String, dynamic>;
+        }),) as Map<String, dynamic>;
 
         // Should not throw
         final settings = AnalysisSettings.fromJson(json);
@@ -60,7 +60,6 @@ void main() {
           modelConfig: ModelConfig.defaults(),
           profanityConfig: ProfanityConfig.defaults(),
           visualContentConfig: const VisualContentConfig(
-            enableNudeNetDetection: true,
             enableClipClassification: false,
             preFilterThreshold: 0.25,
             categories: [
@@ -70,7 +69,6 @@ void main() {
                 description: 'Test',
                 detectionSource: CategoryDetectionSource.nudeNet,
                 threshold: 0.45,
-                action: VisualContentAction.blurRegion,
               ),
             ],
           ),
@@ -99,7 +97,6 @@ void main() {
         final settings = AnalysisSettings(
           modelConfig: ModelConfig.defaults(),
           profanityConfig: ProfanityConfig.defaults(),
-          visualContentConfig: const VisualContentConfig(categories: []),
         );
 
         final jsonString = jsonEncode(settings.toJson());
@@ -118,7 +115,7 @@ void main() {
       });
 
       test('effectivePreFilterThreshold passes through valid values', () {
-        const config = VisualContentConfig(preFilterThreshold: 0.30);
+        const config = VisualContentConfig();
         expect(config.effectivePreFilterThreshold, equals(0.30));
       });
 
@@ -207,7 +204,6 @@ void main() {
               name: 'Enabled',
               description: 'A',
               detectionSource: CategoryDetectionSource.nudeNet,
-              enabled: true,
             ),
             VisualContentCategory(
               id: 'b',
@@ -270,7 +266,6 @@ void main() {
                 name: 'Built In',
                 description: 'No labels but built-in',
                 detectionSource: CategoryDetectionSource.nudeNet,
-                isBuiltIn: true,
               ),
             ],
           ),

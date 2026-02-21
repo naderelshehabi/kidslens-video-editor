@@ -85,32 +85,26 @@ sealed class Modification with _$Modification {
 
   /// Applies Gaussian blur to a specific bounding box region
   const factory Modification.videoRegionBlur({
-    /// Blur intensity (1-100, default: 50)
-    @Default(50) int intensity,
-
     /// Normalized bounding box for the region
-    required RegionBounds region,
+    required RegionBounds region, /// Blur intensity (1-100, default: 50)
+    @Default(50) int intensity,
   }) = VideoRegionBlur;
 
   /// Applies pixelation/mosaic effect to a specific bounding box region
   const factory Modification.videoRegionPixelate({
-    /// Size of pixelation blocks in pixels (default: 10)
-    @Default(10) int blockSize,
-
     /// Normalized bounding box for the region
-    required RegionBounds region,
+    required RegionBounds region, /// Size of pixelation blocks in pixels (default: 10)
+    @Default(10) int blockSize,
   }) = VideoRegionPixelate;
 
   /// Covers a specific bounding box region with a solid color
   const factory Modification.videoRegionBlackBox({
-    /// Color in hex format (default: black)
+    /// Normalized bounding box for the region
+    required RegionBounds region, /// Color in hex format (default: black)
     @Default('#000000') String color,
 
     /// Opacity level (0.0 to 1.0, default: 1.0)
     @Default(1.0) double opacity,
-
-    /// Normalized bounding box for the region
-    required RegionBounds region,
   }) = VideoRegionBlackBox;
 
   factory Modification.fromJson(Map<String, dynamic> json) =>

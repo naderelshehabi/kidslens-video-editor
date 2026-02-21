@@ -24,14 +24,14 @@ void main() {
       test('all categories should be built-in', () {
         for (final category in VisualContentDefaults.builtInCategories) {
           expect(category.isBuiltIn, isTrue,
-              reason: '${category.name} should be built-in');
+              reason: '${category.name} should be built-in',);
         }
       });
 
       test('all categories should be enabled by default', () {
         for (final category in VisualContentDefaults.builtInCategories) {
           expect(category.enabled, isTrue,
-              reason: '${category.name} should be enabled');
+              reason: '${category.name} should be enabled',);
         }
       });
     });
@@ -39,15 +39,15 @@ void main() {
     group('nudity category', () {
       test('should be NudeNet-only detection', () {
         expect(VisualContentDefaults.nudity.detectionSource,
-            equals(CategoryDetectionSource.nudeNet));
+            equals(CategoryDetectionSource.nudeNet),);
       });
 
       test('should have NudeNet detection labels', () {
         expect(VisualContentDefaults.nudity.detectionLabels, isNotEmpty);
         expect(VisualContentDefaults.nudity.detectionLabels,
-            contains('FEMALE_BREAST_EXPOSED'));
+            contains('FEMALE_BREAST_EXPOSED'),);
         expect(VisualContentDefaults.nudity.detectionLabels,
-            contains('BUTTOCKS_EXPOSED'));
+            contains('BUTTOCKS_EXPOSED'),);
       });
 
       test('should not have CLIP prompts', () {
@@ -57,13 +57,13 @@ void main() {
 
       test('should use blur action', () {
         expect(VisualContentDefaults.nudity.action,
-            equals(VisualContentAction.blurRegion));
+            equals(VisualContentAction.blurRegion),);
       });
 
       test('all labels should be valid NudeNet class names', () {
         for (final label in VisualContentDefaults.nudity.detectionLabels) {
           expect(NudeNetLabels.classNames, contains(label),
-              reason: 'Label "$label" not found in NudeNet class names');
+              reason: 'Label "$label" not found in NudeNet class names',);
         }
       });
     });
@@ -71,33 +71,33 @@ void main() {
     group('sexualContent category', () {
       test('should use both detection sources', () {
         expect(VisualContentDefaults.sexualContent.detectionSource,
-            equals(CategoryDetectionSource.both));
+            equals(CategoryDetectionSource.both),);
       });
 
       test('should have both NudeNet labels and CLIP prompts', () {
         expect(VisualContentDefaults.sexualContent.detectionLabels, isNotEmpty);
         expect(VisualContentDefaults.sexualContent.clipPrompts, isNotEmpty);
         expect(
-            VisualContentDefaults.sexualContent.clipNegativePrompts, isNotEmpty);
+            VisualContentDefaults.sexualContent.clipNegativePrompts, isNotEmpty,);
       });
 
       test('should use cut action', () {
         expect(VisualContentDefaults.sexualContent.action,
-            equals(VisualContentAction.cutScene));
+            equals(VisualContentAction.cutScene),);
       });
 
       test('CLIP threshold should be in expected range', () {
         expect(VisualContentDefaults.sexualContent.clipThreshold,
-            greaterThan(0));
+            greaterThan(0),);
         expect(VisualContentDefaults.sexualContent.clipThreshold,
-            lessThanOrEqualTo(15));
+            lessThanOrEqualTo(15),);
       });
 
       test('all labels should be valid NudeNet class names', () {
         for (final label
             in VisualContentDefaults.sexualContent.detectionLabels) {
           expect(NudeNetLabels.classNames, contains(label),
-              reason: 'Label "$label" not found in NudeNet class names');
+              reason: 'Label "$label" not found in NudeNet class names',);
         }
       });
     });
@@ -105,7 +105,7 @@ void main() {
     group('kissing category', () {
       test('should be CLIP-only detection', () {
         expect(VisualContentDefaults.kissing.detectionSource,
-            equals(CategoryDetectionSource.clip));
+            equals(CategoryDetectionSource.clip),);
       });
 
       test('should have CLIP prompts but no NudeNet labels', () {
@@ -116,26 +116,26 @@ void main() {
 
       test('should use cut action', () {
         expect(VisualContentDefaults.kissing.action,
-            equals(VisualContentAction.cutScene));
+            equals(VisualContentAction.cutScene),);
       });
     });
 
     group('immodestDress category', () {
       test('should be CLIP-only detection', () {
         expect(VisualContentDefaults.immodestDress.detectionSource,
-            equals(CategoryDetectionSource.clip));
+            equals(CategoryDetectionSource.clip),);
       });
 
       test('should have CLIP prompts but no NudeNet labels', () {
         expect(VisualContentDefaults.immodestDress.detectionLabels, isEmpty);
         expect(VisualContentDefaults.immodestDress.clipPrompts, isNotEmpty);
         expect(
-            VisualContentDefaults.immodestDress.clipNegativePrompts, isNotEmpty);
+            VisualContentDefaults.immodestDress.clipNegativePrompts, isNotEmpty,);
       });
 
       test('should use blur action', () {
         expect(VisualContentDefaults.immodestDress.action,
-            equals(VisualContentAction.blurRegion));
+            equals(VisualContentAction.blurRegion),);
       });
     });
 
@@ -146,16 +146,14 @@ void main() {
         // But verify there are no accidental label typos
         final allLabels = <String>{};
         for (final category in VisualContentDefaults.builtInCategories) {
-          for (final label in category.detectionLabels) {
-            allLabels.add(label);
-          }
+          category.detectionLabels.forEach(allLabels.add);
         }
 
         // All referenced labels should be valid NudeNet labels
         for (final label in allLabels) {
           expect(NudeNetLabels.classNames, contains(label),
               reason: 'Label "$label" used in a category is not a valid '
-                  'NudeNet class name');
+                  'NudeNet class name',);
         }
       });
     });

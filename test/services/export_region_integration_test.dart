@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
-import 'package:kidslens_video_editor/services/export_service.dart';
 import 'package:kidslens_video_editor/native/bindings/ffmpeg_bindings.dart';
+import 'package:kidslens_video_editor/services/export_service.dart';
 import 'package:kidslens_video_editor/services/media_service.dart';
 
 // =============================================================================
@@ -15,22 +15,17 @@ import 'package:kidslens_video_editor/services/media_service.dart';
 /// dummy output file so that [ExportService.export] passes its post-export
 /// verification checks.
 class _MockFFmpegBindings extends FFmpegBindings {
-  _MockFFmpegBindings({
-    this.probeWidth = 1920,
-    this.probeHeight = 1080,
-    this.probeDuration = const Duration(minutes: 5),
-    this.progressSteps = const [0.0, 0.25, 0.5, 0.75, 1.0],
-  }) {
+  _MockFFmpegBindings() {
     // Mark as initialized with a fake path so isAvailable returns true.
     setFFmpegPathForTesting('mock_ffmpeg');
   }
 
-  final int probeWidth;
-  final int probeHeight;
-  final Duration probeDuration;
+  final int probeWidth = 1920;
+  final int probeHeight = 1080;
+  final Duration probeDuration = const Duration(minutes: 5);
 
   /// Progress values to yield from [runFilterComplex].
-  final List<double> progressSteps;
+  final List<double> progressSteps = const [0.0, 0.25, 0.5, 0.75, 1.0];
 
   /// All arguments captured from the most recent [runFilterComplex] call.
   String? capturedInputPath;
@@ -57,7 +52,7 @@ class _MockFFmpegBindings extends FFmpegBindings {
       duration: probeDuration,
       fileSizeBytes: 10000000,
       resolution: Resolution(width: probeWidth, height: probeHeight),
-      frameRate: 30.0,
+      frameRate: 30,
       videoCodec: 'h264',
       audioCodec: 'aac',
     );
@@ -96,7 +91,7 @@ class _MockFFmpegBindings extends FFmpegBindings {
 
 /// A minimal [MediaService] backed by the mock FFmpeg bindings.
 class _MockMediaService extends MediaService {
-  _MockMediaService(_MockFFmpegBindings ffmpeg) : super(ffmpeg);
+  _MockMediaService(_MockFFmpegBindings super.ffmpeg);
 }
 
 // =============================================================================
@@ -109,8 +104,7 @@ TimelineSegment _videoSegment({
   Duration start = const Duration(seconds: 2),
   Duration end = const Duration(seconds: 5),
   String? id,
-}) {
-  return TimelineSegment(
+}) => TimelineSegment(
     id: id ?? 'seg_v_${start.inMilliseconds}_${end.inMilliseconds}',
     start: start,
     end: end,
@@ -118,7 +112,6 @@ TimelineSegment _videoSegment({
     confidence: 0.95,
     modification: modification,
   );
-}
 
 /// Creates an audio [TimelineSegment] with the given modification and time range.
 TimelineSegment _audioSegment({
@@ -126,8 +119,7 @@ TimelineSegment _audioSegment({
   Duration start = const Duration(seconds: 2),
   Duration end = const Duration(seconds: 5),
   String? id,
-}) {
-  return TimelineSegment(
+}) => TimelineSegment(
     id: id ?? 'seg_a_${start.inMilliseconds}_${end.inMilliseconds}',
     start: start,
     end: end,
@@ -135,15 +127,13 @@ TimelineSegment _audioSegment({
     confidence: 0.9,
     modification: modification,
   );
-}
 
 /// Builds a [UnifiedTimeline] from video and audio segments.
 UnifiedTimeline _buildTimeline({
   List<TimelineSegment> videoSegments = const [],
   List<TimelineSegment> audioSegments = const [],
   Duration mediaDuration = const Duration(minutes: 5),
-}) {
-  return UnifiedTimeline(
+}) => UnifiedTimeline(
     id: 'test_timeline',
     mediaDuration: mediaDuration,
     tracks: [
@@ -161,7 +151,6 @@ UnifiedTimeline _buildTimeline({
       ),
     ],
   );
-}
 
 // =============================================================================
 // Tests
@@ -201,7 +190,6 @@ void main() {
           _videoSegment(
             id: 'seg_v_1',
             modification: const Modification.videoRegionBlur(
-              intensity: 50,
               region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
             ),
             start: const Duration(seconds: 1),
@@ -220,7 +208,6 @@ void main() {
         audioSegments: [
           _audioSegment(
             modification: const Modification.audioMute(),
-            start: const Duration(seconds: 2),
             end: const Duration(seconds: 6),
           ),
         ],
@@ -230,13 +217,11 @@ void main() {
       final outputPath = '${tempDir.path}${Platform.pathSeparator}output.mp4';
 
       final progressEvents = <ExportProgress>[];
-      await for (final event in exportService.export(
+      await exportService.export(
         inputPath: inputPath,
         outputPath: outputPath,
         timeline: timeline,
-      )) {
-        progressEvents.add(event);
-      }
+      ).forEach(progressEvents.add);
 
       // Verify progress starts at 0 and ends at 1.
       expect(progressEvents.first.progress, 0.0);
@@ -266,7 +251,6 @@ void main() {
           _videoSegment(
             id: 'seg_v_1',
             modification: const Modification.videoRegionBlur(
-              intensity: 50,
               region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
             ),
             start: const Duration(seconds: 1),
@@ -285,7 +269,6 @@ void main() {
         audioSegments: [
           _audioSegment(
             modification: const Modification.audioMute(),
-            start: const Duration(seconds: 2),
             end: const Duration(seconds: 6),
           ),
         ],
@@ -326,7 +309,6 @@ void main() {
         videoSegments: [
           _videoSegment(
             modification: const Modification.videoRegionBlur(
-              intensity: 50,
               region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
             ),
           ),
@@ -362,7 +344,6 @@ void main() {
           _videoSegment(
             id: 'seg_region_blur',
             modification: const Modification.videoRegionBlur(
-              intensity: 50,
               region: RegionBounds(x: 0.1, y: 0.1, width: 0.2, height: 0.2),
             ),
             start: const Duration(seconds: 1),
@@ -371,15 +352,12 @@ void main() {
           _videoSegment(
             id: 'seg_region_pixelate',
             modification: const Modification.videoRegionPixelate(
-              blockSize: 10,
               region: RegionBounds(x: 0.5, y: 0.5, width: 0.3, height: 0.3),
             ),
-            start: const Duration(seconds: 2),
-            end: const Duration(seconds: 5),
           ),
           _videoSegment(
             id: 'seg_linear_blur',
-            modification: const Modification.videoBlur(intensity: 20),
+            modification: const Modification.videoBlur(),
             start: Duration.zero,
             end: const Duration(seconds: 10),
           ),
@@ -422,15 +400,12 @@ void main() {
           _videoSegment(
             id: 'seg_region',
             modification: const Modification.videoRegionBlur(
-              intensity: 50,
               region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
             ),
-            start: const Duration(seconds: 2),
-            end: const Duration(seconds: 5),
           ),
           _videoSegment(
             id: 'seg_linear',
-            modification: const Modification.videoBlur(intensity: 20),
+            modification: const Modification.videoBlur(),
             start: Duration.zero,
             end: const Duration(seconds: 10),
           ),
@@ -465,7 +440,6 @@ void main() {
           _videoSegment(
             id: 'seg_region_blur',
             modification: const Modification.videoRegionBlur(
-              intensity: 50,
               region: RegionBounds(x: 0.1, y: 0.1, width: 0.2, height: 0.2),
             ),
             start: const Duration(seconds: 1),
@@ -473,7 +447,7 @@ void main() {
           ),
           _videoSegment(
             id: 'seg_linear_blur',
-            modification: const Modification.videoBlur(intensity: 20),
+            modification: const Modification.videoBlur(),
             start: Duration.zero,
             end: const Duration(seconds: 10),
           ),
@@ -561,9 +535,7 @@ void main() {
           _videoSegment(
             id: 'seg_db_1',
             modification: const Modification.videoRegionBlackBox(
-              color: '#000000',
-              opacity: 1.0,
-              region: RegionBounds(x: 0.0, y: 0.0, width: 0.1, height: 0.1),
+              region: RegionBounds(x: 0, y: 0, width: 0.1, height: 0.1),
             ),
             start: const Duration(seconds: 1),
             end: const Duration(seconds: 3),
@@ -618,13 +590,11 @@ void main() {
       final outputPath = '${tempDir.path}${Platform.pathSeparator}output.mp4';
 
       final progressEvents = <ExportProgress>[];
-      await for (final event in exportService.export(
+      await exportService.export(
         inputPath: inputPath,
         outputPath: outputPath,
         timeline: timeline,
-      )) {
-        progressEvents.add(event);
-      }
+      ).forEach(progressEvents.add);
 
       expect(progressEvents.first.progress, 0.0);
       expect(progressEvents.last.progress, 1.0);
@@ -668,13 +638,11 @@ void main() {
       final outputPath = '${tempDir.path}${Platform.pathSeparator}output.mp4';
 
       final progressEvents = <ExportProgress>[];
-      await for (final event in exportService.export(
+      await exportService.export(
         inputPath: inputPath,
         outputPath: outputPath,
         timeline: timeline,
-      )) {
-        progressEvents.add(event);
-      }
+      ).forEach(progressEvents.add);
 
       expect(progressEvents.first.progress, 0.0);
       expect(progressEvents.last.progress, 1.0);
@@ -770,13 +738,11 @@ void main() {
       final outputPath = '${tempDir.path}${Platform.pathSeparator}output.mp4';
 
       final progressEvents = <ExportProgress>[];
-      await for (final event in exportService.export(
+      await exportService.export(
         inputPath: inputPath,
         outputPath: outputPath,
         timeline: timeline,
-      )) {
-        progressEvents.add(event);
-      }
+      ).forEach(progressEvents.add);
 
       // Export completes successfully.
       expect(progressEvents.last.progress, 1.0);
@@ -830,11 +796,8 @@ void main() {
           _videoSegment(
             id: 'seg_region',
             modification: const Modification.videoRegionBlur(
-              intensity: 50,
               region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
             ),
-            start: const Duration(seconds: 2),
-            end: const Duration(seconds: 5),
           ),
         ],
       );

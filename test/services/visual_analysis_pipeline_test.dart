@@ -75,9 +75,7 @@ class MockModelManagerService extends ModelManagerService {
   Map<String, String> modelPaths = {};
 
   @override
-  Future<String?> getModelPath(String modelId) async {
-    return modelPaths[modelId];
-  }
+  Future<String?> getModelPath(String modelId) async => modelPaths[modelId];
 
   @override
   Future<String> get modelsDirectory async => '/fake/models';
@@ -86,9 +84,9 @@ class MockModelManagerService extends ModelManagerService {
 /// Mock NudeNet service that tracks calls and returns configurable regions.
 class MockNudeNetService extends NudeNetService {
   MockNudeNetService({
-    required ONNXBindings onnx,
-    required ModelManagerService modelManager,
-  }) : super(onnx: onnx, modelManager: modelManager);
+    required super.onnx,
+    required super.modelManager,
+  });
 
   /// Number of times [detectRegions] was called.
   int detectRegionsCallCount = 0;
@@ -100,9 +98,7 @@ class MockNudeNetService extends NudeNetService {
   String? modelPathToReturn = '/fake/nudenet/model.onnx';
 
   @override
-  Future<String?> getModelPath([String modelId = 'nudenet-v3-medium']) async {
-    return modelPathToReturn;
-  }
+  Future<String?> getModelPath([String modelId = 'nudenet-v3-medium']) async => modelPathToReturn;
 
   @override
   Future<List<DetectedRegion>> detectRegions({
@@ -122,9 +118,9 @@ class MockNudeNetService extends NudeNetService {
 /// Mock CLIP service that tracks calls and returns configurable scores.
 class MockClipService extends ClipService {
   MockClipService({
-    required ONNXBindings onnx,
-    required ModelManagerService modelManager,
-  }) : super(onnx: onnx, modelManager: modelManager);
+    required super.onnx,
+    required super.modelManager,
+  });
 
   /// Number of times [classifyFrame] was called.
   int classifyFrameCallCount = 0;
@@ -149,9 +145,7 @@ class MockClipService extends ClipService {
   @override
   Future<Map<String, CategoryEmbeddings>> precomputePromptEmbeddings(
     List<VisualContentCategory> categories,
-  ) async {
-    return embeddingsToReturn;
-  }
+  ) async => embeddingsToReturn;
 }
 
 // ==========================================================================
@@ -164,22 +158,19 @@ FrameData _createTestFrame({
   int height = 10,
   Duration timestamp = Duration.zero,
   int frameNumber = 0,
-}) {
-  return FrameData(
+}) => FrameData(
     data: Uint8List(width * height * 3),
     width: width,
     height: height,
     timestamp: timestamp,
     frameNumber: frameNumber,
   );
-}
 
 /// Creates a NudeNet-only visual content category.
 VisualContentCategory _nudeNetCategory({
   String id = 'nudity',
   bool enabled = true,
-}) {
-  return VisualContentCategory(
+}) => VisualContentCategory(
     id: id,
     name: 'Nudity Detection',
     description: 'Detects exposed body parts',
@@ -187,14 +178,12 @@ VisualContentCategory _nudeNetCategory({
     detectionSource: CategoryDetectionSource.nudeNet,
     enabled: enabled,
   );
-}
 
 /// Creates a CLIP-only visual content category.
 VisualContentCategory _clipCategory({
   String id = 'violence-scene',
   bool enabled = true,
-}) {
-  return VisualContentCategory(
+}) => VisualContentCategory(
     id: id,
     name: 'Violence Scene',
     description: 'Detects violent scenes via CLIP',
@@ -203,7 +192,6 @@ VisualContentCategory _clipCategory({
     detectionSource: CategoryDetectionSource.clip,
     enabled: enabled,
   );
-}
 
 /// Creates [VisualAnalysisSettings] with only NSFW enabled plus a
 /// configurable [VisualContentConfig].
@@ -221,10 +209,7 @@ VisualAnalysisSettings _settings({
       ];
 
   return VisualAnalysisSettings(
-    enableNsfw: true,
     enableViolence: false,
-    enableBlood: false,
-    enableWeapons: false,
     visualContentConfig: VisualContentConfig(
       enableNudeNetDetection: enableNudeNet,
       enableClipClassification: enableClip,
@@ -409,7 +394,7 @@ void main() {
             ..embeddingsToReturn = {
               'violence-scene': CategoryEmbeddings(
                 positiveEmbeddings: [List.filled(512, 0.1)],
-                negativeEmbeddings: [List.filled(512, 0.0)],
+                negativeEmbeddings: [List.filled(512, 0)],
               ),
             };
 
@@ -425,7 +410,6 @@ void main() {
           final frame = _createTestFrame();
           final settings = _settings(
             enableNudeNet: false,
-            enableClip: true,
             categories: [category],
           );
 
@@ -433,11 +417,11 @@ void main() {
 
           expect(mockClip.classifyFrameCallCount, equals(1),
               reason: 'CLIP should run when enabled, categories present, '
-                  'and embeddings precomputed');
+                  'and embeddings precomputed',);
           expect(result.visualContent, isNotNull);
           expect(result.visualContent!.clipScores, isNotEmpty);
           expect(
-              result.visualContent!.clipScores['violence-scene'], equals(5.0));
+              result.visualContent!.clipScores['violence-scene'], equals(5.0),);
         },
       );
 
@@ -447,7 +431,7 @@ void main() {
           mockClip.embeddingsToReturn = {
             'violence-scene': CategoryEmbeddings(
               positiveEmbeddings: [List.filled(512, 0.1)],
-              negativeEmbeddings: [List.filled(512, 0.0)],
+              negativeEmbeddings: [List.filled(512, 0)],
             ),
           };
 
@@ -459,7 +443,7 @@ void main() {
 
           // Precompute with a dummy enabled category so _clipEmbeddings is
           // non-empty (isolating the hasClipCategories check).
-          final tempEnabled = _clipCategory(id: 'temp', enabled: true);
+          final tempEnabled = _clipCategory(id: 'temp');
           await service.precomputeClipEmbeddings([tempEnabled]);
 
           final disabledClip = _clipCategory(enabled: false);
@@ -469,8 +453,6 @@ void main() {
           // hasAnyEnabled is true (nudeNet category is enabled) but
           // hasClipCategories is false (CLIP category disabled).
           final settings = _settings(
-            enableNudeNet: true,
-            enableClip: true,
             categories: [disabledClip, enabledNudeNet],
           );
 
@@ -497,7 +479,6 @@ void main() {
           final frame = _createTestFrame();
           final settings = _settings(
             enableNudeNet: false,
-            enableClip: true,
           );
 
           final result = await service.analyzeFrame(frame, settings: settings);
@@ -531,7 +512,6 @@ void main() {
           final frame = _createTestFrame();
           final settings = _settings(
             enableNudeNet: false,
-            enableClip: true,
           );
 
           await service.analyzeFrame(frame, settings: settings);
@@ -571,9 +551,9 @@ void main() {
             await service.analyzeFrame(invalidFrame, settings: settings);
 
         expect(result.nsfw.isSafe, isTrue,
-            reason: 'Invalid frame should return a safe NSFW result');
+            reason: 'Invalid frame should return a safe NSFW result',);
         expect(result.violence.isSafe, isTrue,
-            reason: 'Invalid frame should return a safe violence result');
+            reason: 'Invalid frame should return a safe violence result',);
         expect(result.frameNumber, equals(42));
         expect(
           mockOnnx.runInferenceCallCount,
@@ -597,7 +577,7 @@ void main() {
 
         expect(result.nsfw.isSafe, isTrue,
             reason:
-                'Exception during inference should produce a safe result');
+                'Exception during inference should produce a safe result',);
         expect(result.frameNumber, equals(7));
       });
     });
@@ -634,7 +614,7 @@ void main() {
             ..embeddingsToReturn = {
               'violence-scene': CategoryEmbeddings(
                 positiveEmbeddings: [List.filled(512, 0.1)],
-                negativeEmbeddings: [List.filled(512, 0.0)],
+                negativeEmbeddings: [List.filled(512, 0)],
               ),
             };
 
@@ -651,8 +631,6 @@ void main() {
 
           final frame = _createTestFrame();
           final settings = _settings(
-            enableNudeNet: true,
-            enableClip: true,
             categories: [nudeNetCat, clipCat],
           );
 
@@ -660,13 +638,13 @@ void main() {
 
           expect(result.visualContent, isNotNull);
           expect(result.visualContent!.detectedRegions, isNotEmpty,
-              reason: 'NudeNet regions should be present');
+              reason: 'NudeNet regions should be present',);
           expect(result.visualContent!.detectedRegions.first.label,
-              equals('FEMALE_BREAST_EXPOSED'));
+              equals('FEMALE_BREAST_EXPOSED'),);
           expect(result.visualContent!.clipScores, isNotEmpty,
-              reason: 'CLIP scores should be present');
+              reason: 'CLIP scores should be present',);
           expect(result.visualContent!.clipScores['violence-scene'],
-              equals(7.5));
+              equals(7.5),);
           expect(mockNudeNet.detectRegionsCallCount, equals(1));
           expect(mockClip.classifyFrameCallCount, equals(1));
         },
@@ -685,8 +663,8 @@ void main() {
           const DetectedRegion(
             label: 'BUTTOCKS_EXPOSED',
             confidence: 0.90,
-            x: 0.0,
-            y: 0.0,
+            x: 0,
+            y: 0,
             width: 0.5,
             height: 0.5,
           ),
@@ -702,7 +680,6 @@ void main() {
         final frame = _createTestFrame();
         final nudeNetCat = _nudeNetCategory();
         final settings = _settings(
-          enableNudeNet: true,
           enableClip: false,
           categories: [nudeNetCat],
         );
@@ -722,7 +699,7 @@ void main() {
           ..embeddingsToReturn = {
             'violence-scene': CategoryEmbeddings(
               positiveEmbeddings: [List.filled(512, 0.1)],
-              negativeEmbeddings: [List.filled(512, 0.0)],
+              negativeEmbeddings: [List.filled(512, 0)],
             ),
           };
 
@@ -739,7 +716,6 @@ void main() {
         final frame = _createTestFrame();
         final settings = _settings(
           enableNudeNet: false,
-          enableClip: true,
           categories: [clipCat],
         );
 
@@ -770,7 +746,7 @@ void main() {
             ..embeddingsToReturn = {
               'violence-scene': CategoryEmbeddings(
                 positiveEmbeddings: [List.filled(512, 0.1)],
-                negativeEmbeddings: [List.filled(512, 0.0)],
+                negativeEmbeddings: [List.filled(512, 0)],
               ),
             };
 
@@ -787,8 +763,6 @@ void main() {
 
           final frame = _createTestFrame();
           final settings = _settings(
-            enableNudeNet: true,
-            enableClip: true,
             categories: [nudeNetCat, clipCat],
           );
 
@@ -815,20 +789,17 @@ void main() {
         );
 
         // batchSize 1 ensures every frame triggers a progress yield.
-        final settings = VisualAnalysisSettings(
-          enableNsfw: true,
+        const settings = VisualAnalysisSettings(
           enableViolence: false,
-          enableBlood: false,
-          enableWeapons: false,
           batchSize: 1,
         );
 
         final frames = Stream.fromIterable([
-          _createTestFrame(frameNumber: 0, timestamp: Duration.zero),
+          _createTestFrame(),
           _createTestFrame(
-              frameNumber: 1, timestamp: const Duration(seconds: 1)),
+              frameNumber: 1, timestamp: const Duration(seconds: 1),),
           _createTestFrame(
-              frameNumber: 2, timestamp: const Duration(seconds: 2)),
+              frameNumber: 2, timestamp: const Duration(seconds: 2),),
         ]);
 
         var progressCount = 0;

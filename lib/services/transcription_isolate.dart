@@ -21,8 +21,8 @@ import 'package:path/path.dart' as p;
 /// of throwing a [FormatException].
 String _safeUtf8(Pointer<Utf8> ptr) {
   // Walk the null-terminated string to find its length.
-  int len = 0;
-  while (ptr.cast<Uint8>().elementAt(len).value != 0) {
+  var len = 0;
+  while ((ptr.cast<Uint8>() + len).value != 0) {
     len++;
   }
   final bytes = ptr.cast<Uint8>().asTypedList(len);
@@ -98,10 +98,10 @@ class TranscriptionIsolateParams {
 SendPort? _gSendPort;
 
 /// Progress fraction already accounted for by previous chunks.
-double _gChunkBaseProgress = 0.0;
+double _gChunkBaseProgress = 0;
 
 /// How much of the 0–1 progress range this chunk is responsible for.
-double _gChunkProgressRange = 0.0;
+double _gChunkProgressRange = 0;
 
 /// Absolute millisecond offset of the current chunk within the full audio.
 int _gChunkOffsetMs = 0;
@@ -189,19 +189,19 @@ void chunkedTranscriptionEntry(
 
     final whisperTranscribePcm = lib
         .lookup<NativeFunction<WhisperTranscribePcmNative>>(
-            'kl_whisper_transcribe_pcm')
+            'kl_whisper_transcribe_pcm',)
         .asFunction<WhisperTranscribePcmDart>();
 
     final whisperFreeResult = lib
         .lookup<NativeFunction<WhisperFreeResultNative>>(
-            'kl_whisper_free_result')
+            'kl_whisper_free_result',)
         .asFunction<WhisperFreeResultDart>();
 
     WhisperSetProgressCallbackDart? whisperSetProgressCallback;
     try {
       whisperSetProgressCallback = lib
           .lookup<NativeFunction<WhisperSetProgressCallbackNative>>(
-              'kl_whisper_set_progress_callback')
+              'kl_whisper_set_progress_callback',)
           .asFunction<WhisperSetProgressCallbackDart>();
     } catch (_) {
       // Progress callback may not be available in all builds
@@ -211,19 +211,10 @@ void chunkedTranscriptionEntry(
     try {
       whisperGetError = lib
           .lookup<NativeFunction<WhisperGetErrorNative>>(
-              'kl_whisper_get_error')
+              'kl_whisper_get_error',)
           .asFunction<WhisperGetErrorDart>();
     } catch (_) {
       // Optional
-    }
-
-    WhisperCancelDart? whisperCancel;
-    try {
-      whisperCancel = lib
-          .lookup<NativeFunction<WhisperCancelNative>>('kl_whisper_cancel')
-          .asFunction<WhisperCancelDart>();
-    } catch (_) {
-      // Cancel may not be available in older builds
     }
 
     // ── 3. Load the model ───────────────────────────────────────────────
@@ -248,14 +239,14 @@ void chunkedTranscriptionEntry(
           ? errorPtr.toDartString()
           : 'Unknown error';
       throw WhisperModelLoadException(
-          'Failed to load model in isolate: $error');
+          'Failed to load model in isolate: $error',);
     }
 
     // Register native progress callback (if available)
     if (whisperSetProgressCallback != null) {
       final callbackPtr =
           Pointer.fromFunction<WhisperProgressCallbackNative>(
-              _nativeProgressCallback);
+              _nativeProgressCallback,);
       whisperSetProgressCallback(modelHandle, callbackPtr, nullptr);
     }
 
@@ -275,9 +266,9 @@ void chunkedTranscriptionEntry(
       final totalDurationMs = (totalSamples / kSampleRate * 1000).round();
 
       // ── 5. Compute chunk boundaries ───────────────────────────────────
-      final chunkSamples = kChunkDurationSec * kSampleRate;
-      final overlapSamples = kOverlapDurationSec * kSampleRate;
-      final stepSamples = chunkSamples - overlapSamples;
+      const chunkSamples = kChunkDurationSec * kSampleRate;
+      const overlapSamples = kOverlapDurationSec * kSampleRate;
+      const stepSamples = chunkSamples - overlapSamples;
 
       // Build chunk descriptors (offsets only — no audio data yet)
       final chunkDescs = <({int offset, int length, bool isFirst, bool isLast})>[];
@@ -287,9 +278,9 @@ void chunkedTranscriptionEntry(
           length: totalSamples,
           isFirst: true,
           isLast: true,
-        ));
+        ),);
       } else {
-        int offset = 0;
+        var offset = 0;
         while (offset < totalSamples) {
           final end = (offset + chunkSamples).clamp(0, totalSamples);
           chunkDescs.add((
@@ -297,7 +288,7 @@ void chunkedTranscriptionEntry(
             length: end - offset,
             isFirst: offset == 0,
             isLast: end >= totalSamples,
-          ));
+          ),);
           offset += stepSamples;
           if (end >= totalSamples) break;
         }
@@ -312,7 +303,7 @@ void chunkedTranscriptionEntry(
       String? detectedLanguage;
       final stopwatch = Stopwatch()..start();
 
-      for (int ci = 0; ci < chunkDescs.length; ci++) {
+      for (var ci = 0; ci < chunkDescs.length; ci++) {
         final desc = chunkDescs[ci];
         final chunkOffsetMs =
             (desc.offset / kSampleRate * 1000).round();
@@ -347,23 +338,23 @@ void chunkedTranscriptionEntry(
           Pointer<Utf8>? languagePtr;
 
           try {
-            final config = configPtr.ref;
-            config.nThreads = params.nThreads > 0
-                ? params.nThreads.clamp(1, 32)
-                : Platform.numberOfProcessors.clamp(1, 16);
-            config.useGpu = params.useGpu;
-            config.gpuDevice = 0;
-            config.translate = params.translateToEnglish;
-            config.wordTimestamps = true;
-            config.wordThreshold = 0.01;
-            config.maxSegmentLength = 0;
-            config.splitOnWord = true;
-            config.temperature = 0.0;
-            config.beamSize = params.beamSize;
-            config.entropyThreshold = 2.4;
-            config.suppressBlank = true;
-            config.suppressNonSpeech = true;
-            config.noSpeechThreshold = 0.6;
+            final config = configPtr.ref
+              ..nThreads = params.nThreads > 0
+                  ? params.nThreads.clamp(1, 32)
+                  : Platform.numberOfProcessors.clamp(1, 16)
+              ..useGpu = params.useGpu
+              ..gpuDevice = 0
+              ..translate = params.translateToEnglish
+              ..wordTimestamps = true
+              ..wordThreshold = 0.01
+              ..maxSegmentLength = 0
+              ..splitOnWord = true
+              ..temperature = 0.0
+              ..beamSize = params.beamSize
+              ..entropyThreshold = 2.4
+              ..suppressBlank = true
+              ..suppressNonSpeech = true
+              ..noSpeechThreshold = 0.6;
 
             if (params.language != null && params.language != 'auto') {
               languagePtr = params.language!.toNativeUtf8();
@@ -414,7 +405,7 @@ void chunkedTranscriptionEntry(
 
               // Trim segments in the overlap region so each absolute
               // timestamp is owned by exactly one chunk.
-              final overlapMs = kOverlapDurationSec * 1000;
+              const overlapMs = kOverlapDurationSec * 1000;
               final trimmed = _trimOverlap(
                 chunkSegments,
                 chunkOffsetMs: chunkOffsetMs,
@@ -486,14 +477,14 @@ void chunkedTranscriptionEntry(
         modelId: p.basename(params.modelPath),
       );
 
-      sendPort.send({
-        'type': 'progress',
-        'progress': 1.0,
-        'timestampMs': totalDurationMs,
-        'message': 'Complete!',
-      });
-
-      sendPort.send({'type': 'result', 'transcript': transcript});
+      sendPort
+        ..send({
+          'type': 'progress',
+          'progress': 1.0,
+          'timestampMs': totalDurationMs,
+          'message': 'Complete!',
+        })
+        ..send({'type': 'result', 'transcript': transcript});
       } finally {
         wavReader.close();
       }
@@ -529,12 +520,12 @@ Transcript performTranscriptionInIsolate(TranscriptionIsolateParams params) {
 
   final whisperTranscribeFile = lib
       .lookup<NativeFunction<WhisperTranscribeFileNative>>(
-          'kl_whisper_transcribe_file')
+          'kl_whisper_transcribe_file',)
       .asFunction<WhisperTranscribeFileDart>();
 
   final whisperFreeResult = lib
       .lookup<NativeFunction<WhisperFreeResultNative>>(
-          'kl_whisper_free_result')
+          'kl_whisper_free_result',)
       .asFunction<WhisperFreeResultDart>();
 
   WhisperGetErrorDart? whisperGetError;
@@ -558,7 +549,7 @@ Transcript performTranscriptionInIsolate(TranscriptionIsolateParams params) {
         ? errorPtr.toDartString()
         : 'Unknown error';
     throw WhisperModelLoadException(
-        'Failed to load model in isolate: $error');
+        'Failed to load model in isolate: $error',);
   }
 
   final configPtr = calloc<WhisperConfigNative>();
@@ -566,23 +557,23 @@ Transcript performTranscriptionInIsolate(TranscriptionIsolateParams params) {
   Pointer<Utf8>? languagePtr;
 
   try {
-    final config = configPtr.ref;
-    config.nThreads = params.nThreads > 0
-        ? params.nThreads.clamp(1, 32)
-        : Platform.numberOfProcessors.clamp(1, 16);
-    config.useGpu = params.useGpu;
-    config.gpuDevice = 0;
-    config.translate = params.translateToEnglish;
-    config.wordTimestamps = true;
-    config.wordThreshold = 0.01;
-    config.maxSegmentLength = 0;
-    config.splitOnWord = true;
-    config.temperature = 0.0;
-    config.beamSize = params.beamSize;
-    config.entropyThreshold = 2.4;
-    config.suppressBlank = true;
-    config.suppressNonSpeech = true;
-    config.noSpeechThreshold = 0.6;
+    final config = configPtr.ref
+      ..nThreads = params.nThreads > 0
+          ? params.nThreads.clamp(1, 32)
+          : Platform.numberOfProcessors.clamp(1, 16)
+      ..useGpu = params.useGpu
+      ..gpuDevice = 0
+      ..translate = params.translateToEnglish
+      ..wordTimestamps = true
+      ..wordThreshold = 0.01
+      ..maxSegmentLength = 0
+      ..splitOnWord = true
+      ..temperature = 0.0
+      ..beamSize = params.beamSize
+      ..entropyThreshold = 2.4
+      ..suppressBlank = true
+      ..suppressNonSpeech = true
+      ..noSpeechThreshold = 0.6;
 
     if (params.language != null && params.language != 'auto') {
       languagePtr = params.language!.toNativeUtf8();
@@ -661,17 +652,17 @@ class _WavReader {
     final riff = String.fromCharCodes(header.sublist(0, 4));
     if (riff != 'RIFF') {
       throw WhisperTranscriptionException(
-          'Not a valid WAV file (no RIFF header)');
+          'Not a valid WAV file (no RIFF header)',);
     }
 
     final wave = String.fromCharCodes(header.sublist(8, 12));
     if (wave != 'WAVE') {
       throw WhisperTranscriptionException(
-          'Not a valid WAV file (no WAVE tag)');
+          'Not a valid WAV file (no WAVE tag)',);
     }
 
     // Walk chunks to find "data"
-    int offset = 12;
+    var offset = 12;
     final fileLength = _raf.lengthSync();
 
     while (offset + 8 <= fileLength) {
@@ -718,7 +709,7 @@ class _WavReader {
       rawBytes.lengthInBytes ~/ 2,
     );
     final samples = Float32List(int16View.length);
-    for (int i = 0; i < int16View.length; i++) {
+    for (var i = 0; i < int16View.length; i++) {
       samples[i] = int16View[i] / 32768.0;
     }
     return samples;
@@ -728,31 +719,6 @@ class _WavReader {
   void close() {
     _raf.closeSync();
   }
-}
-
-// ============================================================================
-// Audio chunk descriptor
-// ============================================================================
-
-class _AudioChunk {
-  const _AudioChunk({
-    required this.offsetSamples,
-    required this.samples,
-    required this.isFirst,
-    required this.isLast,
-  });
-
-  /// Offset in samples from the start of the full audio.
-  final int offsetSamples;
-
-  /// Float32 PCM samples for this chunk.
-  final Float32List samples;
-
-  /// Whether this is the first chunk in the sequence.
-  final bool isFirst;
-
-  /// Whether this is the last chunk in the sequence.
-  final bool isLast;
 }
 
 // ============================================================================
@@ -770,11 +736,11 @@ List<TranscriptSegment> _extractSegments(
   final segments = <TranscriptSegment>[];
 
   for (var i = 0; i < result.numSegments; i++) {
-    final nativeSeg = result.segments.elementAt(i).ref;
+    final nativeSeg = (result.segments + i).ref;
 
     final words = <TranscriptWord>[];
     for (var j = 0; j < nativeSeg.numWords; j++) {
-      final nativeWord = nativeSeg.words.elementAt(j).ref;
+      final nativeWord = (nativeSeg.words + j).ref;
       words.add(
         TranscriptWord(
           word: nativeWord.text != nullptr
@@ -856,11 +822,11 @@ Transcript _convertNativeResult(
   final segments = <TranscriptSegment>[];
 
   for (var i = 0; i < result.numSegments; i++) {
-    final nativeSeg = result.segments.elementAt(i).ref;
+    final nativeSeg = (result.segments + i).ref;
 
     final words = <TranscriptWord>[];
     for (var j = 0; j < nativeSeg.numWords; j++) {
-      final nativeWord = nativeSeg.words.elementAt(j).ref;
+      final nativeWord = (nativeSeg.words + j).ref;
       words.add(
         TranscriptWord(
           word: nativeWord.text != nullptr

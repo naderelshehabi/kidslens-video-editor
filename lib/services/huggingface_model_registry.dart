@@ -360,7 +360,6 @@ class HuggingFaceModelRegistry {
       badge: 'Vision Encoder',
       description:
           'CLIP vision encoder for zero-shot scene classification (224x224 input, 512-dim output)',
-      license: 'MIT',
       minVramBytes: 512 * _mb,
     ),
 
@@ -380,7 +379,6 @@ class HuggingFaceModelRegistry {
       badge: 'Text Encoder',
       description:
           'CLIP text encoder for prompt embedding (77 token input, 512-dim output)',
-      license: 'MIT',
     ),
   ];
 

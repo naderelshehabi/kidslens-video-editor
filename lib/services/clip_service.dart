@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
@@ -41,7 +40,7 @@ class ClipService {
 
   /// CLIP's learned temperature parameter (logit_scale = exp(4.6052) ≈ 100)
   /// Applied to cosine similarities to spread the score range.
-  static const double logitScale = 100.0;
+  static const double logitScale = 100;
 
   /// Embedding dimension for CLIP ViT-B/32
   static const int embeddingDim = 512;
@@ -152,8 +151,7 @@ class ClipService {
           clipPrompts: contribution.clipPrompts,
           clipNegativePrompts: contribution.clipNegativePrompts,
           detectionSource: CategoryDetectionSource.clip,
-          enabled: true,
-        ));
+        ),);
       }
     }
 
@@ -183,7 +181,6 @@ class ClipService {
       rgbData: rgbData,
       width: width,
       height: height,
-      isVisionModel: true,
     );
 
     // Compute discriminative score per category
@@ -225,7 +222,7 @@ class ClipService {
     }
 
     // If no positive prompts, return 0
-    if (categoryEmbeddings.positiveEmbeddings.isEmpty) return 0.0;
+    if (categoryEmbeddings.positiveEmbeddings.isEmpty) return 0;
 
     return maxPositive - maxNegative;
   }
@@ -253,7 +250,7 @@ class ClipService {
     final cacheFile = File('$cacheDir/$cacheKey.bin');
 
     // Try loading from disk cache
-    if (await cacheFile.exists()) {
+    if (cacheFile.existsSync()) {
       final embedding = await _loadEmbeddingFromDisk(cacheFile);
       if (embedding != null) return embedding;
       // Corrupted cache entry, delete and recompute
@@ -356,14 +353,10 @@ class ClipService {
   }
 
   /// Get the path to the CLIP vision encoder model.
-  Future<String?> _getVisionModelPath() async {
-    return modelManager.getModelPath('clip-vit-b32-vision-fp16');
-  }
+  Future<String?> _getVisionModelPath() async => modelManager.getModelPath('clip-vit-b32-vision-fp16');
 
   /// Get the path to the CLIP text encoder model.
-  Future<String?> _getTextModelPath() async {
-    return modelManager.getModelPath('clip-vit-b32-text-fp16');
-  }
+  Future<String?> _getTextModelPath() async => modelManager.getModelPath('clip-vit-b32-text-fp16');
 
   /// Clean up cache entries not accessed for [maxAge].
   Future<void> cleanupCache({
@@ -371,12 +364,12 @@ class ClipService {
   }) async {
     try {
       final cacheDir = Directory(await _getCacheDirectory());
-      if (!await cacheDir.exists()) return;
+      if (!cacheDir.existsSync()) return;
 
       final cutoff = DateTime.now().subtract(maxAge);
       await for (final entity in cacheDir.list()) {
         if (entity is File && entity.path.endsWith('.bin')) {
-          final stat = await entity.stat();
+          final stat = entity.statSync();
           if (stat.accessed.isBefore(cutoff)) {
             await entity.delete();
           }

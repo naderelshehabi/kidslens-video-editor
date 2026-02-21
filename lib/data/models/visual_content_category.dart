@@ -45,7 +45,9 @@ class VisualContentCategory with _$VisualContentCategory {
     /// Description of what this category detects
     required String description,
 
-    /// NudeNet class labels for detection (empty for CLIP-only categories)
+    /// Detection source (nudeNet, clip, or both)
+    @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
+    required CategoryDetectionSource detectionSource, /// NudeNet class labels for detection (empty for CLIP-only categories)
     @Default([]) List<String> detectionLabels,
 
     /// CLIP positive prompts for zero-shot classification
@@ -53,10 +55,6 @@ class VisualContentCategory with _$VisualContentCategory {
 
     /// CLIP negative prompts for discriminative scoring
     @Default([]) List<String> clipNegativePrompts,
-
-    /// Detection source (nudeNet, clip, or both)
-    @JsonKey(unknownEnumValue: CategoryDetectionSource.clip)
-    required CategoryDetectionSource detectionSource,
 
     /// Whether this category is enabled
     @Default(true) bool enabled,

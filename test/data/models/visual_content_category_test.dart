@@ -59,7 +59,7 @@ void main() {
           clipNegativePrompts: ['negative 1'],
           enabled: false,
           threshold: 0.7,
-          clipThreshold: 5.0,
+          clipThreshold: 5,
           action: VisualContentAction.cutScene,
           iconName: 'shield',
           isBuiltIn: false,
@@ -141,7 +141,6 @@ void main() {
           name: 'A',
           description: 'A',
           detectionSource: CategoryDetectionSource.clip,
-          action: VisualContentAction.blurRegion,
         );
         const clipCut = VisualContentCategory(
           id: 'b',
@@ -155,7 +154,6 @@ void main() {
           name: 'C',
           description: 'C',
           detectionSource: CategoryDetectionSource.nudeNet,
-          action: VisualContentAction.blurRegion,
         );
 
         expect(clipBlur.isFullFrameEffect, isTrue);
@@ -171,8 +169,6 @@ void main() {
           name: 'Original',
           description: 'Desc',
           detectionSource: CategoryDetectionSource.nudeNet,
-          threshold: 0.5,
-          enabled: true,
         );
 
         final copy = original.copyWith(
@@ -201,7 +197,6 @@ void main() {
           detectionSource: CategoryDetectionSource.nudeNet,
           detectionLabels: ['FEMALE_BREAST_EXPOSED', 'BUTTOCKS_EXPOSED'],
           threshold: 0.45,
-          action: VisualContentAction.blurRegion,
           iconName: 'visibility_off',
         );
 
@@ -271,7 +266,6 @@ void main() {
           detectionSource: CategoryDetectionSource.clip,
           clipPrompts: ['two people kissing'],
           clipNegativePrompts: ['two people talking'],
-          clipThreshold: 3.0,
           action: VisualContentAction.cutScene,
         );
 

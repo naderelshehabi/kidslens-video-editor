@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kidslens_video_editor/data/models/frame_analysis_result.dart';
 import 'package:kidslens_video_editor/data/models/visual_content_category.dart';
 import 'package:kidslens_video_editor/native/bindings/onnx_bindings.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
@@ -284,8 +283,8 @@ void main() {
         classId: 12,
         className: 'FACE_MALE',
         confidence: 0.60,
-        x: 0.0,
-        y: 0.0,
+        x: 0,
+        y: 0,
         width: 0.5,
         height: 0.5,
       );
@@ -381,7 +380,6 @@ void main() {
         _category(
           id: 'face',
           detectionLabels: ['FACE_MALE'],
-          enabled: true,
         ),
       ];
 
@@ -417,13 +415,10 @@ void main() {
           id: 'clip-only',
           detectionLabels: ['FEMALE_BREAST_EXPOSED'],
           detectionSource: CategoryDetectionSource.clip,
-          enabled: true,
         ),
         _category(
           id: 'face',
           detectionLabels: ['FACE_MALE'],
-          detectionSource: CategoryDetectionSource.nudeNet,
-          enabled: true,
         ),
       ];
 
@@ -445,8 +440,8 @@ void main() {
         classId: 7,
         className: 'FEET_EXPOSED',
         confidence: 0.55,
-        x: 0.0,
-        y: 0.0,
+        x: 0,
+        y: 0,
         width: 0.1,
         height: 0.1,
       );
@@ -484,7 +479,6 @@ void main() {
           id: 'buttocks',
           detectionLabels: ['BUTTOCKS_EXPOSED'],
           detectionSource: CategoryDetectionSource.both,
-          enabled: true,
         ),
       ];
 

@@ -133,7 +133,7 @@ void main() {
 
       testWidgets('count badge text matches regions.length', (tester) async {
         final twoRegions = [
-          const DetectionRegion(x: 0.0, y: 0.0, width: 0.5, height: 0.5),
+          const DetectionRegion(x: 0, y: 0, width: 0.5, height: 0.5),
           const DetectionRegion(x: 0.5, y: 0.5, width: 0.5, height: 0.5),
         ];
 
@@ -198,7 +198,7 @@ void main() {
         await tester.pumpWidget(createWidget(
           regions: multipleRegions,
           showLabels: true,
-        ));
+        ),);
 
         // Count badge is only shown when !showLabels
         expect(
@@ -211,7 +211,7 @@ void main() {
         await tester.pumpWidget(createWidget(
           regions: multipleRegions,
           showLabels: true,
-        ));
+        ),);
 
         expect(
           descendantOfOverlay(find.byType(CustomPaint)),
@@ -224,7 +224,7 @@ void main() {
           regions: multipleRegions,
           showLabels: true,
           showConfidence: true,
-        ));
+        ),);
 
         expect(find.byType(DetectionRegionOverlay), findsOneWidget);
       });
@@ -234,7 +234,7 @@ void main() {
       testWidgets('child is rendered in the stack', (tester) async {
         await tester.pumpWidget(createWidget(
           child: const Placeholder(key: Key('test-child')),
-        ));
+        ),);
 
         expect(find.byKey(const Key('test-child')), findsOneWidget);
         expect(
@@ -254,7 +254,7 @@ void main() {
             ),
           ],
           child: const Placeholder(key: Key('test-child')),
-        ));
+        ),);
 
         // Both child and CustomPaint should be present
         expect(
@@ -276,8 +276,8 @@ void main() {
 
         // The child (Placeholder) should come before the Positioned.fill
         // containing CustomPaint in the Stack's children list
-        int childIndex = -1;
-        int paintIndex = -1;
+        var childIndex = -1;
+        var paintIndex = -1;
         for (var i = 0; i < children.length; i++) {
           if (children[i] is Placeholder) {
             childIndex = i;
@@ -291,13 +291,13 @@ void main() {
         }
 
         expect(childIndex, greaterThanOrEqualTo(0),
-            reason: 'Child should be in Stack');
+            reason: 'Child should be in Stack',);
         expect(paintIndex, greaterThan(childIndex),
-            reason: 'CustomPaint overlay should be after child in Stack');
+            reason: 'CustomPaint overlay should be after child in Stack',);
       });
 
       testWidgets('renders without child when child is null', (tester) async {
-        await tester.pumpWidget(createWidget(child: null));
+        await tester.pumpWidget(createWidget());
 
         expect(find.byType(DetectionRegionOverlay), findsOneWidget);
         // Stack and CustomPaint still exist within the overlay
@@ -335,10 +335,10 @@ void main() {
 
       test('construction with optional fields null', () {
         const region = DetectionRegion(
-          x: 0.0,
-          y: 0.0,
-          width: 1.0,
-          height: 1.0,
+          x: 0,
+          y: 0,
+          width: 1,
+          height: 1,
         );
 
         expect(region.x, equals(0.0));
@@ -386,8 +386,8 @@ void main() {
 
       testWidgets('handles regions with zero dimensions', (tester) async {
         final zeroRegions = [
-          const DetectionRegion(x: 0.5, y: 0.5, width: 0.0, height: 0.0),
-          const DetectionRegion(x: 0.0, y: 0.0, width: 0.0, height: 0.0),
+          const DetectionRegion(x: 0.5, y: 0.5, width: 0, height: 0),
+          const DetectionRegion(x: 0, y: 0, width: 0, height: 0),
         ];
 
         await tester.pumpWidget(createWidget(regions: zeroRegions));
@@ -398,8 +398,8 @@ void main() {
 
       testWidgets('handles regions at boundary coordinates', (tester) async {
         final boundaryRegions = [
-          const DetectionRegion(x: 0.0, y: 0.0, width: 1.0, height: 1.0),
-          const DetectionRegion(x: 1.0, y: 1.0, width: 0.0, height: 0.0),
+          const DetectionRegion(x: 0, y: 0, width: 1, height: 1),
+          const DetectionRegion(x: 1, y: 1, width: 0, height: 0),
         ];
 
         await tester.pumpWidget(createWidget(regions: boundaryRegions));

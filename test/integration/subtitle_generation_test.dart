@@ -28,7 +28,7 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
       const MethodChannel('plugins.flutter.io/path_provider'),
-      (MethodCall methodCall) async {
+      (methodCall) async {
         if (methodCall.method == 'getApplicationSupportDirectory') {
           final tempDir =
               Directory.systemTemp.createTempSync('test_app_support_');
@@ -107,7 +107,7 @@ void main() {
       final whisper2 = container.read(whisperBindingsProvider);
       // Should already be initialized since same instance
       expect(
-          whisper2.isModelLoaded(), isFalse); // Initialized but no model loaded
+          whisper2.isModelLoaded(), isFalse,); // Initialized but no model loaded
     });
   });
 
@@ -244,21 +244,21 @@ void main() {
 
   group('Subtitle Track Generation', () {
     test('should create SubtitleTrack from Transcript', () {
-      final transcript = Transcript(
+      const transcript = Transcript(
         segments: [
           TranscriptSegment(
             id: 'seg1',
             text: 'Hello world',
             startTime: Duration.zero,
-            endTime: const Duration(seconds: 2),
-            words: const [],
+            endTime: Duration(seconds: 2),
+            words: [],
           ),
           TranscriptSegment(
             id: 'seg2',
             text: 'This is a test',
-            startTime: const Duration(seconds: 2),
-            endTime: const Duration(seconds: 5),
-            words: const [],
+            startTime: Duration(seconds: 2),
+            endTime: Duration(seconds: 5),
+            words: [],
           ),
         ],
         language: 'en',
@@ -279,24 +279,24 @@ void main() {
       expect(subtitleTrack.segments[0].text, equals('Hello world'));
       expect(subtitleTrack.segments[0].startTime, equals(Duration.zero));
       expect(subtitleTrack.segments[0].endTime,
-          equals(const Duration(seconds: 2)));
+          equals(const Duration(seconds: 2)),);
 
       expect(subtitleTrack.segments[1].text, equals('This is a test'));
       expect(subtitleTrack.segments[1].startTime,
-          equals(const Duration(seconds: 2)));
+          equals(const Duration(seconds: 2)),);
       expect(subtitleTrack.segments[1].endTime,
-          equals(const Duration(seconds: 5)));
+          equals(const Duration(seconds: 5)),);
     });
 
     test('should convert SubtitleTrack back to Transcript', () {
-      final originalTranscript = Transcript(
+      const originalTranscript = Transcript(
         segments: [
           TranscriptSegment(
             id: 'seg1',
             text: 'Original text',
-            startTime: const Duration(milliseconds: 500),
-            endTime: const Duration(seconds: 3),
-            words: const [],
+            startTime: Duration(milliseconds: 500),
+            endTime: Duration(seconds: 3),
+            words: [],
           ),
         ],
         language: 'es',
@@ -346,16 +346,16 @@ void main() {
         language: 'en',
         createdAt: DateTime.now(),
         segments: [
-          SubtitleSegment(
+          const SubtitleSegment(
             id: 'seg1',
             startTime: Duration.zero,
-            endTime: const Duration(seconds: 2, milliseconds: 500),
+            endTime: Duration(seconds: 2, milliseconds: 500),
             text: 'First subtitle line',
           ),
-          SubtitleSegment(
+          const SubtitleSegment(
             id: 'seg2',
-            startTime: const Duration(seconds: 3),
-            endTime: const Duration(seconds: 5),
+            startTime: Duration(seconds: 3),
+            endTime: Duration(seconds: 5),
             text: 'Second subtitle line',
           ),
         ],
@@ -411,15 +411,15 @@ void main() {
     });
 
     test('SRT timestamps should be properly formatted', () {
-      final transcript = Transcript(
+      const transcript = Transcript(
         segments: [
           TranscriptSegment(
             id: 'seg',
             text: 'Test',
-            startTime: const Duration(
-                hours: 1, minutes: 23, seconds: 45, milliseconds: 678),
-            endTime: const Duration(hours: 2),
-            words: const [],
+            startTime: Duration(
+                hours: 1, minutes: 23, seconds: 45, milliseconds: 678,),
+            endTime: Duration(hours: 2),
+            words: [],
           ),
         ],
         language: 'en',
@@ -436,14 +436,14 @@ void main() {
     });
 
     test('VTT timestamps should use dot as millisecond separator', () {
-      final transcript = Transcript(
+      const transcript = Transcript(
         segments: [
           TranscriptSegment(
             id: 'seg',
             text: 'Test',
-            startTime: const Duration(seconds: 10, milliseconds: 123),
-            endTime: const Duration(seconds: 15, milliseconds: 456),
-            words: const [],
+            startTime: Duration(seconds: 10, milliseconds: 123),
+            endTime: Duration(seconds: 15, milliseconds: 456),
+            words: [],
           ),
         ],
         language: 'en',
@@ -564,7 +564,7 @@ void main() {
       // The asrService.whisper should now be initialized
       // (it's the same object)
       expect(
-        () => asrService.whisper.isModelLoaded(),
+        asrService.whisper.isModelLoaded,
         returnsNormally,
         reason:
             'AsrService.whisper should be initialized after provider initialization',
@@ -584,15 +584,13 @@ List<int> _createMinimalWavFile() {
   const bytesPerSample = bitsPerSample ~/ 8;
   const dataSize = numSamples * numChannels * bytesPerSample;
 
-  final bytes = <int>[];
-
   // RIFF header
-  bytes.addAll('RIFF'.codeUnits);
+  final bytes = <int>[...'RIFF'.codeUnits];
   _addInt32LE(bytes, 36 + dataSize); // File size - 8
-  bytes.addAll('WAVE'.codeUnits);
-
-  // fmt subchunk
-  bytes.addAll('fmt '.codeUnits);
+  bytes
+    ..addAll('WAVE'.codeUnits)
+    // fmt subchunk
+    ..addAll('fmt '.codeUnits);
   _addInt32LE(bytes, 16); // Subchunk1Size (16 for PCM)
   _addInt16LE(bytes, 1); // AudioFormat (1 = PCM)
   _addInt16LE(bytes, numChannels);
@@ -614,13 +612,15 @@ List<int> _createMinimalWavFile() {
 }
 
 void _addInt16LE(List<int> bytes, int value) {
-  bytes.add(value & 0xFF);
-  bytes.add((value >> 8) & 0xFF);
+  bytes
+    ..add(value & 0xFF)
+    ..add((value >> 8) & 0xFF);
 }
 
 void _addInt32LE(List<int> bytes, int value) {
-  bytes.add(value & 0xFF);
-  bytes.add((value >> 8) & 0xFF);
-  bytes.add((value >> 16) & 0xFF);
-  bytes.add((value >> 24) & 0xFF);
+  bytes
+    ..add(value & 0xFF)
+    ..add((value >> 8) & 0xFF)
+    ..add((value >> 16) & 0xFF)
+    ..add((value >> 24) & 0xFF);
 }

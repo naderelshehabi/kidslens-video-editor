@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kidslens_video_editor/data/models/analysis_settings.dart';
 import 'package:kidslens_video_editor/data/models/huggingface_model.dart';
 import 'package:kidslens_video_editor/services/huggingface_model_registry.dart';
 import 'package:kidslens_video_editor/services/visual_analysis_service.dart';
@@ -285,13 +284,13 @@ void main() {
 
       // Verify model IDs are correctly passed through
       expect(analysisSettings.modelConfig.nsfwModelId,
-          equals('nsfw-efficientnet-b4'));
+          equals('nsfw-efficientnet-b4'),);
       expect(analysisSettings.modelConfig.violenceModelId,
-          equals('violence-vit-base'));
+          equals('violence-vit-base'),);
       expect(analysisSettings.modelConfig.bloodModelId,
-          equals('gore-efficientnet-b2'));
+          equals('gore-efficientnet-b2'),);
       expect(analysisSettings.modelConfig.weaponsModelId,
-          equals('weapons-detr-resnet50'));
+          equals('weapons-detr-resnet50'),);
     });
 
     test('should use default model IDs when not specified', () {
@@ -303,13 +302,13 @@ void main() {
 
       // Verify default model IDs are used
       expect(analysisSettings.modelConfig.nsfwModelId,
-          equals('nsfw-mobilenet-v2'));
+          equals('nsfw-mobilenet-v2'),);
       expect(analysisSettings.modelConfig.violenceModelId,
-          equals('violence-mobilenet'));
+          equals('violence-mobilenet'),);
       expect(analysisSettings.modelConfig.bloodModelId,
-          equals('gore-efficientnet-b2'));
+          equals('gore-efficientnet-b2'),);
       expect(analysisSettings.modelConfig.weaponsModelId,
-          equals('weapons-yolov8-small'));
+          equals('weapons-yolov8-small'),);
     });
 
     test('default model IDs should exist in registry', () {

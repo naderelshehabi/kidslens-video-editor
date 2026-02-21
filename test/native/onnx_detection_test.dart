@@ -19,7 +19,7 @@ import 'package:kidslens_video_editor/services/region_temporal_aggregator.dart';
   int srcH,
   int targetSize,
 ) {
-  final scale = min(targetSize / srcW, targetSize / srcH).toDouble();
+  final scale = min(targetSize / srcW, targetSize / srcH);
   final newW = (srcW * scale).round();
   final newH = (srcH * scale).round();
   final padX = (targetSize - newW) / 2.0;
@@ -142,7 +142,7 @@ void main() {
       final lb = computeLetterbox(origW, origH, inputSize);
 
       // Box at center: normalized (0.25, 0.25, 0.5, 0.5) in input space
-      final box = DetectionBox(
+      const box = DetectionBox(
         classId: 0,
         className: 'person',
         confidence: 0.9,
@@ -174,7 +174,7 @@ void main() {
 
       // A box centered in the letterboxed image at (0.5, 0.5) in normalized input coords
       // should map to the center of the original image
-      final box = DetectionBox(
+      const box = DetectionBox(
         classId: 0,
         className: 'person',
         confidence: 0.85,
@@ -207,7 +207,7 @@ void main() {
       expect(lb.padY, closeTo(140.0, 1e-6));
 
       // Box centered in letterbox space
-      final box = DetectionBox(
+      const box = DetectionBox(
         classId: 1,
         className: 'car',
         confidence: 0.7,
@@ -240,7 +240,7 @@ void main() {
       // Box at very bottom-right of the actual image area in letterbox space
       // The image area in letterbox is x=[0, 640], y=[140, 500]
       // Normalized: x ~ 1.0, y ~ 500/640 ~ 0.78125
-      final box = DetectionBox(
+      const box = DetectionBox(
         classId: 0,
         className: 'person',
         confidence: 0.6,
@@ -273,12 +273,12 @@ void main() {
 
       final lb = computeLetterbox(origW, origH, inputSize);
 
-      final box = DetectionBox(
+      const box = DetectionBox(
         classId: 0,
         className: 'face',
         confidence: 0.95,
-        x: 0.0,
-        y: 0.0,
+        x: 0,
+        y: 0,
         width: 0.1,
         height: 0.1,
       );
@@ -307,7 +307,7 @@ void main() {
 
       // Box starts inside left padding at x = 100/640 ≈ 0.15625
       // padX is 140, so this is within the padding zone
-      final box = DetectionBox(
+      const box = DetectionBox(
         classId: 2,
         className: 'weapon',
         confidence: 0.4,
@@ -353,7 +353,7 @@ void main() {
       // Box near top-left: x=0.0, y=0.0, w=0.1, h=0.1
       // padX = 0.1 * 0.1 = 0.01 => new x = -0.01 => clamped to 0
       // padY = 0.1 * 0.1 = 0.01 => new y = -0.01 => clamped to 0
-      final padded = TrackedRegion.padAndClamp(0.0, 0.0, 0.1, 0.1);
+      final padded = TrackedRegion.padAndClamp(0, 0, 0.1, 0.1);
 
       expect(padded.x, closeTo(0.0, 1e-9));
       expect(padded.y, closeTo(0.0, 1e-9));
@@ -379,7 +379,7 @@ void main() {
       // Large box: x=0.0, y=0.0, w=0.95, h=0.95
       // padX = 0.95 * 0.1 = 0.095 => new x = -0.095 => 0.0
       // new w = 0.95 + 0.19 = 1.14 => clamped to min(1.14, 1.0 - 0.0) = 1.0
-      final padded = TrackedRegion.padAndClamp(0.0, 0.0, 0.95, 0.95);
+      final padded = TrackedRegion.padAndClamp(0, 0, 0.95, 0.95);
 
       expect(padded.x, closeTo(0.0, 1e-9));
       expect(padded.y, closeTo(0.0, 1e-9));
@@ -416,7 +416,7 @@ void main() {
       // Detection in letterbox pixel space at center: pixel (320, 320)
       // Normalized in input: (320/640, 320/640) = (0.5, 0.5)
       // Size in letterbox: 64x128 pixels => normalized (64/640, 128/640) = (0.1, 0.2)
-      final detectionBox = DetectionBox(
+      const detectionBox = DetectionBox(
         classId: 0,
         className: 'person',
         confidence: 0.88,
@@ -456,7 +456,7 @@ void main() {
       expect(lb.padY, closeTo(185.0, 1e-6));
 
       // Detection at normalized (0.5, 0.5) in input space, size (0.15, 0.1)
-      final detectionBox = DetectionBox(
+      const detectionBox = DetectionBox(
         classId: 1,
         className: 'knife',
         confidence: 0.72,
@@ -493,12 +493,12 @@ void main() {
 
       // Box that extends beyond the actual image area (into the gray padding)
       // Normalized (0.0, 0.0) in input space -- this is in the top padding
-      final detectionBox = DetectionBox(
+      const detectionBox = DetectionBox(
         classId: 0,
         className: 'gun',
         confidence: 0.55,
-        x: 0.0,
-        y: 0.0,
+        x: 0,
+        y: 0,
         width: 0.05,
         height: 0.05,
       );
@@ -527,7 +527,7 @@ void main() {
 
       // Simulate a detection at letterbox pixel (250, 200) with size 80x100
       // Normalized: x = 250/640, y = 200/640, w = 80/640, h = 100/640
-      final detectionBox = DetectionBox(
+      const detectionBox = DetectionBox(
         classId: 0,
         className: 'person',
         confidence: 0.92,
@@ -576,7 +576,7 @@ void main() {
       final lb = computeLetterbox(origW, origH, inputSize);
 
       // Detection at extreme right of letterbox: pixel (620, 400)
-      final detectionBox = DetectionBox(
+      const detectionBox = DetectionBox(
         classId: 3,
         className: 'blood',
         confidence: 0.65,

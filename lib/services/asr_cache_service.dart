@@ -79,8 +79,7 @@ class AsrCacheService {
   Future<void> store({
     required String audioPath,
     required String modelId,
-    String? language,
-    required Transcript transcript,
+    required Transcript transcript, String? language,
   }) async {
     if (_cacheDir == null) await init();
     try {

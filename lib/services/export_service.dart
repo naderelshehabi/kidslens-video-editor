@@ -149,7 +149,7 @@ class ExportService {
     final hasRegionMods = videoMods.any((m) =>
         m.modification is VideoRegionBlur ||
         m.modification is VideoRegionPixelate ||
-        m.modification is VideoRegionBlackBox);
+        m.modification is VideoRegionBlackBox,);
 
     if (hasRegionMods) {
       try {
@@ -193,13 +193,12 @@ class ExportService {
     // For long filter graphs, write to temp file to avoid command-line length limits
     File? filterScriptFile;
     try {
-      String effectiveFilterComplex = filterComplex;
+      var effectiveFilterComplex = filterComplex;
       if (filterComplex.length > _maxFilterComplexLength) {
         filterScriptFile = File(p.join(
           p.dirname(outputPath),
           '.kidslens_filter_${DateTime.now().millisecondsSinceEpoch}.txt',
-        ));
-        filterScriptFile.writeAsStringSync(filterComplex);
+        ),)..writeAsStringSync(filterComplex);
         // Empty string signals ffmpeg bindings to skip -filter_complex arg;
         // we'll pass -filter_complex_script via outputSettings instead
         effectiveFilterComplex = '';
@@ -291,7 +290,7 @@ class ExportService {
     // Stage 3: Linear full-frame mods applied last
     // Subtitle burn-in appended at the very end
 
-    String videoInput = '[0:v]';
+    var videoInput = '[0:v]';
 
     // Stage 1: Region mods (only if we have video dimensions)
     if (regionMods.isNotEmpty && videoWidth != null && videoHeight != null) {
@@ -487,8 +486,8 @@ class ExportService {
       // Extract region bounds from the modification
       final RegionBounds region;
       final bool isPixelate;
-      int blurIntensity = 50;
-      int pixelateBlockSize = 10;
+      var blurIntensity = 50;
+      var pixelateBlockSize = 10;
 
       switch (mod.modification) {
         case VideoRegionBlur(:final intensity, region: final r):
@@ -533,8 +532,9 @@ class ExportService {
       if (i == 0) {
         // First region: caller already prepended the video input label
         // split=2[base0][c0];[c0]crop...effect[b0];[base0][b0]overlay...[rv0]
-        parts.add('split=2[base0][c0]');
-        parts.add('[c0]crop=$cropW:$cropH:$cropX:$cropY,$effectFilter[b0]');
+        parts
+          ..add('split=2[base0][c0]')
+          ..add('[c0]crop=$cropW:$cropH:$cropX:$cropY,$effectFilter[b0]');
         if (isLast) {
           parts.add("[base0][b0]overlay=x=$cropX:y=$cropY:enable='$enable'");
         } else {
@@ -543,8 +543,9 @@ class ExportService {
         }
       } else {
         // Subsequent regions chain from previous output
-        parts.add('${lastOutputLabel}split=2[base$i][c$i]');
-        parts.add('[c$i]crop=$cropW:$cropH:$cropX:$cropY,$effectFilter[b$i]');
+        parts
+          ..add('${lastOutputLabel}split=2[base$i][c$i]')
+          ..add('[c$i]crop=$cropW:$cropH:$cropX:$cropY,$effectFilter[b$i]');
         if (isLast) {
           parts.add("[base$i][b$i]overlay=x=$cropX:y=$cropY:enable='$enable'");
         } else {

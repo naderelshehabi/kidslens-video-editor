@@ -56,9 +56,7 @@ class MockModelManagerService extends ModelManagerService {
   Map<String, String> modelPaths = {};
 
   @override
-  Future<String?> getModelPath(String modelId) async {
-    return modelPaths[modelId];
-  }
+  Future<String?> getModelPath(String modelId) async => modelPaths[modelId];
 
   @override
   Future<String> get modelsDirectory async => '/fake/models';
@@ -74,41 +72,32 @@ FrameData _createTestFrame({
   int height = 10,
   Duration timestamp = Duration.zero,
   int frameNumber = 0,
-}) {
-  return FrameData(
+}) => FrameData(
     data: Uint8List(width * height * 3),
     width: width,
     height: height,
     timestamp: timestamp,
     frameNumber: frameNumber,
   );
-}
 
 /// Creates a list of sequential test frames.
-List<FrameData> _createTestFrames(int count) {
-  return List.generate(
+List<FrameData> _createTestFrames(int count) => List.generate(
     count,
     (i) => _createTestFrame(
       frameNumber: i,
       timestamp: Duration(milliseconds: i * 500),
     ),
   );
-}
 
 /// Creates settings for cancellation tests with the given batch size.
 ///
 /// Only NSFW is enabled (the simplest path through _processBatch) to keep
 /// the tests focused on cancellation semantics rather than multi-model
 /// interactions.
-VisualAnalysisSettings _cancellationSettings({int batchSize = 1}) {
-  return VisualAnalysisSettings(
-    enableNsfw: true,
+VisualAnalysisSettings _cancellationSettings({int batchSize = 1}) => VisualAnalysisSettings(
     enableViolence: false,
-    enableBlood: false,
-    enableWeapons: false,
     batchSize: batchSize,
   );
-}
 
 // ==========================================================================
 // Tests
@@ -141,7 +130,7 @@ void main() {
       test('cancelling after first progress event stops processing early',
           () async {
         final frames = Stream.fromIterable(_createTestFrames(10));
-        final settings = _cancellationSettings(batchSize: 1);
+        final settings = _cancellationSettings();
 
         final progress = <VisualAnalysisProgress>[];
         await for (final p in service.analyzeFrames(frames, settings)) {
@@ -163,7 +152,7 @@ void main() {
       test('cancelling after second progress yields fewer than total events',
           () async {
         final frames = Stream.fromIterable(_createTestFrames(10));
-        final settings = _cancellationSettings(batchSize: 1);
+        final settings = _cancellationSettings();
 
         final progress = <VisualAnalysisProgress>[];
         await for (final p in service.analyzeFrames(frames, settings)) {
@@ -180,12 +169,10 @@ void main() {
 
       test('without cancellation all frames are processed', () async {
         final frames = Stream.fromIterable(_createTestFrames(5));
-        final settings = _cancellationSettings(batchSize: 1);
+        final settings = _cancellationSettings();
 
         final progress = <VisualAnalysisProgress>[];
-        await for (final p in service.analyzeFrames(frames, settings)) {
-          progress.add(p);
-        }
+        await service.analyzeFrames(frames, settings).forEach(progress.add);
 
         expect(progress.length, equals(5));
         expect(progress.last.framesProcessed, equals(5));
@@ -201,7 +188,7 @@ void main() {
           () async {
         // First analysis: cancel immediately on first yield.
         final frames1 = Stream.fromIterable(_createTestFrames(5));
-        final settings = _cancellationSettings(batchSize: 1);
+        final settings = _cancellationSettings();
 
         await for (final _ in service.analyzeFrames(frames1, settings)) {
           service.cancelAnalysis();
@@ -212,9 +199,7 @@ void main() {
         // start of analyzeFrames, so all frames should be processed.
         final frames2 = Stream.fromIterable(_createTestFrames(3));
         final progress = <VisualAnalysisProgress>[];
-        await for (final p in service.analyzeFrames(frames2, settings)) {
-          progress.add(p);
-        }
+        await service.analyzeFrames(frames2, settings).forEach(progress.add);
 
         expect(progress.length, equals(3));
         expect(progress.last.framesProcessed, equals(3));
@@ -226,12 +211,10 @@ void main() {
         service.cancelAnalysis();
 
         final frames = Stream.fromIterable(_createTestFrames(4));
-        final settings = _cancellationSettings(batchSize: 1);
+        final settings = _cancellationSettings();
 
         final progress = <VisualAnalysisProgress>[];
-        await for (final p in service.analyzeFrames(frames, settings)) {
-          progress.add(p);
-        }
+        await service.analyzeFrames(frames, settings).forEach(progress.add);
 
         expect(
           progress.length,
@@ -254,7 +237,7 @@ void main() {
       test('isRunning is true during analysis (checked between yields)',
           () async {
         final frames = Stream.fromIterable(_createTestFrames(5));
-        final settings = _cancellationSettings(batchSize: 1);
+        final settings = _cancellationSettings();
 
         var checkedDuringAnalysis = false;
         await for (final _ in service.analyzeFrames(frames, settings)) {
@@ -272,7 +255,7 @@ void main() {
 
       test('isRunning is false after analysis completes normally', () async {
         final frames = Stream.fromIterable(_createTestFrames(3));
-        final settings = _cancellationSettings(batchSize: 1);
+        final settings = _cancellationSettings();
 
         await for (final _ in service.analyzeFrames(frames, settings)) {
           // consume all events
@@ -283,7 +266,7 @@ void main() {
 
       test('isRunning is false after cancellation', () async {
         final frames = Stream.fromIterable(_createTestFrames(10));
-        final settings = _cancellationSettings(batchSize: 1);
+        final settings = _cancellationSettings();
 
         await for (final _ in service.analyzeFrames(frames, settings)) {
           service.cancelAnalysis();
@@ -300,7 +283,7 @@ void main() {
       test('progress events received before cancellation have valid data',
           () async {
         final frames = Stream.fromIterable(_createTestFrames(5));
-        final settings = _cancellationSettings(batchSize: 1);
+        final settings = _cancellationSettings();
 
         final progress = <VisualAnalysisProgress>[];
         await for (final p in service.analyzeFrames(frames, settings)) {
@@ -335,7 +318,7 @@ void main() {
       test('framesProcessed increments correctly in partial results',
           () async {
         final frames = Stream.fromIterable(_createTestFrames(10));
-        final settings = _cancellationSettings(batchSize: 1);
+        final settings = _cancellationSettings();
 
         final progress = <VisualAnalysisProgress>[];
         await for (final p in service.analyzeFrames(frames, settings)) {
@@ -357,7 +340,7 @@ void main() {
 
       test('each partial result has a distinct timestamp', () async {
         final frames = Stream.fromIterable(_createTestFrames(10));
-        final settings = _cancellationSettings(batchSize: 1);
+        final settings = _cancellationSettings();
 
         final progress = <VisualAnalysisProgress>[];
         await for (final p in service.analyzeFrames(frames, settings)) {
@@ -392,12 +375,10 @@ void main() {
         service.cancelAnalysis();
 
         final frames = Stream.fromIterable(_createTestFrames(5));
-        final settings = _cancellationSettings(batchSize: 1);
+        final settings = _cancellationSettings();
 
         final progress = <VisualAnalysisProgress>[];
-        await for (final p in service.analyzeFrames(frames, settings)) {
-          progress.add(p);
-        }
+        await service.analyzeFrames(frames, settings).forEach(progress.add);
 
         expect(
           progress.length,
@@ -410,12 +391,10 @@ void main() {
 
       test('empty frame stream completes immediately', () async {
         final frames = Stream<FrameData>.fromIterable([]);
-        final settings = _cancellationSettings(batchSize: 1);
+        final settings = _cancellationSettings();
 
         final progress = <VisualAnalysisProgress>[];
-        await for (final p in service.analyzeFrames(frames, settings)) {
-          progress.add(p);
-        }
+        await service.analyzeFrames(frames, settings).forEach(progress.add);
 
         expect(progress, isEmpty);
         expect(service.isRunning, isFalse);
@@ -436,9 +415,7 @@ void main() {
         final settings = _cancellationSettings(batchSize: 2);
 
         final progress = <VisualAnalysisProgress>[];
-        await for (final p in service.analyzeFrames(frames, settings)) {
-          progress.add(p);
-        }
+        await service.analyzeFrames(frames, settings).forEach(progress.add);
 
         expect(
           progress.length,
@@ -510,9 +487,7 @@ void main() {
         final settings = _cancellationSettings(batchSize: 3);
 
         final progress = <VisualAnalysisProgress>[];
-        await for (final p in service.analyzeFrames(frames, settings)) {
-          progress.add(p);
-        }
+        await service.analyzeFrames(frames, settings).forEach(progress.add);
 
         expect(progress.length, equals(3));
         expect(progress[0].framesProcessed, equals(3));
@@ -527,7 +502,7 @@ void main() {
     group('StreamController-based cancellation', () {
       test('cancellation with a manually controlled stream', () async {
         final controller = StreamController<FrameData>();
-        final settings = _cancellationSettings(batchSize: 1);
+        final settings = _cancellationSettings();
 
         final progress = <VisualAnalysisProgress>[];
         final subscription = service
@@ -546,18 +521,18 @@ void main() {
         });
 
         // Feed frames one at a time.
-        controller.add(
-          _createTestFrame(
-            frameNumber: 0,
-            timestamp: Duration.zero,
-          ),
-        );
-        controller.add(
-          _createTestFrame(
-            frameNumber: 1,
-            timestamp: const Duration(milliseconds: 500),
-          ),
-        );
+        controller
+          ..add(
+            _createTestFrame(
+
+            ),
+          )
+          ..add(
+            _createTestFrame(
+              frameNumber: 1,
+              timestamp: const Duration(milliseconds: 500),
+            ),
+          );
 
         await subscription.asFuture<void>();
         await subscription.cancel();

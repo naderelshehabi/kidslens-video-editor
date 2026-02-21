@@ -94,10 +94,11 @@ class SubtitleService {
 
     for (var i = 0; i < cues.length; i++) {
       final cue = cues[i];
-      buffer.writeln('${i + 1}');
-      buffer.writeln('${_formatSrtTime(cue.startTime)} --> ${_formatSrtTime(cue.endTime)}');
-      buffer.writeln(cue.text);
-      buffer.writeln();
+      buffer
+        ..writeln('${i + 1}')
+        ..writeln('${_formatSrtTime(cue.startTime)} --> ${_formatSrtTime(cue.endTime)}')
+        ..writeln(cue.text)
+        ..writeln();
     }
 
     return buffer.toString();
@@ -106,19 +107,19 @@ class SubtitleService {
   /// Generate WebVTT format subtitles
   String _generateVtt(Transcript transcript, SubtitleOptions options) {
     final cues = _buildCues(transcript, options);
-    final buffer = StringBuffer();
-
-    buffer.writeln('WEBVTT');
-    buffer.writeln('Kind: captions');
-    buffer.writeln('Language: ${transcript.language}');
-    buffer.writeln();
+    final buffer = StringBuffer()
+      ..writeln('WEBVTT')
+      ..writeln('Kind: captions')
+      ..writeln('Language: ${transcript.language}')
+      ..writeln();
 
     for (var i = 0; i < cues.length; i++) {
       final cue = cues[i];
-      buffer.writeln('${i + 1}');
-      buffer.writeln('${_formatVttTime(cue.startTime)} --> ${_formatVttTime(cue.endTime)}');
-      buffer.writeln(cue.text);
-      buffer.writeln();
+      buffer
+        ..writeln('${i + 1}')
+        ..writeln('${_formatVttTime(cue.startTime)} --> ${_formatVttTime(cue.endTime)}')
+        ..writeln(cue.text)
+        ..writeln();
     }
 
     return buffer.toString();
@@ -127,25 +128,23 @@ class SubtitleService {
   /// Generate ASS format subtitles
   String _generateAss(Transcript transcript, SubtitleOptions options) {
     final cues = _buildCues(transcript, options);
-    final buffer = StringBuffer();
 
     // ASS Header
-    buffer.writeln('[Script Info]');
-    buffer.writeln('Title: Generated Subtitles');
-    buffer.writeln('ScriptType: v4.00+');
-    buffer.writeln('PlayResX: 1920');
-    buffer.writeln('PlayResY: 1080');
-    buffer.writeln();
-
-    // Styles
-    buffer.writeln('[V4+ Styles]');
-    buffer.writeln('Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding');
-    buffer.writeln('Style: Default,Arial,48,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,1,2,10,10,30,1');
-    buffer.writeln();
-
-    // Events
-    buffer.writeln('[Events]');
-    buffer.writeln('Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text');
+    final buffer = StringBuffer()
+      ..writeln('[Script Info]')
+      ..writeln('Title: Generated Subtitles')
+      ..writeln('ScriptType: v4.00+')
+      ..writeln('PlayResX: 1920')
+      ..writeln('PlayResY: 1080')
+      ..writeln()
+      // Styles
+      ..writeln('[V4+ Styles]')
+      ..writeln('Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding')
+      ..writeln('Style: Default,Arial,48,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,1,2,10,10,30,1')
+      ..writeln()
+      // Events
+      ..writeln('[Events]')
+      ..writeln('Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text');
 
     for (final cue in cues) {
       final startStr = _formatAssTime(cue.startTime);

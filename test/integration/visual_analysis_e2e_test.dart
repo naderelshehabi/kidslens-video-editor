@@ -42,7 +42,6 @@ VisualContentCategory nudityCategory() => const VisualContentCategory(
       detectionSource: CategoryDetectionSource.nudeNet,
       detectionLabels: ['FEMALE_BREAST_EXPOSED'],
       threshold: 0.4,
-      action: VisualContentAction.blurRegion,
     );
 
 VisualContentCategory kissingCategory() => const VisualContentCategory(
@@ -50,7 +49,6 @@ VisualContentCategory kissingCategory() => const VisualContentCategory(
       name: 'Kissing',
       description: 'Test',
       detectionSource: CategoryDetectionSource.clip,
-      clipThreshold: 3.0,
       action: VisualContentAction.cutScene,
     );
 
@@ -114,21 +112,21 @@ void main() {
             frameNumber: 0,
             timestamp: Duration.zero,
             regions: [
-              makeRegion(x: 0.10, y: 0.20, width: 0.30, height: 0.40),
+              makeRegion(),
             ],
           ),
           makeFrame(
             frameNumber: 1,
             timestamp: const Duration(milliseconds: 500),
             regions: [
-              makeRegion(x: 0.11, y: 0.21, width: 0.30, height: 0.40),
+              makeRegion(x: 0.11, y: 0.21),
             ],
           ),
           makeFrame(
             frameNumber: 2,
             timestamp: const Duration(milliseconds: 1000),
             regions: [
-              makeRegion(x: 0.12, y: 0.22, width: 0.30, height: 0.40),
+              makeRegion(x: 0.12, y: 0.22),
             ],
           ),
           makeFrame(
@@ -145,9 +143,9 @@ void main() {
         final result = aggregator.aggregate(frames, [nudityCategory()]);
 
         expect(result.trackedRegions, hasLength(1),
-            reason: 'All 3 overlapping regions should merge into 1 track');
+            reason: 'All 3 overlapping regions should merge into 1 track',);
         expect(result.sceneActions, isEmpty,
-            reason: 'NudeNet-only category should not produce scene actions');
+            reason: 'NudeNet-only category should not produce scene actions',);
 
         final tracked = result.trackedRegions.first;
         expect(tracked.categoryId, equals('nudity'));
@@ -169,7 +167,6 @@ void main() {
         );
 
         final modification = Modification.videoRegionBlur(
-          intensity: 50,
           region: paddedBounds,
         );
 
@@ -235,9 +232,9 @@ void main() {
 
         // CLIP categories produce scene actions, not tracked regions.
         expect(result.trackedRegions, isEmpty,
-            reason: 'CLIP-only categories have no bounding boxes');
+            reason: 'CLIP-only categories have no bounding boxes',);
         expect(result.sceneActions, hasLength(1),
-            reason: 'Three consecutive CLIP triggers should merge into 1');
+            reason: 'Three consecutive CLIP triggers should merge into 1',);
 
         final action = result.sceneActions.first;
         expect(action.categoryId, equals('kissing'));
@@ -252,7 +249,7 @@ void main() {
         );
 
         // --- Stage: Convert SceneAction to Modification ---
-        final modification = const Modification.videoSkip();
+        const modification = Modification.videoSkip();
 
         expect(modification, isA<VideoSkip>());
         expect(modification.isDestructive, isTrue);
@@ -277,7 +274,7 @@ void main() {
             frameNumber: 0,
             timestamp: Duration.zero,
             regions: [
-              makeRegion(x: 0.10, y: 0.20, width: 0.30, height: 0.40),
+              makeRegion(),
             ],
             clipScores: {'kissing': 5.0},
           ),
@@ -285,7 +282,7 @@ void main() {
             frameNumber: 1,
             timestamp: const Duration(milliseconds: 500),
             regions: [
-              makeRegion(x: 0.11, y: 0.21, width: 0.30, height: 0.40),
+              makeRegion(x: 0.11, y: 0.21),
             ],
             clipScores: {'kissing': 4.5},
           ),
@@ -293,7 +290,7 @@ void main() {
             frameNumber: 2,
             timestamp: const Duration(milliseconds: 1000),
             regions: [
-              makeRegion(x: 0.12, y: 0.22, width: 0.30, height: 0.40),
+              makeRegion(x: 0.12, y: 0.22),
             ],
           ),
           makeFrame(
@@ -314,9 +311,9 @@ void main() {
 
         // Both types of results present.
         expect(result.trackedRegions, hasLength(1),
-            reason: 'NudeNet regions should produce 1 tracked region');
+            reason: 'NudeNet regions should produce 1 tracked region',);
         expect(result.sceneActions, hasLength(1),
-            reason: 'CLIP scores should produce 1 scene action');
+            reason: 'CLIP scores should produce 1 scene action',);
 
         // Verify tracked region (NudeNet / nudity)
         final tracked = result.trackedRegions.first;
@@ -347,7 +344,7 @@ void main() {
         );
 
         final modifications = <Modification>[
-          Modification.videoRegionBlur(intensity: 50, region: paddedBounds),
+          Modification.videoRegionBlur(region: paddedBounds),
           const Modification.videoSkip(),
         ];
 
@@ -452,7 +449,6 @@ void main() {
             kf.height,
           );
           final mod = Modification.videoRegionBlur(
-            intensity: 50,
             region: bounds,
           );
           expect(mod.isRegionModification, isTrue);
@@ -480,21 +476,21 @@ void main() {
               frameNumber: 0,
               timestamp: Duration.zero,
               regions: [
-                makeRegion(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
+                makeRegion(),
               ],
             ),
             makeFrame(
               frameNumber: 1,
               timestamp: const Duration(milliseconds: 500),
               regions: [
-                makeRegion(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
+                makeRegion(),
               ],
             ),
             makeFrame(
               frameNumber: 2,
               timestamp: const Duration(milliseconds: 1000),
               regions: [
-                makeRegion(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
+                makeRegion(),
               ],
             ),
           ];
@@ -532,7 +528,6 @@ void main() {
           // ---- Stage 3: Create modification ----
           const blurIntensity = 50;
           final modification = Modification.videoRegionBlur(
-            intensity: blurIntensity,
             region: paddedBounds,
           );
           expect(modification, isA<VideoRegionBlur>());
@@ -588,7 +583,7 @@ void main() {
           // Verify the full filter chain pattern matches the expected format.
           final filterChain = '[0:v]split=2[base0][c0];'
               '[c0]$expectedCrop,$expectedBlur[b0];'
-              "[base0][b0]$expectedOverlay[rv0]";
+              '[base0][b0]$expectedOverlay[rv0]';
 
           expect(filterChain, contains('[0:v]split=2[base0][c0]'));
           expect(filterChain, contains('crop=691:518:134:173'));
@@ -607,7 +602,7 @@ void main() {
             equals(
               '[0:v]split=2[base0][c0];'
               '[c0]crop=691:518:134:173,gblur=sigma=27[b0];'
-              "[base0][b0]overlay=x=134:y=173:"
+              '[base0][b0]overlay=x=134:y=173:'
               "enable='between(t,0.0,1.0)'[rv0]",
             ),
           );

@@ -5,7 +5,6 @@ import 'package:kidslens_video_editor/data/models/content_category.dart';
 import 'package:kidslens_video_editor/data/models/content_category_defaults.dart';
 import 'package:kidslens_video_editor/data/models/huggingface_model.dart';
 import 'package:kidslens_video_editor/data/models/voting_config.dart';
-import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 import 'package:kidslens_video_editor/presentation/widgets/content_category_card.dart';
 import 'package:kidslens_video_editor/state/providers/model_provider.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
@@ -91,7 +90,7 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
                     _setCategoryThreshold(cat.id, value),
                 onActionChanged: (action) =>
                     _setCategoryAction(cat.id, action),
-                onToggleModel: (modelId, enabled) =>
+                onToggleModel: (modelId, {required enabled}) =>
                     _toggleModel(cat.id, modelId, enabled),
                 onDelete: cat.isBuiltIn
                     ? null
@@ -123,7 +122,7 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
                     _setCategoryThreshold(cat.id, value),
                 onActionChanged: (action) =>
                     _setCategoryAction(cat.id, action),
-                onToggleModel: (modelId, enabled) =>
+                onToggleModel: (modelId, {required enabled}) =>
                     _toggleModel(cat.id, modelId, enabled),
                 onDelete: cat.isBuiltIn
                     ? null
@@ -342,7 +341,7 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
                   SwitchListTile(
                     title: const Text('Use Accuracy Weights'),
                     subtitle: const Text(
-                      'Weight each model\'s vote by its accuracy from the registry',
+                      "Weight each model's vote by its accuracy from the registry",
                     ),
                     value: config.votingConfig.useAccuracyWeights,
                     contentPadding: EdgeInsets.zero,
@@ -411,9 +410,7 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
     final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
     final config =
         ref.read(settingsNotifierProvider).analysisSettings.contentDetectionConfig;
-    final categories = config.categories.map((c) {
-      return c.id == categoryId ? c.copyWith(enabled: enabled) : c;
-    }).toList();
+    final categories = config.categories.map((c) => c.id == categoryId ? c.copyWith(enabled: enabled) : c).toList();
     settingsNotifier
         .updateContentDetectionConfig(config.copyWith(categories: categories));
   }
@@ -433,7 +430,7 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
   void _toggleModel(String categoryId, String modelId, bool enabled) {
     ref
         .read(settingsNotifierProvider.notifier)
-        .toggleModelContribution(categoryId, modelId, enabled);
+        .toggleModelContribution(categoryId, modelId, enabled: enabled);
   }
 
   void _deleteCategory(String categoryId) {
@@ -482,22 +479,18 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
     List<ContentCategory> updated;
     switch (preset) {
       case _Preset.strict:
-        updated = defaults.map((def) {
-          // Enable all, lower thresholds
-          return def.copyWith(
-            enabled: true,
-            threshold: (def.threshold - 0.15).clamp(0.1, 0.95),
-          );
-        }).toList();
+        // Enable all, lower thresholds
+        updated = defaults.map((def) => def.copyWith(
+          enabled: true,
+          threshold: (def.threshold - 0.15).clamp(0.1, 0.95),
+        ),).toList();
       case _Preset.balanced:
         updated = List.of(defaults); // Reset to defaults
       case _Preset.permissive:
-        updated = defaults.map((def) {
-          // Keep enabled, raise thresholds
-          return def.copyWith(
-            threshold: (def.threshold + 0.15).clamp(0.1, 0.95),
-          );
-        }).toList();
+        // Keep enabled, raise thresholds
+        updated = defaults.map((def) => def.copyWith(
+          threshold: (def.threshold + 0.15).clamp(0.1, 0.95),
+        ),).toList();
     }
 
     // Preserve any custom categories the user added
@@ -572,7 +565,7 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<RemediationAction>(
-                  value: selectedAction,
+                  initialValue: selectedAction,
                   decoration: const InputDecoration(
                     labelText: 'Default Action',
                   ),
@@ -612,7 +605,7 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
               onPressed: () {
                 final name = nameController.text.trim();
                 if (name.isEmpty) return;
-                final id = name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
+                final id = name.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '_');
                 Navigator.pop(
                   context,
                   ContentCategory(
@@ -666,8 +659,7 @@ class _PresetButton extends StatelessWidget {
   final VoidCallback onPressed;
 
   @override
-  Widget build(BuildContext context) {
-    return Tooltip(
+  Widget build(BuildContext context) => Tooltip(
       message: tooltip,
       child: OutlinedButton.icon(
         onPressed: onPressed,
@@ -679,5 +671,4 @@ class _PresetButton extends StatelessWidget {
         ),
       ),
     );
-  }
 }

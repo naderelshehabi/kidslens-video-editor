@@ -286,9 +286,7 @@ class WhisperBindings extends NativeResource {
   // FFI function pointers
   WhisperInitDart? _whisperInit;
   WhisperFreeDart? _whisperFree;
-  WhisperDefaultConfigDart? _whisperDefaultConfig;
   WhisperTranscribeFileDart? _whisperTranscribeFile;
-  WhisperTranscribePcmDart? _whisperTranscribePcm;
   WhisperFreeResultDart? _whisperFreeResult;
   WhisperGetModelInfoDart? _whisperGetModelInfo;
   WhisperGetErrorDart? _whisperGetError;
@@ -414,29 +412,19 @@ class WhisperBindings extends NativeResource {
         .lookup<NativeFunction<WhisperFreeNative>>('kl_whisper_free')
         .asFunction();
 
-    _whisperDefaultConfig = _lib!
-        .lookup<NativeFunction<WhisperDefaultConfigNative>>(
-            'kl_whisper_default_config')
-        .asFunction();
-
     _whisperTranscribeFile = _lib!
         .lookup<NativeFunction<WhisperTranscribeFileNative>>(
-            'kl_whisper_transcribe_file')
-        .asFunction();
-
-    _whisperTranscribePcm = _lib!
-        .lookup<NativeFunction<WhisperTranscribePcmNative>>(
-            'kl_whisper_transcribe_pcm')
+            'kl_whisper_transcribe_file',)
         .asFunction();
 
     _whisperFreeResult = _lib!
         .lookup<NativeFunction<WhisperFreeResultNative>>(
-            'kl_whisper_free_result')
+            'kl_whisper_free_result',)
         .asFunction();
 
     _whisperGetModelInfo = _lib!
         .lookup<NativeFunction<WhisperGetModelInfoNative>>(
-            'kl_whisper_get_model_info')
+            'kl_whisper_get_model_info',)
         .asFunction();
 
     _whisperGetError = _lib!
@@ -445,7 +433,7 @@ class WhisperBindings extends NativeResource {
 
     _whisperGpuAvailable = _lib!
         .lookup<NativeFunction<WhisperGpuAvailableNative>>(
-            'kl_whisper_gpu_available')
+            'kl_whisper_gpu_available',)
         .asFunction();
 
     _whisperGpuName = _lib!
@@ -458,7 +446,7 @@ class WhisperBindings extends NativeResource {
 
     _whisperSupportedLanguages = _lib!
         .lookup<NativeFunction<WhisperSupportedLanguagesNative>>(
-            'kl_whisper_supported_languages')
+            'kl_whisper_supported_languages',)
         .asFunction();
   }
 
@@ -529,8 +517,7 @@ class WhisperBindings extends NativeResource {
   }
 
   /// Create fallback model info when FFI is not available
-  WhisperModelInfo _createFallbackModelInfo(String modelPath) {
-    return WhisperModelInfo(
+  WhisperModelInfo _createFallbackModelInfo(String modelPath) => WhisperModelInfo(
       modelPath: modelPath,
       modelType: _inferModelType(modelPath),
       languageCount: 99,
@@ -540,7 +527,6 @@ class WhisperBindings extends NativeResource {
       nMels: 80,
       loadedAt: DateTime.now(),
     );
-  }
 
   /// Unload the currently loaded model and free resources
   Future<void> unloadModel() async {
@@ -639,21 +625,21 @@ class WhisperBindings extends NativeResource {
 
     try {
       // Fill config
-      final config = configPtr.ref;
-      config.nThreads = nThreads > 0 ? nThreads : Platform.numberOfProcessors.clamp(1, 8);
-      config.useGpu = useGpu;
-      config.gpuDevice = 0;
-      config.translate = translateToEnglish;
-      config.wordTimestamps = true;
-      config.wordThreshold = 0.01;
-      config.maxSegmentLength = 0;
-      config.splitOnWord = true;
-      config.temperature = 0.0;
-      config.beamSize = beamSize;
-      config.entropyThreshold = 2.4;
-      config.suppressBlank = true;
-      config.suppressNonSpeech = true;
-      config.noSpeechThreshold = 0.6;
+      final config = configPtr.ref
+        ..nThreads = nThreads > 0 ? nThreads : Platform.numberOfProcessors.clamp(1, 8)
+        ..useGpu = useGpu
+        ..gpuDevice = 0
+        ..translate = translateToEnglish
+        ..wordTimestamps = true
+        ..wordThreshold = 0.01
+        ..maxSegmentLength = 0
+        ..splitOnWord = true
+        ..temperature = 0.0
+        ..beamSize = beamSize
+        ..entropyThreshold = 2.4
+        ..suppressBlank = true
+        ..suppressNonSpeech = true
+        ..noSpeechThreshold = 0.6;
 
       if (language != null && language != 'auto') {
         languagePtr = language.toNativeUtf8();
@@ -717,12 +703,12 @@ class WhisperBindings extends NativeResource {
     final segments = <TranscriptSegment>[];
 
     for (var i = 0; i < result.numSegments; i++) {
-      final nativeSeg = result.segments.elementAt(i).ref;
+      final nativeSeg = (result.segments + i).ref;
 
       // Extract words
       final words = <TranscriptWord>[];
       for (var j = 0; j < nativeSeg.numWords; j++) {
-        final nativeWord = nativeSeg.words.elementAt(j).ref;
+        final nativeWord = (nativeSeg.words + j).ref;
         words.add(
           TranscriptWord(
             word: nativeWord.text != nullptr
@@ -778,7 +764,7 @@ class WhisperBindings extends NativeResource {
     }
 
     // Generate placeholder segments (one every ~5 seconds)
-    final segmentDuration = const Duration(seconds: 5);
+    const segmentDuration = Duration(seconds: 5);
     final segments = <TranscriptSegment>[];
     final placeholderTexts = [
       '[Native library not loaded - placeholder mode]',
@@ -1009,9 +995,7 @@ class WhisperBindings extends NativeResource {
     // Clear function pointers
     _whisperInit = null;
     _whisperFree = null;
-    _whisperDefaultConfig = null;
     _whisperTranscribeFile = null;
-    _whisperTranscribePcm = null;
     _whisperFreeResult = null;
     _whisperGetModelInfo = null;
     _whisperGetError = null;
@@ -1069,8 +1053,8 @@ class WhisperTranscriptionException implements Exception {
 /// This replaces invalid bytes with the Unicode replacement character instead
 /// of throwing a [FormatException].
 String _safeUtf8(Pointer<Utf8> ptr) {
-  int len = 0;
-  while (ptr.cast<Uint8>().elementAt(len).value != 0) {
+  var len = 0;
+  while ((ptr.cast<Uint8>() + len).value != 0) {
     len++;
   }
   final bytes = ptr.cast<Uint8>().asTypedList(len);

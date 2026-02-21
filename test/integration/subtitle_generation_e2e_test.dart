@@ -34,7 +34,7 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
       const MethodChannel('plugins.flutter.io/path_provider'),
-      (MethodCall methodCall) async {
+      (methodCall) async {
         if (methodCall.method == 'getApplicationSupportDirectory') {
           // Use a persistent location for model downloads
           final testDir =
@@ -79,9 +79,9 @@ void main() {
           print('    - Size: ${_formatBytes(model.sizeBytes)}');
           print('    - Accuracy: ${model.accuracyPercent}%');
           print(
-              '    - Speed: ${model.speedDescription} (${model.speedMultiplier}x)');
+              '    - Speed: ${model.speedDescription} (${model.speedMultiplier}x)',);
           print(
-              '    - Languages: ${model.isMultilingual ? "99+ languages" : "English only"}');
+              '    - Languages: ${model.isMultilingual ? "99+ languages" : "English only"}',);
         }
         print('============================\n');
 
@@ -99,7 +99,7 @@ void main() {
         final model = registry.getModelById('whisper-tiny');
         expect(model, isNotNull);
         print(
-            'Model info: ${model!.id}, size: ${_formatBytes(model.sizeBytes)}');
+            'Model info: ${model!.id}, size: ${_formatBytes(model.sizeBytes)}',);
 
         // Step 2: Initialize whisper bindings
         final whisper = container.read(whisperBindingsProvider);
@@ -116,7 +116,7 @@ void main() {
           // Download the model
           await for (final progress in modelManager.downloadModel(model.id)) {
             print(
-                '  Download progress: ${(progress.percentage * 100).toStringAsFixed(1)}%');
+                '  Download progress: ${(progress.percentage * 100).toStringAsFixed(1)}%',);
           }
           print('Download complete!');
         } else {
@@ -144,7 +144,7 @@ void main() {
           print('  Segments: ${transcript.segments.length}');
           for (final segment in transcript.segments) {
             print(
-                '    [${_formatDuration(segment.startTime)} - ${_formatDuration(segment.endTime)}] ${segment.text}');
+                '    [${_formatDuration(segment.startTime)} - ${_formatDuration(segment.endTime)}] ${segment.text}',);
           }
 
           expect(transcript, isA<Transcript>());
@@ -156,7 +156,7 @@ void main() {
             mediaId: 'test_media',
           );
           print(
-              'Created subtitle track with ${subtitleTrack.segments.length} segments');
+              'Created subtitle track with ${subtitleTrack.segments.length} segments',);
 
           // Step 7: Export to all formats
           final subtitleService = container.read(subtitleServiceProvider);
@@ -218,7 +218,7 @@ void main() {
           print('Downloading whisper-base...');
           await for (final progress in modelManager.downloadModel(model!.id)) {
             print(
-                '  Progress: ${(progress.percentage * 100).toStringAsFixed(1)}%');
+                '  Progress: ${(progress.percentage * 100).toStringAsFixed(1)}%',);
           }
         }
 
@@ -265,7 +265,6 @@ void main() {
       'verify all ASR models can be resolved',
       () {
         final registry = HuggingFaceModelRegistry.instance;
-        final asrModels = registry.getAsrModels();
 
         final modelIds = [
           'whisper-tiny',
@@ -309,15 +308,13 @@ List<int> _createTestWavFile({int durationSeconds = 1}) {
   const bytesPerSample = bitsPerSample ~/ 8;
   final dataSize = numSamples * numChannels * bytesPerSample;
 
-  final bytes = <int>[];
-
   // RIFF header
-  bytes.addAll('RIFF'.codeUnits);
+  final bytes = <int>[...'RIFF'.codeUnits];
   _addInt32LE(bytes, 36 + dataSize);
-  bytes.addAll('WAVE'.codeUnits);
-
-  // fmt subchunk
-  bytes.addAll('fmt '.codeUnits);
+  bytes
+    ..addAll('WAVE'.codeUnits)
+    // fmt subchunk
+    ..addAll('fmt '.codeUnits);
   _addInt32LE(bytes, 16);
   _addInt16LE(bytes, 1);
   _addInt16LE(bytes, numChannels);
@@ -344,8 +341,9 @@ List<int> _createTestWavFile({int durationSeconds = 1}) {
 String _formatBytes(int bytes) {
   if (bytes < 1024) return '$bytes B';
   if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-  if (bytes < 1024 * 1024 * 1024)
+  if (bytes < 1024 * 1024 * 1024) {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(0)} MB';
+  }
   return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
 }
 
@@ -358,13 +356,15 @@ String _formatDuration(Duration d) {
 }
 
 void _addInt16LE(List<int> bytes, int value) {
-  bytes.add(value & 0xFF);
-  bytes.add((value >> 8) & 0xFF);
+  bytes
+    ..add(value & 0xFF)
+    ..add((value >> 8) & 0xFF);
 }
 
 void _addInt32LE(List<int> bytes, int value) {
-  bytes.add(value & 0xFF);
-  bytes.add((value >> 8) & 0xFF);
-  bytes.add((value >> 16) & 0xFF);
-  bytes.add((value >> 24) & 0xFF);
+  bytes
+    ..add(value & 0xFF)
+    ..add((value >> 8) & 0xFF)
+    ..add((value >> 16) & 0xFF)
+    ..add((value >> 24) & 0xFF);
 }

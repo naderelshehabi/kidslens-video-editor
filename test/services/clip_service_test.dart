@@ -15,7 +15,7 @@ import 'package:kidslens_video_editor/services/model_manager_service.dart';
 
 class MockONNXBindings extends ONNXBindings {
   /// The embedding vector returned by [runEmbeddingInference].
-  List<double> embeddingResult = List<double>.filled(512, 0.0);
+  List<double> embeddingResult = List<double>.filled(512, 0);
 
   @override
   Future<void> initialize({List<String>? executionProviders}) async {
@@ -60,8 +60,8 @@ class MockModelManagerService extends ModelManagerService {
 
 /// Create a 512-dim vector that is zero everywhere except at [nonZeroIndex].
 List<double> _makeUnitVector(int dim, int nonZeroIndex,
-    [double value = 1.0]) {
-  final v = List<double>.filled(dim, 0.0);
+    [double value = 1.0,]) {
+  final v = List<double>.filled(dim, 0);
   v[nonZeroIndex] = value;
   return v;
 }
@@ -198,13 +198,13 @@ void main() {
       mockOnnx.embeddingResult = imageEmbedding;
 
       // Positive embedding (pre-normalisation): [0.9, 0.436, 0, ..., 0]
-      final posRaw = List<double>.filled(dim, 0.0);
+      final posRaw = List<double>.filled(dim, 0);
       posRaw[0] = 0.9;
       posRaw[1] = 0.436;
       final posNorm = _l2Normalize(posRaw);
 
       // Negative embedding (pre-normalisation): [0.1, 0.995, 0, ..., 0]
-      final negRaw = List<double>.filled(dim, 0.0);
+      final negRaw = List<double>.filled(dim, 0);
       negRaw[0] = 0.1;
       negRaw[1] = 0.995;
       final negNorm = _l2Normalize(negRaw);
@@ -238,7 +238,7 @@ void main() {
       expect(result.containsKey('test_cat'), isTrue);
       expect(result['test_cat'], closeTo(expectedScore, 0.001));
       // Sanity: positive component is much larger, so score should be positive.
-      expect(result['test_cat']!, greaterThan(0));
+      expect(result['test_cat'], greaterThan(0));
     });
 
     test('handles no negative prompts (maxNegative should be 0)', () async {
@@ -246,7 +246,7 @@ void main() {
       final imageEmbedding = _makeUnitVector(dim, 0);
       mockOnnx.embeddingResult = imageEmbedding;
 
-      final posRaw = List<double>.filled(dim, 0.0);
+      final posRaw = List<double>.filled(dim, 0);
       posRaw[0] = 0.9;
       posRaw[1] = 0.436;
       final posNorm = _l2Normalize(posRaw);
@@ -278,7 +278,7 @@ void main() {
       final imageEmbedding = _makeUnitVector(dim, 0);
       mockOnnx.embeddingResult = imageEmbedding;
 
-      final negRaw = List<double>.filled(dim, 0.0);
+      final negRaw = List<double>.filled(dim, 0);
       negRaw[0] = 0.1;
       negRaw[1] = 0.995;
       final negNorm = _l2Normalize(negRaw);
@@ -308,15 +308,15 @@ void main() {
 
       // Category A: has both positive and negative embeddings.
       final posA = _l2Normalize(
-        List<double>.filled(dim, 0.0)..[0] = 0.9..[1] = 0.436,
+        List<double>.filled(dim, 0)..[0] = 0.9..[1] = 0.436,
       );
       final negA = _l2Normalize(
-        List<double>.filled(dim, 0.0)..[0] = 0.1..[1] = 0.995,
+        List<double>.filled(dim, 0)..[0] = 0.1..[1] = 0.995,
       );
 
       // Category B: positive only.
       final posB = _l2Normalize(
-        List<double>.filled(dim, 0.0)..[0] = 0.5..[1] = 0.866,
+        List<double>.filled(dim, 0)..[0] = 0.5..[1] = 0.866,
       );
 
       final textEmbeddings = {
@@ -364,7 +364,7 @@ void main() {
     });
 
     test('returns empty for no CLIP categories', () async {
-      final nonClipCategory = const VisualContentCategory(
+      const nonClipCategory = VisualContentCategory(
         id: 'nudenet-only',
         name: 'NudeNet Only',
         description: 'Uses NudeNet detection source only',
@@ -382,7 +382,7 @@ void main() {
     });
 
     test('skips disabled categories', () async {
-      final disabledCategory = const VisualContentCategory(
+      const disabledCategory = VisualContentCategory(
         id: 'disabled-clip',
         name: 'Disabled CLIP',
         description: 'A disabled CLIP category',
@@ -399,7 +399,7 @@ void main() {
     test('throws when text model not downloaded', () async {
       mockModelManager.modelPaths.remove('clip-vit-b32-text-fp16');
 
-      final category = const VisualContentCategory(
+      const category = VisualContentCategory(
         id: 'test-clip',
         name: 'Test CLIP',
         description: 'Test category',
@@ -438,7 +438,7 @@ void main() {
       for (final prompt in allBuiltInPrompts) {
         final result = ClipBuiltInTokens.getPreTokenized(prompt);
         expect(result, isNotNull,
-            reason: 'Expected non-null for built-in prompt "$prompt"');
+            reason: 'Expected non-null for built-in prompt "$prompt"',);
       }
     });
 
@@ -452,9 +452,9 @@ void main() {
       for (final prompt in allBuiltInPrompts) {
         final tokens = ClipBuiltInTokens.getPreTokenized(prompt)!;
         expect(tokens.length, 77,
-            reason: 'Token list length should be 77 for "$prompt"');
+            reason: 'Token list length should be 77 for "$prompt"',);
         expect(tokens[0], 49406,
-            reason: 'First token should be SOT (49406) for "$prompt"');
+            reason: 'First token should be SOT (49406) for "$prompt"',);
       }
     });
   });

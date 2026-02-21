@@ -83,7 +83,6 @@ void main() {
           libraryPath: '/lib/whisper.dll',
           audioPath: '/tmp/audio.wav',
           modelPath: '/models/base.bin',
-          nThreads: 0,
         );
 
         expect(params.nThreads, equals(0));
@@ -140,7 +139,6 @@ void main() {
           libraryPath: '/lib/whisper.dll',
           audioPath: '/tmp/audio.wav',
           modelPath: '/models/base.bin',
-          beamSize: 5,
         );
 
         expect(params.beamSize, equals(5));

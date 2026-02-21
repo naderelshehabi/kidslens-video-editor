@@ -1,8 +1,9 @@
 import 'dart:async';
-import 'dart:typed_data';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:kidslens_video_editor/data/models/analysis_settings.dart';
+import 'package:kidslens_video_editor/data/models/content_category.dart';
 import 'package:kidslens_video_editor/data/models/frame_analysis_result.dart';
 import 'package:kidslens_video_editor/data/models/frame_data.dart';
 import 'package:kidslens_video_editor/data/models/huggingface_model.dart';
@@ -12,9 +13,7 @@ import 'package:kidslens_video_editor/native/bindings/onnx_bindings.dart';
 import 'package:kidslens_video_editor/services/clip_service.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
 import 'package:kidslens_video_editor/services/nudenet_service.dart';
-import 'package:kidslens_video_editor/data/models/content_category.dart';
 import 'package:kidslens_video_editor/services/voting_service.dart';
-import 'dart:math' as math;
 
 /// Settings for visual analysis
 class VisualAnalysisSettings {
@@ -553,7 +552,7 @@ class VisualAnalysisService {
         return scores['weapons'] ?? scores['weapon'] ?? 0.0;
       default:
         // Take the max of all scores as a fallback
-        return scores.values.fold(0.0, math.max);
+        return scores.values.fold(0, math.max);
     }
   }
 
@@ -654,9 +653,7 @@ class VisualAnalysisService {
   ///
   /// CLIP scores range approximately [-15, +15]. This transforms them
   /// to [0, 1] using: `1 / (1 + exp(-rawScore / 3))`.
-  double _sigmoidNormalize(double rawScore) {
-    return 1.0 / (1.0 + math.exp(-rawScore / 3.0));
-  }
+  double _sigmoidNormalize(double rawScore) => 1.0 / (1.0 + math.exp(-rawScore / 3.0));
 
   /// Load a model by ID, caching the path.
   Future<String?> _loadModelById(String modelId) async {
@@ -719,8 +716,7 @@ class VisualAnalysisService {
           clipPrompts: contribution.clipPrompts,
           clipNegativePrompts: contribution.clipNegativePrompts,
           detectionSource: CategoryDetectionSource.clip,
-          enabled: true,
-        ));
+        ),);
       }
     }
 
@@ -811,7 +807,7 @@ class VisualAnalysisService {
           frameNumber: frame.frameNumber ?? i,
           timestamp: frame.timestamp,
           isSceneChange: frame.isSceneChange,
-        ));
+        ),);
         continue;
       }
 
@@ -895,7 +891,7 @@ class VisualAnalysisService {
             );
 
             weapons = WeaponsResult(
-                score: scores['weapons'] ?? scores['weapon'] ?? 0);
+                score: scores['weapons'] ?? scores['weapon'] ?? 0,);
           } else {
             weapons = const WeaponsResult(score: 0);
           }
@@ -917,7 +913,7 @@ class VisualAnalysisService {
           weapons: weapons,
           visualContent: visualContent,
           isSceneChange: frame.isSceneChange,
-        ));
+        ),);
       } catch (e) {
         // Per-frame resilience: on failure, emit safe result and continue
         debugPrint('VisualAnalysisService: Frame ${frame.frameNumber ?? i} '
@@ -926,7 +922,7 @@ class VisualAnalysisService {
           frameNumber: frame.frameNumber ?? i,
           timestamp: frame.timestamp,
           isSceneChange: frame.isSceneChange,
-        ));
+        ),);
       }
     }
 

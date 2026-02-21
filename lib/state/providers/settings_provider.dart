@@ -385,9 +385,7 @@ class SettingsNotifier extends _$SettingsNotifier {
     VisualContentCategory updated,
   ) {
     final config = state.analysisSettings.visualContentConfig;
-    final categories = config.categories.map((c) {
-      return c.id == categoryId ? updated : c;
-    }).toList();
+    final categories = config.categories.map((c) => c.id == categoryId ? updated : c).toList();
     updateVisualContentConfig(config.copyWith(categories: categories));
   }
 
@@ -436,24 +434,20 @@ class SettingsNotifier extends _$SettingsNotifier {
   /// Update a single content category by ID
   void updateContentCategory(String categoryId, ContentCategory updated) {
     final config = state.analysisSettings.contentDetectionConfig;
-    final categories = config.categories.map((c) {
-      return c.id == categoryId ? updated : c;
-    }).toList();
+    final categories = config.categories.map((c) => c.id == categoryId ? updated : c).toList();
     updateContentDetectionConfig(config.copyWith(categories: categories));
   }
 
   /// Toggle a model contribution on/off within a category
   void toggleModelContribution(
     String categoryId,
-    String modelId,
-    bool enabled,
-  ) {
+    String modelId, {
+    required bool enabled,
+  }) {
     final config = state.analysisSettings.contentDetectionConfig;
     final categories = config.categories.map((c) {
       if (c.id != categoryId) return c;
-      final updatedContributions = c.modelContributions.map((m) {
-        return m.modelId == modelId ? m.copyWith(enabled: enabled) : m;
-      }).toList();
+      final updatedContributions = c.modelContributions.map((m) => m.modelId == modelId ? m.copyWith(enabled: enabled) : m).toList();
       return c.copyWith(modelContributions: updatedContributions);
     }).toList();
     updateContentDetectionConfig(config.copyWith(categories: categories));
@@ -462,20 +456,16 @@ class SettingsNotifier extends _$SettingsNotifier {
   /// Update the detection threshold for a category
   void setCategoryThreshold(String categoryId, double threshold) {
     final config = state.analysisSettings.contentDetectionConfig;
-    final categories = config.categories.map((c) {
-      return c.id == categoryId
+    final categories = config.categories.map((c) => c.id == categoryId
           ? c.copyWith(threshold: threshold.clamp(0.0, 1.0))
-          : c;
-    }).toList();
+          : c,).toList();
     updateContentDetectionConfig(config.copyWith(categories: categories));
   }
 
   /// Update the remediation action for a category
   void setCategoryAction(String categoryId, RemediationAction action) {
     final config = state.analysisSettings.contentDetectionConfig;
-    final categories = config.categories.map((c) {
-      return c.id == categoryId ? c.copyWith(action: action) : c;
-    }).toList();
+    final categories = config.categories.map((c) => c.id == categoryId ? c.copyWith(action: action) : c).toList();
     updateContentDetectionConfig(config.copyWith(categories: categories));
   }
 
@@ -520,9 +510,7 @@ class SettingsNotifier extends _$SettingsNotifier {
 
   void _debounceSave() {
     _saveDebounceTimer?.cancel();
-    _saveDebounceTimer = Timer(const Duration(milliseconds: 500), () {
-      saveSettings();
-    });
+    _saveDebounceTimer = Timer(const Duration(milliseconds: 500), saveSettings);
   }
 }
 

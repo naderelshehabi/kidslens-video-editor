@@ -407,7 +407,7 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
                     if (_subtitleExportMode == SubtitleExportMode.none) ...[
                       const SizedBox(height: 8),
                       DropdownButtonFormField<SubtitleFormat>(
-                        value: _subtitleFormat,
+                        initialValue: _subtitleFormat,
                         decoration: const InputDecoration(
                           isDense: true,
                           contentPadding:

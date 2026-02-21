@@ -31,9 +31,7 @@ void main() {
     test(
         'ensureVisualContentDefaults populates categories with 4 defaults when empty',
         () {
-      final notifier = container.read(settingsNotifierProvider.notifier);
-
-      notifier.ensureVisualContentDefaults();
+      container.read(settingsNotifierProvider.notifier).ensureVisualContentDefaults();
 
       final state = container.read(settingsNotifierProvider);
       final categories = state.analysisSettings.visualContentConfig.categories;
@@ -46,9 +44,8 @@ void main() {
     });
 
     test('ensureVisualContentDefaults is idempotent', () {
-      final notifier = container.read(settingsNotifierProvider.notifier);
-
-      notifier.ensureVisualContentDefaults();
+      final notifier = container.read(settingsNotifierProvider.notifier)
+        ..ensureVisualContentDefaults();
       final categoriesAfterFirst =
           container.read(settingsNotifierProvider)
               .analysisSettings.visualContentConfig.categories;
@@ -106,7 +103,6 @@ void main() {
         enableNudeNetDetection: false,
         enableClipClassification: false,
         preFilterThreshold: 0.50,
-        categories: [],
       );
 
       notifier.updateVisualContentConfig(newConfig);
@@ -121,9 +117,8 @@ void main() {
     });
 
     test('changes are reflected in state', () {
-      final notifier = container.read(settingsNotifierProvider.notifier);
-
-      notifier.ensureVisualContentDefaults();
+      final notifier = container.read(settingsNotifierProvider.notifier)
+        ..ensureVisualContentDefaults();
 
       final configBefore =
           container.read(settingsNotifierProvider)
@@ -147,7 +142,6 @@ void main() {
       final notifier = container.read(settingsNotifierProvider.notifier);
 
       const config = VisualContentConfig(
-        enableNudeNetDetection: true,
         enableClipClassification: false,
         preFilterThreshold: 0.75,
       );
@@ -173,8 +167,8 @@ void main() {
 
   group('updateVisualContentCategory', () {
     test('updates a single category by ID', () {
-      final notifier = container.read(settingsNotifierProvider.notifier);
-      notifier.ensureVisualContentDefaults();
+      final notifier = container.read(settingsNotifierProvider.notifier)
+        ..ensureVisualContentDefaults();
 
       const updatedNudity = VisualContentCategory(
         id: 'nudity',
@@ -200,8 +194,8 @@ void main() {
     });
 
     test('only the targeted category changes, others remain unchanged', () {
-      final notifier = container.read(settingsNotifierProvider.notifier);
-      notifier.ensureVisualContentDefaults();
+      final notifier = container.read(settingsNotifierProvider.notifier)
+        ..ensureVisualContentDefaults();
 
       final categoriesBefore =
           container.read(settingsNotifierProvider)
@@ -245,8 +239,8 @@ void main() {
     });
 
     test('non-existent category ID does not crash', () {
-      final notifier = container.read(settingsNotifierProvider.notifier);
-      notifier.ensureVisualContentDefaults();
+      final notifier = container.read(settingsNotifierProvider.notifier)
+        ..ensureVisualContentDefaults();
 
       const updatedCategory = VisualContentCategory(
         id: 'non_existent',
@@ -268,8 +262,8 @@ void main() {
 
   group('addCustomCategory', () {
     test('adds a new category to the list', () {
-      final notifier = container.read(settingsNotifierProvider.notifier);
-      notifier.ensureVisualContentDefaults();
+      final notifier = container.read(settingsNotifierProvider.notifier)
+        ..ensureVisualContentDefaults();
 
       const customCategory = VisualContentCategory(
         id: 'custom_violence',
@@ -365,8 +359,8 @@ void main() {
 
   group('removeCustomCategory', () {
     test('removes a custom category by ID', () {
-      final notifier = container.read(settingsNotifierProvider.notifier);
-      notifier.ensureVisualContentDefaults();
+      final notifier = container.read(settingsNotifierProvider.notifier)
+        ..ensureVisualContentDefaults();
 
       const customCategory = VisualContentCategory(
         id: 'to_be_removed',
@@ -424,12 +418,11 @@ void main() {
     });
 
     test('removing a built-in category by ID filters it out', () {
-      final notifier = container.read(settingsNotifierProvider.notifier);
-      notifier.ensureVisualContentDefaults();
-
-      // removeCustomCategory filters by ID regardless of isBuiltIn flag.
-      // This verifies the method handles the operation without crashing.
-      notifier.removeCustomCategory('nudity');
+      container.read(settingsNotifierProvider.notifier)
+        ..ensureVisualContentDefaults()
+        // removeCustomCategory filters by ID regardless of isBuiltIn flag.
+        // This verifies the method handles the operation without crashing.
+        ..removeCustomCategory('nudity');
 
       final categories =
           container.read(settingsNotifierProvider)
@@ -443,8 +436,8 @@ void main() {
     });
 
     test('removing non-existent ID does not crash or change list', () {
-      final notifier = container.read(settingsNotifierProvider.notifier);
-      notifier.ensureVisualContentDefaults();
+      final notifier = container.read(settingsNotifierProvider.notifier)
+        ..ensureVisualContentDefaults();
 
       final categoriesBefore =
           container.read(settingsNotifierProvider)
@@ -536,8 +529,8 @@ void main() {
     });
 
     test('change preFilterThreshold preserves other config fields', () {
-      final notifier = container.read(settingsNotifierProvider.notifier);
-      notifier.ensureVisualContentDefaults();
+      final notifier = container.read(settingsNotifierProvider.notifier)
+        ..ensureVisualContentDefaults();
 
       final configBefore =
           container.read(settingsNotifierProvider)
@@ -553,9 +546,9 @@ void main() {
               .analysisSettings.visualContentConfig;
       expect(configAfter.preFilterThreshold, equals(0.10));
       expect(configAfter.enableNudeNetDetection,
-          equals(configBefore.enableNudeNetDetection));
+          equals(configBefore.enableNudeNetDetection),);
       expect(configAfter.enableClipClassification,
-          equals(configBefore.enableClipClassification));
+          equals(configBefore.enableClipClassification),);
       expect(configAfter.categories, hasLength(4));
     });
 

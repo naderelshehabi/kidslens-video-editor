@@ -106,6 +106,7 @@ class _DetectionPanelState extends State<DetectionPanel>
         return 'Custom';
     }
   }
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 

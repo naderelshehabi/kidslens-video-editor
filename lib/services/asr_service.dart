@@ -5,8 +5,8 @@ import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/native/bindings/ffmpeg_bindings.dart';
-import 'package:kidslens_video_editor/services/asr_cache_service.dart';
 import 'package:kidslens_video_editor/native/bindings/whisper_bindings.dart';
+import 'package:kidslens_video_editor/services/asr_cache_service.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
 import 'package:kidslens_video_editor/services/transcription_isolate.dart';
 import 'package:path/path.dart' as p;
@@ -220,7 +220,7 @@ class AsrService {
       // Phase 1: Extract / convert audio (async, non-blocking)
       onProgress?.call(
         TranscriptionPhase.extractingAudio,
-        0.0,
+        0,
         'Extracting audio...',
         null,
       );
@@ -263,7 +263,7 @@ class AsrService {
         if (cached != null) {
           onProgress?.call(
             TranscriptionPhase.complete,
-            1.0,
+            1,
             'Loaded from cache',
             mediaDuration,
           );
@@ -289,7 +289,7 @@ class AsrService {
         );
         onProgress?.call(
           TranscriptionPhase.complete,
-          1.0,
+          1,
           'Complete!',
           mediaDuration,
         );
@@ -375,7 +375,7 @@ class AsrService {
       // Phase 4: Done
       onProgress?.call(
         TranscriptionPhase.complete,
-        1.0,
+        1,
         'Complete!',
         mediaDuration,
       );
@@ -418,7 +418,7 @@ class AsrService {
     StreamSubscription<void>? cancelSub;
     if (cancelToken != null && !cancelToken.isCompleted) {
       cancelSub = cancelToken.future.asStream().listen((_) {
-        isolate.kill(priority: Isolate.beforeNextEvent);
+        isolate.kill();
         receivePort.close();
       });
     }
@@ -469,7 +469,7 @@ class AsrService {
     } finally {
       await cancelSub?.cancel();
       receivePort.close();
-      isolate.kill(priority: Isolate.beforeNextEvent);
+      isolate.kill();
     }
   }
 
@@ -641,7 +641,7 @@ class AsrService {
 
     // Need to extract/convert to WAV
     debugPrint(
-        'Extracting audio from ${isVideo ? "video" : "audio"} file: $inputPath');
+        'Extracting audio from ${isVideo ? "video" : "audio"} file: $inputPath',);
 
     // Create temp file path
     final tempDir = Directory.systemTemp;
@@ -685,7 +685,7 @@ class AsrService {
     }
 
     // Verify the output file was created
-    if (!await File(outputPath).exists()) {
+    if (!File(outputPath).existsSync()) {
       throw AsrException(
         'Audio extraction completed but output file was not created.',
       );
@@ -697,7 +697,7 @@ class AsrService {
     if (_tempAudioPath != null) {
       try {
         final tempFile = File(_tempAudioPath!);
-        if (await tempFile.exists()) {
+        if (tempFile.existsSync()) {
           await tempFile.delete();
           debugPrint('Cleaned up temp audio file: $_tempAudioPath');
         }

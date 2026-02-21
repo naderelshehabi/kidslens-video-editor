@@ -84,7 +84,7 @@ class VotingService {
     if (votes.isEmpty) {
       return CategoryVoteResult(
         categoryId: category.id,
-        finalScore: 0.0,
+        finalScore: 0,
         triggered: false,
         votes: const [],
       );
@@ -94,7 +94,7 @@ class VotingService {
     if (votes.length < config.minVoters) {
       return CategoryVoteResult(
         categoryId: category.id,
-        finalScore: 0.0,
+        finalScore: 0,
         triggered: false,
         votes: votes,
       );
@@ -191,7 +191,7 @@ class VotingService {
     final x2 = min(a.x + a.width, b.x + b.width);
     final y2 = min(a.y + a.height, b.y + b.height);
 
-    if (x2 <= x1 || y2 <= y1) return 0.0;
+    if (x2 <= x1 || y2 <= y1) return 0;
 
     final intersection = (x2 - x1) * (y2 - y1);
     final areaA = a.width * a.height;

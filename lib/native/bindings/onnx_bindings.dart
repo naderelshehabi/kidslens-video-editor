@@ -168,11 +168,6 @@ class ONNXBindings extends NativeResource {
   /// Mutex for serializing all inference calls
   final _InferenceMutex _inferenceMutex = _InferenceMutex();
 
-  // CLIP ViT-B/32 preprocessing constants
-  static const List<double> _clipMean = [0.48145466, 0.4578275, 0.40821073];
-  static const List<double> _clipStd = [0.26862954, 0.26130258, 0.27577711];
-  static const int _clipInputSize = 224;
-
   /// Initialize ONNX Runtime bindings
   ///
   /// [executionProviders] List of execution providers in priority order.
@@ -457,9 +452,7 @@ class ONNXBindings extends NativeResource {
     _updateAccessOrder(modelPath);
 
     try {
-      return await _withInferenceLock(() async {
-        return _runModelInference(modelPath, rgbData, width, height);
-      });
+      return await _withInferenceLock(() async => _runModelInference(modelPath, rgbData, width, height));
     } catch (e) {
       if (e is ONNXInferenceException) rethrow;
       throw ONNXInferenceException('Inference failed: $e');
@@ -718,10 +711,10 @@ class ONNXBindings extends NativeResource {
         );
 
         // Step 2: Per-class NMS
-        final nmsBoxes = _nonMaxSuppression(boxes, iouThreshold);
 
         // Step 3: Cap at maxDetections by confidence
-        nmsBoxes.sort((a, b) => b.confidence.compareTo(a.confidence));
+        final nmsBoxes = _nonMaxSuppression(boxes, iouThreshold)
+          ..sort((a, b) => b.confidence.compareTo(a.confidence));
         final cappedBoxes = nmsBoxes.length > maxDetections
             ? nmsBoxes.sublist(0, maxDetections)
             : nmsBoxes;
@@ -786,7 +779,7 @@ class ONNXBindings extends NativeResource {
         y: y,
         width: w,
         height: h,
-      ));
+      ),);
     }
 
     return boxes;
@@ -831,8 +824,6 @@ class ONNXBindings extends NativeResource {
           }
 
           // Step 1: CLIP preprocessing (center crop + normalize)
-          final preprocessed = _clipPreprocess(rgbData, width, height);
-
           // FFI Implementation Plan:
           // 1. Create OrtValue tensor from preprocessed with shape [1, 3, 224, 224]
           // 2. Run inference: g_ort->Run(session, ...)
@@ -917,7 +908,7 @@ class ONNXBindings extends NativeResource {
     int targetSize,
   ) {
     // Compute scale to fit within targetSize while preserving aspect ratio
-    final scale = min(targetSize / srcW, targetSize / srcH).toDouble();
+    final scale = min(targetSize / srcW, targetSize / srcH);
     final newW = (srcW * scale).round();
     final newH = (srcH * scale).round();
 
@@ -968,85 +959,6 @@ class ONNXBindings extends NativeResource {
       padY: padY,
       scale: scale,
     );
-  }
-
-  /// CLIP ViT-B/32 vision preprocessing
-  ///
-  /// 1. Compute scale = 224 / min(srcW, srcH)
-  /// 2. Resize to (round(srcW * scale), round(srcH * scale)) with bicubic
-  /// 3. Center crop to 224x224
-  /// 4. Convert to float32, divide by 255.0
-  /// 5. Normalize with CLIP mean/std
-  /// 6. Arrange as NCHW [1, 3, 224, 224]
-  Float32List _clipPreprocess(List<int> rgbData, int srcW, int srcH) {
-    const size = _clipInputSize;
-
-    // Step 1: Compute scale (resize so shorter side = 224)
-    final scale = size / min(srcW, srcH);
-    final resizedW = (srcW * scale).round();
-    final resizedH = (srcH * scale).round();
-
-    // Step 2: Resize (nearest-neighbor placeholder; bicubic for FFI)
-    final resized = _resizeRgb(rgbData, srcW, srcH, resizedW, resizedH);
-
-    // Step 3: Center crop to 224x224
-    final cropX = (resizedW - size) ~/ 2;
-    final cropY = (resizedH - size) ~/ 2;
-
-    // Step 4-6: Normalize and arrange as NCHW
-    final output = Float32List(3 * size * size);
-
-    for (var y = 0; y < size; y++) {
-      for (var x = 0; x < size; x++) {
-        final srcX = (cropX + x).clamp(0, resizedW - 1);
-        final srcY = (cropY + y).clamp(0, resizedH - 1);
-        final srcIdx = (srcY * resizedW + srcX) * 3;
-
-        if (srcIdx + 2 >= resized.length) continue;
-
-        // Convert to [0, 1] then normalize with CLIP constants
-        final r = (resized[srcIdx] / 255.0 - _clipMean[0]) / _clipStd[0];
-        final g = (resized[srcIdx + 1] / 255.0 - _clipMean[1]) / _clipStd[1];
-        final b = (resized[srcIdx + 2] / 255.0 - _clipMean[2]) / _clipStd[2];
-
-        // NCHW layout
-        output[0 * size * size + y * size + x] = r;
-        output[1 * size * size + y * size + x] = g;
-        output[2 * size * size + y * size + x] = b;
-      }
-    }
-
-    return output;
-  }
-
-  /// Simple nearest-neighbor RGB resize
-  List<int> _resizeRgb(
-    List<int> data,
-    int srcW,
-    int srcH,
-    int dstW,
-    int dstH,
-  ) {
-    final output = List<int>.filled(dstW * dstH * 3, 0);
-    final scaleX = srcW / dstW;
-    final scaleY = srcH / dstH;
-
-    for (var y = 0; y < dstH; y++) {
-      for (var x = 0; x < dstW; x++) {
-        final srcX = (x * scaleX).round().clamp(0, srcW - 1);
-        final srcY = (y * scaleY).round().clamp(0, srcH - 1);
-        final srcIdx = (srcY * srcW + srcX) * 3;
-        final dstIdx = (y * dstW + x) * 3;
-
-        if (srcIdx + 2 < data.length && dstIdx + 2 < output.length) {
-          output[dstIdx] = data[srcIdx];
-          output[dstIdx + 1] = data[srcIdx + 1];
-          output[dstIdx + 2] = data[srcIdx + 2];
-        }
-      }
-    }
-
-    return output;
   }
 
   // ============ NMS (Non-Maximum Suppression) ============
@@ -1101,58 +1013,16 @@ class ONNXBindings extends NativeResource {
     final x2 = min(a.x + a.width, b.x + b.width);
     final y2 = min(a.y + a.height, b.y + b.height);
 
-    final intersectionW = max(0.0, x2 - x1);
-    final intersectionH = max(0.0, y2 - y1);
+    final intersectionW = max(0, x2 - x1);
+    final intersectionH = max(0, y2 - y1);
     final intersection = intersectionW * intersectionH;
 
     final areaA = a.width * a.height;
     final areaB = b.width * b.height;
     final union = areaA + areaB - intersection;
 
-    if (union <= 0) return 0.0;
+    if (union <= 0) return 0;
     return intersection / union;
-  }
-
-  /// Un-map coordinates from letterbox space to original image space
-  ///
-  /// Subtracts letterbox padding, divides by scale, then normalizes
-  /// by original dimensions. Clamps to valid range.
-  DetectionBox _unmapCoordinates(
-    DetectionBox box,
-    double padX,
-    double padY,
-    double scale,
-    int origW,
-    int origH,
-    int inputSize,
-  ) {
-    // Convert from inputSize pixel space to original pixel space
-    final cx = (box.x * inputSize - padX) / scale;
-    final cy = (box.y * inputSize - padY) / scale;
-    final w = box.width * inputSize / scale;
-    final h = box.height * inputSize / scale;
-
-    // Normalize to [0, 1] relative to original image
-    var nx = cx / origW;
-    var ny = cy / origH;
-    var nw = w / origW;
-    var nh = h / origH;
-
-    // Clamp to valid range
-    nx = nx.clamp(0.0, 1.0);
-    ny = ny.clamp(0.0, 1.0);
-    nw = nw.clamp(0.0, 1.0 - nx);
-    nh = nh.clamp(0.0, 1.0 - ny);
-
-    return DetectionBox(
-      classId: box.classId,
-      className: box.className,
-      confidence: box.confidence,
-      x: nx,
-      y: ny,
-      width: nw,
-      height: nh,
-    );
   }
 
   // ============ Metadata ============
@@ -1237,11 +1107,11 @@ class _LoadedSession {
   // Placeholder input/output info - would be populated from FFI
   List<ONNXTensorInfo> inputInfo = [
     const ONNXTensorInfo(
-        name: 'input', shape: [1, 3, 224, 224], dataType: 'float32'),
+        name: 'input', shape: [1, 3, 224, 224], dataType: 'float32',),
   ];
   List<ONNXTensorInfo> outputInfo = [
     const ONNXTensorInfo(
-        name: 'output', shape: [1, 5], dataType: 'float32'),
+        name: 'output', shape: [1, 5], dataType: 'float32',),
   ];
 }
 

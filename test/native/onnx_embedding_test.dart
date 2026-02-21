@@ -2,7 +2,6 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kidslens_video_editor/native/bindings/onnx_bindings.dart';
 
 // ============ Reimplemented private functions for testing ============
 
@@ -337,11 +336,11 @@ void main() {
         final idx = i * 50; // sample at various positions
         if (idx < planeSize) {
           expect(output[0 * planeSize + idx], closeTo(expectedR, 1e-5),
-              reason: 'R channel at index $idx');
+              reason: 'R channel at index $idx',);
           expect(output[1 * planeSize + idx], closeTo(expectedG, 1e-5),
-              reason: 'G channel at index $idx');
+              reason: 'G channel at index $idx',);
           expect(output[2 * planeSize + idx], closeTo(expectedB, 1e-5),
-              reason: 'B channel at index $idx');
+              reason: 'B channel at index $idx',);
         }
       }
     });
@@ -357,21 +356,21 @@ void main() {
       final rVal = output[0];
       for (var i = 1; i < planeSize; i++) {
         expect(output[i], closeTo(rVal, 1e-6),
-            reason: 'R channel pixel $i differs from pixel 0');
+            reason: 'R channel pixel $i differs from pixel 0',);
       }
 
       // All G-channel values should be the same
       final gVal = output[planeSize];
       for (var i = 1; i < planeSize; i++) {
         expect(output[planeSize + i], closeTo(gVal, 1e-6),
-            reason: 'G channel pixel $i differs from pixel 0');
+            reason: 'G channel pixel $i differs from pixel 0',);
       }
 
       // All B-channel values should be the same
       final bVal = output[2 * planeSize];
       for (var i = 1; i < planeSize; i++) {
         expect(output[2 * planeSize + i], closeTo(bVal, 1e-6),
-            reason: 'B channel pixel $i differs from pixel 0');
+            reason: 'B channel pixel $i differs from pixel 0',);
       }
     });
   });
@@ -402,7 +401,7 @@ void main() {
       // letterbox scale = min(224/640, 224/480) = 224/640 = 0.35
       // letterbox newW = round(640 * 0.35) = 224, newH = round(480 * 0.35) = 168
       // That would pad height, NOT crop width.
-      final letterboxScale = min(224 / 640, 224 / 480).toDouble();
+      final letterboxScale = min(224 / 640, 224 / 480);
       final letterboxNewW = (640 * letterboxScale).round();
       final letterboxNewH = (480 * letterboxScale).round();
 

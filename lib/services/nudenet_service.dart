@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:kidslens_video_editor/data/models/content_category.dart';
@@ -142,7 +141,6 @@ class NudeNetService {
         height,
         classNames: NudeNetLabels.classNames,
         confidenceThreshold: confidenceThreshold,
-        iouThreshold: defaultIouThreshold,
         inputSize: inputSize,
       );
 
@@ -161,7 +159,7 @@ class NudeNetService {
           y: box.y,
           width: box.width,
           height: box.height,
-        ));
+        ),);
       }
 
       return regions;
@@ -174,9 +172,7 @@ class NudeNetService {
   /// Get the path to the NudeNet model.
   ///
   /// [modelId] defaults to 'nudenet-v3-medium'.
-  Future<String?> getModelPath([String modelId = 'nudenet-v3-medium']) async {
-    return modelManager.getModelPath(modelId);
-  }
+  Future<String?> getModelPath([String modelId = 'nudenet-v3-medium']) async => modelManager.getModelPath(modelId);
 
   /// Collect all NudeNet detection labels from enabled categories.
   ///
