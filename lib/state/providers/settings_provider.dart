@@ -143,7 +143,7 @@ class SettingsNotifier extends _$SettingsNotifier {
         final analysisSettingsJson = json['analysisSettings'];
         if (analysisSettingsJson is Map<String, dynamic> &&
             AnalysisSettingsMigration.needsMigration(analysisSettingsJson)) {
-          AnalysisSettingsMigration.migrateFromV1(analysisSettingsJson);
+          AnalysisSettingsMigration.migrateToLatest(analysisSettingsJson);
         }
         state = SettingsState.fromJson(json);
         if (state.analysisSettings.contentDetectionConfig.categories.isEmpty) {
@@ -176,6 +176,15 @@ class SettingsNotifier extends _$SettingsNotifier {
   void updateAnalysisSettings(AnalysisSettings settings) {
     state = state.copyWith(analysisSettings: settings);
     saveSettings();
+  }
+
+  void setNsfwModel(String modelId) {
+    final current = state.analysisSettings;
+    updateAnalysisSettings(
+      current.copyWith(
+        modelConfig: current.modelConfig.copyWith(nsfwModelId: modelId),
+      ),
+    );
   }
 
   void setLanguage(String language) {

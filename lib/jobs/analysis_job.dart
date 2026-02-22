@@ -57,6 +57,11 @@ class AnalysisJob extends Job<AnalysisResult> {
           ..clear()
           ..addAll(builtDetections);
       },
+      onFrameResultsBuilt: (builtFrameResults) {
+        frameResults
+          ..clear()
+          ..addAll(builtFrameResults);
+      },
     )) {
       // Check for cancellation/pause
       await cancellationToken.checkState();
@@ -70,6 +75,7 @@ class AnalysisJob extends Job<AnalysisResult> {
         await _saveCheckpoint(
           AnalysisCheckpoint(
             lastAnalyzedFrame: progress.itemsProcessed ?? 0,
+            frameResults: frameResults.isEmpty ? null : List.of(frameResults),
             timestamp: DateTime.now(),
           ),
         );

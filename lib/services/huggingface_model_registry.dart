@@ -1,8 +1,6 @@
 import 'package:kidslens_video_editor/data/models/huggingface_model.dart';
 
 /// Registry of all available HuggingFace models for KidsLens.
-///
-/// Non-ASR model families have been removed; only ASR models are registered.
 class HuggingFaceModelRegistry {
   HuggingFaceModelRegistry._();
 
@@ -168,39 +166,195 @@ class HuggingFaceModelRegistry {
     ),
   ];
 
+  static final List<HuggingFaceModel> _nsfwModels = [
+    const HuggingFaceModel(
+      id: 'nsfw-gantman-mobilenet-v2-224',
+      displayName: 'GantMan NSFW MobileNet V2 (224)',
+      huggingFaceId: 'gantman/nsfw_model',
+      fileName: 'model.json',
+      parameters: '3.4M',
+      parameterCount: 3400000,
+      sizeBytes: 2748406,
+      ramRequired: 1 * _gb,
+      speedMultiplier: 10,
+      accuracyPercent: 91,
+      modelType: HuggingFaceModelType.nsfw,
+      badge: 'Recommended',
+      description: 'Official GantMan Keras model (224x224, 5-class NSFW)',
+    ),
+    const HuggingFaceModel(
+      id: 'nsfw-gantman-inception-299',
+      displayName: 'GantMan NSFW Inception (299)',
+      huggingFaceId: 'gantman/nsfw_model',
+      fileName: 'model.json',
+      parameters: '23M',
+      parameterCount: 23000000,
+      sizeBytes: 22576789,
+      ramRequired: 2 * _gb,
+      speedMultiplier: 5,
+      accuracyPercent: 93,
+      modelType: HuggingFaceModelType.nsfw,
+      description: 'Official GantMan Keras model (299x299, 5-class NSFW)',
+    ),
+  ];
+
   static const List<String> _multilingualLanguages = [
-    'af', 'am', 'ar', 'as', 'az', 'ba', 'be', 'bg', 'bn', 'bo', 'br', 'bs',
-    'ca', 'cs', 'cy', 'da', 'de', 'el', 'en', 'es', 'et', 'eu', 'fa', 'fi',
-    'fo', 'fr', 'gl', 'gu', 'ha', 'haw', 'he', 'hi', 'hr', 'ht', 'hu', 'hy',
-    'id', 'is', 'it', 'ja', 'jw', 'ka', 'kk', 'km', 'kn', 'ko', 'la', 'lb',
-    'ln', 'lo', 'lt', 'lv', 'mg', 'mi', 'mk', 'ml', 'mn', 'mr', 'ms', 'mt',
-    'my', 'ne', 'nl', 'nn', 'no', 'oc', 'pa', 'pl', 'ps', 'pt', 'ro', 'ru',
-    'sa', 'sd', 'si', 'sk', 'sl', 'sn', 'so', 'sq', 'sr', 'su', 'sv', 'sw',
-    'ta', 'te', 'tg', 'th', 'tk', 'tl', 'tr', 'tt', 'uk', 'ur', 'uz', 'vi',
-    'yi', 'yo', 'yue', 'zh',
+    'af',
+    'am',
+    'ar',
+    'as',
+    'az',
+    'ba',
+    'be',
+    'bg',
+    'bn',
+    'bo',
+    'br',
+    'bs',
+    'ca',
+    'cs',
+    'cy',
+    'da',
+    'de',
+    'el',
+    'en',
+    'es',
+    'et',
+    'eu',
+    'fa',
+    'fi',
+    'fo',
+    'fr',
+    'gl',
+    'gu',
+    'ha',
+    'haw',
+    'he',
+    'hi',
+    'hr',
+    'ht',
+    'hu',
+    'hy',
+    'id',
+    'is',
+    'it',
+    'ja',
+    'jw',
+    'ka',
+    'kk',
+    'km',
+    'kn',
+    'ko',
+    'la',
+    'lb',
+    'ln',
+    'lo',
+    'lt',
+    'lv',
+    'mg',
+    'mi',
+    'mk',
+    'ml',
+    'mn',
+    'mr',
+    'ms',
+    'mt',
+    'my',
+    'ne',
+    'nl',
+    'nn',
+    'no',
+    'oc',
+    'pa',
+    'pl',
+    'ps',
+    'pt',
+    'ro',
+    'ru',
+    'sa',
+    'sd',
+    'si',
+    'sk',
+    'sl',
+    'sn',
+    'so',
+    'sq',
+    'sr',
+    'su',
+    'sv',
+    'sw',
+    'ta',
+    'te',
+    'tg',
+    'th',
+    'tk',
+    'tl',
+    'tr',
+    'tt',
+    'uk',
+    'ur',
+    'uz',
+    'vi',
+    'yi',
+    'yo',
+    'yue',
+    'zh',
   ];
 
   List<HuggingFaceModel> getAsrModels() => List.unmodifiable(_asrModels);
 
-  List<HuggingFaceModel> getVisualModels() => const [];
+  List<HuggingFaceModel> getVisualModels() => List.unmodifiable(_nsfwModels);
 
   List<HuggingFaceModel> getModelsByType(HuggingFaceModelType type) {
-    if (type == HuggingFaceModelType.asr) {
-      return getAsrModels();
+    switch (type) {
+      case HuggingFaceModelType.asr:
+        return getAsrModels();
+      case HuggingFaceModelType.nsfw:
+        return getNsfwModels();
     }
-    return const [];
   }
 
-  List<HuggingFaceModel> getAllModels() => List.unmodifiable(_asrModels);
+  List<HuggingFaceModel> getAllModels() =>
+      List.unmodifiable([..._asrModels, ..._nsfwModels]);
 
   HuggingFaceModel? getModelById(String id) {
-    for (final model in _asrModels) {
+    for (final model in [..._asrModels, ..._nsfwModels]) {
       if (model.id == id) return model;
     }
     return null;
   }
 
-  String getDownloadUrl(HuggingFaceModel model) => model.downloadUrl;
+  String getDownloadUrl(HuggingFaceModel model) =>
+      getDownloadUrlForFile(model, model.fileName);
+
+  String getDownloadUrlForFile(HuggingFaceModel model, String fileName) {
+    switch (model.id) {
+      case 'nsfw-gantman-mobilenet-v2-224':
+        return 'https://raw.githubusercontent.com/infinitered/nsfwjs/master/models/mobilenet_v2/$fileName';
+      case 'nsfw-gantman-inception-299':
+        return 'https://raw.githubusercontent.com/infinitered/nsfwjs/master/models/inception_v3/$fileName';
+      default:
+        return model.downloadUrl;
+    }
+  }
+
+  List<String> getAdditionalModelFiles(HuggingFaceModel model) {
+    switch (model.id) {
+      case 'nsfw-gantman-mobilenet-v2-224':
+        return const <String>['group1-shard1of1'];
+      case 'nsfw-gantman-inception-299':
+        return const <String>[
+          'group1-shard1of6',
+          'group1-shard2of6',
+          'group1-shard3of6',
+          'group1-shard4of6',
+          'group1-shard5of6',
+          'group1-shard6of6',
+        ];
+      default:
+        return const <String>[];
+    }
+  }
 
   HuggingFaceModel? getRecommendedModel(HuggingFaceModelType type) {
     final models = getModelsByType(type);
@@ -210,7 +364,7 @@ class HuggingFaceModelRegistry {
         );
   }
 
-  List<HuggingFaceModel> getNsfwModels() => const [];
+  List<HuggingFaceModel> getNsfwModels() => List.unmodifiable(_nsfwModels);
   List<HuggingFaceModel> getViolenceModels() => const [];
   List<HuggingFaceModel> getBloodModels() => const [];
   List<HuggingFaceModel> getWeaponsModels() => const [];
@@ -235,11 +389,9 @@ class HuggingFaceModelRegistry {
     return models;
   }
 
-  List<HuggingFaceModel> getEnglishOnlyAsrModels() => _asrModels
-      .where((model) => model.isEnglishOnly)
-      .toList(growable: false);
+  List<HuggingFaceModel> getEnglishOnlyAsrModels() =>
+      _asrModels.where((model) => model.isEnglishOnly).toList(growable: false);
 
-  List<HuggingFaceModel> getMultilingualAsrModels() => _asrModels
-      .where((model) => model.isMultilingual)
-      .toList(growable: false);
+  List<HuggingFaceModel> getMultilingualAsrModels() =>
+      _asrModels.where((model) => model.isMultilingual).toList(growable: false);
 }

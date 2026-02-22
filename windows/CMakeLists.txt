@@ -16,6 +16,8 @@ cmake_policy(VERSION 3.14...3.25)
 option(BUILD_WHISPER_WRAPPER "Build whisper_wrapper native library" ON)
 option(WHISPER_USE_CUDA "Enable CUDA GPU acceleration for Whisper (preferred)" ON)
 option(WHISPER_USE_VULKAN "Enable Vulkan GPU acceleration for Whisper (fallback)" ON)
+set(ONNXRUNTIME_VERSION "1.20.1" CACHE STRING "Pinned ONNX Runtime ABI version for Windows")
+set(ONNXRUNTIME_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../native/onnxruntime/binaries/windows-x64")
 
 # ============================================================================
 # GPU Backend Auto-Detection: CUDA > Vulkan > CPU
@@ -177,6 +179,14 @@ if(PLUGIN_BUNDLED_LIBRARIES)
     COMPONENT Runtime)
 endif()
 
+if(EXISTS "${ONNXRUNTIME_DIR}/onnxruntime.dll")
+  message(STATUS "Installing ONNX Runtime ${ONNXRUNTIME_VERSION} from ${ONNXRUNTIME_DIR}")
+  install(FILES
+    "${ONNXRUNTIME_DIR}/onnxruntime.dll"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+    COMPONENT Runtime)
+endif()
+
 # ============================================================================
 # Install whisper_wrapper native library
 # ============================================================================
@@ -193,6 +203,20 @@ set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}native_assets/windows/")
 install(DIRECTORY "${NATIVE_ASSETS_DIR}"
    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
    COMPONENT Runtime)
+
+# Bundle TensorFlow JS runtime assets for NSFW inference.
+set(TENSORFLOW_RUNTIME_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../native/tensorflow/runtime")
+if(EXISTS "${TENSORFLOW_RUNTIME_DIR}")
+  install(DIRECTORY "${TENSORFLOW_RUNTIME_DIR}"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}/native/tensorflow"
+    COMPONENT Runtime)
+endif()
+set(TENSORFLOW_NODE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../native/tensorflow/node")
+if(EXISTS "${TENSORFLOW_NODE_DIR}")
+  install(DIRECTORY "${TENSORFLOW_NODE_DIR}"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}/native/tensorflow"
+    COMPONENT Runtime)
+endif()
 
 # Fully re-copy the assets directory on each build to avoid having stale files
 # from a previous install.

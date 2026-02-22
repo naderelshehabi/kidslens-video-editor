@@ -7,7 +7,7 @@ import 'package:kidslens_video_editor/native/resource_manager.dart';
 import 'package:kidslens_video_editor/services/media_service.dart';
 
 /// FFmpeg bindings - uses system FFmpeg command-line tool
-/// 
+///
 /// Supports both bundled FFmpeg binaries (preferred) and system-installed FFmpeg.
 /// Bundled binaries are located in native/ffmpeg/binaries/{platform}/ relative
 /// to the application executable.
@@ -25,6 +25,9 @@ class FFmpegBindings extends NativeResource {
   /// The path to the FFmpeg executable
   String? get ffmpegPath => _ffmpegPath;
 
+  /// The path to the FFprobe executable
+  String? get ffprobePath => _ffprobePath;
+
   /// Set FFmpeg path manually for testing
   @visibleForTesting
   void setFFmpegPathForTesting(String path) {
@@ -33,7 +36,7 @@ class FFmpegBindings extends NativeResource {
   }
 
   /// Initialize FFmpeg bindings by finding FFmpeg on the system
-  /// 
+  ///
   /// First checks for bundled binaries relative to the executable,
   /// then falls back to system-installed FFmpeg.
   Future<void> initialize() async {
@@ -57,7 +60,7 @@ class FFmpegBindings extends NativeResource {
       _ffprobePath = await _findExecutable('ffprobe');
       _initialized = _ffmpegPath != null;
       _usingBundledBinaries = false;
-      
+
       if (_initialized) {
         debugPrint('FFmpeg found at: $_ffmpegPath');
       } else {
@@ -69,16 +72,16 @@ class FFmpegBindings extends NativeResource {
   }
 
   /// Get the path to bundled FFmpeg binary if it exists
-  /// 
+  ///
   /// Bundled binaries are stored in:
   /// - Windows: {exe_dir}/data/flutter_assets/native/ffmpeg/binaries/windows-{arch}/ffmpeg.exe
   /// - macOS: {app_bundle}/Contents/Frameworks/native/ffmpeg/binaries/macos-universal/ffmpeg
   /// - Linux: {exe_dir}/data/flutter_assets/native/ffmpeg/binaries/linux-{arch}/ffmpeg
-  /// 
+  ///
   /// Also checks for binaries relative to the project root for development mode.
   Future<String?> _getBundledFFmpegPath() async {
     final paths = _getBundledBinaryPaths('ffmpeg');
-    
+
     for (final path in paths) {
       final file = File(path);
       if (file.existsSync()) {
@@ -96,14 +99,14 @@ class FFmpegBindings extends NativeResource {
         }
       }
     }
-    
+
     return null;
   }
 
   /// Get the path to bundled FFprobe binary if it exists
   Future<String?> _getBundledFFprobePath() async {
     final paths = _getBundledBinaryPaths('ffprobe');
-    
+
     for (final path in paths) {
       final file = File(path);
       if (file.existsSync()) {
@@ -120,7 +123,7 @@ class FFmpegBindings extends NativeResource {
         }
       }
     }
-    
+
     return null;
   }
 
@@ -129,54 +132,68 @@ class FFmpegBindings extends NativeResource {
     final paths = <String>[];
     final exePath = Platform.resolvedExecutable;
     final exeDir = File(exePath).parent.path;
-    
+
     if (Platform.isWindows) {
       final binaryName = '$execName.exe';
       final arch = _getWindowsArch();
-      
+
       // Release mode: relative to executable
       paths
-        ..add('$exeDir\\data\\flutter_assets\\native\\ffmpeg\\binaries\\windows-$arch\\$binaryName')
+        ..add(
+          '$exeDir\\data\\flutter_assets\\native\\ffmpeg\\binaries\\windows-$arch\\$binaryName',
+        )
         ..add('$exeDir\\native\\ffmpeg\\binaries\\windows-$arch\\$binaryName');
-      
+
       // Development mode: relative to project root
       // In debug, exeDir is build/windows/x64/runner/Debug or Release
       final projectRoot = _findProjectRoot(exeDir);
       if (projectRoot != null) {
-        paths.add('$projectRoot\\native\\ffmpeg\\binaries\\windows-$arch\\$binaryName');
+        paths.add(
+          '$projectRoot\\native\\ffmpeg\\binaries\\windows-$arch\\$binaryName',
+        );
       }
     } else if (Platform.isMacOS) {
       final binaryName = execName;
-      
+
       // Release mode: inside app bundle
       // Executable is at MyApp.app/Contents/MacOS/MyApp
       final contentsDir = File(exePath).parent.parent.path;
       paths
-        ..add('$contentsDir/Frameworks/native/ffmpeg/binaries/macos-universal/$binaryName')
-        ..add('$contentsDir/Resources/native/ffmpeg/binaries/macos-universal/$binaryName');
-      
+        ..add(
+          '$contentsDir/Frameworks/native/ffmpeg/binaries/macos-universal/$binaryName',
+        )
+        ..add(
+          '$contentsDir/Resources/native/ffmpeg/binaries/macos-universal/$binaryName',
+        );
+
       // Development mode
       final projectRoot = _findProjectRoot(exeDir);
       if (projectRoot != null) {
-        paths.add('$projectRoot/native/ffmpeg/binaries/macos-universal/$binaryName');
+        paths.add(
+          '$projectRoot/native/ffmpeg/binaries/macos-universal/$binaryName',
+        );
       }
     } else if (Platform.isLinux) {
       final binaryName = execName;
       final arch = _getLinuxArch();
-      
+
       // Release mode: relative to executable
       paths
-        ..add('$exeDir/data/flutter_assets/native/ffmpeg/binaries/linux-$arch/$binaryName')
+        ..add(
+          '$exeDir/data/flutter_assets/native/ffmpeg/binaries/linux-$arch/$binaryName',
+        )
         ..add('$exeDir/native/ffmpeg/binaries/linux-$arch/$binaryName')
         ..add('$exeDir/lib/native/ffmpeg/binaries/linux-$arch/$binaryName');
-      
+
       // Development mode
       final projectRoot = _findProjectRoot(exeDir);
       if (projectRoot != null) {
-        paths.add('$projectRoot/native/ffmpeg/binaries/linux-$arch/$binaryName');
+        paths.add(
+          '$projectRoot/native/ffmpeg/binaries/linux-$arch/$binaryName',
+        );
       }
     }
-    
+
     return paths;
   }
 
@@ -204,26 +221,27 @@ class FFmpegBindings extends NativeResource {
   /// Find project root directory by looking for pubspec.yaml
   String? _findProjectRoot(String startDir) {
     var current = Directory(startDir);
-    
+
     // Walk up the directory tree looking for pubspec.yaml
     for (var i = 0; i < 10; i++) {
-      final pubspec = File('${current.path}${Platform.pathSeparator}pubspec.yaml');
+      final pubspec =
+          File('${current.path}${Platform.pathSeparator}pubspec.yaml');
       if (pubspec.existsSync()) {
         return current.path;
       }
-      
+
       final parent = current.parent;
       if (parent.path == current.path) {
         break; // Reached root
       }
       current = parent;
     }
-    
+
     return null;
   }
 
   /// Find an executable on the system PATH
-  /// 
+  ///
   /// This is called as a fallback when bundled binaries are not found.
   Future<String?> _findExecutable(String name) async {
     final possiblePaths = <String>[
@@ -279,8 +297,10 @@ class FFmpegBindings extends NativeResource {
         final result = await Process.run(
           _ffprobePath!,
           [
-            '-v', 'quiet',
-            '-print_format', 'json',
+            '-v',
+            'quiet',
+            '-print_format',
+            'json',
             '-show_format',
             '-show_streams',
             path,
@@ -288,7 +308,8 @@ class FFmpegBindings extends NativeResource {
         );
 
         if (result.exitCode == 0) {
-          final json = jsonDecode(result.stdout as String) as Map<String, dynamic>;
+          final json =
+              jsonDecode(result.stdout as String) as Map<String, dynamic>;
           return _parseProbeResult(json, path);
         }
       } catch (e) {
@@ -338,7 +359,7 @@ class FFmpegBindings extends NativeResource {
         width = stream['width'] as int? ?? 1920;
         height = stream['height'] as int? ?? 1080;
         videoCodec = stream['codec_name'] as String? ?? 'h264';
-        
+
         final frameRateStr = stream['r_frame_rate'] as String? ?? '30/1';
         final parts = frameRateStr.split('/');
         if (parts.length == 2) {
@@ -374,9 +395,11 @@ class FFmpegBindings extends NativeResource {
     final result = await Process.run(
       _ffmpegPath!,
       [
-        '-i', videoPath,
+        '-i',
+        videoPath,
         '-vn',
-        '-acodec', 'pcm_s16le',
+        '-acodec',
+        'pcm_s16le',
         '-y',
         outputPath,
       ],
@@ -433,10 +456,14 @@ class FFmpegBindings extends NativeResource {
     final result = await Process.run(
       _ffmpegPath!,
       [
-        '-ss', timestampStr,
-        '-i', videoPath,
-        '-vframes', '1',
-        '-vf', 'scale=$width:$height',
+        '-ss',
+        timestampStr,
+        '-i',
+        videoPath,
+        '-vframes',
+        '1',
+        '-vf',
+        'scale=$width:$height',
         '-y',
         outputPath,
       ],
@@ -459,7 +486,7 @@ class FFmpegBindings extends NativeResource {
   }) {
     // ignore: close_sinks - Controller is closed in _runFFmpegExport finally block
     final controller = StreamController<double>();
-    
+
     _runFFmpegExport(
       inputPath: inputPath,
       outputPath: outputPath,
@@ -468,10 +495,10 @@ class FFmpegBindings extends NativeResource {
       totalDuration: totalDuration,
       controller: controller,
     );
-    
+
     return controller.stream;
   }
-  
+
   Future<void> _runFFmpegExport({
     required String inputPath,
     required String outputPath,
@@ -513,8 +540,9 @@ class FFmpegBindings extends NativeResource {
     debugPrint('Running FFmpeg: $_ffmpegPath ${args.join(' ')}');
 
     // Get total duration for progress calculation
-    var duration = totalDuration ?? _lastProbedDuration ?? const Duration(minutes: 5);
-    
+    var duration =
+        totalDuration ?? _lastProbedDuration ?? const Duration(minutes: 5);
+
     // Try to get actual duration if not provided
     if (totalDuration == null && _lastProbedDuration == null) {
       try {
@@ -536,7 +564,10 @@ class FFmpegBindings extends NativeResource {
       final stderrBuffer = StringBuffer();
 
       // Parse progress from stdout (due to -progress pipe:1)
-      process.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
+      process.stdout
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .listen((line) {
         // Parse progress lines like "out_time_us=1234567" or "out_time=00:01:30.000000"
         if (line.startsWith('out_time_us=')) {
           final timeUs = int.tryParse(line.substring(12));
@@ -550,8 +581,11 @@ class FFmpegBindings extends NativeResource {
         } else if (line.startsWith('out_time=')) {
           final timeStr = line.substring(9);
           final timeDuration = _parseFFmpegTime(timeStr);
-          if (timeDuration != null && timeDuration.inMicroseconds > 0 && totalMicroseconds > 0) {
-            final progress = (timeDuration.inMicroseconds / totalMicroseconds).clamp(0.0, 1.0);
+          if (timeDuration != null &&
+              timeDuration.inMicroseconds > 0 &&
+              totalMicroseconds > 0) {
+            final progress = (timeDuration.inMicroseconds / totalMicroseconds)
+                .clamp(0.0, 1.0);
             if (progress > lastProgress) {
               lastProgress = progress;
               controller.add(progress);
@@ -565,26 +599,31 @@ class FFmpegBindings extends NativeResource {
       });
 
       // Also parse stderr for additional progress info (FFmpeg writes stats there)
-      process.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
+      process.stderr
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .listen((line) {
         stderrBuffer.writeln(line);
-        
+
         // Parse lines like "frame= 1234 fps= 30 ... time=00:01:30.00 ..."
-        final timeMatch = RegExp(r'time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})').firstMatch(line);
+        final timeMatch =
+            RegExp(r'time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})').firstMatch(line);
         if (timeMatch != null) {
           final hours = int.parse(timeMatch.group(1)!);
           final minutes = int.parse(timeMatch.group(2)!);
           final seconds = int.parse(timeMatch.group(3)!);
           final centiseconds = int.parse(timeMatch.group(4)!);
-          
+
           final timeDuration = Duration(
             hours: hours,
             minutes: minutes,
             seconds: seconds,
             milliseconds: centiseconds * 10,
           );
-          
+
           if (totalMicroseconds > 0) {
-            final progress = (timeDuration.inMicroseconds / totalMicroseconds).clamp(0.0, 1.0);
+            final progress = (timeDuration.inMicroseconds / totalMicroseconds)
+                .clamp(0.0, 1.0);
             if (progress > lastProgress) {
               lastProgress = progress;
               controller.add(progress);
@@ -600,9 +639,11 @@ class FFmpegBindings extends NativeResource {
         // Check if output file was created despite error
         final outputFile = File(outputPath);
         if (!outputFile.existsSync()) {
-          controller.addError(FFmpegException(
-            'FFmpeg failed with exit code $exitCode.\n${stderrBuffer.toString().split('\n').take(10).join('\n')}',
-          ),);
+          controller.addError(
+            FFmpegException(
+              'FFmpeg failed with exit code $exitCode.\n${stderrBuffer.toString().split('\n').take(10).join('\n')}',
+            ),
+          );
         } else {
           // File was created, consider it a success (some warnings may cause non-zero exit)
           if (lastProgress < 1.0) {
@@ -629,11 +670,11 @@ class FFmpegBindings extends NativeResource {
 
     final hours = int.tryParse(parts[0]) ?? 0;
     final minutes = int.tryParse(parts[1]) ?? 0;
-    
+
     final secParts = parts[2].split('.');
     final seconds = int.tryParse(secParts[0]) ?? 0;
     var microseconds = 0;
-    
+
     if (secParts.length > 1) {
       final fracStr = secParts[1].padRight(6, '0').substring(0, 6);
       microseconds = int.tryParse(fracStr) ?? 0;
@@ -671,9 +712,12 @@ class FFmpegBindings extends NativeResource {
     final result = await Process.run(
       _ffmpegPath!,
       [
-        '-i', videoPath,
-        '-vf', "select='gt(scene,$threshold)',showinfo",
-        '-f', 'null',
+        '-i',
+        videoPath,
+        '-vf',
+        "select='gt(scene,$threshold)',showinfo",
+        '-f',
+        'null',
         '-',
       ],
     );
@@ -685,11 +729,13 @@ class FFmpegBindings extends NativeResource {
       final match = RegExp(r'pts_time:(\d+\.?\d*)').firstMatch(line);
       if (match != null) {
         final time = double.tryParse(match.group(1)!) ?? 0.0;
-        scenes.add(SceneChange(
-          frameNumber: scenes.length,
-          timestamp: Duration(milliseconds: (time * 1000).round()),
-          score: threshold,
-        ),);
+        scenes.add(
+          SceneChange(
+            frameNumber: scenes.length,
+            timestamp: Duration(milliseconds: (time * 1000).round()),
+            score: threshold,
+          ),
+        );
       }
     }
 
@@ -756,5 +802,6 @@ class FFmpegInitializationException implements Exception {
 /// Exception thrown when FFmpeg is not initialized
 class FFmpegNotInitializedException implements Exception {
   @override
-  String toString() => 'FFmpeg bindings not initialized. Call initialize() first.';
+  String toString() =>
+      'FFmpeg bindings not initialized. Call initialize() first.';
 }

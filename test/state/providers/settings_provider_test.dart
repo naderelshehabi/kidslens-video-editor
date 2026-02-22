@@ -44,6 +44,6 @@ void main() {
         .contentDetectionConfig
         .categories;
     expect(categories, isNotEmpty);
-    expect(categories.first.id, ContentCategoryDefaults.profanity.id);
+    expect(categories.first.id, ContentCategoryDefaults.nsfw.id);
   });
 }

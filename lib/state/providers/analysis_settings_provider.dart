@@ -11,6 +11,7 @@ part 'analysis_settings_provider.g.dart';
 class AnalysisSettingsState {
   const AnalysisSettingsState({
     this.asrModelId = 'whisper-small',
+    this.nsfwModelId = 'nsfw-gantman-mobilenet-v2-224',
     this.profanityThreshold = 0.8,
     this.enableProfanity = true,
     this.frameSamplingRate = 5,
@@ -23,6 +24,8 @@ class AnalysisSettingsState {
   factory AnalysisSettingsState.fromJson(Map<String, dynamic> json) =>
       AnalysisSettingsState(
         asrModelId: json['asrModelId'] as String? ?? 'whisper-small',
+        nsfwModelId:
+            json['nsfwModelId'] as String? ?? 'nsfw-gantman-mobilenet-v2-224',
         profanityThreshold:
             (json['profanityThreshold'] as num?)?.toDouble() ?? 0.8,
         enableProfanity: json['enableProfanity'] as bool? ?? true,
@@ -50,6 +53,7 @@ class AnalysisSettingsState {
       );
 
   final String asrModelId;
+  final String nsfwModelId;
   final double profanityThreshold;
   final bool enableProfanity;
   final int frameSamplingRate;
@@ -60,6 +64,7 @@ class AnalysisSettingsState {
 
   AnalysisSettingsState copyWith({
     String? asrModelId,
+    String? nsfwModelId,
     double? profanityThreshold,
     bool? enableProfanity,
     int? frameSamplingRate,
@@ -70,6 +75,7 @@ class AnalysisSettingsState {
   }) =>
       AnalysisSettingsState(
         asrModelId: asrModelId ?? this.asrModelId,
+        nsfwModelId: nsfwModelId ?? this.nsfwModelId,
         profanityThreshold: profanityThreshold ?? this.profanityThreshold,
         enableProfanity: enableProfanity ?? this.enableProfanity,
         frameSamplingRate: frameSamplingRate ?? this.frameSamplingRate,
@@ -83,6 +89,7 @@ class AnalysisSettingsState {
   AnalysisSettings toAnalysisSettings() => AnalysisSettings(
         modelConfig: ModelConfig(
           asrModelId: asrModelId,
+          nsfwModelId: nsfwModelId,
           asrLanguage: asrLanguage,
           useGpu: useGpuAcceleration,
           cpuThreads: cpuThreads,
@@ -97,6 +104,7 @@ class AnalysisSettingsState {
 
   Map<String, dynamic> toJson() => {
         'asrModelId': asrModelId,
+        'nsfwModelId': nsfwModelId,
         'profanityThreshold': profanityThreshold,
         'enableProfanity': enableProfanity,
         'frameSamplingRate': frameSamplingRate,
@@ -139,6 +147,11 @@ class AnalysisSettingsNotifier extends _$AnalysisSettingsNotifier {
 
   void setAsrModel(String modelId) {
     state = state.copyWith(asrModelId: modelId);
+    saveSettings();
+  }
+
+  void setNsfwModel(String modelId) {
+    state = state.copyWith(nsfwModelId: modelId);
     saveSettings();
   }
 

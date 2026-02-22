@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:kidslens_video_editor/data/models/content_category.dart';
-import 'package:kidslens_video_editor/data/models/huggingface_model.dart';
 import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 
 /// Expandable card widget for a content detection category.
@@ -130,20 +129,6 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
                 ],
               ),
             ),
-            // Model count indicator
-            if (_cat.modelContributions.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Chip(
-                  label: Text(
-                    '${_cat.enabledModels.length}/${_cat.modelContributions.length}',
-                    style: theme.textTheme.labelSmall,
-                  ),
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ),
             // Enable switch
             Switch(
               value: _cat.enabled,
@@ -180,21 +165,6 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Model Contributions
-            if (_cat.modelContributions.isNotEmpty) ...[
-              Text(
-                'Model Contributions',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ..._cat.modelContributions.map(
-                (m) => _buildModelRow(context, m),
-              ),
-              const SizedBox(height: 16),
-            ],
 
             // Threshold slider
             Text(
@@ -271,69 +241,6 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
     );
   }
 
-  Widget _buildModelRow(BuildContext context, ModelContribution model) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDownloaded = widget.downloadedModelIds.contains(model.modelId);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          // Model type icon
-          Icon(
-            _iconForModelType(model.modelType),
-            size: 18,
-            color: model.enabled ? _categoryColor : colorScheme.outline,
-          ),
-          const SizedBox(width: 8),
-          // Model name
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  model.displayName,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: model.enabled
-                        ? colorScheme.onSurface
-                        : colorScheme.outline,
-                  ),
-                ),
-                if (!isDownloaded && model.modelType != HuggingFaceModelType.asr)
-                  Text(
-                    'Not downloaded',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.error,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          // Weight display
-          if (model.weightOverride != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Text(
-                'w=${model.weightOverride!.toStringAsFixed(1)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          // Enable toggle
-          Switch(
-            value: model.enabled,
-            onChanged: (enabled) =>
-                widget.onToggleModel(model.modelId, enabled: enabled),
-            activeThumbColor: _categoryColor,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ],
-      ),
-    );
-  }
-
   /// Actions available based on category type.
   List<RemediationAction> get _availableActions {
     if (_cat.isVisual) {
@@ -395,12 +302,6 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
     }
   }
 
-  static IconData _iconForModelType(HuggingFaceModelType type) {
-    switch (type) {
-      case HuggingFaceModelType.asr:
-        return Icons.mic;
-    }
-  }
 }
 
 /// Small colored badge for category type (Visual / Audio).

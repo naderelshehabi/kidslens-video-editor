@@ -21,15 +21,17 @@ void main() {
   });
 
   group('AnalysisSettings', () {
-    test('defaults are audio-focused', () {
+    test('defaults enable audio + visual detection', () {
       final settings = AnalysisSettings.defaults();
-      expect(settings.hasVisualDetection, isFalse);
+      expect(settings.hasVisualDetection, isTrue);
       expect(settings.hasAudioDetection, isTrue);
     });
 
-    test('videoOnly disables all detections', () {
+    test('videoOnly keeps visual detections enabled and disables audio', () {
       final settings = AnalysisSettings.videoOnly();
-      expect(settings.hasAnyDetection, isFalse);
+      expect(settings.hasVisualDetection, isTrue);
+      expect(settings.hasAudioDetection, isFalse);
+      expect(settings.hasAnyDetection, isTrue);
     });
 
     test('json round-trip', () {
@@ -40,7 +42,7 @@ void main() {
         jsonDecode(jsonEncode(original.toJson())) as Map<String, dynamic>,
       );
       expect(restored.modelConfig.asrModelId, 'whisper-small');
-      expect(restored.hasVisualDetection, isFalse);
+      expect(restored.hasVisualDetection, isTrue);
     });
   });
 }

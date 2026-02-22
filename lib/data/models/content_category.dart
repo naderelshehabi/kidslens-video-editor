@@ -175,7 +175,7 @@ class ContentCategory with _$ContentCategory {
 
   /// Whether at least one contributing model is enabled.
   bool get hasEnabledModels =>
-      modelContributions.any((m) => m.enabled);
+      modelContributions.isEmpty || modelContributions.any((m) => m.enabled);
 
   /// Enabled model contributions only.
   List<ModelContribution> get enabledModels =>

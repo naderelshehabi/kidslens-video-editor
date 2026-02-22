@@ -1,0 +1,11 @@
+{
+  "name": "kidslens-tensorflow-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TensorFlow runtime dependencies for NSFW inference",
+  "license": "MIT",
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "nsfwjs": "^4.2.1"
+  }
+}

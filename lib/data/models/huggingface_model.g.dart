@@ -55,4 +55,5 @@ Map<String, dynamic> _$$HuggingFaceModelImplToJson(
 
 const _$HuggingFaceModelTypeEnumMap = {
   HuggingFaceModelType.asr: 'asr',
+  HuggingFaceModelType.nsfw: 'nsfw',
 };

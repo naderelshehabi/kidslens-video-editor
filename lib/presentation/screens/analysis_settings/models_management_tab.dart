@@ -53,7 +53,7 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
           Text('Models Management', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 8),
           Text(
-            'Manage ASR models used by the analysis pipeline.',
+            'Manage ASR and NSFW models used by the analysis pipeline.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -96,19 +96,11 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              const Icon(Icons.mic, color: Colors.blue),
-              const SizedBox(width: 8),
-              Text('ASR', style: theme.textTheme.titleMedium),
-              const SizedBox(width: 8),
-              Text(
-                'Speech recognition models',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+          _buildModelSectionHeader(
+            context,
+            icon: Icons.mic,
+            title: 'ASR',
+            subtitle: 'Speech recognition models',
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -129,13 +121,71 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
                   isSelected: selectedAsrModelId == model.id,
                   onDownload: () => _download(model.id),
                   onDelete: () => _delete(model.id),
-                  onSelect: isDownloaded ? () => _selectModel(model.id, settingsState) : null,
+                  onSelect: isDownloaded
+                      ? () => _selectModel(model.id, HuggingFaceModelType.asr)
+                      : null,
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 24),
+          _buildModelSectionHeader(
+            context,
+            icon: Icons.visibility_off,
+            title: 'NSFW',
+            subtitle: 'Visual NSFW classifier weight variants',
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: _applySort(_applyFilter(registry.getNsfwModels(), modelState))
+                .map((model) {
+              final isDownloaded = modelState.downloadedModels.contains(model.id);
+              final downloadProgress = modelState.activeDownloads[model.id];
+              final selectedNsfwModelId =
+                  settingsState.analysisSettings.modelConfig.nsfwModelId;
+              return SizedBox(
+                width: 340,
+                child: HuggingFaceModelCard(
+                  model: model,
+                  isDownloaded: isDownloaded,
+                  isDownloading: downloadProgress != null,
+                  downloadProgress: downloadProgress?.percentage,
+                  isSelected: selectedNsfwModelId == model.id,
+                  onDownload: () => _download(model.id),
+                  onDelete: () => _delete(model.id),
+                  onSelect: isDownloaded
+                      ? () => _selectModel(model.id, HuggingFaceModelType.nsfw)
+                      : null,
                 ),
               );
             }).toList(),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildModelSectionHeader(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurfaceVariant;
+    return Row(
+      children: [
+        Icon(icon, color: color),
+        const SizedBox(width: 8),
+        Text(title, style: theme.textTheme.titleMedium),
+        const SizedBox(width: 8),
+        Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(color: color),
+        ),
+      ],
     );
   }
 
@@ -194,12 +244,22 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
     });
   }
 
-  void _selectModel(String modelId, SettingsState settingsState) {
-    final current = settingsState.analysisSettings;
-    ref.read(settingsNotifierProvider.notifier).updateAnalysisSettings(
+  void _selectModel(String modelId, HuggingFaceModelType type) {
+    final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
+    final current = ref.read(settingsNotifierProvider).analysisSettings;
+    switch (type) {
+      case HuggingFaceModelType.asr:
+        settingsNotifier.updateAnalysisSettings(
           current.copyWith(
             modelConfig: current.modelConfig.copyWith(asrModelId: modelId),
           ),
         );
+      case HuggingFaceModelType.nsfw:
+        settingsNotifier.updateAnalysisSettings(
+          current.copyWith(
+            modelConfig: current.modelConfig.copyWith(nsfwModelId: modelId),
+          ),
+        );
+    }
   }
 }

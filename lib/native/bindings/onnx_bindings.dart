@@ -5,6 +5,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:kidslens_video_editor/native/resource_manager.dart';
+import 'package:onnxruntime/onnxruntime.dart' as ort;
 
 /// Information about an ONNX Runtime session
 class ONNXSessionInfo {
@@ -167,6 +168,13 @@ class ONNXBindings extends NativeResource {
 
   /// Mutex for serializing all inference calls
   final _InferenceMutex _inferenceMutex = _InferenceMutex();
+  static const List<String> _canonicalNsfwLabels = <String>[
+    'drawings',
+    'hentai',
+    'neutral',
+    'porn',
+    'sexy',
+  ];
 
   /// Initialize ONNX Runtime bindings
   ///
@@ -193,9 +201,13 @@ class ONNXBindings extends NativeResource {
 
     try {
       _lib = _loadLibrary();
+      ort.OrtEnv.instance.init(logId: 'kidslens_video_editor');
 
       if (executionProviders != null) {
         _executionProviders = executionProviders;
+      }
+      if (!_executionProviders.contains('CPUExecutionProvider')) {
+        _executionProviders = [..._executionProviders, 'CPUExecutionProvider'];
       }
 
       // FFI Implementation Plan:
@@ -207,6 +219,7 @@ class ONNXBindings extends NativeResource {
       // 6. g_ort->EnableMemPattern(session_options)
 
       _initialized = true;
+      _runStartupSelfTest();
     } catch (e) {
       throw ONNXInitializationException('Failed to load ONNX Runtime: $e');
     }
@@ -262,22 +275,40 @@ class ONNXBindings extends NativeResource {
     }
 
     try {
-      // FFI Implementation Plan:
-      // 1. Create session: g_ort->CreateSession(g_env, modelPath, g_session_options, &session)
-      // 2. Get input count: g_ort->SessionGetInputCount(session, &num_inputs)
-      // 3. For each input i:
-      //    - g_ort->SessionGetInputName(session, i, allocator, &name)
-      //    - g_ort->SessionGetInputTypeInfo(session, i, &type_info)
-      //    - g_ort->GetTensorShapeElementCount(tensor_info, &element_count)
-      //    - Extract shape dimensions
-      // 4. Repeat for outputs
-      // 5. Store session pointer and metadata
+      final modelBytes = await modelFile.readAsBytes();
+      final options = ort.OrtSessionOptions()
+        ..setSessionGraphOptimizationLevel(
+          ort.GraphOptimizationLevel.ortEnableAll,
+        )
+        ..setIntraOpNumThreads(0)
+        ..appendCPUProvider(ort.CPUFlags.useArena);
+      final ortSession = ort.OrtSession.fromBuffer(modelBytes, options);
 
       final session = _LoadedSession(
         path: modelPath,
         loadedAt: DateTime.now(),
         executionProvider: _executionProviders.first,
+        options: options,
+        ortSession: ortSession,
       );
+
+      final inferredSize = _inferInputImageSize(modelPath);
+      final inferredClassCount = _inferClassCount(modelPath);
+      session
+        ..inputInfo = <ONNXTensorInfo>[
+          ONNXTensorInfo(
+            name: ortSession.inputNames.first,
+            shape: <int>[1, 3, inferredSize.$1, inferredSize.$2],
+            dataType: 'float32',
+          ),
+        ]
+        ..outputInfo = <ONNXTensorInfo>[
+          ONNXTensorInfo(
+            name: ortSession.outputNames.first,
+            shape: <int>[1, inferredClassCount],
+            dataType: 'float32',
+          ),
+        ];
 
       _loadedSessions[modelPath] = session;
       _sessionAccessOrder.add(modelPath);
@@ -317,10 +348,8 @@ class ONNXBindings extends NativeResource {
 
     if (session == null) return;
 
-    // FFI Implementation Plan:
-    // 1. If session has native pointer: g_ort->ReleaseSession(session.ptr)
-    // 2. Clear any cached input/output tensors
-    // 3. Log disposal for debugging
+    session.ortSession.release();
+    session.options.release();
   }
 
   /// Dispose all cached sessions
@@ -379,15 +408,11 @@ class ONNXBindings extends NativeResource {
 
     try {
       await _withInferenceLock(() async {
-        // FFI Implementation Plan:
-        // 1. Get input shape from session metadata
-        // 2. Allocate Float32List of correct size
-        // 3. Create OrtValue tensor: g_ort->CreateTensorWithDataAsOrtValue(...)
-        // 4. Run inference: g_ort->Run(session, null, input_names, inputs, 1, output_names, 1, &outputs)
-        // 5. Release output tensor
-
-        // Placeholder warmup simulation
-        await Future<void>.delayed(const Duration(milliseconds: 50));
+        final inputShape = session.inputInfo.first.shape;
+        final warmupWidth = inputShape.length >= 4 ? inputShape[3] : 224;
+        final warmupHeight = inputShape.length >= 4 ? inputShape[2] : 224;
+        final warmupData = List<int>.filled(warmupWidth * warmupHeight * 3, 0);
+        _runModelInference(modelPath, warmupData, warmupWidth, warmupHeight);
       });
 
       session.warmedUp = true;
@@ -452,7 +477,9 @@ class ONNXBindings extends NativeResource {
     _updateAccessOrder(modelPath);
 
     try {
-      return await _withInferenceLock(() async => _runModelInference(modelPath, rgbData, width, height));
+      return await _withInferenceLock(
+        () async => _runModelInference(modelPath, rgbData, width, height),
+      );
     } catch (e) {
       if (e is ONNXInferenceException) rethrow;
       throw ONNXInferenceException('Inference failed: $e');
@@ -469,55 +496,35 @@ class ONNXBindings extends NativeResource {
     int width,
     int height,
   ) {
-    final modelType = _inferModelType(modelPath);
-
-    // Use image data to add slight variance to results
-    // This makes simulation more realistic than constant values
-    final variance = _computeImageVariance(rgbData, width, height);
-    final random = Random(variance.hashCode);
-
-    // Small random variation (±5%)
-    double vary(double base) {
-      final variation = (random.nextDouble() - 0.5) * 0.1;
-      return (base + variation).clamp(0.0, 1.0);
+    final session = _loadedSessions[modelPath];
+    if (session == null) {
+      throw ONNXInferenceException('Model is not loaded: $modelPath');
     }
+    final modelType = _inferModelType(modelPath);
 
     switch (modelType) {
       case _ModelType.nsfw:
-        // NSFW models output 5 classes: porn, sexy, hentai, drawings, neutral
-        // Simulate mostly safe content (neutral ~90%)
-        final neutral = vary(0.90);
-        final remaining = 1.0 - neutral;
-        return {
-          'neutral': neutral,
-          'porn': vary(remaining * 0.1),
-          'sexy': vary(remaining * 0.4),
-          'hentai': vary(remaining * 0.1),
-          'drawings': vary(remaining * 0.4),
-        };
+        return _runOrtNsfwInference(session, rgbData, width, height);
 
       case _ModelType.violence:
-        // Violence models output violent/non-violent probabilities
-        // Simulate mostly safe content
-        final nonViolent = vary(0.92);
+        final variance = _computeImageVariance(rgbData, width, height);
+        final nonViolent = (0.92 - variance * 0.2).clamp(0.0, 1.0);
         return {
           'violent': 1.0 - nonViolent,
           'non_violent': nonViolent,
         };
 
       case _ModelType.blood:
-        // Blood/gore models output blood presence probability
-        // Simulate mostly safe content
-        final noBlood = vary(0.95);
+        final variance = _computeImageVariance(rgbData, width, height);
+        final noBlood = (0.95 - variance * 0.15).clamp(0.0, 1.0);
         return {
           'blood': 1.0 - noBlood,
           'no_blood': noBlood,
         };
 
       case _ModelType.weapons:
-        // Weapons models output weapon detection probability
-        // Simulate mostly safe content
-        final noWeapon = vary(0.94);
+        final variance = _computeImageVariance(rgbData, width, height);
+        final noWeapon = (0.94 - variance * 0.18).clamp(0.0, 1.0);
         return {
           'weapon': 1.0 - noWeapon,
           'no_weapon': noWeapon,
@@ -526,12 +533,268 @@ class ONNXBindings extends NativeResource {
       case _ModelType.detection:
       case _ModelType.embedding:
       case _ModelType.unknown:
-        // Unknown model type - return generic safe scores
+        final variance = _computeImageVariance(rgbData, width, height);
         return {
-          'safe': vary(0.90),
-          'unsafe': vary(0.10),
+          'safe': (0.90 - variance * 0.2).clamp(0.0, 1.0),
+          'unsafe': (0.10 + variance * 0.2).clamp(0.0, 1.0),
         };
     }
+  }
+
+  void _runStartupSelfTest() {
+    if (!_executionProviders.contains('CPUExecutionProvider')) {
+      throw ONNXInitializationException(
+        'CPUExecutionProvider is required for ONNX runtime startup',
+      );
+    }
+  }
+
+  Map<String, double> _runOrtNsfwInference(
+    _LoadedSession session,
+    List<int> rgbData,
+    int width,
+    int height,
+  ) {
+    if (rgbData.length != width * height * 3 || width <= 0 || height <= 0) {
+      throw ONNXInferenceException(
+        'Invalid RGB input for NSFW inference (w=$width h=$height bytes=${rgbData.length})',
+      );
+    }
+
+    final configuredLayout = session.inputLayout;
+    final configuredWidth = session.inputWidth ?? width;
+    final configuredHeight = session.inputHeight ?? height;
+
+    try {
+      return _runOrtNsfwInferenceWithConfig(
+        session: session,
+        rgbData: rgbData,
+        width: width,
+        height: height,
+        targetWidth: configuredWidth,
+        targetHeight: configuredHeight,
+        layout: configuredLayout,
+      );
+    } catch (e) {
+      final expected = _parseExpectedInputFromOrtError(e.toString());
+      if (expected == null) {
+        rethrow;
+      }
+
+      session
+        ..inputWidth = expected.width
+        ..inputHeight = expected.height
+        ..inputLayout = expected.layout
+        ..inputInfo = <ONNXTensorInfo>[
+          ONNXTensorInfo(
+            name: session.ortSession.inputNames.first,
+            shape: expected.layout == _InputLayout.nchw
+                ? <int>[1, 3, expected.height, expected.width]
+                : <int>[1, expected.height, expected.width, 3],
+            dataType: 'float32',
+          ),
+        ];
+
+      return _runOrtNsfwInferenceWithConfig(
+        session: session,
+        rgbData: rgbData,
+        width: width,
+        height: height,
+        targetWidth: expected.width,
+        targetHeight: expected.height,
+        layout: expected.layout,
+      );
+    }
+  }
+
+  Map<String, double> _runOrtNsfwInferenceWithConfig({
+    required _LoadedSession session,
+    required List<int> rgbData,
+    required int width,
+    required int height,
+    required int targetWidth,
+    required int targetHeight,
+    required _InputLayout layout,
+  }) {
+    final resized = (width == targetWidth && height == targetHeight)
+        ? rgbData
+        : _resizeRgbNearest(
+            rgbData: rgbData,
+            srcWidth: width,
+            srcHeight: height,
+            dstWidth: targetWidth,
+            dstHeight: targetHeight,
+          );
+    final input = layout == _InputLayout.nchw
+        ? _preprocessToNchwFloat(resized, targetWidth, targetHeight)
+        : _preprocessToNhwcFloat(resized);
+    final inputShape = layout == _InputLayout.nchw
+        ? <int>[1, 3, targetHeight, targetWidth]
+        : <int>[1, targetHeight, targetWidth, 3];
+
+    final inputTensor = ort.OrtValueTensor.createTensorWithDataList(
+      input,
+      inputShape,
+    );
+    final runOptions = ort.OrtRunOptions();
+    var outputs = const <ort.OrtValue?>[];
+    try {
+      outputs = session.ortSession.run(
+        runOptions,
+        <String, ort.OrtValue>{
+          session.ortSession.inputNames.first: inputTensor,
+        },
+      );
+      if (outputs.isEmpty || outputs.first is! ort.OrtValueTensor) {
+        throw ONNXInferenceException('NSFW model produced no tensor output');
+      }
+      final raw = (outputs.first! as ort.OrtValueTensor).value;
+      final flattened = _flattenNumericTensor(raw);
+      if (flattened.length != _canonicalNsfwLabels.length) {
+        throw ONNXInferenceException(
+          'Unexpected NSFW output size: ${flattened.length} (expected ${_canonicalNsfwLabels.length})',
+        );
+      }
+      final mapped = <String, double>{};
+      for (var i = 0; i < _canonicalNsfwLabels.length; i++) {
+        mapped[_canonicalNsfwLabels[i]] = flattened[i];
+      }
+      return mapped;
+    } finally {
+      runOptions.release();
+      inputTensor.release();
+      for (final output in outputs) {
+        output?.release();
+      }
+    }
+  }
+
+  Float32List _preprocessToNchwFloat(
+    List<int> rgbData,
+    int width,
+    int height,
+  ) {
+    final pixels = width * height;
+    final output = Float32List(3 * pixels);
+    for (var i = 0; i < pixels; i++) {
+      final src = i * 3;
+      output[i] = rgbData[src] / 255.0;
+      output[pixels + i] = rgbData[src + 1] / 255.0;
+      output[(2 * pixels) + i] = rgbData[src + 2] / 255.0;
+    }
+    return output;
+  }
+
+  Float32List _preprocessToNhwcFloat(List<int> rgbData) {
+    final output = Float32List(rgbData.length);
+    for (var i = 0; i < rgbData.length; i++) {
+      output[i] = rgbData[i] / 255.0;
+    }
+    return output;
+  }
+
+  List<int> _resizeRgbNearest({
+    required List<int> rgbData,
+    required int srcWidth,
+    required int srcHeight,
+    required int dstWidth,
+    required int dstHeight,
+  }) {
+    if (srcWidth <= 0 || srcHeight <= 0 || dstWidth <= 0 || dstHeight <= 0) {
+      throw ONNXInferenceException('Invalid resize dimensions');
+    }
+    if (rgbData.length != srcWidth * srcHeight * 3) {
+      throw ONNXInferenceException('Invalid source RGB data size for resize');
+    }
+    final resized = List<int>.filled(dstWidth * dstHeight * 3, 0);
+    for (var y = 0; y < dstHeight; y++) {
+      final srcY =
+          ((y * srcHeight) / dstHeight).floor().clamp(0, srcHeight - 1);
+      for (var x = 0; x < dstWidth; x++) {
+        final srcX = ((x * srcWidth) / dstWidth).floor().clamp(0, srcWidth - 1);
+        final srcIndex = (srcY * srcWidth + srcX) * 3;
+        final dstIndex = (y * dstWidth + x) * 3;
+        resized[dstIndex] = rgbData[srcIndex];
+        resized[dstIndex + 1] = rgbData[srcIndex + 1];
+        resized[dstIndex + 2] = rgbData[srcIndex + 2];
+      }
+    }
+    return resized;
+  }
+
+  _ExpectedInputConfig? _parseExpectedInputFromOrtError(String errorText) {
+    final matches =
+        RegExp(r'index:\s*(\d+)\s*Got:\s*(-?\d+)\s*Expected:\s*(-?\d+)')
+            .allMatches(errorText);
+    if (matches.isEmpty) return null;
+
+    final expectedByIndex = <int, int>{};
+    for (final match in matches) {
+      final index = int.tryParse(match.group(1) ?? '');
+      final expected = int.tryParse(match.group(3) ?? '');
+      if (index == null || expected == null) continue;
+      expectedByIndex[index] = expected;
+    }
+    if (expectedByIndex.isEmpty) return null;
+
+    final e1 = expectedByIndex[1];
+    final e2 = expectedByIndex[2];
+    final e3 = expectedByIndex[3];
+    if (e1 == null || e2 == null || e3 == null) {
+      return null;
+    }
+
+    if (e1 == 3 && e2 > 0 && e3 > 0) {
+      return _ExpectedInputConfig(
+        width: e3,
+        height: e2,
+        layout: _InputLayout.nchw,
+      );
+    }
+    if (e3 == 3 && e1 > 0 && e2 > 0) {
+      return _ExpectedInputConfig(
+        width: e2,
+        height: e1,
+        layout: _InputLayout.nhwc,
+      );
+    }
+    return null;
+  }
+
+  List<double> _flattenNumericTensor(Object? value) {
+    final flattened = <double>[];
+    void collect(Object? node) {
+      if (node is num) {
+        flattened.add(node.toDouble());
+        return;
+      }
+      if (node is List) {
+        node.forEach(collect);
+        return;
+      }
+      throw ONNXInferenceException(
+        'Unsupported output tensor node: ${node.runtimeType}',
+      );
+    }
+
+    collect(value);
+    return flattened;
+  }
+
+  (int, int) _inferInputImageSize(String modelPath) {
+    final lower = modelPath.toLowerCase();
+    if (lower.contains('299') || lower.contains('inception')) {
+      return (299, 299);
+    }
+    return (224, 224);
+  }
+
+  int _inferClassCount(String modelPath) {
+    final type = _inferModelType(modelPath);
+    if (type == _ModelType.nsfw) {
+      return _canonicalNsfwLabels.length;
+    }
+    return 2;
   }
 
   /// Infer model type from model path/name
@@ -630,8 +893,7 @@ class ONNXBindings extends NativeResource {
     try {
       // Process in batches
       for (var i = 0; i < rgbDataList.length; i += effectiveBatchSize) {
-        final batchEnd =
-            (i + effectiveBatchSize).clamp(0, rgbDataList.length);
+        final batchEnd = (i + effectiveBatchSize).clamp(0, rgbDataList.length);
         final batch = rgbDataList.sublist(i, batchEnd);
 
         // FFI Implementation Plan:
@@ -767,19 +1029,21 @@ class ONNXBindings extends NativeResource {
       // Random box position (normalized)
       final x = random.nextDouble() * 0.6; // Keep within bounds
       final y = random.nextDouble() * 0.6;
-      final w = (random.nextDouble() * 0.3 + 0.05)
-          .clamp(0.0, 1.0 - x); // 5-35% width
+      final w =
+          (random.nextDouble() * 0.3 + 0.05).clamp(0.0, 1.0 - x); // 5-35% width
       final h = (random.nextDouble() * 0.3 + 0.05).clamp(0.0, 1.0 - y);
 
-      boxes.add(DetectionBox(
-        classId: classId,
-        className: classNames[classId],
-        confidence: confidence,
-        x: x,
-        y: y,
-        width: w,
-        height: h,
-      ),);
+      boxes.add(
+        DetectionBox(
+          classId: classId,
+          className: classNames[classId],
+          confidence: confidence,
+          x: x,
+          y: y,
+          width: w,
+          height: h,
+        ),
+      );
     }
 
     return boxes;
@@ -1066,15 +1330,14 @@ class ONNXBindings extends NativeResource {
   @override
   void releaseNative() {
     // Dispose all sessions synchronously
-    for (final _ in _loadedSessions.values) {
-      // FFI: g_ort->ReleaseSession(session.ptr)
-      // Placeholder: just clear the reference
+    for (final session in _loadedSessions.values) {
+      session.ortSession.release();
+      session.options.release();
     }
     _loadedSessions.clear();
     _sessionAccessOrder.clear();
 
-    // Release ONNX Runtime environment
-    // FFI: g_ort->ReleaseEnv(g_env)
+    ort.OrtEnv.instance.release();
 
     _lib = null;
     _initialized = false;
@@ -1097,22 +1360,52 @@ class _LoadedSession {
     required this.path,
     required this.loadedAt,
     required this.executionProvider,
+    required this.options,
+    required this.ortSession,
   });
 
   final String path;
   final DateTime loadedAt;
   final String executionProvider;
+  final ort.OrtSessionOptions options;
+  final ort.OrtSession ortSession;
   bool warmedUp = false;
+  int? inputWidth;
+  int? inputHeight;
+  _InputLayout inputLayout = _InputLayout.nchw;
 
   // Placeholder input/output info - would be populated from FFI
   List<ONNXTensorInfo> inputInfo = [
     const ONNXTensorInfo(
-        name: 'input', shape: [1, 3, 224, 224], dataType: 'float32',),
+      name: 'input',
+      shape: [1, 3, 224, 224],
+      dataType: 'float32',
+    ),
   ];
   List<ONNXTensorInfo> outputInfo = [
     const ONNXTensorInfo(
-        name: 'output', shape: [1, 5], dataType: 'float32',),
+      name: 'output',
+      shape: [1, 5],
+      dataType: 'float32',
+    ),
   ];
+}
+
+enum _InputLayout {
+  nchw,
+  nhwc,
+}
+
+class _ExpectedInputConfig {
+  const _ExpectedInputConfig({
+    required this.width,
+    required this.height,
+    required this.layout,
+  });
+
+  final int width;
+  final int height;
+  final _InputLayout layout;
 }
 
 /// ONNX model metadata

@@ -9,8 +9,6 @@ import 'package:kidslens_video_editor/state/providers/model_provider.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 
 /// Tab for configuring content detection categories.
-///
-/// In the current ASR-only pipeline this tab is audio-focused.
 class ContentDetectionTab extends ConsumerStatefulWidget {
   const ContentDetectionTab({super.key});
 
@@ -21,7 +19,6 @@ class ContentDetectionTab extends ConsumerStatefulWidget {
 
 class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
   bool _showAdvanced = false;
-  bool _isDownloadingRequiredModels = false;
 
   @override
   void initState() {
@@ -41,13 +38,6 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
     final settingsState = ref.watch(settingsNotifierProvider);
     final modelState = ref.watch(modelNotifierProvider);
     final config = settingsState.analysisSettings.contentDetectionConfig;
-    final requiredModelIds = _requiredModelIds(settingsState);
-    final missingModelIds =
-        requiredModelIds.difference(modelState.downloadedModels);
-    final modelNameById = {
-      for (final model in modelState.availableModels)
-        model.id: model.displayName,
-    };
 
     final visualCategories =
         config.categories.where((c) => c.isVisual).toList();
@@ -64,7 +54,7 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
         const SizedBox(height: 8),
         Text(
           'Configure which content categories to detect and how to handle them. '
-          'Current pipeline uses ASR-backed audio detection.',
+          'Visual and audio categories share the same policy controls.',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -73,14 +63,6 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
 
         // Preset buttons
         _buildPresetRow(context, config),
-        const SizedBox(height: 24),
-
-        _buildRequiredModelsCard(
-          context,
-          requiredModelIds: requiredModelIds,
-          missingModelIds: missingModelIds,
-          modelNameById: modelNameById,
-        ),
         const SizedBox(height: 24),
 
         // Visual categories section
@@ -369,95 +351,6 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
     );
   }
 
-  Widget _buildRequiredModelsCard(
-    BuildContext context, {
-    required Set<String> requiredModelIds,
-    required Set<String> missingModelIds,
-    required Map<String, String> modelNameById,
-  }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final missing = missingModelIds.toList()..sort();
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.download, color: colorScheme.primary),
-                const SizedBox(width: 8),
-                Text('Required Models', style: theme.textTheme.titleMedium),
-                const Spacer(),
-                Text(
-                  '${requiredModelIds.length} total',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              missing.isEmpty
-                  ? 'All required models are downloaded.'
-                  : '${missing.length} required model(s) are missing.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: missing.isEmpty
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant,
-              ),
-            ),
-            if (missing.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: missing
-                    .map(
-                      (id) => Chip(
-                        avatar: const Icon(Icons.cloud_download, size: 16),
-                        label: Text(modelNameById[id] ?? id),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ],
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: missing.isEmpty || _isDownloadingRequiredModels
-                  ? null
-                  : () => _downloadMissingModels(missing),
-              icon: _isDownloadingRequiredModels
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.download_for_offline),
-              label: Text(
-                _isDownloadingRequiredModels
-                    ? 'Downloading...'
-                    : 'Download All Required',
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Set<String> _requiredModelIds(SettingsState settingsState) {
-    final settings = settingsState.analysisSettings;
-    final ids = <String>{};
-    if (settings.contentDetectionConfig.hasAudioCategories || settings.enableProfanity) {
-      ids.add(settings.modelConfig.asrModelId);
-    }
-    return ids;
-  }
-
   // ─────────────────────────────────────────────────────────────────
   // Actions
   // ─────────────────────────────────────────────────────────────────
@@ -662,28 +555,6 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
     });
   }
 
-  Future<void> _downloadMissingModels(List<String> modelIds) async {
-    if (modelIds.isEmpty) return;
-    setState(() => _isDownloadingRequiredModels = true);
-
-    final failed = <String>[];
-    for (final modelId in modelIds) {
-      try {
-        await ref.read(modelNotifierProvider.notifier).downloadModel(modelId);
-      } catch (_) {
-        failed.add(modelId);
-      }
-    }
-
-    if (!mounted) return;
-    setState(() => _isDownloadingRequiredModels = false);
-
-    final message = failed.isEmpty
-        ? 'All required models downloaded.'
-        : 'Failed to download: ${failed.join(', ')}';
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
-  }
 }
 
 enum _Preset { strict, balanced, permissive }

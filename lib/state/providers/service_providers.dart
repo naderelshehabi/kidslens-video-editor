@@ -18,6 +18,7 @@ import 'package:kidslens_video_editor/services/project_service.dart';
 import 'package:kidslens_video_editor/services/sample_analysis_service.dart';
 import 'package:kidslens_video_editor/services/subtitle_service.dart';
 import 'package:kidslens_video_editor/services/temporal_aggregator.dart';
+import 'package:kidslens_video_editor/services/tensorflow_nsfw_service.dart';
 import 'package:kidslens_video_editor/services/thumbnail_service.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -36,6 +37,10 @@ MMSBindings mmsBindings(Ref ref) => MMSBindings();
 
 @Riverpod(keepAlive: true)
 ONNXBindings onnxBindings(Ref ref) => ONNXBindings();
+
+@Riverpod(keepAlive: true)
+TensorflowNsfwService tensorflowNsfwService(Ref ref) =>
+    const TensorflowNsfwService();
 
 // GPU Manager
 @Riverpod(keepAlive: true)
@@ -56,7 +61,8 @@ ModelManagerService modelManagerService(Ref ref) {
     settingsNotifierProvider.select((s) => s.modelCachePath),
   );
   return ModelManagerService(
-    customModelsPath: (modelPath == null || modelPath.isEmpty) ? null : modelPath,
+    customModelsPath:
+        (modelPath == null || modelPath.isEmpty) ? null : modelPath,
   );
 }
 
@@ -68,6 +74,7 @@ AnalysisService analysisService(Ref ref) => AnalysisService(
       ffmpeg: ref.watch(ffmpegBindingsProvider),
       whisper: ref.watch(whisperBindingsProvider),
       mms: ref.watch(mmsBindingsProvider),
+      tensorflowNsfw: ref.watch(tensorflowNsfwServiceProvider),
       modelManager: ref.watch(modelManagerServiceProvider),
       profanity: ref.watch(profanityServiceProvider),
       asrService: ref.watch(asrServiceProvider),

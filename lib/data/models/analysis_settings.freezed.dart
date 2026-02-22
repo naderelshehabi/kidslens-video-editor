@@ -21,6 +21,7 @@ ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$ModelConfig {
   String get asrModelId => throw _privateConstructorUsedError;
+  String get nsfwModelId => throw _privateConstructorUsedError;
   String get asrLanguage => throw _privateConstructorUsedError;
   bool get useGpu => throw _privateConstructorUsedError;
   int get cpuThreads => throw _privateConstructorUsedError;
@@ -48,6 +49,7 @@ abstract class $ModelConfigCopyWith<$Res> {
   @useResult
   $Res call(
       {String asrModelId,
+      String nsfwModelId,
       String asrLanguage,
       bool useGpu,
       int cpuThreads,
@@ -74,6 +76,7 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
   @override
   $Res call({
     Object? asrModelId = null,
+    Object? nsfwModelId = null,
     Object? asrLanguage = null,
     Object? useGpu = null,
     Object? cpuThreads = null,
@@ -87,6 +90,10 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
       asrModelId: null == asrModelId
           ? _value.asrModelId
           : asrModelId // ignore: cast_nullable_to_non_nullable
+              as String,
+      nsfwModelId: null == nsfwModelId
+          ? _value.nsfwModelId
+          : nsfwModelId // ignore: cast_nullable_to_non_nullable
               as String,
       asrLanguage: null == asrLanguage
           ? _value.asrLanguage
@@ -134,6 +141,7 @@ abstract class _$$ModelConfigImplCopyWith<$Res>
   @useResult
   $Res call(
       {String asrModelId,
+      String nsfwModelId,
       String asrLanguage,
       bool useGpu,
       int cpuThreads,
@@ -158,6 +166,7 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? asrModelId = null,
+    Object? nsfwModelId = null,
     Object? asrLanguage = null,
     Object? useGpu = null,
     Object? cpuThreads = null,
@@ -171,6 +180,10 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
       asrModelId: null == asrModelId
           ? _value.asrModelId
           : asrModelId // ignore: cast_nullable_to_non_nullable
+              as String,
+      nsfwModelId: null == nsfwModelId
+          ? _value.nsfwModelId
+          : nsfwModelId // ignore: cast_nullable_to_non_nullable
               as String,
       asrLanguage: null == asrLanguage
           ? _value.asrLanguage
@@ -213,6 +226,7 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
 class _$ModelConfigImpl extends _ModelConfig {
   const _$ModelConfigImpl(
       {required this.asrModelId,
+      this.nsfwModelId = 'nsfw-gantman-mobilenet-v2-224',
       this.asrLanguage = 'en',
       this.useGpu = true,
       this.cpuThreads = 4,
@@ -228,6 +242,9 @@ class _$ModelConfigImpl extends _ModelConfig {
 
   @override
   final String asrModelId;
+  @override
+  @JsonKey()
+  final String nsfwModelId;
   @override
   @JsonKey()
   final String asrLanguage;
@@ -255,7 +272,7 @@ class _$ModelConfigImpl extends _ModelConfig {
 
   @override
   String toString() {
-    return 'ModelConfig(asrModelId: $asrModelId, asrLanguage: $asrLanguage, useGpu: $useGpu, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16, translateToEnglish: $translateToEnglish, wordLevelTimestamps: $wordLevelTimestamps, beamSize: $beamSize)';
+    return 'ModelConfig(asrModelId: $asrModelId, nsfwModelId: $nsfwModelId, asrLanguage: $asrLanguage, useGpu: $useGpu, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16, translateToEnglish: $translateToEnglish, wordLevelTimestamps: $wordLevelTimestamps, beamSize: $beamSize)';
   }
 
   @override
@@ -265,6 +282,8 @@ class _$ModelConfigImpl extends _ModelConfig {
             other is _$ModelConfigImpl &&
             (identical(other.asrModelId, asrModelId) ||
                 other.asrModelId == asrModelId) &&
+            (identical(other.nsfwModelId, nsfwModelId) ||
+                other.nsfwModelId == nsfwModelId) &&
             (identical(other.asrLanguage, asrLanguage) ||
                 other.asrLanguage == asrLanguage) &&
             (identical(other.useGpu, useGpu) || other.useGpu == useGpu) &&
@@ -286,6 +305,7 @@ class _$ModelConfigImpl extends _ModelConfig {
   int get hashCode => Object.hash(
       runtimeType,
       asrModelId,
+      nsfwModelId,
       asrLanguage,
       useGpu,
       cpuThreads,
@@ -314,6 +334,7 @@ class _$ModelConfigImpl extends _ModelConfig {
 abstract class _ModelConfig extends ModelConfig {
   const factory _ModelConfig(
       {required final String asrModelId,
+      final String nsfwModelId,
       final String asrLanguage,
       final bool useGpu,
       final int cpuThreads,
@@ -329,6 +350,8 @@ abstract class _ModelConfig extends ModelConfig {
 
   @override
   String get asrModelId;
+  @override
+  String get nsfwModelId;
   @override
   String get asrLanguage;
   @override
@@ -884,7 +907,7 @@ class _$ContentDetectionConfigImpl extends _ContentDetectionConfig {
   const _$ContentDetectionConfigImpl(
       {final List<ContentCategory> categories = const [],
       this.votingConfig = const VotingConfig(),
-      this.schemaVersion = 2})
+      this.schemaVersion = 3})
       : _categories = categories,
         super._();
 

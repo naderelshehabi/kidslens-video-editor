@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:kidslens_video_editor/data/models/content_category.dart';
+import 'package:kidslens_video_editor/data/models/content_category_defaults.dart';
 import 'package:kidslens_video_editor/data/models/voting_config.dart';
 
 part 'analysis_settings.freezed.dart';
@@ -9,6 +10,7 @@ part 'analysis_settings.g.dart';
 class ModelConfig with _$ModelConfig {
   const factory ModelConfig({
     required String asrModelId,
+    @Default('nsfw-gantman-mobilenet-v2-224') String nsfwModelId,
     @Default('en') String asrLanguage,
     @Default(true) bool useGpu,
     @Default(4) int cpuThreads,
@@ -68,7 +70,7 @@ class ContentDetectionConfig with _$ContentDetectionConfig {
   const factory ContentDetectionConfig({
     @Default([]) List<ContentCategory> categories,
     @Default(VotingConfig()) VotingConfig votingConfig,
-    @Default(2) int schemaVersion,
+    @Default(3) int schemaVersion,
   }) = _ContentDetectionConfig;
 
   const ContentDetectionConfig._();
@@ -113,7 +115,8 @@ class AnalysisSettings with _$AnalysisSettings {
     @Default(true) bool mergeAdjacentDetections,
     @Default(100) int detectionBufferMs,
     @Default(4) int maxConcurrentAnalyses,
-    @Default(ContentDetectionConfig()) ContentDetectionConfig contentDetectionConfig,
+    @Default(ContentDetectionConfig())
+    ContentDetectionConfig contentDetectionConfig,
   }) = _AnalysisSettings;
 
   const AnalysisSettings._();
@@ -124,6 +127,9 @@ class AnalysisSettings with _$AnalysisSettings {
   factory AnalysisSettings.defaults() => AnalysisSettings(
         modelConfig: ModelConfig.defaults(),
         profanityConfig: ProfanityConfig.defaults(),
+        contentDetectionConfig: ContentDetectionConfig(
+          categories: ContentCategoryDefaults.allCategories,
+        ),
       );
 
   factory AnalysisSettings.strict() => AnalysisSettings(
@@ -132,6 +138,9 @@ class AnalysisSettings with _$AnalysisSettings {
         frameSamplingRate: 3,
         minSegmentDurationMs: 300,
         detectionBufferMs: 200,
+        contentDetectionConfig: ContentDetectionConfig(
+          categories: ContentCategoryDefaults.allCategories,
+        ),
       );
 
   factory AnalysisSettings.permissive() => AnalysisSettings(
@@ -140,20 +149,29 @@ class AnalysisSettings with _$AnalysisSettings {
         frameSamplingRate: 10,
         minSegmentDurationMs: 1000,
         detectionBufferMs: 50,
+        contentDetectionConfig: ContentDetectionConfig(
+          categories: ContentCategoryDefaults.allCategories,
+        ),
       );
 
   factory AnalysisSettings.audioOnly() => AnalysisSettings(
         modelConfig: ModelConfig.defaults(),
         profanityConfig: ProfanityConfig.defaults(),
+        contentDetectionConfig: ContentDetectionConfig(
+          categories: ContentCategoryDefaults.audioCategories,
+        ),
       );
 
   factory AnalysisSettings.videoOnly() => AnalysisSettings(
         modelConfig: ModelConfig.defaults(),
         profanityConfig: ProfanityConfig.defaults(),
         enableProfanity: false,
+        contentDetectionConfig: ContentDetectionConfig(
+          categories: ContentCategoryDefaults.visualCategories,
+        ),
       );
 
-  bool get hasVisualDetection => false;
+  bool get hasVisualDetection => contentDetectionConfig.hasVisualCategories;
 
   bool get hasAudioDetection =>
       enableProfanity || contentDetectionConfig.hasAudioCategories;

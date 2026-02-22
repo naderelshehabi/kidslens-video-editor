@@ -72,6 +72,24 @@ final onnxBindingsProvider = Provider<ONNXBindings>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef OnnxBindingsRef = ProviderRef<ONNXBindings>;
+String _$tensorflowNsfwServiceHash() =>
+    r'2d947dd5ae3eb9984f6c5fb5ff4fa054f894a632';
+
+/// See also [tensorflowNsfwService].
+@ProviderFor(tensorflowNsfwService)
+final tensorflowNsfwServiceProvider = Provider<TensorflowNsfwService>.internal(
+  tensorflowNsfwService,
+  name: r'tensorflowNsfwServiceProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$tensorflowNsfwServiceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef TensorflowNsfwServiceRef = ProviderRef<TensorflowNsfwService>;
 String _$gpuAccelerationManagerHash() =>
     r'7fea8286f51faacd3d3d5d728014a0ed673f33fa';
 
@@ -159,7 +177,7 @@ final profanityServiceProvider = Provider<ProfanityService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ProfanityServiceRef = ProviderRef<ProfanityService>;
-String _$analysisServiceHash() => r'782e8f956ac59e8a1d201e017603de33492d5c1c';
+String _$analysisServiceHash() => r'492e1c3652b4d9820e77ea9228352db2d235d944';
 
 /// See also [analysisService].
 @ProviderFor(analysisService)

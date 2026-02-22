@@ -5,14 +5,25 @@ import 'package:kidslens_video_editor/services/huggingface_model_registry.dart';
 void main() {
   final registry = HuggingFaceModelRegistry.instance;
 
-  test('registry is ASR-only', () {
+  test('registry exposes ASR and NSFW models', () {
     final all = registry.getAllModels();
     expect(all, isNotEmpty);
-    expect(all.every((m) => m.modelType == HuggingFaceModelType.asr), isTrue);
-    expect(registry.getVisualModels(), isEmpty);
+    expect(
+      all.any((m) => m.modelType == HuggingFaceModelType.asr),
+      isTrue,
+    );
+    expect(
+      all.any((m) => m.modelType == HuggingFaceModelType.nsfw),
+      isTrue,
+    );
+    expect(registry.getVisualModels(), isNotEmpty);
   });
 
   test('recommended ASR model exists', () {
     expect(registry.getRecommendedModel(HuggingFaceModelType.asr), isNotNull);
+  });
+
+  test('recommended NSFW model exists', () {
+    expect(registry.getRecommendedModel(HuggingFaceModelType.nsfw), isNotNull);
   });
 }

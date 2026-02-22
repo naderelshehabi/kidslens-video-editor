@@ -43,6 +43,7 @@ Map<String, dynamic> _$$ModelContributionImplToJson(
 
 const _$HuggingFaceModelTypeEnumMap = {
   HuggingFaceModelType.asr: 'asr',
+  HuggingFaceModelType.nsfw: 'nsfw',
 };
 
 _$ContentCategoryImpl _$$ContentCategoryImplFromJson(

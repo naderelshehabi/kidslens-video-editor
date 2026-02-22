@@ -9,6 +9,10 @@ enum HuggingFaceModelType {
   /// Automatic Speech Recognition model
   @JsonValue('asr')
   asr,
+
+  /// Visual NSFW classification model
+  @JsonValue('nsfw')
+  nsfw,
 }
 
 /// A HuggingFace model with download and hardware information
@@ -101,7 +105,7 @@ class HuggingFaceModel with _$HuggingFaceModel {
   bool get isAsrModel => modelType == HuggingFaceModelType.asr;
 
   /// Whether this is a visual detection model
-  bool get isVisualModel => false;
+  bool get isVisualModel => modelType != HuggingFaceModelType.asr;
 
   /// Whether this model has a badge
   bool get hasBadge => badge != null && badge!.isNotEmpty;

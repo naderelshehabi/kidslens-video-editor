@@ -175,7 +175,10 @@ class ModelManagerService {
       throw ModelNotFoundException(modelId);
     }
 
-    final downloadUrl = model.downloadUrl;
+    final filesToDownload = <String>[
+      model.fileName,
+      ..._registry.getAdditionalModelFiles(model),
+    ];
     final dir = await modelsDirectory;
     final modelDir = Directory(p.join(dir, modelId));
     await modelDir.create(recursive: true);
@@ -186,42 +189,39 @@ class ModelManagerService {
         modelId: modelId,
         percentage: 0,
         downloadedBytes: 0,
-        totalBytes: model.sizeBytes,
+        totalBytes: model.sizeBytes <= 0 ? 1 : model.sizeBytes,
         status: ModelDownloadStatus.pending,
       );
 
-      final request = http.Request('GET', Uri.parse(downloadUrl));
-      final response = await client.send(request);
-
-      if (response.statusCode != 200) {
-        throw ModelDownloadException(
-          modelId,
-          'HTTP ${response.statusCode}',
-        );
-      }
-
-      final totalBytes = response.contentLength ?? model.sizeBytes;
       var downloadedBytes = 0;
+      final totalBytes = model.sizeBytes <= 0 ? 1 : model.sizeBytes;
+      for (final fileName in filesToDownload) {
+        final downloadUrl = _registry.getDownloadUrlForFile(model, fileName);
+        final request = http.Request('GET', Uri.parse(downloadUrl));
+        final response = await client.send(request);
+        if (response.statusCode != 200) {
+          throw ModelDownloadException(
+            modelId,
+            'HTTP ${response.statusCode} while downloading $fileName',
+          );
+        }
 
-      // Determine file name based on model type
-      final fileName = model.fileName;
-      final file = File(p.join(modelDir.path, fileName));
-      await file.parent.create(recursive: true);
-      final sink = file.openWrite();
-
-      await for (final chunk in response.stream) {
-        sink.add(chunk);
-        downloadedBytes += chunk.length;
-
-        yield ModelDownloadProgress(
-          modelId: modelId,
-          percentage: downloadedBytes / totalBytes,
-          downloadedBytes: downloadedBytes,
-          totalBytes: totalBytes,
-        );
+        final file = File(p.join(modelDir.path, fileName));
+        await file.parent.create(recursive: true);
+        final sink = file.openWrite();
+        await for (final chunk in response.stream) {
+          sink.add(chunk);
+          downloadedBytes += chunk.length;
+          final percentage = (downloadedBytes / totalBytes).clamp(0.0, 1.0);
+          yield ModelDownloadProgress(
+            modelId: modelId,
+            percentage: percentage,
+            downloadedBytes: downloadedBytes,
+            totalBytes: totalBytes,
+          );
+        }
+        await sink.close();
       }
-
-      await sink.close();
 
       // Verifying model
       yield ModelDownloadProgress(
@@ -317,7 +317,7 @@ class ModelManagerService {
     }
 
     // Try to find the model file by checking common extensions
-    final possibleExtensions = ['.bin', '.onnx', '.pt', '.pth'];
+    final possibleExtensions = ['.bin', '.onnx', '.pt', '.pth', '.h5'];
     for (final ext in possibleExtensions) {
       final files = modelDir
           .listSync(recursive: true)
@@ -357,15 +357,22 @@ class ModelManagerService {
     // Advanced validation: check file size matches expected
     final model = _registry.getModelById(modelId);
     if (model != null) {
-      final modelPath = await getModelPath(modelId);
-      if (modelPath != null) {
-        final file = File(modelPath);
-        final actualSize = await file.length();
-        // Allow 5% tolerance for size differences
-        final tolerance = model.sizeBytes * 0.05;
-        if ((actualSize - model.sizeBytes).abs() > tolerance) {
+      final modelFiles = <String>[
+        model.fileName,
+        ..._registry.getAdditionalModelFiles(model),
+      ];
+      var actualSize = 0;
+      for (final fileName in modelFiles) {
+        final file = File(p.join(modelDirPath, fileName));
+        if (!file.existsSync()) {
           return false;
         }
+        actualSize += await file.length();
+      }
+      // Allow 5% tolerance for size differences.
+      final tolerance = model.sizeBytes * 0.05;
+      if ((actualSize - model.sizeBytes).abs() > tolerance) {
+        return false;
       }
     }
 
@@ -401,7 +408,13 @@ class ModelManagerService {
     final model = _registry.getModelById(modelId);
     if (model != null) {
       final expectedPath = p.join(modelDir, model.fileName);
-      if (File(expectedPath).existsSync()) {
+      final requiredPaths = <String>[
+        expectedPath,
+        ..._registry
+            .getAdditionalModelFiles(model)
+            .map((name) => p.join(modelDir, name)),
+      ];
+      if (requiredPaths.every((path) => File(path).existsSync())) {
         return true;
       }
     }
@@ -410,7 +423,7 @@ class ModelManagerService {
     await for (final entity in dir.list(recursive: true, followLinks: false)) {
       if (entity is! File) continue;
       final ext = p.extension(entity.path).toLowerCase();
-      if (['.bin', '.onnx', '.pt', '.pth'].contains(ext)) {
+      if (['.bin', '.onnx', '.pt', '.pth', '.h5'].contains(ext)) {
         return true;
       }
     }

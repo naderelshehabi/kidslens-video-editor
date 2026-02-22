@@ -305,6 +305,8 @@ class HuggingFaceModelCard extends StatelessWidget {
   String _getAccuracyTooltip() {
     final accuracyType = switch (model.modelType) {
       HuggingFaceModelType.asr => 'Word Error Rate (WER) on LibriSpeech/CommonVoice benchmarks',
+      HuggingFaceModelType.nsfw =>
+        'NSFW classification agreement on labeled visual validation set',
     };
     return 'Accuracy: ${model.accuracyPercent}%\n\nMeasured using: $accuracyType\n\nHigher is better. Scores ≥94% are excellent, ≥88% are good.';
   }

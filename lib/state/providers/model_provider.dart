@@ -88,7 +88,8 @@ class ModelNotifier extends _$ModelNotifier {
   static final HuggingFaceModelRegistry _registry =
       HuggingFaceModelRegistry.instance;
 
-  ModelManagerService get _modelManager => ref.read(modelManagerServiceProvider);
+  ModelManagerService get _modelManager =>
+      ref.read(modelManagerServiceProvider);
 
   @override
   ModelState build() => const ModelState();
@@ -107,6 +108,8 @@ class ModelNotifier extends _$ModelNotifier {
       final settings = ref.read(settingsNotifierProvider);
       final persistedAsrModelId =
           settings.analysisSettings.modelConfig.asrModelId;
+      final persistedNsfwModelId =
+          settings.analysisSettings.modelConfig.nsfwModelId;
 
       // Set selected models: prefer persisted settings, fall back to recommended
       final selectedModels = <HuggingFaceModelType, String>{};
@@ -120,6 +123,9 @@ class ModelNotifier extends _$ModelNotifier {
       // Override ASR selection with persisted value if available
       if (persistedAsrModelId.isNotEmpty) {
         selectedModels[HuggingFaceModelType.asr] = persistedAsrModelId;
+      }
+      if (persistedNsfwModelId.isNotEmpty) {
+        selectedModels[HuggingFaceModelType.nsfw] = persistedNsfwModelId;
       }
 
       state = state.copyWith(
@@ -327,9 +333,12 @@ class ModelNotifier extends _$ModelNotifier {
   void _updateModelConfig() {
     final asrModelId =
         state.selectedModels[HuggingFaceModelType.asr] ?? 'whisper-small';
+    final nsfwModelId = state.selectedModels[HuggingFaceModelType.nsfw] ??
+        'nsfw-gantman-mobilenet-v2-224';
 
     final config = ModelConfig(
       asrModelId: asrModelId,
+      nsfwModelId: nsfwModelId,
     );
     state = state.copyWith(selectedConfig: config);
   }

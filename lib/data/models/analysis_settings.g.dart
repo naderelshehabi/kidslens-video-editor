@@ -9,6 +9,8 @@ part of 'analysis_settings.dart';
 _$ModelConfigImpl _$$ModelConfigImplFromJson(Map<String, dynamic> json) =>
     _$ModelConfigImpl(
       asrModelId: json['asrModelId'] as String,
+      nsfwModelId:
+          json['nsfwModelId'] as String? ?? 'nsfw-gantman-mobilenet-v2-224',
       asrLanguage: json['asrLanguage'] as String? ?? 'en',
       useGpu: json['useGpu'] as bool? ?? true,
       cpuThreads: (json['cpuThreads'] as num?)?.toInt() ?? 4,
@@ -22,6 +24,7 @@ _$ModelConfigImpl _$$ModelConfigImplFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$$ModelConfigImplToJson(_$ModelConfigImpl instance) =>
     <String, dynamic>{
       'asrModelId': instance.asrModelId,
+      'nsfwModelId': instance.nsfwModelId,
       'asrLanguage': instance.asrLanguage,
       'useGpu': instance.useGpu,
       'cpuThreads': instance.cpuThreads,
@@ -81,7 +84,7 @@ _$ContentDetectionConfigImpl _$$ContentDetectionConfigImplFromJson(
       votingConfig: json['votingConfig'] == null
           ? const VotingConfig()
           : VotingConfig.fromJson(json['votingConfig'] as Map<String, dynamic>),
-      schemaVersion: (json['schemaVersion'] as num?)?.toInt() ?? 2,
+      schemaVersion: (json['schemaVersion'] as num?)?.toInt() ?? 3,
     );
 
 Map<String, dynamic> _$$ContentDetectionConfigImplToJson(

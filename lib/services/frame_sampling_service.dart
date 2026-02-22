@@ -385,18 +385,55 @@ class FrameSamplingService {
     int? height,
   }) async {
     try {
-      // Get actual dimensions if not specified
+      final ffmpegPath = ffmpeg.ffmpegPath ?? 'ffmpeg';
       final actualWidth = width ?? 1920;
       final actualHeight = height ?? 1080;
+      final pixelFormat = _ffmpegPixelFormat(format);
+      final expectedSize = _expectedDataSizeForFormat(
+        actualWidth,
+        actualHeight,
+        format,
+      );
 
-      // Use FFmpeg extractFrames stream and get the frame at the specific timestamp
-      // For now, create a placeholder frame since extractFrameRaw doesn't exist
-      // The actual implementation should use FFmpeg's frame extraction
+      final result = await Process.run(
+        ffmpegPath,
+        [
+          '-ss',
+          _formatTimestamp(timestamp),
+          '-i',
+          videoPath,
+          '-vframes',
+          '1',
+          '-vf',
+          'scale=$actualWidth:$actualHeight',
+          '-pix_fmt',
+          pixelFormat,
+          '-f',
+          'rawvideo',
+          'pipe:1',
+        ],
+        runInShell: Platform.isWindows,
+        stdoutEncoding: null,
+      );
+
+      if (result.exitCode != 0) {
+        throw FrameSamplingException(
+          'FFmpeg frame extraction failed: ${result.stderr}',
+        );
+      }
+
+      final raw = result.stdout;
+      if (raw is! List<int> || raw.length < expectedSize) {
+        throw FrameSamplingException(
+          'FFmpeg returned invalid frame buffer (${raw is List<int> ? raw.length : 0} bytes, expected $expectedSize)',
+        );
+      }
+
       return FrameData(
         timestamp: timestamp,
         width: actualWidth,
         height: actualHeight,
-        data: Uint8List(actualWidth * actualHeight * 3),
+        data: Uint8List.fromList(raw.sublist(0, expectedSize)),
         format: format,
       );
     } catch (e) {
@@ -417,7 +454,7 @@ class FrameSamplingService {
       final duration = _formatTimestamp(current - previous);
 
       final result = await Process.run(
-        'ffmpeg',
+        ffmpeg.ffmpegPath ?? 'ffmpeg',
         [
           '-ss',
           startTime,
@@ -474,7 +511,7 @@ class FrameSamplingService {
 
       // Use FFprobe to get frame info at the specific timestamp
       final result = await Process.run(
-        'ffprobe',
+        ffmpeg.ffprobePath ?? 'ffprobe',
         [
           '-v', 'quiet',
           '-select_streams', 'v:0',
@@ -496,6 +533,41 @@ class FrameSamplingService {
     }
 
     return false;
+  }
+
+  int _expectedDataSizeForFormat(int width, int height, FrameFormat format) {
+    switch (format) {
+      case FrameFormat.rgb24:
+      case FrameFormat.bgr24:
+        return width * height * 3;
+      case FrameFormat.rgba32:
+      case FrameFormat.bgra32:
+        return width * height * 4;
+      case FrameFormat.gray8:
+        return width * height;
+      case FrameFormat.yuv420p:
+      case FrameFormat.nv12:
+        return (width * height * 3) ~/ 2;
+    }
+  }
+
+  String _ffmpegPixelFormat(FrameFormat format) {
+    switch (format) {
+      case FrameFormat.rgb24:
+        return 'rgb24';
+      case FrameFormat.rgba32:
+        return 'rgba';
+      case FrameFormat.bgr24:
+        return 'bgr24';
+      case FrameFormat.bgra32:
+        return 'bgra';
+      case FrameFormat.gray8:
+        return 'gray';
+      case FrameFormat.yuv420p:
+        return 'yuv420p';
+      case FrameFormat.nv12:
+        return 'nv12';
+    }
   }
 }
 
