@@ -397,15 +397,6 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
 
   static IconData _iconForModelType(HuggingFaceModelType type) {
     switch (type) {
-      case HuggingFaceModelType.nsfw:
-      case HuggingFaceModelType.violence:
-      case HuggingFaceModelType.blood:
-      case HuggingFaceModelType.weapons:
-        return Icons.smart_toy;
-      case HuggingFaceModelType.nudeNet:
-        return Icons.person_search;
-      case HuggingFaceModelType.clip:
-        return Icons.text_fields;
       case HuggingFaceModelType.asr:
         return Icons.mic;
     }

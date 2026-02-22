@@ -53,7 +53,7 @@ mixin _$HuggingFaceModel {
   /// Type of model
   HuggingFaceModelType get modelType => throw _privateConstructorUsedError;
 
-  /// Supported languages (for ASR models, empty for visual models)
+  /// Supported languages for ASR models
   List<String> get languages => throw _privateConstructorUsedError;
 
   /// Optional badge text (e.g., 'Recommended', 'Best Accuracy', 'Best Value')
@@ -416,10 +416,10 @@ class _$HuggingFaceModelImpl extends _HuggingFaceModel {
   @override
   final HuggingFaceModelType modelType;
 
-  /// Supported languages (for ASR models, empty for visual models)
+  /// Supported languages for ASR models
   final List<String> _languages;
 
-  /// Supported languages (for ASR models, empty for visual models)
+  /// Supported languages for ASR models
   @override
   @JsonKey()
   List<String> get languages {
@@ -601,7 +601,7 @@ abstract class _HuggingFaceModel extends HuggingFaceModel {
   @override
   HuggingFaceModelType get modelType;
 
-  /// Supported languages (for ASR models, empty for visual models)
+  /// Supported languages for ASR models
   @override
   List<String> get languages;
 

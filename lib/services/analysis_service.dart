@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/jobs/cancellation_token.dart';
@@ -9,7 +8,6 @@ import 'package:kidslens_video_editor/native/bindings/whisper_bindings.dart';
 import 'package:kidslens_video_editor/services/asr_service.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
 import 'package:kidslens_video_editor/services/profanity_service.dart';
-import 'package:kidslens_video_editor/services/visual_analysis_service.dart';
 
 /// Checkpoint for resuming analysis
 class AnalysisCheckpoint {
@@ -67,7 +65,6 @@ class AnalysisService {
     required this.modelManager,
     required this.profanity,
     this.asrService,
-    this.visualAnalysis,
   });
 
   final FFmpegBindings ffmpeg;
@@ -76,7 +73,6 @@ class AnalysisService {
   final ModelManagerService modelManager;
   final ProfanityService profanity;
   final AsrService? asrService;
-  final VisualAnalysisService? visualAnalysis;
 
   /// Run complete analysis on a media file
   Stream<AnalysisProgress> analyze(
@@ -95,8 +91,6 @@ class AnalysisService {
     final mediaDurationMs = mediaMetadata.duration.inMilliseconds <= 0
         ? 1
         : mediaMetadata.duration.inMilliseconds;
-    final hasVisualAnalysis =
-        settings.contentDetectionConfig.hasVisualCategories;
 
     yield _durationProgress(
       stepName: 'Initializing analysis',
@@ -121,7 +115,7 @@ class AnalysisService {
         yield _durationProgress(
           stepName:
               'Using existing transcript (${transcript.segments.length} segments)',
-          processedDurationMs: hasVisualAnalysis ? 0 : mediaDurationMs,
+          processedDurationMs: mediaDurationMs,
           totalDurationMs: mediaDurationMs,
           itemsProcessed: transcript.segments.length,
           totalItems: transcript.segments.length,
@@ -135,7 +129,7 @@ class AnalysisService {
         yield _durationProgress(
           stepName:
               'Audio transcription complete (${transcript.segments.length} segments)',
-          processedDurationMs: hasVisualAnalysis ? 0 : mediaDurationMs,
+          processedDurationMs: mediaDurationMs,
           totalDurationMs: mediaDurationMs,
           itemsProcessed: transcript.segments.length,
           totalItems: transcript.segments.length,
@@ -145,7 +139,7 @@ class AnalysisService {
         yield _durationProgress(
           stepName:
               'Using transcription from checkpoint (${transcript!.segments.length} segments)',
-          processedDurationMs: hasVisualAnalysis ? 0 : mediaDurationMs,
+          processedDurationMs: mediaDurationMs,
           totalDurationMs: mediaDurationMs,
           itemsProcessed: transcript.segments.length,
           totalItems: transcript.segments.length,
@@ -168,7 +162,7 @@ class AnalysisService {
       if (checkpoint?.profanityMatches == null) {
         yield _durationProgress(
           stepName: 'Detecting profanity in transcript',
-          processedDurationMs: hasVisualAnalysis ? 0 : mediaDurationMs,
+          processedDurationMs: mediaDurationMs,
           totalDurationMs: mediaDurationMs,
         );
         profanityMatches = await _detectProfanity(
@@ -179,7 +173,7 @@ class AnalysisService {
         yield _durationProgress(
           stepName:
               'Profanity detection complete (${profanityMatches.length} matches)',
-          processedDurationMs: hasVisualAnalysis ? 0 : mediaDurationMs,
+          processedDurationMs: mediaDurationMs,
           totalDurationMs: mediaDurationMs,
           itemsProcessed: profanityMatches.length,
           totalItems: profanityMatches.length,
@@ -189,7 +183,7 @@ class AnalysisService {
         yield _durationProgress(
           stepName:
               'Using profanity results from checkpoint (${profanityMatches.length} matches)',
-          processedDurationMs: hasVisualAnalysis ? 0 : mediaDurationMs,
+          processedDurationMs: mediaDurationMs,
           totalDurationMs: mediaDurationMs,
           itemsProcessed: profanityMatches.length,
           totalItems: profanityMatches.length,
@@ -206,46 +200,14 @@ class AnalysisService {
       );
     }
 
-    // Phase 3: Analyze video frames
-    final moeResults = <MoEFrameResult>[];
-    final startFrame = checkpoint?.lastAnalyzedFrame ?? 0;
-
+    // Phase 3: Visual analysis removed in ASR-only mode.
     yield _durationProgress(
-      stepName: startFrame > 0
-          ? 'Resuming visual analysis from checkpoint'
-          : 'Starting visual frame analysis',
-      processedDurationMs: 0,
+      stepName: 'Skipping visual analysis (ASR-only pipeline)',
+      processedDurationMs: mediaDurationMs,
       totalDurationMs: mediaDurationMs,
-      itemsProcessed: startFrame,
+      itemsProcessed: 0,
+      totalItems: 0,
     );
-
-    if (settings.contentDetectionConfig.hasVisualCategories) {
-      if (visualAnalysis == null) {
-        throw AnalysisException(
-          'VisualAnalysisService is not configured for content detection.',
-        );
-      }
-      await _validateRequiredVisualModels(settings);
-
-      await for (final result in _analyzeFramesMoE(
-        mediaPath,
-        settings,
-        startFrame,
-        totalDurationMs: mediaDurationMs,
-        cancellationToken: cancellationToken,
-      )) {
-        moeResults.add(result.frame);
-        yield _durationProgress(
-          stepName:
-              'Analyzing visual content (frame ${result.frameNumber}/${result.totalFrames})',
-          processedDurationMs: result.processedDurationMs,
-          totalDurationMs: mediaDurationMs,
-          stepProgress: result.progress,
-          itemsProcessed: result.frameNumber,
-          totalItems: result.totalFrames,
-        );
-      }
-    }
 
     // Phase 4: Build unified timeline
     yield _durationProgress(
@@ -259,7 +221,6 @@ class AnalysisService {
       effectiveMediaId,
       profanityMatches,
       settings,
-      moeResults: moeResults,
       onDetectionsBuilt: onDetectionsBuilt,
       cancellationToken: cancellationToken,
     );
@@ -270,8 +231,8 @@ class AnalysisService {
       processedDurationMs: mediaDurationMs,
       totalDurationMs: mediaDurationMs,
       stepProgress: 1,
-      itemsProcessed: moeResults.length,
-      totalItems: moeResults.length,
+      itemsProcessed: profanityMatches.length,
+      totalItems: profanityMatches.length,
     );
   }
 
@@ -347,7 +308,6 @@ class AnalysisService {
     String mediaId,
     List<ProfanityMatch> profanityMatches,
     AnalysisSettings settings, {
-    List<MoEFrameResult> moeResults = const [],
     void Function(List<Detection> detections)? onDetectionsBuilt,
     CancellationToken? cancellationToken,
   }) async {
@@ -371,12 +331,6 @@ class AnalysisService {
       }
     }
 
-    // Convert MoE frame results to detections (new pipeline)
-    if (moeResults.isNotEmpty) {
-      final moeDetections = _aggregateMoEResults(moeResults, settings, mediaId);
-      detections.addAll(moeDetections);
-    }
-
     final timeline = UnifiedTimeline.fromDetections(
       id: 'timeline_${DateTime.now().millisecondsSinceEpoch}',
       mediaDuration: metadata.duration,
@@ -385,202 +339,6 @@ class AnalysisService {
     await _checkState(cancellationToken);
     onDetectionsBuilt?.call(List<Detection>.unmodifiable(detections));
     return timeline;
-  }
-
-  /// Analyze frames using the MoE pipeline (ContentDetectionConfig).
-  ///
-  /// Delegates to [VisualAnalysisService.analyzeFrameWithMoE] for per-category
-  /// weighted voting across multiple models.
-  Stream<_MoEFrameProgress> _analyzeFramesMoE(
-    String mediaPath,
-    AnalysisSettings settings,
-    int startFrame, {
-    required int totalDurationMs,
-    CancellationToken? cancellationToken,
-  }) async* {
-    final config = settings.contentDetectionConfig;
-    final service = visualAnalysis!;
-    cancellationToken?.onCancel(service.cancelAnalysis);
-
-    // Compute total frames for progress reporting
-    final metadata = await ffmpeg.probeMedia(mediaPath);
-    final fps = metadata.frameRate;
-    final totalSeconds = metadata.duration.inMilliseconds / 1000.0;
-    final samplingRate = settings.frameSamplingRate;
-    final samplingFps = fps / samplingRate;
-    final totalFrames = (totalSeconds * samplingFps).ceil();
-
-    // Pre-load all classifier models (ONNX)
-    await service.ensureMoEModelsLoaded(config);
-    await _checkState(cancellationToken);
-
-    // Pre-compute CLIP text embeddings for any CLIP-based categories
-    if (config.clipCategories.isNotEmpty) {
-      await service.precomputeClipEmbeddingsForCategories(
-        config.enabledVisualCategories,
-      );
-      await _checkState(cancellationToken);
-    }
-
-    var frameNumber = startFrame;
-    await for (final frameData in ffmpeg.extractFrames(
-      mediaPath,
-      fps: samplingFps,
-      startFrame: startFrame > 0 ? startFrame : null,
-    )) {
-      await _checkState(cancellationToken);
-      frameNumber++;
-      // Convert media-layer FrameData (rgbData: List<int>) to models FrameData
-      // (data: Uint8List) expected by VisualAnalysisService.
-      final modelsFrame = FrameData(
-        timestamp: frameData.timestamp,
-        width: frameData.width,
-        height: frameData.height,
-        data: Uint8List.fromList(frameData.rgbData),
-        frameNumber: frameData.frameNumber,
-      );
-      try {
-        final result = await service.analyzeFrameWithMoE(modelsFrame, config);
-        await _checkState(cancellationToken);
-        yield _MoEFrameProgress(
-          frame: result,
-          frameNumber: frameNumber,
-          totalFrames: totalFrames,
-          progress: frameNumber / totalFrames,
-          processedDurationMs: frameData.timestamp.inMilliseconds.clamp(
-            0,
-            totalDurationMs,
-          ),
-        );
-      } catch (e) {
-        // Per-frame resilience: emit empty result on failure and continue
-        yield _MoEFrameProgress(
-          frame: MoEFrameResult(
-            timestamp: frameData.timestamp,
-            frameNumber: frameNumber,
-            categoryResults: {},
-          ),
-          frameNumber: frameNumber,
-          totalFrames: totalFrames,
-          progress: frameNumber / totalFrames,
-          processedDurationMs: frameData.timestamp.inMilliseconds.clamp(
-            0,
-            totalDurationMs,
-          ),
-        );
-      }
-    }
-  }
-
-  /// Aggregate [MoEFrameResult] list into [Detection] objects.
-  ///
-  /// Groups consecutive triggered frames per category into segments,
-  /// using per-category thresholds and remediation actions.
-  List<Detection> _aggregateMoEResults(
-    List<MoEFrameResult> moeResults,
-    AnalysisSettings settings,
-    String mediaPath,
-  ) {
-    final detections = <Detection>[];
-    final config = settings.contentDetectionConfig;
-
-    // Build lookup for enabled visual categories
-    final categoryMap = <String, ContentCategory>{
-      for (final cat in config.enabledVisualCategories) cat.id: cat,
-    };
-
-    for (final entry in categoryMap.entries) {
-      final categoryId = entry.key;
-      final category = entry.value;
-      final contentType = _contentTypeForCategoryId(categoryId);
-
-      Duration? segmentStart;
-      Duration? segmentEnd;
-      var confidenceSum = 0.0;
-      var confidenceCount = 0;
-
-      for (final frame in moeResults) {
-        final result = frame.categoryResults[categoryId];
-        if (result != null && result.triggered) {
-          segmentStart ??= frame.timestamp;
-          segmentEnd = frame.timestamp;
-          confidenceSum += result.finalScore;
-          confidenceCount++;
-        } else {
-          // Close any open segment
-          if (segmentStart != null && segmentEnd != null) {
-            detections.add(
-              Detection(
-                id: '${categoryId}_${detections.length}',
-                mediaId: mediaPath,
-                type: contentType,
-                startTime: segmentStart,
-                endTime: segmentEnd,
-                confidence:
-                    confidenceCount > 0 ? confidenceSum / confidenceCount : 0.5,
-                description: '${category.name} detected',
-                source: 'video',
-                metadata: {
-                  'categoryId': categoryId,
-                  'action': category.action.name,
-                },
-              ),
-            );
-            segmentStart = null;
-            segmentEnd = null;
-            confidenceSum = 0.0;
-            confidenceCount = 0;
-          }
-        }
-      }
-
-      // Close any segment still open at end of video
-      if (segmentStart != null && segmentEnd != null) {
-        detections.add(
-          Detection(
-            id: '${categoryId}_${detections.length}',
-            mediaId: mediaPath,
-            type: contentType,
-            startTime: segmentStart,
-            endTime: segmentEnd,
-            confidence:
-                confidenceCount > 0 ? confidenceSum / confidenceCount : 0.5,
-            description: '${category.name} detected',
-            source: 'video',
-            metadata: {
-              'categoryId': categoryId,
-              'action': category.action.name,
-            },
-          ),
-        );
-      }
-    }
-
-    return detections;
-  }
-
-  /// Map built-in category IDs to [ContentType] enum values.
-  ContentType _contentTypeForCategoryId(String categoryId) {
-    switch (categoryId) {
-      case 'nsfw':
-        return ContentType.nsfw;
-      case 'violence':
-        return ContentType.violence;
-      case 'blood':
-        return ContentType.blood;
-      case 'weapons':
-        return ContentType.weapons;
-      case 'nudity':
-        return ContentType.nudity;
-      case 'sexual_content':
-        return ContentType.sexualContent;
-      case 'kissing':
-        return ContentType.kissing;
-      case 'immodest_dress':
-        return ContentType.immodestDress;
-      default:
-        return ContentType.custom;
-    }
   }
 
   /// Whether the settings have a profanity category enabled.
@@ -592,30 +350,6 @@ class AnalysisService {
   Future<void> _checkState(CancellationToken? token) async {
     if (token != null) {
       await token.checkState();
-    }
-  }
-
-  Future<void> _validateRequiredVisualModels(AnalysisSettings settings) async {
-    final modelConfig = settings.modelConfig;
-    final requiredModels = <String>{
-      modelConfig.nudeNetModelId,
-      modelConfig.clipVisionModelId,
-      modelConfig.clipTextModelId,
-    };
-
-    final missing = <String>[];
-    for (final modelId in requiredModels) {
-      final modelPath = await modelManager.getModelPath(modelId);
-      if (modelPath == null) {
-        missing.add(modelId);
-      }
-    }
-
-    if (missing.isNotEmpty) {
-      throw AnalysisException(
-        'Required visual models are missing: ${missing.join(', ')}. '
-        'Open Models Management and download them before starting analysis.',
-      );
     }
   }
 
@@ -651,22 +385,6 @@ class AnalysisService {
     final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
   }
-}
-
-class _MoEFrameProgress {
-  _MoEFrameProgress({
-    required this.frame,
-    required this.frameNumber,
-    required this.totalFrames,
-    required this.progress,
-    required this.processedDurationMs,
-  });
-
-  final MoEFrameResult frame;
-  final int frameNumber;
-  final int totalFrames;
-  final double progress;
-  final int processedDurationMs;
 }
 
 /// Exception thrown during analysis

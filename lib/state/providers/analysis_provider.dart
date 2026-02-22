@@ -67,6 +67,11 @@ class AnalysisState {
 class AnalysisNotifier extends _$AnalysisNotifier {
   AnalysisJob? _activeJob;
   StreamSubscription<JobProgress>? _jobProgressSubscription;
+  DateTime? _lastProgressUiUpdateAt;
+  double _lastProgressUiValue = -1;
+  String? _lastProgressMessage;
+  static const Duration _minProgressUiInterval = Duration(milliseconds: 250);
+  static const double _minProgressDelta = 0.005;
 
   @override
   AnalysisState build() {
@@ -86,6 +91,9 @@ class AnalysisNotifier extends _$AnalysisNotifier {
   }) async {
     await _jobProgressSubscription?.cancel();
     _activeJob?.cancel();
+    _lastProgressUiUpdateAt = null;
+    _lastProgressUiValue = -1;
+    _lastProgressMessage = null;
     state = state.copyWith(
       status: AnalysisStatus.running,
       progress: 0,
@@ -127,6 +135,26 @@ class AnalysisNotifier extends _$AnalysisNotifier {
         final message = state.isCancelling
             ? 'Cancelling... finishing current operation (${jobProgress.message}). This may take a few minutes.'
             : jobProgress.message;
+        final now = DateTime.now();
+        final elapsed = _lastProgressUiUpdateAt == null
+            ? _minProgressUiInterval
+            : now.difference(_lastProgressUiUpdateAt!);
+        final progressValue = progress ?? state.progress;
+        final progressDelta = (_lastProgressUiValue - progressValue).abs();
+        final messageChanged = _lastProgressMessage != message;
+        final shouldForceEmit = progressValue >= 0.999 || progressValue <= 0;
+        final shouldEmit = shouldForceEmit ||
+            messageChanged ||
+            progressDelta >= _minProgressDelta ||
+            elapsed >= _minProgressUiInterval;
+        if (!shouldEmit) {
+          return;
+        }
+
+        _lastProgressUiUpdateAt = now;
+        _lastProgressUiValue = progressValue;
+        _lastProgressMessage = message;
+
         if (progress != null) {
           state = state.copyWith(
             progress: progress,
@@ -174,6 +202,9 @@ class AnalysisNotifier extends _$AnalysisNotifier {
       await _jobProgressSubscription?.cancel();
       _jobProgressSubscription = null;
       _activeJob = null;
+      _lastProgressUiUpdateAt = null;
+      _lastProgressUiValue = -1;
+      _lastProgressMessage = null;
     }
   }
 
@@ -226,6 +257,9 @@ class AnalysisNotifier extends _$AnalysisNotifier {
     unawaited(_jobProgressSubscription?.cancel());
     _activeJob = null;
     _jobProgressSubscription = null;
+    _lastProgressUiUpdateAt = null;
+    _lastProgressUiValue = -1;
+    _lastProgressMessage = null;
     state = const AnalysisState();
   }
 }

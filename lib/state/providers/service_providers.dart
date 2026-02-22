@@ -8,12 +8,10 @@ import 'package:kidslens_video_editor/services/analysis_service.dart';
 import 'package:kidslens_video_editor/services/asr_cache_service.dart';
 import 'package:kidslens_video_editor/services/asr_service.dart';
 import 'package:kidslens_video_editor/services/beep_audio_service.dart';
-import 'package:kidslens_video_editor/services/clip_service.dart';
 import 'package:kidslens_video_editor/services/export_service.dart';
 import 'package:kidslens_video_editor/services/frame_sampling_service.dart';
 import 'package:kidslens_video_editor/services/media_service.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
-import 'package:kidslens_video_editor/services/nudenet_service.dart';
 import 'package:kidslens_video_editor/services/performance_monitor.dart';
 import 'package:kidslens_video_editor/services/profanity_service.dart';
 import 'package:kidslens_video_editor/services/project_service.dart';
@@ -21,8 +19,6 @@ import 'package:kidslens_video_editor/services/sample_analysis_service.dart';
 import 'package:kidslens_video_editor/services/subtitle_service.dart';
 import 'package:kidslens_video_editor/services/temporal_aggregator.dart';
 import 'package:kidslens_video_editor/services/thumbnail_service.dart';
-import 'package:kidslens_video_editor/services/visual_analysis_service.dart';
-import 'package:kidslens_video_editor/services/voting_service.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -75,7 +71,6 @@ AnalysisService analysisService(Ref ref) => AnalysisService(
       modelManager: ref.watch(modelManagerServiceProvider),
       profanity: ref.watch(profanityServiceProvider),
       asrService: ref.watch(asrServiceProvider),
-      visualAnalysis: ref.watch(visualAnalysisServiceProvider),
     );
 
 @Riverpod(keepAlive: true)
@@ -106,30 +101,6 @@ AsrService asrService(Ref ref) => AsrService(
       modelManager: ref.watch(modelManagerServiceProvider),
       ffmpeg: ref.watch(ffmpegBindingsProvider),
       cache: ref.watch(asrCacheServiceProvider),
-    );
-
-@Riverpod(keepAlive: true)
-NudeNetService nudeNetService(Ref ref) => NudeNetService(
-      onnx: ref.watch(onnxBindingsProvider),
-      modelManager: ref.watch(modelManagerServiceProvider),
-    );
-
-@Riverpod(keepAlive: true)
-ClipService clipService(Ref ref) => ClipService(
-      onnx: ref.watch(onnxBindingsProvider),
-      modelManager: ref.watch(modelManagerServiceProvider),
-    );
-
-@Riverpod(keepAlive: true)
-VotingService votingService(Ref ref) => const VotingService();
-
-@Riverpod(keepAlive: true)
-VisualAnalysisService visualAnalysisService(Ref ref) => VisualAnalysisService(
-      onnx: ref.watch(onnxBindingsProvider),
-      modelManager: ref.watch(modelManagerServiceProvider),
-      nudeNetService: ref.watch(nudeNetServiceProvider),
-      clipService: ref.watch(clipServiceProvider),
-      votingService: ref.watch(votingServiceProvider),
     );
 
 @Riverpod(keepAlive: true)

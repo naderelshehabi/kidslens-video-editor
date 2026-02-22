@@ -159,7 +159,7 @@ final profanityServiceProvider = Provider<ProfanityService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ProfanityServiceRef = ProviderRef<ProfanityService>;
-String _$analysisServiceHash() => r'1997a77ef44474c064724e89d2eb24b7e0181679';
+String _$analysisServiceHash() => r'782e8f956ac59e8a1d201e017603de33492d5c1c';
 
 /// See also [analysisService].
 @ProviderFor(analysisService)
@@ -278,74 +278,6 @@ final asrServiceProvider = Provider<AsrService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AsrServiceRef = ProviderRef<AsrService>;
-String _$nudeNetServiceHash() => r'027247635f75325bb8178497e3df9b286345e4f7';
-
-/// See also [nudeNetService].
-@ProviderFor(nudeNetService)
-final nudeNetServiceProvider = Provider<NudeNetService>.internal(
-  nudeNetService,
-  name: r'nudeNetServiceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$nudeNetServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef NudeNetServiceRef = ProviderRef<NudeNetService>;
-String _$clipServiceHash() => r'949cd037bbb3769e07e67de748fe8d63d216fc67';
-
-/// See also [clipService].
-@ProviderFor(clipService)
-final clipServiceProvider = Provider<ClipService>.internal(
-  clipService,
-  name: r'clipServiceProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$clipServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef ClipServiceRef = ProviderRef<ClipService>;
-String _$votingServiceHash() => r'ff88ae958738aead0871d46a4cc2ce54f3b41466';
-
-/// See also [votingService].
-@ProviderFor(votingService)
-final votingServiceProvider = Provider<VotingService>.internal(
-  votingService,
-  name: r'votingServiceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$votingServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef VotingServiceRef = ProviderRef<VotingService>;
-String _$visualAnalysisServiceHash() =>
-    r'a2c0c395b811a06969024b79f574c3ac5fc67b4b';
-
-/// See also [visualAnalysisService].
-@ProviderFor(visualAnalysisService)
-final visualAnalysisServiceProvider = Provider<VisualAnalysisService>.internal(
-  visualAnalysisService,
-  name: r'visualAnalysisServiceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$visualAnalysisServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef VisualAnalysisServiceRef = ProviderRef<VisualAnalysisService>;
 String _$temporalAggregatorServiceHash() =>
     r'd0dae16ae0cd132cc1a0a88b6c52b5fea28d20f2';
 

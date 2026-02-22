@@ -20,56 +20,15 @@ ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$ModelConfig {
-  /// ID of the ASR model to use for transcription
   String get asrModelId => throw _privateConstructorUsedError;
-
-  /// ID of the visual model to use for frame analysis (legacy, use per-type IDs)
-  String get visualModelId => throw _privateConstructorUsedError;
-
-  /// ID of the NSFW detection model
-  String get nsfwModelId => throw _privateConstructorUsedError;
-
-  /// ID of the violence detection model
-  String get violenceModelId => throw _privateConstructorUsedError;
-
-  /// ID of the blood/gore detection model
-  String get bloodModelId => throw _privateConstructorUsedError;
-
-  /// ID of the weapons detection model
-  String get weaponsModelId => throw _privateConstructorUsedError;
-
-  /// Language for ASR (e.g., 'en', 'es', 'auto')
   String get asrLanguage => throw _privateConstructorUsedError;
-
-  /// Whether to use GPU acceleration
   bool get useGpu => throw _privateConstructorUsedError;
-
-  /// Number of threads for CPU inference
   int get cpuThreads => throw _privateConstructorUsedError;
-
-  /// Batch size for visual model inference
   int get batchSize => throw _privateConstructorUsedError;
-
-  /// Whether to use half-precision (FP16) for faster inference
   bool get useFp16 => throw _privateConstructorUsedError;
-
-  /// Whether to translate non-English speech to English
   bool get translateToEnglish => throw _privateConstructorUsedError;
-
-  /// Whether to generate word-level timestamps (slower but more precise)
   bool get wordLevelTimestamps => throw _privateConstructorUsedError;
-
-  /// Beam search size for ASR decoding (1-5, higher = more accurate but slower)
   int get beamSize => throw _privateConstructorUsedError;
-
-  /// ID of the NudeNet detection model
-  String get nudeNetModelId => throw _privateConstructorUsedError;
-
-  /// ID of the CLIP vision encoder model
-  String get clipVisionModelId => throw _privateConstructorUsedError;
-
-  /// ID of the CLIP text encoder model
-  String get clipTextModelId => throw _privateConstructorUsedError;
 
   /// Serializes this ModelConfig to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -89,11 +48,6 @@ abstract class $ModelConfigCopyWith<$Res> {
   @useResult
   $Res call(
       {String asrModelId,
-      String visualModelId,
-      String nsfwModelId,
-      String violenceModelId,
-      String bloodModelId,
-      String weaponsModelId,
       String asrLanguage,
       bool useGpu,
       int cpuThreads,
@@ -101,10 +55,7 @@ abstract class $ModelConfigCopyWith<$Res> {
       bool useFp16,
       bool translateToEnglish,
       bool wordLevelTimestamps,
-      int beamSize,
-      String nudeNetModelId,
-      String clipVisionModelId,
-      String clipTextModelId});
+      int beamSize});
 }
 
 /// @nodoc
@@ -123,11 +74,6 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
   @override
   $Res call({
     Object? asrModelId = null,
-    Object? visualModelId = null,
-    Object? nsfwModelId = null,
-    Object? violenceModelId = null,
-    Object? bloodModelId = null,
-    Object? weaponsModelId = null,
     Object? asrLanguage = null,
     Object? useGpu = null,
     Object? cpuThreads = null,
@@ -136,34 +82,11 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
     Object? translateToEnglish = null,
     Object? wordLevelTimestamps = null,
     Object? beamSize = null,
-    Object? nudeNetModelId = null,
-    Object? clipVisionModelId = null,
-    Object? clipTextModelId = null,
   }) {
     return _then(_value.copyWith(
       asrModelId: null == asrModelId
           ? _value.asrModelId
           : asrModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      visualModelId: null == visualModelId
-          ? _value.visualModelId
-          : visualModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      nsfwModelId: null == nsfwModelId
-          ? _value.nsfwModelId
-          : nsfwModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      violenceModelId: null == violenceModelId
-          ? _value.violenceModelId
-          : violenceModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      bloodModelId: null == bloodModelId
-          ? _value.bloodModelId
-          : bloodModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      weaponsModelId: null == weaponsModelId
-          ? _value.weaponsModelId
-          : weaponsModelId // ignore: cast_nullable_to_non_nullable
               as String,
       asrLanguage: null == asrLanguage
           ? _value.asrLanguage
@@ -197,18 +120,6 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
           ? _value.beamSize
           : beamSize // ignore: cast_nullable_to_non_nullable
               as int,
-      nudeNetModelId: null == nudeNetModelId
-          ? _value.nudeNetModelId
-          : nudeNetModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      clipVisionModelId: null == clipVisionModelId
-          ? _value.clipVisionModelId
-          : clipVisionModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      clipTextModelId: null == clipTextModelId
-          ? _value.clipTextModelId
-          : clipTextModelId // ignore: cast_nullable_to_non_nullable
-              as String,
     ) as $Val);
   }
 }
@@ -223,11 +134,6 @@ abstract class _$$ModelConfigImplCopyWith<$Res>
   @useResult
   $Res call(
       {String asrModelId,
-      String visualModelId,
-      String nsfwModelId,
-      String violenceModelId,
-      String bloodModelId,
-      String weaponsModelId,
       String asrLanguage,
       bool useGpu,
       int cpuThreads,
@@ -235,10 +141,7 @@ abstract class _$$ModelConfigImplCopyWith<$Res>
       bool useFp16,
       bool translateToEnglish,
       bool wordLevelTimestamps,
-      int beamSize,
-      String nudeNetModelId,
-      String clipVisionModelId,
-      String clipTextModelId});
+      int beamSize});
 }
 
 /// @nodoc
@@ -255,11 +158,6 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? asrModelId = null,
-    Object? visualModelId = null,
-    Object? nsfwModelId = null,
-    Object? violenceModelId = null,
-    Object? bloodModelId = null,
-    Object? weaponsModelId = null,
     Object? asrLanguage = null,
     Object? useGpu = null,
     Object? cpuThreads = null,
@@ -268,34 +166,11 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
     Object? translateToEnglish = null,
     Object? wordLevelTimestamps = null,
     Object? beamSize = null,
-    Object? nudeNetModelId = null,
-    Object? clipVisionModelId = null,
-    Object? clipTextModelId = null,
   }) {
     return _then(_$ModelConfigImpl(
       asrModelId: null == asrModelId
           ? _value.asrModelId
           : asrModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      visualModelId: null == visualModelId
-          ? _value.visualModelId
-          : visualModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      nsfwModelId: null == nsfwModelId
-          ? _value.nsfwModelId
-          : nsfwModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      violenceModelId: null == violenceModelId
-          ? _value.violenceModelId
-          : violenceModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      bloodModelId: null == bloodModelId
-          ? _value.bloodModelId
-          : bloodModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      weaponsModelId: null == weaponsModelId
-          ? _value.weaponsModelId
-          : weaponsModelId // ignore: cast_nullable_to_non_nullable
               as String,
       asrLanguage: null == asrLanguage
           ? _value.asrLanguage
@@ -329,18 +204,6 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
           ? _value.beamSize
           : beamSize // ignore: cast_nullable_to_non_nullable
               as int,
-      nudeNetModelId: null == nudeNetModelId
-          ? _value.nudeNetModelId
-          : nudeNetModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      clipVisionModelId: null == clipVisionModelId
-          ? _value.clipVisionModelId
-          : clipVisionModelId // ignore: cast_nullable_to_non_nullable
-              as String,
-      clipTextModelId: null == clipTextModelId
-          ? _value.clipTextModelId
-          : clipTextModelId // ignore: cast_nullable_to_non_nullable
-              as String,
     ));
   }
 }
@@ -350,11 +213,6 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
 class _$ModelConfigImpl extends _ModelConfig {
   const _$ModelConfigImpl(
       {required this.asrModelId,
-      required this.visualModelId,
-      this.nsfwModelId = 'nsfw-vit-base-quantized',
-      this.violenceModelId = 'violence-vit-classifier',
-      this.bloodModelId = 'gore-classifier',
-      this.weaponsModelId = 'weapons-classifier',
       this.asrLanguage = 'en',
       this.useGpu = true,
       this.cpuThreads = 4,
@@ -362,101 +220,42 @@ class _$ModelConfigImpl extends _ModelConfig {
       this.useFp16 = false,
       this.translateToEnglish = false,
       this.wordLevelTimestamps = false,
-      this.beamSize = 3,
-      this.nudeNetModelId = 'nudenet-v3-medium',
-      this.clipVisionModelId = 'clip-vit-b32-vision-fp16',
-      this.clipTextModelId = 'clip-vit-b32-text-fp16'})
+      this.beamSize = 3})
       : super._();
 
   factory _$ModelConfigImpl.fromJson(Map<String, dynamic> json) =>
       _$$ModelConfigImplFromJson(json);
 
-  /// ID of the ASR model to use for transcription
   @override
   final String asrModelId;
-
-  /// ID of the visual model to use for frame analysis (legacy, use per-type IDs)
-  @override
-  final String visualModelId;
-
-  /// ID of the NSFW detection model
-  @override
-  @JsonKey()
-  final String nsfwModelId;
-
-  /// ID of the violence detection model
-  @override
-  @JsonKey()
-  final String violenceModelId;
-
-  /// ID of the blood/gore detection model
-  @override
-  @JsonKey()
-  final String bloodModelId;
-
-  /// ID of the weapons detection model
-  @override
-  @JsonKey()
-  final String weaponsModelId;
-
-  /// Language for ASR (e.g., 'en', 'es', 'auto')
   @override
   @JsonKey()
   final String asrLanguage;
-
-  /// Whether to use GPU acceleration
   @override
   @JsonKey()
   final bool useGpu;
-
-  /// Number of threads for CPU inference
   @override
   @JsonKey()
   final int cpuThreads;
-
-  /// Batch size for visual model inference
   @override
   @JsonKey()
   final int batchSize;
-
-  /// Whether to use half-precision (FP16) for faster inference
   @override
   @JsonKey()
   final bool useFp16;
-
-  /// Whether to translate non-English speech to English
   @override
   @JsonKey()
   final bool translateToEnglish;
-
-  /// Whether to generate word-level timestamps (slower but more precise)
   @override
   @JsonKey()
   final bool wordLevelTimestamps;
-
-  /// Beam search size for ASR decoding (1-5, higher = more accurate but slower)
   @override
   @JsonKey()
   final int beamSize;
 
-  /// ID of the NudeNet detection model
-  @override
-  @JsonKey()
-  final String nudeNetModelId;
-
-  /// ID of the CLIP vision encoder model
-  @override
-  @JsonKey()
-  final String clipVisionModelId;
-
-  /// ID of the CLIP text encoder model
-  @override
-  @JsonKey()
-  final String clipTextModelId;
-
   @override
   String toString() {
-    return 'ModelConfig(asrModelId: $asrModelId, visualModelId: $visualModelId, nsfwModelId: $nsfwModelId, violenceModelId: $violenceModelId, bloodModelId: $bloodModelId, weaponsModelId: $weaponsModelId, asrLanguage: $asrLanguage, useGpu: $useGpu, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16, translateToEnglish: $translateToEnglish, wordLevelTimestamps: $wordLevelTimestamps, beamSize: $beamSize, nudeNetModelId: $nudeNetModelId, clipVisionModelId: $clipVisionModelId, clipTextModelId: $clipTextModelId)';
+    return 'ModelConfig(asrModelId: $asrModelId, asrLanguage: $asrLanguage, useGpu: $useGpu, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16, translateToEnglish: $translateToEnglish, wordLevelTimestamps: $wordLevelTimestamps, beamSize: $beamSize)';
   }
 
   @override
@@ -466,16 +265,6 @@ class _$ModelConfigImpl extends _ModelConfig {
             other is _$ModelConfigImpl &&
             (identical(other.asrModelId, asrModelId) ||
                 other.asrModelId == asrModelId) &&
-            (identical(other.visualModelId, visualModelId) ||
-                other.visualModelId == visualModelId) &&
-            (identical(other.nsfwModelId, nsfwModelId) ||
-                other.nsfwModelId == nsfwModelId) &&
-            (identical(other.violenceModelId, violenceModelId) ||
-                other.violenceModelId == violenceModelId) &&
-            (identical(other.bloodModelId, bloodModelId) ||
-                other.bloodModelId == bloodModelId) &&
-            (identical(other.weaponsModelId, weaponsModelId) ||
-                other.weaponsModelId == weaponsModelId) &&
             (identical(other.asrLanguage, asrLanguage) ||
                 other.asrLanguage == asrLanguage) &&
             (identical(other.useGpu, useGpu) || other.useGpu == useGpu) &&
@@ -489,13 +278,7 @@ class _$ModelConfigImpl extends _ModelConfig {
             (identical(other.wordLevelTimestamps, wordLevelTimestamps) ||
                 other.wordLevelTimestamps == wordLevelTimestamps) &&
             (identical(other.beamSize, beamSize) ||
-                other.beamSize == beamSize) &&
-            (identical(other.nudeNetModelId, nudeNetModelId) ||
-                other.nudeNetModelId == nudeNetModelId) &&
-            (identical(other.clipVisionModelId, clipVisionModelId) ||
-                other.clipVisionModelId == clipVisionModelId) &&
-            (identical(other.clipTextModelId, clipTextModelId) ||
-                other.clipTextModelId == clipTextModelId));
+                other.beamSize == beamSize));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -503,11 +286,6 @@ class _$ModelConfigImpl extends _ModelConfig {
   int get hashCode => Object.hash(
       runtimeType,
       asrModelId,
-      visualModelId,
-      nsfwModelId,
-      violenceModelId,
-      bloodModelId,
-      weaponsModelId,
       asrLanguage,
       useGpu,
       cpuThreads,
@@ -515,10 +293,7 @@ class _$ModelConfigImpl extends _ModelConfig {
       useFp16,
       translateToEnglish,
       wordLevelTimestamps,
-      beamSize,
-      nudeNetModelId,
-      clipVisionModelId,
-      clipTextModelId);
+      beamSize);
 
   /// Create a copy of ModelConfig
   /// with the given fields replaced by the non-null parameter values.
@@ -539,11 +314,6 @@ class _$ModelConfigImpl extends _ModelConfig {
 abstract class _ModelConfig extends ModelConfig {
   const factory _ModelConfig(
       {required final String asrModelId,
-      required final String visualModelId,
-      final String nsfwModelId,
-      final String violenceModelId,
-      final String bloodModelId,
-      final String weaponsModelId,
       final String asrLanguage,
       final bool useGpu,
       final int cpuThreads,
@@ -551,82 +321,30 @@ abstract class _ModelConfig extends ModelConfig {
       final bool useFp16,
       final bool translateToEnglish,
       final bool wordLevelTimestamps,
-      final int beamSize,
-      final String nudeNetModelId,
-      final String clipVisionModelId,
-      final String clipTextModelId}) = _$ModelConfigImpl;
+      final int beamSize}) = _$ModelConfigImpl;
   const _ModelConfig._() : super._();
 
   factory _ModelConfig.fromJson(Map<String, dynamic> json) =
       _$ModelConfigImpl.fromJson;
 
-  /// ID of the ASR model to use for transcription
   @override
   String get asrModelId;
-
-  /// ID of the visual model to use for frame analysis (legacy, use per-type IDs)
-  @override
-  String get visualModelId;
-
-  /// ID of the NSFW detection model
-  @override
-  String get nsfwModelId;
-
-  /// ID of the violence detection model
-  @override
-  String get violenceModelId;
-
-  /// ID of the blood/gore detection model
-  @override
-  String get bloodModelId;
-
-  /// ID of the weapons detection model
-  @override
-  String get weaponsModelId;
-
-  /// Language for ASR (e.g., 'en', 'es', 'auto')
   @override
   String get asrLanguage;
-
-  /// Whether to use GPU acceleration
   @override
   bool get useGpu;
-
-  /// Number of threads for CPU inference
   @override
   int get cpuThreads;
-
-  /// Batch size for visual model inference
   @override
   int get batchSize;
-
-  /// Whether to use half-precision (FP16) for faster inference
   @override
   bool get useFp16;
-
-  /// Whether to translate non-English speech to English
   @override
   bool get translateToEnglish;
-
-  /// Whether to generate word-level timestamps (slower but more precise)
   @override
   bool get wordLevelTimestamps;
-
-  /// Beam search size for ASR decoding (1-5, higher = more accurate but slower)
   @override
   int get beamSize;
-
-  /// ID of the NudeNet detection model
-  @override
-  String get nudeNetModelId;
-
-  /// ID of the CLIP vision encoder model
-  @override
-  String get clipVisionModelId;
-
-  /// ID of the CLIP text encoder model
-  @override
-  String get clipTextModelId;
 
   /// Create a copy of ModelConfig
   /// with the given fields replaced by the non-null parameter values.
@@ -642,34 +360,15 @@ ProfanityConfig _$ProfanityConfigFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$ProfanityConfig {
-  /// Wordlist IDs to use for detection
   List<String> get wordlistIds => throw _privateConstructorUsedError;
-
-  /// Whether to detect leetspeak variations
   bool get detectLeetspeak => throw _privateConstructorUsedError;
-
-  /// Whether to detect phonetic variations
   bool get detectPhonetic => throw _privateConstructorUsedError;
-
-  /// Whether to use fuzzy matching
   bool get detectFuzzy => throw _privateConstructorUsedError;
-
-  /// Whether to detect obfuscated words
   bool get detectObfuscated => throw _privateConstructorUsedError;
-
-  /// Minimum confidence for fuzzy matches
   double get fuzzyThreshold => throw _privateConstructorUsedError;
-
-  /// Custom words to add to detection
   List<String> get customWords => throw _privateConstructorUsedError;
-
-  /// Words to exclude from detection
   List<String> get excludedWords => throw _privateConstructorUsedError;
-
-  /// Minimum word length to check
   int get minWordLength => throw _privateConstructorUsedError;
-
-  /// Whether to check for context (reduce false positives)
   bool get useContextAnalysis => throw _privateConstructorUsedError;
 
   /// Serializes this ProfanityConfig to a JSON map.
@@ -884,10 +583,7 @@ class _$ProfanityConfigImpl extends _ProfanityConfig {
   factory _$ProfanityConfigImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProfanityConfigImplFromJson(json);
 
-  /// Wordlist IDs to use for detection
   final List<String> _wordlistIds;
-
-  /// Wordlist IDs to use for detection
   @override
   @JsonKey()
   List<String> get wordlistIds {
@@ -896,35 +592,22 @@ class _$ProfanityConfigImpl extends _ProfanityConfig {
     return EqualUnmodifiableListView(_wordlistIds);
   }
 
-  /// Whether to detect leetspeak variations
   @override
   @JsonKey()
   final bool detectLeetspeak;
-
-  /// Whether to detect phonetic variations
   @override
   @JsonKey()
   final bool detectPhonetic;
-
-  /// Whether to use fuzzy matching
   @override
   @JsonKey()
   final bool detectFuzzy;
-
-  /// Whether to detect obfuscated words
   @override
   @JsonKey()
   final bool detectObfuscated;
-
-  /// Minimum confidence for fuzzy matches
   @override
   @JsonKey()
   final double fuzzyThreshold;
-
-  /// Custom words to add to detection
   final List<String> _customWords;
-
-  /// Custom words to add to detection
   @override
   @JsonKey()
   List<String> get customWords {
@@ -933,10 +616,7 @@ class _$ProfanityConfigImpl extends _ProfanityConfig {
     return EqualUnmodifiableListView(_customWords);
   }
 
-  /// Words to exclude from detection
   final List<String> _excludedWords;
-
-  /// Words to exclude from detection
   @override
   @JsonKey()
   List<String> get excludedWords {
@@ -945,12 +625,9 @@ class _$ProfanityConfigImpl extends _ProfanityConfig {
     return EqualUnmodifiableListView(_excludedWords);
   }
 
-  /// Minimum word length to check
   @override
   @JsonKey()
   final int minWordLength;
-
-  /// Whether to check for context (reduce false positives)
   @override
   @JsonKey()
   final bool useContextAnalysis;
@@ -1036,43 +713,24 @@ abstract class _ProfanityConfig extends ProfanityConfig {
   factory _ProfanityConfig.fromJson(Map<String, dynamic> json) =
       _$ProfanityConfigImpl.fromJson;
 
-  /// Wordlist IDs to use for detection
   @override
   List<String> get wordlistIds;
-
-  /// Whether to detect leetspeak variations
   @override
   bool get detectLeetspeak;
-
-  /// Whether to detect phonetic variations
   @override
   bool get detectPhonetic;
-
-  /// Whether to use fuzzy matching
   @override
   bool get detectFuzzy;
-
-  /// Whether to detect obfuscated words
   @override
   bool get detectObfuscated;
-
-  /// Minimum confidence for fuzzy matches
   @override
   double get fuzzyThreshold;
-
-  /// Custom words to add to detection
   @override
   List<String> get customWords;
-
-  /// Words to exclude from detection
   @override
   List<String> get excludedWords;
-
-  /// Minimum word length to check
   @override
   int get minWordLength;
-
-  /// Whether to check for context (reduce false positives)
   @override
   bool get useContextAnalysis;
 
@@ -1084,296 +742,6 @@ abstract class _ProfanityConfig extends ProfanityConfig {
       throw _privateConstructorUsedError;
 }
 
-VisualContentConfig _$VisualContentConfigFromJson(Map<String, dynamic> json) {
-  return _VisualContentConfig.fromJson(json);
-}
-
-/// @nodoc
-mixin _$VisualContentConfig {
-  /// Whether NudeNet detection is enabled
-  bool get enableNudeNetDetection => throw _privateConstructorUsedError;
-
-  /// Whether CLIP classification is enabled
-  bool get enableClipClassification => throw _privateConstructorUsedError;
-
-  /// Whether to use NSFW pre-filter before NudeNet (performance optimization)
-  bool get useNsfwPreFilter => throw _privateConstructorUsedError;
-
-  /// Minimum NSFW score to trigger NudeNet (min 0.05 enforced)
-  double get preFilterThreshold => throw _privateConstructorUsedError;
-
-  /// Visual content categories (empty default; populated at runtime)
-  List<VisualContentCategory> get categories =>
-      throw _privateConstructorUsedError;
-
-  /// Serializes this VisualContentConfig to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-
-  /// Create a copy of VisualContentConfig
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $VisualContentConfigCopyWith<VisualContentConfig> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $VisualContentConfigCopyWith<$Res> {
-  factory $VisualContentConfigCopyWith(
-          VisualContentConfig value, $Res Function(VisualContentConfig) then) =
-      _$VisualContentConfigCopyWithImpl<$Res, VisualContentConfig>;
-  @useResult
-  $Res call(
-      {bool enableNudeNetDetection,
-      bool enableClipClassification,
-      bool useNsfwPreFilter,
-      double preFilterThreshold,
-      List<VisualContentCategory> categories});
-}
-
-/// @nodoc
-class _$VisualContentConfigCopyWithImpl<$Res, $Val extends VisualContentConfig>
-    implements $VisualContentConfigCopyWith<$Res> {
-  _$VisualContentConfigCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of VisualContentConfig
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? enableNudeNetDetection = null,
-    Object? enableClipClassification = null,
-    Object? useNsfwPreFilter = null,
-    Object? preFilterThreshold = null,
-    Object? categories = null,
-  }) {
-    return _then(_value.copyWith(
-      enableNudeNetDetection: null == enableNudeNetDetection
-          ? _value.enableNudeNetDetection
-          : enableNudeNetDetection // ignore: cast_nullable_to_non_nullable
-              as bool,
-      enableClipClassification: null == enableClipClassification
-          ? _value.enableClipClassification
-          : enableClipClassification // ignore: cast_nullable_to_non_nullable
-              as bool,
-      useNsfwPreFilter: null == useNsfwPreFilter
-          ? _value.useNsfwPreFilter
-          : useNsfwPreFilter // ignore: cast_nullable_to_non_nullable
-              as bool,
-      preFilterThreshold: null == preFilterThreshold
-          ? _value.preFilterThreshold
-          : preFilterThreshold // ignore: cast_nullable_to_non_nullable
-              as double,
-      categories: null == categories
-          ? _value.categories
-          : categories // ignore: cast_nullable_to_non_nullable
-              as List<VisualContentCategory>,
-    ) as $Val);
-  }
-}
-
-/// @nodoc
-abstract class _$$VisualContentConfigImplCopyWith<$Res>
-    implements $VisualContentConfigCopyWith<$Res> {
-  factory _$$VisualContentConfigImplCopyWith(_$VisualContentConfigImpl value,
-          $Res Function(_$VisualContentConfigImpl) then) =
-      __$$VisualContentConfigImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {bool enableNudeNetDetection,
-      bool enableClipClassification,
-      bool useNsfwPreFilter,
-      double preFilterThreshold,
-      List<VisualContentCategory> categories});
-}
-
-/// @nodoc
-class __$$VisualContentConfigImplCopyWithImpl<$Res>
-    extends _$VisualContentConfigCopyWithImpl<$Res, _$VisualContentConfigImpl>
-    implements _$$VisualContentConfigImplCopyWith<$Res> {
-  __$$VisualContentConfigImplCopyWithImpl(_$VisualContentConfigImpl _value,
-      $Res Function(_$VisualContentConfigImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of VisualContentConfig
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? enableNudeNetDetection = null,
-    Object? enableClipClassification = null,
-    Object? useNsfwPreFilter = null,
-    Object? preFilterThreshold = null,
-    Object? categories = null,
-  }) {
-    return _then(_$VisualContentConfigImpl(
-      enableNudeNetDetection: null == enableNudeNetDetection
-          ? _value.enableNudeNetDetection
-          : enableNudeNetDetection // ignore: cast_nullable_to_non_nullable
-              as bool,
-      enableClipClassification: null == enableClipClassification
-          ? _value.enableClipClassification
-          : enableClipClassification // ignore: cast_nullable_to_non_nullable
-              as bool,
-      useNsfwPreFilter: null == useNsfwPreFilter
-          ? _value.useNsfwPreFilter
-          : useNsfwPreFilter // ignore: cast_nullable_to_non_nullable
-              as bool,
-      preFilterThreshold: null == preFilterThreshold
-          ? _value.preFilterThreshold
-          : preFilterThreshold // ignore: cast_nullable_to_non_nullable
-              as double,
-      categories: null == categories
-          ? _value._categories
-          : categories // ignore: cast_nullable_to_non_nullable
-              as List<VisualContentCategory>,
-    ));
-  }
-}
-
-/// @nodoc
-@JsonSerializable()
-class _$VisualContentConfigImpl extends _VisualContentConfig {
-  const _$VisualContentConfigImpl(
-      {this.enableNudeNetDetection = true,
-      this.enableClipClassification = true,
-      this.useNsfwPreFilter = true,
-      this.preFilterThreshold = 0.30,
-      final List<VisualContentCategory> categories = const []})
-      : _categories = categories,
-        super._();
-
-  factory _$VisualContentConfigImpl.fromJson(Map<String, dynamic> json) =>
-      _$$VisualContentConfigImplFromJson(json);
-
-  /// Whether NudeNet detection is enabled
-  @override
-  @JsonKey()
-  final bool enableNudeNetDetection;
-
-  /// Whether CLIP classification is enabled
-  @override
-  @JsonKey()
-  final bool enableClipClassification;
-
-  /// Whether to use NSFW pre-filter before NudeNet (performance optimization)
-  @override
-  @JsonKey()
-  final bool useNsfwPreFilter;
-
-  /// Minimum NSFW score to trigger NudeNet (min 0.05 enforced)
-  @override
-  @JsonKey()
-  final double preFilterThreshold;
-
-  /// Visual content categories (empty default; populated at runtime)
-  final List<VisualContentCategory> _categories;
-
-  /// Visual content categories (empty default; populated at runtime)
-  @override
-  @JsonKey()
-  List<VisualContentCategory> get categories {
-    if (_categories is EqualUnmodifiableListView) return _categories;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_categories);
-  }
-
-  @override
-  String toString() {
-    return 'VisualContentConfig(enableNudeNetDetection: $enableNudeNetDetection, enableClipClassification: $enableClipClassification, useNsfwPreFilter: $useNsfwPreFilter, preFilterThreshold: $preFilterThreshold, categories: $categories)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$VisualContentConfigImpl &&
-            (identical(other.enableNudeNetDetection, enableNudeNetDetection) ||
-                other.enableNudeNetDetection == enableNudeNetDetection) &&
-            (identical(
-                    other.enableClipClassification, enableClipClassification) ||
-                other.enableClipClassification == enableClipClassification) &&
-            (identical(other.useNsfwPreFilter, useNsfwPreFilter) ||
-                other.useNsfwPreFilter == useNsfwPreFilter) &&
-            (identical(other.preFilterThreshold, preFilterThreshold) ||
-                other.preFilterThreshold == preFilterThreshold) &&
-            const DeepCollectionEquality()
-                .equals(other._categories, _categories));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      enableNudeNetDetection,
-      enableClipClassification,
-      useNsfwPreFilter,
-      preFilterThreshold,
-      const DeepCollectionEquality().hash(_categories));
-
-  /// Create a copy of VisualContentConfig
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$VisualContentConfigImplCopyWith<_$VisualContentConfigImpl> get copyWith =>
-      __$$VisualContentConfigImplCopyWithImpl<_$VisualContentConfigImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$VisualContentConfigImplToJson(
-      this,
-    );
-  }
-}
-
-abstract class _VisualContentConfig extends VisualContentConfig {
-  const factory _VisualContentConfig(
-          {final bool enableNudeNetDetection,
-          final bool enableClipClassification,
-          final bool useNsfwPreFilter,
-          final double preFilterThreshold,
-          final List<VisualContentCategory> categories}) =
-      _$VisualContentConfigImpl;
-  const _VisualContentConfig._() : super._();
-
-  factory _VisualContentConfig.fromJson(Map<String, dynamic> json) =
-      _$VisualContentConfigImpl.fromJson;
-
-  /// Whether NudeNet detection is enabled
-  @override
-  bool get enableNudeNetDetection;
-
-  /// Whether CLIP classification is enabled
-  @override
-  bool get enableClipClassification;
-
-  /// Whether to use NSFW pre-filter before NudeNet (performance optimization)
-  @override
-  bool get useNsfwPreFilter;
-
-  /// Minimum NSFW score to trigger NudeNet (min 0.05 enforced)
-  @override
-  double get preFilterThreshold;
-
-  /// Visual content categories (empty default; populated at runtime)
-  @override
-  List<VisualContentCategory> get categories;
-
-  /// Create a copy of VisualContentConfig
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$VisualContentConfigImplCopyWith<_$VisualContentConfigImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
 ContentDetectionConfig _$ContentDetectionConfigFromJson(
     Map<String, dynamic> json) {
   return _ContentDetectionConfig.fromJson(json);
@@ -1381,19 +749,8 @@ ContentDetectionConfig _$ContentDetectionConfigFromJson(
 
 /// @nodoc
 mixin _$ContentDetectionConfig {
-  /// All content categories (visual + audio).
   List<ContentCategory> get categories => throw _privateConstructorUsedError;
-
-  /// Voting configuration for MoE consensus.
   VotingConfig get votingConfig => throw _privateConstructorUsedError;
-
-  /// Whether to use NSFW pre-filter before NudeNet (performance).
-  bool get useNsfwPreFilter => throw _privateConstructorUsedError;
-
-  /// NSFW score threshold to trigger NudeNet (min 0.05 enforced).
-  double get preFilterThreshold => throw _privateConstructorUsedError;
-
-  /// Schema version for migration (v2 = unified categories).
   int get schemaVersion => throw _privateConstructorUsedError;
 
   /// Serializes this ContentDetectionConfig to a JSON map.
@@ -1415,8 +772,6 @@ abstract class $ContentDetectionConfigCopyWith<$Res> {
   $Res call(
       {List<ContentCategory> categories,
       VotingConfig votingConfig,
-      bool useNsfwPreFilter,
-      double preFilterThreshold,
       int schemaVersion});
 
   $VotingConfigCopyWith<$Res> get votingConfig;
@@ -1440,8 +795,6 @@ class _$ContentDetectionConfigCopyWithImpl<$Res,
   $Res call({
     Object? categories = null,
     Object? votingConfig = null,
-    Object? useNsfwPreFilter = null,
-    Object? preFilterThreshold = null,
     Object? schemaVersion = null,
   }) {
     return _then(_value.copyWith(
@@ -1453,14 +806,6 @@ class _$ContentDetectionConfigCopyWithImpl<$Res,
           ? _value.votingConfig
           : votingConfig // ignore: cast_nullable_to_non_nullable
               as VotingConfig,
-      useNsfwPreFilter: null == useNsfwPreFilter
-          ? _value.useNsfwPreFilter
-          : useNsfwPreFilter // ignore: cast_nullable_to_non_nullable
-              as bool,
-      preFilterThreshold: null == preFilterThreshold
-          ? _value.preFilterThreshold
-          : preFilterThreshold // ignore: cast_nullable_to_non_nullable
-              as double,
       schemaVersion: null == schemaVersion
           ? _value.schemaVersion
           : schemaVersion // ignore: cast_nullable_to_non_nullable
@@ -1491,8 +836,6 @@ abstract class _$$ContentDetectionConfigImplCopyWith<$Res>
   $Res call(
       {List<ContentCategory> categories,
       VotingConfig votingConfig,
-      bool useNsfwPreFilter,
-      double preFilterThreshold,
       int schemaVersion});
 
   @override
@@ -1516,8 +859,6 @@ class __$$ContentDetectionConfigImplCopyWithImpl<$Res>
   $Res call({
     Object? categories = null,
     Object? votingConfig = null,
-    Object? useNsfwPreFilter = null,
-    Object? preFilterThreshold = null,
     Object? schemaVersion = null,
   }) {
     return _then(_$ContentDetectionConfigImpl(
@@ -1529,14 +870,6 @@ class __$$ContentDetectionConfigImplCopyWithImpl<$Res>
           ? _value.votingConfig
           : votingConfig // ignore: cast_nullable_to_non_nullable
               as VotingConfig,
-      useNsfwPreFilter: null == useNsfwPreFilter
-          ? _value.useNsfwPreFilter
-          : useNsfwPreFilter // ignore: cast_nullable_to_non_nullable
-              as bool,
-      preFilterThreshold: null == preFilterThreshold
-          ? _value.preFilterThreshold
-          : preFilterThreshold // ignore: cast_nullable_to_non_nullable
-              as double,
       schemaVersion: null == schemaVersion
           ? _value.schemaVersion
           : schemaVersion // ignore: cast_nullable_to_non_nullable
@@ -1551,8 +884,6 @@ class _$ContentDetectionConfigImpl extends _ContentDetectionConfig {
   const _$ContentDetectionConfigImpl(
       {final List<ContentCategory> categories = const [],
       this.votingConfig = const VotingConfig(),
-      this.useNsfwPreFilter = true,
-      this.preFilterThreshold = 0.30,
       this.schemaVersion = 2})
       : _categories = categories,
         super._();
@@ -1560,10 +891,7 @@ class _$ContentDetectionConfigImpl extends _ContentDetectionConfig {
   factory _$ContentDetectionConfigImpl.fromJson(Map<String, dynamic> json) =>
       _$$ContentDetectionConfigImplFromJson(json);
 
-  /// All content categories (visual + audio).
   final List<ContentCategory> _categories;
-
-  /// All content categories (visual + audio).
   @override
   @JsonKey()
   List<ContentCategory> get categories {
@@ -1572,29 +900,16 @@ class _$ContentDetectionConfigImpl extends _ContentDetectionConfig {
     return EqualUnmodifiableListView(_categories);
   }
 
-  /// Voting configuration for MoE consensus.
   @override
   @JsonKey()
   final VotingConfig votingConfig;
-
-  /// Whether to use NSFW pre-filter before NudeNet (performance).
-  @override
-  @JsonKey()
-  final bool useNsfwPreFilter;
-
-  /// NSFW score threshold to trigger NudeNet (min 0.05 enforced).
-  @override
-  @JsonKey()
-  final double preFilterThreshold;
-
-  /// Schema version for migration (v2 = unified categories).
   @override
   @JsonKey()
   final int schemaVersion;
 
   @override
   String toString() {
-    return 'ContentDetectionConfig(categories: $categories, votingConfig: $votingConfig, useNsfwPreFilter: $useNsfwPreFilter, preFilterThreshold: $preFilterThreshold, schemaVersion: $schemaVersion)';
+    return 'ContentDetectionConfig(categories: $categories, votingConfig: $votingConfig, schemaVersion: $schemaVersion)';
   }
 
   @override
@@ -1606,10 +921,6 @@ class _$ContentDetectionConfigImpl extends _ContentDetectionConfig {
                 .equals(other._categories, _categories) &&
             (identical(other.votingConfig, votingConfig) ||
                 other.votingConfig == votingConfig) &&
-            (identical(other.useNsfwPreFilter, useNsfwPreFilter) ||
-                other.useNsfwPreFilter == useNsfwPreFilter) &&
-            (identical(other.preFilterThreshold, preFilterThreshold) ||
-                other.preFilterThreshold == preFilterThreshold) &&
             (identical(other.schemaVersion, schemaVersion) ||
                 other.schemaVersion == schemaVersion));
   }
@@ -1620,8 +931,6 @@ class _$ContentDetectionConfigImpl extends _ContentDetectionConfig {
       runtimeType,
       const DeepCollectionEquality().hash(_categories),
       votingConfig,
-      useNsfwPreFilter,
-      preFilterThreshold,
       schemaVersion);
 
   /// Create a copy of ContentDetectionConfig
@@ -1645,31 +954,16 @@ abstract class _ContentDetectionConfig extends ContentDetectionConfig {
   const factory _ContentDetectionConfig(
       {final List<ContentCategory> categories,
       final VotingConfig votingConfig,
-      final bool useNsfwPreFilter,
-      final double preFilterThreshold,
       final int schemaVersion}) = _$ContentDetectionConfigImpl;
   const _ContentDetectionConfig._() : super._();
 
   factory _ContentDetectionConfig.fromJson(Map<String, dynamic> json) =
       _$ContentDetectionConfigImpl.fromJson;
 
-  /// All content categories (visual + audio).
   @override
   List<ContentCategory> get categories;
-
-  /// Voting configuration for MoE consensus.
   @override
   VotingConfig get votingConfig;
-
-  /// Whether to use NSFW pre-filter before NudeNet (performance).
-  @override
-  bool get useNsfwPreFilter;
-
-  /// NSFW score threshold to trigger NudeNet (min 0.05 enforced).
-  @override
-  double get preFilterThreshold;
-
-  /// Schema version for migration (v2 = unified categories).
   @override
   int get schemaVersion;
 
@@ -1687,62 +981,15 @@ AnalysisSettings _$AnalysisSettingsFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$AnalysisSettings {
-  /// Model configuration
   ModelConfig get modelConfig => throw _privateConstructorUsedError;
-
-  /// Profanity configuration
   ProfanityConfig get profanityConfig => throw _privateConstructorUsedError;
-
-  /// NSFW detection threshold (0.0 to 1.0)
-  double get nsfwThreshold => throw _privateConstructorUsedError;
-
-  /// Violence detection threshold (0.0 to 1.0)
-  double get violenceThreshold => throw _privateConstructorUsedError;
-
-  /// Blood/gore detection threshold (0.0 to 1.0)
-  double get bloodThreshold => throw _privateConstructorUsedError;
-
-  /// Weapons detection threshold (0.0 to 1.0)
-  double get weaponsThreshold => throw _privateConstructorUsedError;
-
-  /// Whether NSFW detection is enabled
-  bool get enableNsfw => throw _privateConstructorUsedError;
-
-  /// Whether violence detection is enabled
-  bool get enableViolence => throw _privateConstructorUsedError;
-
-  /// Whether blood/gore detection is enabled
-  bool get enableBlood => throw _privateConstructorUsedError;
-
-  /// Whether weapons detection is enabled
-  bool get enableWeapons => throw _privateConstructorUsedError;
-
-  /// Whether profanity detection is enabled
   bool get enableProfanity => throw _privateConstructorUsedError;
-
-  /// Frame sampling rate (analyze every Nth frame)
   int get frameSamplingRate => throw _privateConstructorUsedError;
-
-  /// Whether to use scene detection for adaptive sampling
   bool get useSceneDetection => throw _privateConstructorUsedError;
-
-  /// Minimum segment duration in milliseconds
   int get minSegmentDurationMs => throw _privateConstructorUsedError;
-
-  /// Whether to merge adjacent detections of same type
   bool get mergeAdjacentDetections => throw _privateConstructorUsedError;
-
-  /// Buffer time in milliseconds to add around detections
   int get detectionBufferMs => throw _privateConstructorUsedError;
-
-  /// Maximum concurrent frame analyses
   int get maxConcurrentAnalyses => throw _privateConstructorUsedError;
-
-  /// Visual content detection configuration (NudeNet + CLIP)
-  VisualContentConfig get visualContentConfig =>
-      throw _privateConstructorUsedError;
-
-  /// Unified content detection configuration (v2, MoE voting).
   ContentDetectionConfig get contentDetectionConfig =>
       throw _privateConstructorUsedError;
 
@@ -1765,14 +1012,6 @@ abstract class $AnalysisSettingsCopyWith<$Res> {
   $Res call(
       {ModelConfig modelConfig,
       ProfanityConfig profanityConfig,
-      double nsfwThreshold,
-      double violenceThreshold,
-      double bloodThreshold,
-      double weaponsThreshold,
-      bool enableNsfw,
-      bool enableViolence,
-      bool enableBlood,
-      bool enableWeapons,
       bool enableProfanity,
       int frameSamplingRate,
       bool useSceneDetection,
@@ -1780,12 +1019,10 @@ abstract class $AnalysisSettingsCopyWith<$Res> {
       bool mergeAdjacentDetections,
       int detectionBufferMs,
       int maxConcurrentAnalyses,
-      VisualContentConfig visualContentConfig,
       ContentDetectionConfig contentDetectionConfig});
 
   $ModelConfigCopyWith<$Res> get modelConfig;
   $ProfanityConfigCopyWith<$Res> get profanityConfig;
-  $VisualContentConfigCopyWith<$Res> get visualContentConfig;
   $ContentDetectionConfigCopyWith<$Res> get contentDetectionConfig;
 }
 
@@ -1806,14 +1043,6 @@ class _$AnalysisSettingsCopyWithImpl<$Res, $Val extends AnalysisSettings>
   $Res call({
     Object? modelConfig = null,
     Object? profanityConfig = null,
-    Object? nsfwThreshold = null,
-    Object? violenceThreshold = null,
-    Object? bloodThreshold = null,
-    Object? weaponsThreshold = null,
-    Object? enableNsfw = null,
-    Object? enableViolence = null,
-    Object? enableBlood = null,
-    Object? enableWeapons = null,
     Object? enableProfanity = null,
     Object? frameSamplingRate = null,
     Object? useSceneDetection = null,
@@ -1821,7 +1050,6 @@ class _$AnalysisSettingsCopyWithImpl<$Res, $Val extends AnalysisSettings>
     Object? mergeAdjacentDetections = null,
     Object? detectionBufferMs = null,
     Object? maxConcurrentAnalyses = null,
-    Object? visualContentConfig = null,
     Object? contentDetectionConfig = null,
   }) {
     return _then(_value.copyWith(
@@ -1833,38 +1061,6 @@ class _$AnalysisSettingsCopyWithImpl<$Res, $Val extends AnalysisSettings>
           ? _value.profanityConfig
           : profanityConfig // ignore: cast_nullable_to_non_nullable
               as ProfanityConfig,
-      nsfwThreshold: null == nsfwThreshold
-          ? _value.nsfwThreshold
-          : nsfwThreshold // ignore: cast_nullable_to_non_nullable
-              as double,
-      violenceThreshold: null == violenceThreshold
-          ? _value.violenceThreshold
-          : violenceThreshold // ignore: cast_nullable_to_non_nullable
-              as double,
-      bloodThreshold: null == bloodThreshold
-          ? _value.bloodThreshold
-          : bloodThreshold // ignore: cast_nullable_to_non_nullable
-              as double,
-      weaponsThreshold: null == weaponsThreshold
-          ? _value.weaponsThreshold
-          : weaponsThreshold // ignore: cast_nullable_to_non_nullable
-              as double,
-      enableNsfw: null == enableNsfw
-          ? _value.enableNsfw
-          : enableNsfw // ignore: cast_nullable_to_non_nullable
-              as bool,
-      enableViolence: null == enableViolence
-          ? _value.enableViolence
-          : enableViolence // ignore: cast_nullable_to_non_nullable
-              as bool,
-      enableBlood: null == enableBlood
-          ? _value.enableBlood
-          : enableBlood // ignore: cast_nullable_to_non_nullable
-              as bool,
-      enableWeapons: null == enableWeapons
-          ? _value.enableWeapons
-          : enableWeapons // ignore: cast_nullable_to_non_nullable
-              as bool,
       enableProfanity: null == enableProfanity
           ? _value.enableProfanity
           : enableProfanity // ignore: cast_nullable_to_non_nullable
@@ -1893,10 +1089,6 @@ class _$AnalysisSettingsCopyWithImpl<$Res, $Val extends AnalysisSettings>
           ? _value.maxConcurrentAnalyses
           : maxConcurrentAnalyses // ignore: cast_nullable_to_non_nullable
               as int,
-      visualContentConfig: null == visualContentConfig
-          ? _value.visualContentConfig
-          : visualContentConfig // ignore: cast_nullable_to_non_nullable
-              as VisualContentConfig,
       contentDetectionConfig: null == contentDetectionConfig
           ? _value.contentDetectionConfig
           : contentDetectionConfig // ignore: cast_nullable_to_non_nullable
@@ -1928,17 +1120,6 @@ class _$AnalysisSettingsCopyWithImpl<$Res, $Val extends AnalysisSettings>
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
-  $VisualContentConfigCopyWith<$Res> get visualContentConfig {
-    return $VisualContentConfigCopyWith<$Res>(_value.visualContentConfig,
-        (value) {
-      return _then(_value.copyWith(visualContentConfig: value) as $Val);
-    });
-  }
-
-  /// Create a copy of AnalysisSettings
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
   $ContentDetectionConfigCopyWith<$Res> get contentDetectionConfig {
     return $ContentDetectionConfigCopyWith<$Res>(_value.contentDetectionConfig,
         (value) {
@@ -1958,14 +1139,6 @@ abstract class _$$AnalysisSettingsImplCopyWith<$Res>
   $Res call(
       {ModelConfig modelConfig,
       ProfanityConfig profanityConfig,
-      double nsfwThreshold,
-      double violenceThreshold,
-      double bloodThreshold,
-      double weaponsThreshold,
-      bool enableNsfw,
-      bool enableViolence,
-      bool enableBlood,
-      bool enableWeapons,
       bool enableProfanity,
       int frameSamplingRate,
       bool useSceneDetection,
@@ -1973,15 +1146,12 @@ abstract class _$$AnalysisSettingsImplCopyWith<$Res>
       bool mergeAdjacentDetections,
       int detectionBufferMs,
       int maxConcurrentAnalyses,
-      VisualContentConfig visualContentConfig,
       ContentDetectionConfig contentDetectionConfig});
 
   @override
   $ModelConfigCopyWith<$Res> get modelConfig;
   @override
   $ProfanityConfigCopyWith<$Res> get profanityConfig;
-  @override
-  $VisualContentConfigCopyWith<$Res> get visualContentConfig;
   @override
   $ContentDetectionConfigCopyWith<$Res> get contentDetectionConfig;
 }
@@ -2001,14 +1171,6 @@ class __$$AnalysisSettingsImplCopyWithImpl<$Res>
   $Res call({
     Object? modelConfig = null,
     Object? profanityConfig = null,
-    Object? nsfwThreshold = null,
-    Object? violenceThreshold = null,
-    Object? bloodThreshold = null,
-    Object? weaponsThreshold = null,
-    Object? enableNsfw = null,
-    Object? enableViolence = null,
-    Object? enableBlood = null,
-    Object? enableWeapons = null,
     Object? enableProfanity = null,
     Object? frameSamplingRate = null,
     Object? useSceneDetection = null,
@@ -2016,7 +1178,6 @@ class __$$AnalysisSettingsImplCopyWithImpl<$Res>
     Object? mergeAdjacentDetections = null,
     Object? detectionBufferMs = null,
     Object? maxConcurrentAnalyses = null,
-    Object? visualContentConfig = null,
     Object? contentDetectionConfig = null,
   }) {
     return _then(_$AnalysisSettingsImpl(
@@ -2028,38 +1189,6 @@ class __$$AnalysisSettingsImplCopyWithImpl<$Res>
           ? _value.profanityConfig
           : profanityConfig // ignore: cast_nullable_to_non_nullable
               as ProfanityConfig,
-      nsfwThreshold: null == nsfwThreshold
-          ? _value.nsfwThreshold
-          : nsfwThreshold // ignore: cast_nullable_to_non_nullable
-              as double,
-      violenceThreshold: null == violenceThreshold
-          ? _value.violenceThreshold
-          : violenceThreshold // ignore: cast_nullable_to_non_nullable
-              as double,
-      bloodThreshold: null == bloodThreshold
-          ? _value.bloodThreshold
-          : bloodThreshold // ignore: cast_nullable_to_non_nullable
-              as double,
-      weaponsThreshold: null == weaponsThreshold
-          ? _value.weaponsThreshold
-          : weaponsThreshold // ignore: cast_nullable_to_non_nullable
-              as double,
-      enableNsfw: null == enableNsfw
-          ? _value.enableNsfw
-          : enableNsfw // ignore: cast_nullable_to_non_nullable
-              as bool,
-      enableViolence: null == enableViolence
-          ? _value.enableViolence
-          : enableViolence // ignore: cast_nullable_to_non_nullable
-              as bool,
-      enableBlood: null == enableBlood
-          ? _value.enableBlood
-          : enableBlood // ignore: cast_nullable_to_non_nullable
-              as bool,
-      enableWeapons: null == enableWeapons
-          ? _value.enableWeapons
-          : enableWeapons // ignore: cast_nullable_to_non_nullable
-              as bool,
       enableProfanity: null == enableProfanity
           ? _value.enableProfanity
           : enableProfanity // ignore: cast_nullable_to_non_nullable
@@ -2088,10 +1217,6 @@ class __$$AnalysisSettingsImplCopyWithImpl<$Res>
           ? _value.maxConcurrentAnalyses
           : maxConcurrentAnalyses // ignore: cast_nullable_to_non_nullable
               as int,
-      visualContentConfig: null == visualContentConfig
-          ? _value.visualContentConfig
-          : visualContentConfig // ignore: cast_nullable_to_non_nullable
-              as VisualContentConfig,
       contentDetectionConfig: null == contentDetectionConfig
           ? _value.contentDetectionConfig
           : contentDetectionConfig // ignore: cast_nullable_to_non_nullable
@@ -2106,14 +1231,6 @@ class _$AnalysisSettingsImpl extends _AnalysisSettings {
   const _$AnalysisSettingsImpl(
       {required this.modelConfig,
       required this.profanityConfig,
-      this.nsfwThreshold = 0.6,
-      this.violenceThreshold = 0.6,
-      this.bloodThreshold = 0.6,
-      this.weaponsThreshold = 0.6,
-      this.enableNsfw = true,
-      this.enableViolence = true,
-      this.enableBlood = true,
-      this.enableWeapons = true,
       this.enableProfanity = true,
       this.frameSamplingRate = 5,
       this.useSceneDetection = true,
@@ -2121,109 +1238,44 @@ class _$AnalysisSettingsImpl extends _AnalysisSettings {
       this.mergeAdjacentDetections = true,
       this.detectionBufferMs = 100,
       this.maxConcurrentAnalyses = 4,
-      this.visualContentConfig = const VisualContentConfig(),
       this.contentDetectionConfig = const ContentDetectionConfig()})
       : super._();
 
   factory _$AnalysisSettingsImpl.fromJson(Map<String, dynamic> json) =>
       _$$AnalysisSettingsImplFromJson(json);
 
-  /// Model configuration
   @override
   final ModelConfig modelConfig;
-
-  /// Profanity configuration
   @override
   final ProfanityConfig profanityConfig;
-
-  /// NSFW detection threshold (0.0 to 1.0)
-  @override
-  @JsonKey()
-  final double nsfwThreshold;
-
-  /// Violence detection threshold (0.0 to 1.0)
-  @override
-  @JsonKey()
-  final double violenceThreshold;
-
-  /// Blood/gore detection threshold (0.0 to 1.0)
-  @override
-  @JsonKey()
-  final double bloodThreshold;
-
-  /// Weapons detection threshold (0.0 to 1.0)
-  @override
-  @JsonKey()
-  final double weaponsThreshold;
-
-  /// Whether NSFW detection is enabled
-  @override
-  @JsonKey()
-  final bool enableNsfw;
-
-  /// Whether violence detection is enabled
-  @override
-  @JsonKey()
-  final bool enableViolence;
-
-  /// Whether blood/gore detection is enabled
-  @override
-  @JsonKey()
-  final bool enableBlood;
-
-  /// Whether weapons detection is enabled
-  @override
-  @JsonKey()
-  final bool enableWeapons;
-
-  /// Whether profanity detection is enabled
   @override
   @JsonKey()
   final bool enableProfanity;
-
-  /// Frame sampling rate (analyze every Nth frame)
   @override
   @JsonKey()
   final int frameSamplingRate;
-
-  /// Whether to use scene detection for adaptive sampling
   @override
   @JsonKey()
   final bool useSceneDetection;
-
-  /// Minimum segment duration in milliseconds
   @override
   @JsonKey()
   final int minSegmentDurationMs;
-
-  /// Whether to merge adjacent detections of same type
   @override
   @JsonKey()
   final bool mergeAdjacentDetections;
-
-  /// Buffer time in milliseconds to add around detections
   @override
   @JsonKey()
   final int detectionBufferMs;
-
-  /// Maximum concurrent frame analyses
   @override
   @JsonKey()
   final int maxConcurrentAnalyses;
-
-  /// Visual content detection configuration (NudeNet + CLIP)
-  @override
-  @JsonKey()
-  final VisualContentConfig visualContentConfig;
-
-  /// Unified content detection configuration (v2, MoE voting).
   @override
   @JsonKey()
   final ContentDetectionConfig contentDetectionConfig;
 
   @override
   String toString() {
-    return 'AnalysisSettings(modelConfig: $modelConfig, profanityConfig: $profanityConfig, nsfwThreshold: $nsfwThreshold, violenceThreshold: $violenceThreshold, bloodThreshold: $bloodThreshold, weaponsThreshold: $weaponsThreshold, enableNsfw: $enableNsfw, enableViolence: $enableViolence, enableBlood: $enableBlood, enableWeapons: $enableWeapons, enableProfanity: $enableProfanity, frameSamplingRate: $frameSamplingRate, useSceneDetection: $useSceneDetection, minSegmentDurationMs: $minSegmentDurationMs, mergeAdjacentDetections: $mergeAdjacentDetections, detectionBufferMs: $detectionBufferMs, maxConcurrentAnalyses: $maxConcurrentAnalyses, visualContentConfig: $visualContentConfig, contentDetectionConfig: $contentDetectionConfig)';
+    return 'AnalysisSettings(modelConfig: $modelConfig, profanityConfig: $profanityConfig, enableProfanity: $enableProfanity, frameSamplingRate: $frameSamplingRate, useSceneDetection: $useSceneDetection, minSegmentDurationMs: $minSegmentDurationMs, mergeAdjacentDetections: $mergeAdjacentDetections, detectionBufferMs: $detectionBufferMs, maxConcurrentAnalyses: $maxConcurrentAnalyses, contentDetectionConfig: $contentDetectionConfig)';
   }
 
   @override
@@ -2235,22 +1287,6 @@ class _$AnalysisSettingsImpl extends _AnalysisSettings {
                 other.modelConfig == modelConfig) &&
             (identical(other.profanityConfig, profanityConfig) ||
                 other.profanityConfig == profanityConfig) &&
-            (identical(other.nsfwThreshold, nsfwThreshold) ||
-                other.nsfwThreshold == nsfwThreshold) &&
-            (identical(other.violenceThreshold, violenceThreshold) ||
-                other.violenceThreshold == violenceThreshold) &&
-            (identical(other.bloodThreshold, bloodThreshold) ||
-                other.bloodThreshold == bloodThreshold) &&
-            (identical(other.weaponsThreshold, weaponsThreshold) ||
-                other.weaponsThreshold == weaponsThreshold) &&
-            (identical(other.enableNsfw, enableNsfw) ||
-                other.enableNsfw == enableNsfw) &&
-            (identical(other.enableViolence, enableViolence) ||
-                other.enableViolence == enableViolence) &&
-            (identical(other.enableBlood, enableBlood) ||
-                other.enableBlood == enableBlood) &&
-            (identical(other.enableWeapons, enableWeapons) ||
-                other.enableWeapons == enableWeapons) &&
             (identical(other.enableProfanity, enableProfanity) ||
                 other.enableProfanity == enableProfanity) &&
             (identical(other.frameSamplingRate, frameSamplingRate) ||
@@ -2266,36 +1302,24 @@ class _$AnalysisSettingsImpl extends _AnalysisSettings {
                 other.detectionBufferMs == detectionBufferMs) &&
             (identical(other.maxConcurrentAnalyses, maxConcurrentAnalyses) ||
                 other.maxConcurrentAnalyses == maxConcurrentAnalyses) &&
-            (identical(other.visualContentConfig, visualContentConfig) ||
-                other.visualContentConfig == visualContentConfig) &&
             (identical(other.contentDetectionConfig, contentDetectionConfig) ||
                 other.contentDetectionConfig == contentDetectionConfig));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hashAll([
-        runtimeType,
-        modelConfig,
-        profanityConfig,
-        nsfwThreshold,
-        violenceThreshold,
-        bloodThreshold,
-        weaponsThreshold,
-        enableNsfw,
-        enableViolence,
-        enableBlood,
-        enableWeapons,
-        enableProfanity,
-        frameSamplingRate,
-        useSceneDetection,
-        minSegmentDurationMs,
-        mergeAdjacentDetections,
-        detectionBufferMs,
-        maxConcurrentAnalyses,
-        visualContentConfig,
-        contentDetectionConfig
-      ]);
+  int get hashCode => Object.hash(
+      runtimeType,
+      modelConfig,
+      profanityConfig,
+      enableProfanity,
+      frameSamplingRate,
+      useSceneDetection,
+      minSegmentDurationMs,
+      mergeAdjacentDetections,
+      detectionBufferMs,
+      maxConcurrentAnalyses,
+      contentDetectionConfig);
 
   /// Create a copy of AnalysisSettings
   /// with the given fields replaced by the non-null parameter values.
@@ -2318,14 +1342,6 @@ abstract class _AnalysisSettings extends AnalysisSettings {
   const factory _AnalysisSettings(
           {required final ModelConfig modelConfig,
           required final ProfanityConfig profanityConfig,
-          final double nsfwThreshold,
-          final double violenceThreshold,
-          final double bloodThreshold,
-          final double weaponsThreshold,
-          final bool enableNsfw,
-          final bool enableViolence,
-          final bool enableBlood,
-          final bool enableWeapons,
           final bool enableProfanity,
           final int frameSamplingRate,
           final bool useSceneDetection,
@@ -2333,7 +1349,6 @@ abstract class _AnalysisSettings extends AnalysisSettings {
           final bool mergeAdjacentDetections,
           final int detectionBufferMs,
           final int maxConcurrentAnalyses,
-          final VisualContentConfig visualContentConfig,
           final ContentDetectionConfig contentDetectionConfig}) =
       _$AnalysisSettingsImpl;
   const _AnalysisSettings._() : super._();
@@ -2341,79 +1356,24 @@ abstract class _AnalysisSettings extends AnalysisSettings {
   factory _AnalysisSettings.fromJson(Map<String, dynamic> json) =
       _$AnalysisSettingsImpl.fromJson;
 
-  /// Model configuration
   @override
   ModelConfig get modelConfig;
-
-  /// Profanity configuration
   @override
   ProfanityConfig get profanityConfig;
-
-  /// NSFW detection threshold (0.0 to 1.0)
-  @override
-  double get nsfwThreshold;
-
-  /// Violence detection threshold (0.0 to 1.0)
-  @override
-  double get violenceThreshold;
-
-  /// Blood/gore detection threshold (0.0 to 1.0)
-  @override
-  double get bloodThreshold;
-
-  /// Weapons detection threshold (0.0 to 1.0)
-  @override
-  double get weaponsThreshold;
-
-  /// Whether NSFW detection is enabled
-  @override
-  bool get enableNsfw;
-
-  /// Whether violence detection is enabled
-  @override
-  bool get enableViolence;
-
-  /// Whether blood/gore detection is enabled
-  @override
-  bool get enableBlood;
-
-  /// Whether weapons detection is enabled
-  @override
-  bool get enableWeapons;
-
-  /// Whether profanity detection is enabled
   @override
   bool get enableProfanity;
-
-  /// Frame sampling rate (analyze every Nth frame)
   @override
   int get frameSamplingRate;
-
-  /// Whether to use scene detection for adaptive sampling
   @override
   bool get useSceneDetection;
-
-  /// Minimum segment duration in milliseconds
   @override
   int get minSegmentDurationMs;
-
-  /// Whether to merge adjacent detections of same type
   @override
   bool get mergeAdjacentDetections;
-
-  /// Buffer time in milliseconds to add around detections
   @override
   int get detectionBufferMs;
-
-  /// Maximum concurrent frame analyses
   @override
   int get maxConcurrentAnalyses;
-
-  /// Visual content detection configuration (NudeNet + CLIP)
-  @override
-  VisualContentConfig get visualContentConfig;
-
-  /// Unified content detection configuration (v2, MoE voting).
   @override
   ContentDetectionConfig get contentDetectionConfig;
 

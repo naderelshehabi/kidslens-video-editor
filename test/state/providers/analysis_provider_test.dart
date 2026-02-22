@@ -270,25 +270,20 @@ void main() {
       final settings = AnalysisSettings.defaults();
 
       expect(settings.enableProfanity, isTrue);
-      expect(settings.enableNsfw, isTrue);
-      expect(settings.enableViolence, isTrue);
-      expect(settings.enableBlood, isTrue);
-      expect(settings.enableWeapons, isTrue);
+      expect(settings.hasVisualDetection, isFalse);
     });
 
     test('should create strict settings', () {
       final settings = AnalysisSettings.strict();
 
-      expect(settings.nsfwThreshold, equals(0.4));
-      expect(settings.violenceThreshold, equals(0.4));
+      expect(settings.profanityConfig.fuzzyThreshold, equals(0.7));
       expect(settings.frameSamplingRate, equals(3));
     });
 
     test('should create permissive settings', () {
       final settings = AnalysisSettings.permissive();
 
-      expect(settings.nsfwThreshold, equals(0.8));
-      expect(settings.violenceThreshold, equals(0.8));
+      expect(settings.profanityConfig.fuzzyThreshold, equals(0.9));
       expect(settings.frameSamplingRate, equals(10));
     });
   });

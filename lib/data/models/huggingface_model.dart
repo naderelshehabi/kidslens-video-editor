@@ -9,30 +9,6 @@ enum HuggingFaceModelType {
   /// Automatic Speech Recognition model
   @JsonValue('asr')
   asr,
-
-  /// NSFW content detection
-  @JsonValue('nsfw')
-  nsfw,
-
-  /// Violence detection
-  @JsonValue('violence')
-  violence,
-
-  /// Blood/gore detection
-  @JsonValue('blood')
-  blood,
-
-  /// Weapons detection
-  @JsonValue('weapons')
-  weapons,
-
-  /// NudeNet body part detection (bounding boxes)
-  @JsonValue('nudeNet')
-  nudeNet,
-
-  /// CLIP zero-shot classification (embeddings)
-  @JsonValue('clip')
-  clip,
 }
 
 /// A HuggingFace model with download and hardware information
@@ -72,7 +48,7 @@ class HuggingFaceModel with _$HuggingFaceModel {
     /// Type of model
     required HuggingFaceModelType modelType,
 
-    /// Supported languages (for ASR models, empty for visual models)
+    /// Supported languages for ASR models
     @Default([]) List<String> languages,
 
     /// Optional badge text (e.g., 'Recommended', 'Best Accuracy', 'Best Value')
@@ -125,7 +101,7 @@ class HuggingFaceModel with _$HuggingFaceModel {
   bool get isAsrModel => modelType == HuggingFaceModelType.asr;
 
   /// Whether this is a visual detection model
-  bool get isVisualModel => modelType != HuggingFaceModelType.asr;
+  bool get isVisualModel => false;
 
   /// Whether this model has a badge
   bool get hasBadge => badge != null && badge!.isNotEmpty;

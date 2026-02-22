@@ -3,17 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/data/models/analysis_settings.dart';
 import 'package:kidslens_video_editor/data/models/content_category.dart';
 import 'package:kidslens_video_editor/data/models/content_category_defaults.dart';
-import 'package:kidslens_video_editor/data/models/huggingface_model.dart';
 import 'package:kidslens_video_editor/data/models/voting_config.dart';
 import 'package:kidslens_video_editor/presentation/widgets/content_category_card.dart';
 import 'package:kidslens_video_editor/state/providers/model_provider.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 
-/// Tab for configuring content detection categories with MoE voting.
+/// Tab for configuring content detection categories.
 ///
-/// Displays all visual and audio categories as expandable cards. Each card
-/// allows toggling model contributions, adjusting thresholds, and selecting
-/// remediation actions.
+/// In the current ASR-only pipeline this tab is audio-focused.
 class ContentDetectionTab extends ConsumerStatefulWidget {
   const ContentDetectionTab({super.key});
 
@@ -67,7 +64,7 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
         const SizedBox(height: 8),
         Text(
           'Configure which content categories to detect and how to handle them. '
-          'Each category can use multiple AI models via Mixture-of-Experts voting.',
+          'Current pipeline uses ASR-backed audio detection.',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -363,47 +360,6 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
                     },
                   ),
 
-                  const Divider(),
-
-                  // NSFW pre-filter
-                  SwitchListTile(
-                    title: const Text('NSFW Pre-Filter'),
-                    subtitle: const Text(
-                      'Gate NudeNet inference behind a fast NSFW classifier check',
-                    ),
-                    value: config.useNsfwPreFilter,
-                    contentPadding: EdgeInsets.zero,
-                    onChanged: (value) {
-                      _updateConfig(
-                        config.copyWith(useNsfwPreFilter: value),
-                      );
-                    },
-                  ),
-                  if (config.useNsfwPreFilter) ...[
-                    Row(
-                      children: [
-                        const Text('Pre-filter threshold:'),
-                        Expanded(
-                          child: Slider(
-                            value: config.preFilterThreshold,
-                            min: 0.05,
-                            max: 0.8,
-                            divisions: 15,
-                            label:
-                                '${(config.preFilterThreshold * 100).round()}%',
-                            onChanged: (value) {
-                              _updateConfig(
-                                config.copyWith(preFilterThreshold: value),
-                              );
-                            },
-                          ),
-                        ),
-                        Text(
-                          '${(config.preFilterThreshold * 100).round()}%',
-                        ),
-                      ],
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -496,16 +452,7 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
   Set<String> _requiredModelIds(SettingsState settingsState) {
     final settings = settingsState.analysisSettings;
     final ids = <String>{};
-
-    if (settings.contentDetectionConfig.hasVisualCategories) {
-      ids
-        ..add(settings.modelConfig.nudeNetModelId)
-        ..add(settings.modelConfig.clipVisionModelId)
-        ..add(settings.modelConfig.clipTextModelId);
-    }
-
-    if (settings.contentDetectionConfig.hasAudioCategories ||
-        settings.enableProfanity) {
+    if (settings.contentDetectionConfig.hasAudioCategories || settings.enableProfanity) {
       ids.add(settings.modelConfig.asrModelId);
     }
     return ids;
@@ -580,12 +527,6 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
         .updateVotingConfig(votingConfig);
   }
 
-  void _updateConfig(ContentDetectionConfig config) {
-    ref
-        .read(settingsNotifierProvider.notifier)
-        .updateContentDetectionConfig(config);
-  }
-
   void _applyPreset(_Preset preset) {
     final config = ref
         .read(settingsNotifierProvider)
@@ -631,8 +572,7 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
   void _showAddCategoryDialog() {
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
-    var selectedType = CategoryType.visual;
-    var selectedAction = RemediationAction.blurFullFrame;
+    var selectedAction = RemediationAction.mute;
 
     showDialog<ContentCategory>(
       context: context,
@@ -660,51 +600,15 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Text('Type: '),
-                    const SizedBox(width: 8),
-                    SegmentedButton<CategoryType>(
-                      segments: const [
-                        ButtonSegment(
-                          value: CategoryType.visual,
-                          label: Text('Visual'),
-                        ),
-                        ButtonSegment(
-                          value: CategoryType.audio,
-                          label: Text('Audio'),
-                        ),
-                      ],
-                      selected: {selectedType},
-                      onSelectionChanged: (s) {
-                        setDialogState(() {
-                          selectedType = s.first;
-                          // Reset action to match type
-                          selectedAction = selectedType == CategoryType.visual
-                              ? RemediationAction.blurFullFrame
-                              : RemediationAction.mute;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
                 DropdownButtonFormField<RemediationAction>(
                   initialValue: selectedAction,
                   decoration: const InputDecoration(
                     labelText: 'Default Action',
                   ),
-                  items: (selectedType == CategoryType.visual
-                          ? [
-                              RemediationAction.blurRegion,
-                              RemediationAction.pixelateRegion,
-                              RemediationAction.blurFullFrame,
-                              RemediationAction.cutScene,
-                            ]
-                          : [
-                              RemediationAction.mute,
-                              RemediationAction.beep,
-                            ])
+                  items: const [
+                    RemediationAction.mute,
+                    RemediationAction.beep,
+                  ]
                       .map(
                         (a) => DropdownMenuItem(
                           value: a,
@@ -738,19 +642,9 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
                     id: id,
                     name: name,
                     description: descriptionController.text.trim(),
-                    type: selectedType,
+                    type: CategoryType.audio,
                     action: selectedAction,
                     isBuiltIn: false,
-                    modelContributions: [
-                      if (selectedType == CategoryType.visual)
-                        ModelContribution(
-                          modelId: 'clip-vit-b32-vision-fp16',
-                          displayName: 'CLIP Zero-Shot',
-                          modelType: HuggingFaceModelType.clip,
-                          clipPrompts: [name.toLowerCase()],
-                          clipNegativePrompts: ['normal scene'],
-                        ),
-                    ],
                   ),
                 );
               },

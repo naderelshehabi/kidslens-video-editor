@@ -327,13 +327,9 @@ class ModelNotifier extends _$ModelNotifier {
   void _updateModelConfig() {
     final asrModelId =
         state.selectedModels[HuggingFaceModelType.asr] ?? 'whisper-small';
-    final visualModelId =
-        state.selectedModels[HuggingFaceModelType.nsfw] ??
-            'nsfw-vit-base-quantized';
 
     final config = ModelConfig(
       asrModelId: asrModelId,
-      visualModelId: visualModelId,
     );
     state = state.copyWith(selectedConfig: config);
   }

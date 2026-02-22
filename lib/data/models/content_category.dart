@@ -121,8 +121,8 @@ class ModelContribution with _$ModelContribution {
       _$ModelContributionFromJson(json);
 
   /// Effective weight for voting. Uses [weightOverride] if set, otherwise 1.0.
-  /// The actual accuracy-based weight is applied at voting time by the
-  /// [VotingService] using the model's registry metadata.
+  /// The actual accuracy-based weight is applied at voting time using
+  /// the model's registry metadata.
   double get effectiveWeight => weightOverride ?? 1.0;
 }
 
@@ -186,16 +186,6 @@ class ContentCategory with _$ContentCategory {
 
   /// Whether this is an audio category.
   bool get isAudio => type == CategoryType.audio;
-
-  /// Whether any enabled NudeNet models contribute to this category.
-  bool get hasNudeNetModels => modelContributions.any(
-        (m) => m.modelType == HuggingFaceModelType.nudeNet && m.enabled,
-      );
-
-  /// Whether any enabled CLIP models contribute to this category.
-  bool get hasClipModels => modelContributions.any(
-        (m) => m.modelType == HuggingFaceModelType.clip && m.enabled,
-      );
 
   /// All unique model IDs required by enabled contributions.
   Set<String> get requiredModelIds =>

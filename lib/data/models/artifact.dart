@@ -135,9 +135,6 @@ class AnalysisArtifact with _$AnalysisArtifact {
     if (newSettings.modelConfig.asrModelId != settingsUsed.modelConfig.asrModelId) {
       return false;
     }
-    if (newSettings.modelConfig.visualModelId != settingsUsed.modelConfig.visualModelId) {
-      return false;
-    }
     
     return true;
   }

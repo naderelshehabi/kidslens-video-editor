@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/data/models/analysis_settings_migration.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -10,7 +9,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 part 'settings_provider.g.dart';
 
-/// Export quality options
 enum ExportQuality {
   low(480, 'Low (480p)'),
   medium(720, 'Medium (720p)'),
@@ -22,7 +20,6 @@ enum ExportQuality {
   final String displayName;
 }
 
-/// Export format options
 enum ExportFormat {
   mp4('mp4', 'MP4 (H.264)'),
   webm('webm', 'WebM (VP9)'),
@@ -33,7 +30,6 @@ enum ExportFormat {
   final String displayName;
 }
 
-/// Application settings state
 class SettingsState {
   SettingsState({
     AnalysisSettings? analysisSettings,
@@ -47,10 +43,8 @@ class SettingsState {
     this.defaultExportFormat = ExportFormat.mp4,
     this.autoSaveInterval = const Duration(minutes: 5),
     this.thumbnailInterval = const Duration(minutes: 1),
-    this.detectionThresholds = const DetectionThresholds(),
   }) : analysisSettings = analysisSettings ?? AnalysisSettings.defaults();
 
-  /// Create from JSON for persistence
   factory SettingsState.fromJson(Map<String, dynamic> json) => SettingsState(
         analysisSettings: json['analysisSettings'] != null
             ? AnalysisSettings.fromJson(
@@ -71,11 +65,6 @@ class SettingsState {
             Duration(minutes: json['autoSaveIntervalMinutes'] as int? ?? 5),
         thumbnailInterval:
             Duration(seconds: json['thumbnailIntervalSeconds'] as int? ?? 60),
-        detectionThresholds: json['detectionThresholds'] != null
-            ? DetectionThresholds.fromJson(
-                json['detectionThresholds'] as Map<String, dynamic>,
-              )
-            : const DetectionThresholds(),
       );
 
   final AnalysisSettings analysisSettings;
@@ -89,7 +78,6 @@ class SettingsState {
   final ExportFormat defaultExportFormat;
   final Duration autoSaveInterval;
   final Duration thumbnailInterval;
-  final DetectionThresholds detectionThresholds;
 
   SettingsState copyWith({
     AnalysisSettings? analysisSettings,
@@ -103,7 +91,6 @@ class SettingsState {
     ExportFormat? defaultExportFormat,
     Duration? autoSaveInterval,
     Duration? thumbnailInterval,
-    DetectionThresholds? detectionThresholds,
   }) =>
       SettingsState(
         analysisSettings: analysisSettings ?? this.analysisSettings,
@@ -117,15 +104,9 @@ class SettingsState {
         defaultExportFormat: defaultExportFormat ?? this.defaultExportFormat,
         autoSaveInterval: autoSaveInterval ?? this.autoSaveInterval,
         thumbnailInterval: thumbnailInterval ?? this.thumbnailInterval,
-        detectionThresholds: detectionThresholds ?? this.detectionThresholds,
       );
 
-  /// Convert to JSON for persistence
-  /// Note: We encode/decode analysisSettings to ensure nested Freezed objects
-  /// are properly converted to JSON maps (Freezed's toJson doesn't do this by default)
   Map<String, dynamic> toJson() {
-    // Convert analysisSettings through JSON encoding to ensure nested objects
-    // are properly serialized as maps
     final analysisSettingsJson =
         jsonDecode(jsonEncode(analysisSettings.toJson()))
             as Map<String, dynamic>;
@@ -142,81 +123,10 @@ class SettingsState {
       'defaultExportFormat': defaultExportFormat.index,
       'autoSaveIntervalMinutes': autoSaveInterval.inMinutes,
       'thumbnailIntervalSeconds': thumbnailInterval.inSeconds,
-      'detectionThresholds': detectionThresholds.toJson(),
     };
   }
 }
 
-/// Detection thresholds for different content types
-class DetectionThresholds {
-  const DetectionThresholds({
-    this.nsfwThreshold = 0.6,
-    this.violenceThreshold = 0.6,
-    this.bloodThreshold = 0.6,
-    this.weaponsThreshold = 0.6,
-    this.profanityConfidence = 0.8,
-  });
-
-  factory DetectionThresholds.fromJson(Map<String, dynamic> json) =>
-      DetectionThresholds(
-        nsfwThreshold: (json['nsfwThreshold'] as num?)?.toDouble() ?? 0.6,
-        violenceThreshold:
-            (json['violenceThreshold'] as num?)?.toDouble() ?? 0.6,
-        bloodThreshold: (json['bloodThreshold'] as num?)?.toDouble() ?? 0.6,
-        weaponsThreshold: (json['weaponsThreshold'] as num?)?.toDouble() ?? 0.6,
-        profanityConfidence:
-            (json['profanityConfidence'] as num?)?.toDouble() ?? 0.8,
-      );
-
-  /// Strict thresholds (more sensitive detection)
-  factory DetectionThresholds.strict() => const DetectionThresholds(
-        nsfwThreshold: 0.4,
-        violenceThreshold: 0.4,
-        bloodThreshold: 0.4,
-        weaponsThreshold: 0.4,
-        profanityConfidence: 0.7,
-      );
-
-  /// Permissive thresholds (fewer false positives)
-  factory DetectionThresholds.permissive() => const DetectionThresholds(
-        nsfwThreshold: 0.8,
-        violenceThreshold: 0.8,
-        bloodThreshold: 0.8,
-        weaponsThreshold: 0.8,
-        profanityConfidence: 0.9,
-      );
-
-  final double nsfwThreshold;
-  final double violenceThreshold;
-  final double bloodThreshold;
-  final double weaponsThreshold;
-  final double profanityConfidence;
-
-  DetectionThresholds copyWith({
-    double? nsfwThreshold,
-    double? violenceThreshold,
-    double? bloodThreshold,
-    double? weaponsThreshold,
-    double? profanityConfidence,
-  }) =>
-      DetectionThresholds(
-        nsfwThreshold: nsfwThreshold ?? this.nsfwThreshold,
-        violenceThreshold: violenceThreshold ?? this.violenceThreshold,
-        bloodThreshold: bloodThreshold ?? this.bloodThreshold,
-        weaponsThreshold: weaponsThreshold ?? this.weaponsThreshold,
-        profanityConfidence: profanityConfidence ?? this.profanityConfidence,
-      );
-
-  Map<String, dynamic> toJson() => {
-        'nsfwThreshold': nsfwThreshold,
-        'violenceThreshold': violenceThreshold,
-        'bloodThreshold': bloodThreshold,
-        'weaponsThreshold': weaponsThreshold,
-        'profanityConfidence': profanityConfidence,
-      };
-}
-
-/// Provider for managing application settings
 @Riverpod(keepAlive: true)
 class SettingsNotifier extends _$SettingsNotifier {
   static const String _prefsKey = 'kidslens_settings';
@@ -224,7 +134,6 @@ class SettingsNotifier extends _$SettingsNotifier {
   @override
   SettingsState build() => SettingsState();
 
-  /// Load settings from SharedPreferences
   Future<void> loadSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -249,20 +158,18 @@ class SettingsNotifier extends _$SettingsNotifier {
           _debounceSave();
         }
       }
-    } catch (e) {
-      // If loading fails, keep default settings
+    } catch (_) {
       state = SettingsState();
     }
   }
 
-  /// Save settings to SharedPreferences
   Future<void> saveSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonString = jsonEncode(state.toJson());
       await prefs.setString(_prefsKey, jsonString);
-    } catch (e) {
-      // Silently fail - settings will be saved next time
+    } catch (_) {
+      // noop
     }
   }
 
@@ -327,118 +234,6 @@ class SettingsNotifier extends _$SettingsNotifier {
     saveSettings();
   }
 
-  void setDetectionThresholds(DetectionThresholds thresholds) {
-    state = state.copyWith(detectionThresholds: thresholds);
-    saveSettings();
-  }
-
-  void updateNsfwThreshold(double threshold) {
-    state = state.copyWith(
-      detectionThresholds: state.detectionThresholds.copyWith(
-        nsfwThreshold: threshold.clamp(0.0, 1.0),
-      ),
-    );
-    saveSettings();
-  }
-
-  void updateViolenceThreshold(double threshold) {
-    state = state.copyWith(
-      detectionThresholds: state.detectionThresholds.copyWith(
-        violenceThreshold: threshold.clamp(0.0, 1.0),
-      ),
-    );
-    saveSettings();
-  }
-
-  void updateBloodThreshold(double threshold) {
-    state = state.copyWith(
-      detectionThresholds: state.detectionThresholds.copyWith(
-        bloodThreshold: threshold.clamp(0.0, 1.0),
-      ),
-    );
-    saveSettings();
-  }
-
-  void updateWeaponsThreshold(double threshold) {
-    state = state.copyWith(
-      detectionThresholds: state.detectionThresholds.copyWith(
-        weaponsThreshold: threshold.clamp(0.0, 1.0),
-      ),
-    );
-    saveSettings();
-  }
-
-  void updateProfanityConfidence(double confidence) {
-    state = state.copyWith(
-      detectionThresholds: state.detectionThresholds.copyWith(
-        profanityConfidence: confidence.clamp(0.0, 1.0),
-      ),
-    );
-    saveSettings();
-  }
-
-  void resetToDefaults() {
-    state = SettingsState();
-    saveSettings();
-  }
-
-  // ============================================================
-  // Visual Content Config Methods
-  // ============================================================
-
-  /// Update the entire visual content config
-  void updateVisualContentConfig(VisualContentConfig config) {
-    state = state.copyWith(
-      analysisSettings: state.analysisSettings.copyWith(
-        visualContentConfig: config,
-      ),
-    );
-    _debounceSave();
-  }
-
-  /// Update a single visual content category by ID
-  void updateVisualContentCategory(
-    String categoryId,
-    VisualContentCategory updated,
-  ) {
-    final config = state.analysisSettings.visualContentConfig;
-    final categories = config.categories.map((c) => c.id == categoryId ? updated : c).toList();
-    updateVisualContentConfig(config.copyWith(categories: categories));
-  }
-
-  /// Add a custom category
-  void addCustomCategory(VisualContentCategory category) {
-    final config = state.analysisSettings.visualContentConfig;
-    updateVisualContentConfig(
-      config.copyWith(categories: [...config.categories, category]),
-    );
-  }
-
-  /// Remove a custom category by ID
-  void removeCustomCategory(String categoryId) {
-    final config = state.analysisSettings.visualContentConfig;
-    updateVisualContentConfig(
-      config.copyWith(
-        categories: config.categories.where((c) => c.id != categoryId).toList(),
-      ),
-    );
-  }
-
-  /// Ensure visual content defaults are populated (call at runtime)
-  void ensureVisualContentDefaults() {
-    final config = state.analysisSettings.visualContentConfig;
-    if (config.categories.isEmpty) {
-      updateVisualContentConfig(
-        config.copyWith(categories: VisualContentDefaults.builtInCategories),
-      );
-    }
-  }
-
-  // ============================================================
-  // Content Detection Config Methods (v2 unified categories)
-  // ============================================================
-
-  /// Update the entire content detection config
   void updateContentDetectionConfig(ContentDetectionConfig config) {
     state = state.copyWith(
       analysisSettings: state.analysisSettings.copyWith(
@@ -448,14 +243,13 @@ class SettingsNotifier extends _$SettingsNotifier {
     _debounceSave();
   }
 
-  /// Update a single content category by ID
   void updateContentCategory(String categoryId, ContentCategory updated) {
     final config = state.analysisSettings.contentDetectionConfig;
-    final categories = config.categories.map((c) => c.id == categoryId ? updated : c).toList();
+    final categories =
+        config.categories.map((c) => c.id == categoryId ? updated : c).toList();
     updateContentDetectionConfig(config.copyWith(categories: categories));
   }
 
-  /// Toggle a model contribution on/off within a category
   void toggleModelContribution(
     String categoryId,
     String modelId, {
@@ -464,29 +258,33 @@ class SettingsNotifier extends _$SettingsNotifier {
     final config = state.analysisSettings.contentDetectionConfig;
     final categories = config.categories.map((c) {
       if (c.id != categoryId) return c;
-      final updatedContributions = c.modelContributions.map((m) => m.modelId == modelId ? m.copyWith(enabled: enabled) : m).toList();
+      final updatedContributions = c.modelContributions
+          .map((m) => m.modelId == modelId ? m.copyWith(enabled: enabled) : m)
+          .toList();
       return c.copyWith(modelContributions: updatedContributions);
     }).toList();
     updateContentDetectionConfig(config.copyWith(categories: categories));
   }
 
-  /// Update the detection threshold for a category
   void setCategoryThreshold(String categoryId, double threshold) {
     final config = state.analysisSettings.contentDetectionConfig;
-    final categories = config.categories.map((c) => c.id == categoryId
-          ? c.copyWith(threshold: threshold.clamp(0.0, 1.0))
-          : c,).toList();
+    final categories = config.categories
+        .map(
+          (c) => c.id == categoryId
+              ? c.copyWith(threshold: threshold.clamp(0.0, 1.0))
+              : c,
+        )
+        .toList();
     updateContentDetectionConfig(config.copyWith(categories: categories));
   }
 
-  /// Update the remediation action for a category
   void setCategoryAction(String categoryId, RemediationAction action) {
     final config = state.analysisSettings.contentDetectionConfig;
-    final categories = config.categories.map((c) => c.id == categoryId ? c.copyWith(action: action) : c).toList();
+    final categories =
+        config.categories.map((c) => c.id == categoryId ? c.copyWith(action: action) : c).toList();
     updateContentDetectionConfig(config.copyWith(categories: categories));
   }
 
-  /// Update the voting configuration
   void updateVotingConfig(VotingConfig config) {
     final detectionConfig = state.analysisSettings.contentDetectionConfig;
     updateContentDetectionConfig(
@@ -494,7 +292,6 @@ class SettingsNotifier extends _$SettingsNotifier {
     );
   }
 
-  /// Add a new custom content category
   void addCustomContentCategory(ContentCategory category) {
     final config = state.analysisSettings.contentDetectionConfig;
     updateContentDetectionConfig(
@@ -502,18 +299,15 @@ class SettingsNotifier extends _$SettingsNotifier {
     );
   }
 
-  /// Remove a custom content category by ID
   void removeCustomContentCategory(String categoryId) {
     final config = state.analysisSettings.contentDetectionConfig;
     updateContentDetectionConfig(
       config.copyWith(
-        categories:
-            config.categories.where((c) => c.id != categoryId).toList(),
+        categories: config.categories.where((c) => c.id != categoryId).toList(),
       ),
     );
   }
 
-  /// Ensure content detection defaults are populated (call at runtime)
   void ensureContentDetectionDefaults() {
     final config = state.analysisSettings.contentDetectionConfig;
     if (config.categories.isEmpty) {
@@ -523,6 +317,11 @@ class SettingsNotifier extends _$SettingsNotifier {
     }
   }
 
+  void resetToDefaults() {
+    state = SettingsState();
+    saveSettings();
+  }
+
   Timer? _saveDebounceTimer;
 
   void _debounceSave() {
@@ -530,8 +329,3 @@ class SettingsNotifier extends _$SettingsNotifier {
     _saveDebounceTimer = Timer(const Duration(milliseconds: 500), saveSettings);
   }
 }
-
-/// Provider for detection thresholds (convenience accessor)
-@Riverpod(keepAlive: true)
-DetectionThresholds detectionThresholds(Ref ref) =>
-    ref.watch(settingsNotifierProvider).detectionThresholds;
