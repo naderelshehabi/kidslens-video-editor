@@ -1,6 +1,6 @@
 import 'package:kidslens_video_editor/data/models/content_category_defaults.dart';
 
-/// Migrates analysis settings JSON to schema v3.
+/// Migrates analysis settings JSON to schema v4.
 class AnalysisSettingsMigration {
   AnalysisSettingsMigration._();
 
@@ -8,7 +8,7 @@ class AnalysisSettingsMigration {
     final config = json['contentDetectionConfig'] as Map<String, dynamic>?;
     if (config == null) return true;
     final version = config['schemaVersion'] as int?;
-    return version == null || version < 3;
+    return version == null || version < 4;
   }
 
   static Map<String, dynamic> migrateFromV1(Map<String, dynamic> json) {
@@ -30,14 +30,50 @@ class AnalysisSettingsMigration {
     return json;
   }
 
+  /// Migrates from schema v3 to v4 (GPU selection feature)
+  static Map<String, dynamic> migrateToV4(Map<String, dynamic> json) {
+    final modelConfig = json['modelConfig'] as Map<String, dynamic>?;
+    if (modelConfig == null) return json;
+
+    // Migrate useGpu → asrGpuEnabled & onnxGpuEnabled
+    final useGpu = modelConfig['useGpu'] as bool? ?? true;
+    modelConfig['asrGpuEnabled'] = useGpu;
+    modelConfig['onnxGpuEnabled'] = useGpu;
+
+    // Migrate gpuDeviceIndex → asrGpuDevice
+    final gpuDeviceIndex = modelConfig['gpuDeviceIndex'] as int? ?? 0;
+    modelConfig['asrGpuDevice'] = gpuDeviceIndex;
+
+    // Set defaults for new fields
+    modelConfig['onnxExecutionProvider'] = 'auto';
+    modelConfig['onnxGpuDevice'] = null;
+
+    // Update schema version
+    final config = json['contentDetectionConfig'] as Map<String, dynamic>?;
+    if (config != null) {
+      config['schemaVersion'] = 4;
+    }
+
+    return json;
+  }
+
   static Map<String, dynamic> migrateToLatest(Map<String, dynamic> json) {
     if (!needsMigration(json)) return json;
 
-    final migrated = migrateFromV1(json);
-    final config =
+    // First migrate from v1 if needed
+    var migrated = json;
+    final config = json['contentDetectionConfig'] as Map<String, dynamic>?;
+    final currentVersion = config?['schemaVersion'] as int?;
+
+    if (currentVersion == null || currentVersion < 3) {
+      migrated = migrateFromV1(json);
+    }
+
+    // Ensure categories exist
+    final migratedConfig =
         migrated['contentDetectionConfig'] as Map<String, dynamic>? ?? {};
     final categories =
-        (config['categories'] as List<dynamic>? ?? <dynamic>[]).toList();
+        (migratedConfig['categories'] as List<dynamic>? ?? <dynamic>[]).toList();
 
     final hasNsfw = categories.any(
       (c) => c is Map<String, dynamic> && c['id'] == 'nsfw',
@@ -53,9 +89,12 @@ class AnalysisSettingsMigration {
       categories.add(ContentCategoryDefaults.profanity.toJson());
     }
 
-    config['categories'] = categories;
-    config['schemaVersion'] = 3;
-    migrated['contentDetectionConfig'] = config;
+    migratedConfig['categories'] = categories;
+    migrated['contentDetectionConfig'] = migratedConfig;
+
+    // Migrate to v4 (GPU selection)
+    migrated = migrateToV4(migrated);
+
     return migrated;
   }
 }

@@ -20,12 +20,14 @@ class AsrService {
     required this.whisper,
     required this.modelManager,
     required this.ffmpeg,
+    required this.gpuConfig,
     this.cache,
   });
 
   final WhisperBindings whisper;
   final ModelManagerService modelManager;
   final FFmpegBindings ffmpeg;
+  final GpuConfig gpuConfig;
   final AsrCacheService? cache;
 
   /// File extensions that are video formats requiring audio extraction
@@ -308,16 +310,16 @@ class AsrService {
         Duration.zero,
       );
       final resolvedGpuDeviceIndex =
-          await _resolveGpuDeviceIndex(gpuDeviceIndex ?? 0);
+          await _resolveGpuDeviceIndex(gpuDeviceIndex ?? gpuConfig.asrGpuDevice);
 
       final params = TranscriptionIsolateParams(
         libraryPath: libraryPath,
         audioPath: preparedAudioPath,
         modelPath: modelPath,
         language: language,
-        useGpu: useGpu ?? true,
-        gpuDeviceIndex: resolvedGpuDeviceIndex,
-        nThreads: nThreads ?? 0,
+        asrGpuEnabled: useGpu ?? gpuConfig.asrGpuEnabled,
+        asrGpuDevice: resolvedGpuDeviceIndex,
+        nThreads: nThreads ?? gpuConfig.cpuThreads,
         beamSize: beamSize ?? adaptiveBeamSize(modelId),
       );
 
@@ -335,7 +337,7 @@ class AsrService {
         if (e is AsrCancelledException) rethrow;
 
         // If GPU was enabled, retry once with CPU-only as a fallback
-        if (params.useGpu) {
+        if (params.asrGpuEnabled) {
           debugPrint(
             'Transcription failed with GPU enabled, retrying with CPU: $e',
           );
@@ -352,8 +354,8 @@ class AsrService {
             modelPath: params.modelPath,
             language: params.language,
             translateToEnglish: params.translateToEnglish,
-            useGpu: false,
-            gpuDeviceIndex: params.gpuDeviceIndex,
+            asrGpuEnabled: false,
+            asrGpuDevice: params.asrGpuDevice,
             nThreads: params.nThreads,
             beamSize: params.beamSize,
           );

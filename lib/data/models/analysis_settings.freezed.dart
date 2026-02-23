@@ -22,8 +22,17 @@ ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) {
 mixin _$ModelConfig {
   String get asrModelId => throw _privateConstructorUsedError;
   String get nsfwModelId => throw _privateConstructorUsedError;
-  String get asrLanguage => throw _privateConstructorUsedError;
+  String get asrLanguage =>
+      throw _privateConstructorUsedError; // New GPU selection fields
+  bool get asrGpuEnabled => throw _privateConstructorUsedError;
+  int get asrGpuDevice => throw _privateConstructorUsedError;
+  bool get onnxGpuEnabled => throw _privateConstructorUsedError;
+  String get onnxExecutionProvider => throw _privateConstructorUsedError;
+  int? get onnxGpuDevice =>
+      throw _privateConstructorUsedError; // Deprecated fields for backwards compatibility
+  @Deprecated('Use asrGpuEnabled instead')
   bool get useGpu => throw _privateConstructorUsedError;
+  @Deprecated('Use asrGpuDevice instead')
   int get gpuDeviceIndex => throw _privateConstructorUsedError;
   int get cpuThreads => throw _privateConstructorUsedError;
   int get batchSize => throw _privateConstructorUsedError;
@@ -52,8 +61,13 @@ abstract class $ModelConfigCopyWith<$Res> {
       {String asrModelId,
       String nsfwModelId,
       String asrLanguage,
-      bool useGpu,
-      int gpuDeviceIndex,
+      bool asrGpuEnabled,
+      int asrGpuDevice,
+      bool onnxGpuEnabled,
+      String onnxExecutionProvider,
+      int? onnxGpuDevice,
+      @Deprecated('Use asrGpuEnabled instead') bool useGpu,
+      @Deprecated('Use asrGpuDevice instead') int gpuDeviceIndex,
       int cpuThreads,
       int batchSize,
       bool useFp16,
@@ -80,6 +94,11 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
     Object? asrModelId = null,
     Object? nsfwModelId = null,
     Object? asrLanguage = null,
+    Object? asrGpuEnabled = null,
+    Object? asrGpuDevice = null,
+    Object? onnxGpuEnabled = null,
+    Object? onnxExecutionProvider = null,
+    Object? onnxGpuDevice = freezed,
     Object? useGpu = null,
     Object? gpuDeviceIndex = null,
     Object? cpuThreads = null,
@@ -102,6 +121,26 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
           ? _value.asrLanguage
           : asrLanguage // ignore: cast_nullable_to_non_nullable
               as String,
+      asrGpuEnabled: null == asrGpuEnabled
+          ? _value.asrGpuEnabled
+          : asrGpuEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      asrGpuDevice: null == asrGpuDevice
+          ? _value.asrGpuDevice
+          : asrGpuDevice // ignore: cast_nullable_to_non_nullable
+              as int,
+      onnxGpuEnabled: null == onnxGpuEnabled
+          ? _value.onnxGpuEnabled
+          : onnxGpuEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      onnxExecutionProvider: null == onnxExecutionProvider
+          ? _value.onnxExecutionProvider
+          : onnxExecutionProvider // ignore: cast_nullable_to_non_nullable
+              as String,
+      onnxGpuDevice: freezed == onnxGpuDevice
+          ? _value.onnxGpuDevice
+          : onnxGpuDevice // ignore: cast_nullable_to_non_nullable
+              as int?,
       useGpu: null == useGpu
           ? _value.useGpu
           : useGpu // ignore: cast_nullable_to_non_nullable
@@ -150,8 +189,13 @@ abstract class _$$ModelConfigImplCopyWith<$Res>
       {String asrModelId,
       String nsfwModelId,
       String asrLanguage,
-      bool useGpu,
-      int gpuDeviceIndex,
+      bool asrGpuEnabled,
+      int asrGpuDevice,
+      bool onnxGpuEnabled,
+      String onnxExecutionProvider,
+      int? onnxGpuDevice,
+      @Deprecated('Use asrGpuEnabled instead') bool useGpu,
+      @Deprecated('Use asrGpuDevice instead') int gpuDeviceIndex,
       int cpuThreads,
       int batchSize,
       bool useFp16,
@@ -176,6 +220,11 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
     Object? asrModelId = null,
     Object? nsfwModelId = null,
     Object? asrLanguage = null,
+    Object? asrGpuEnabled = null,
+    Object? asrGpuDevice = null,
+    Object? onnxGpuEnabled = null,
+    Object? onnxExecutionProvider = null,
+    Object? onnxGpuDevice = freezed,
     Object? useGpu = null,
     Object? gpuDeviceIndex = null,
     Object? cpuThreads = null,
@@ -198,6 +247,26 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
           ? _value.asrLanguage
           : asrLanguage // ignore: cast_nullable_to_non_nullable
               as String,
+      asrGpuEnabled: null == asrGpuEnabled
+          ? _value.asrGpuEnabled
+          : asrGpuEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      asrGpuDevice: null == asrGpuDevice
+          ? _value.asrGpuDevice
+          : asrGpuDevice // ignore: cast_nullable_to_non_nullable
+              as int,
+      onnxGpuEnabled: null == onnxGpuEnabled
+          ? _value.onnxGpuEnabled
+          : onnxGpuEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      onnxExecutionProvider: null == onnxExecutionProvider
+          ? _value.onnxExecutionProvider
+          : onnxExecutionProvider // ignore: cast_nullable_to_non_nullable
+              as String,
+      onnxGpuDevice: freezed == onnxGpuDevice
+          ? _value.onnxGpuDevice
+          : onnxGpuDevice // ignore: cast_nullable_to_non_nullable
+              as int?,
       useGpu: null == useGpu
           ? _value.useGpu
           : useGpu // ignore: cast_nullable_to_non_nullable
@@ -241,8 +310,13 @@ class _$ModelConfigImpl extends _ModelConfig {
       {required this.asrModelId,
       this.nsfwModelId = 'nsfw-gantman-mobilenet-v2-224',
       this.asrLanguage = 'en',
-      this.useGpu = true,
-      this.gpuDeviceIndex = 0,
+      this.asrGpuEnabled = true,
+      this.asrGpuDevice = 0,
+      this.onnxGpuEnabled = true,
+      this.onnxExecutionProvider = 'auto',
+      this.onnxGpuDevice = null,
+      @Deprecated('Use asrGpuEnabled instead') this.useGpu = true,
+      @Deprecated('Use asrGpuDevice instead') this.gpuDeviceIndex = 0,
       this.cpuThreads = 4,
       this.batchSize = 8,
       this.useFp16 = false,
@@ -262,11 +336,30 @@ class _$ModelConfigImpl extends _ModelConfig {
   @override
   @JsonKey()
   final String asrLanguage;
+// New GPU selection fields
   @override
   @JsonKey()
+  final bool asrGpuEnabled;
+  @override
+  @JsonKey()
+  final int asrGpuDevice;
+  @override
+  @JsonKey()
+  final bool onnxGpuEnabled;
+  @override
+  @JsonKey()
+  final String onnxExecutionProvider;
+  @override
+  @JsonKey()
+  final int? onnxGpuDevice;
+// Deprecated fields for backwards compatibility
+  @override
+  @JsonKey()
+  @Deprecated('Use asrGpuEnabled instead')
   final bool useGpu;
   @override
   @JsonKey()
+  @Deprecated('Use asrGpuDevice instead')
   final int gpuDeviceIndex;
   @override
   @JsonKey()
@@ -289,7 +382,7 @@ class _$ModelConfigImpl extends _ModelConfig {
 
   @override
   String toString() {
-    return 'ModelConfig(asrModelId: $asrModelId, nsfwModelId: $nsfwModelId, asrLanguage: $asrLanguage, useGpu: $useGpu, gpuDeviceIndex: $gpuDeviceIndex, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16, translateToEnglish: $translateToEnglish, wordLevelTimestamps: $wordLevelTimestamps, beamSize: $beamSize)';
+    return 'ModelConfig(asrModelId: $asrModelId, nsfwModelId: $nsfwModelId, asrLanguage: $asrLanguage, asrGpuEnabled: $asrGpuEnabled, asrGpuDevice: $asrGpuDevice, onnxGpuEnabled: $onnxGpuEnabled, onnxExecutionProvider: $onnxExecutionProvider, onnxGpuDevice: $onnxGpuDevice, useGpu: $useGpu, gpuDeviceIndex: $gpuDeviceIndex, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16, translateToEnglish: $translateToEnglish, wordLevelTimestamps: $wordLevelTimestamps, beamSize: $beamSize)';
   }
 
   @override
@@ -303,6 +396,16 @@ class _$ModelConfigImpl extends _ModelConfig {
                 other.nsfwModelId == nsfwModelId) &&
             (identical(other.asrLanguage, asrLanguage) ||
                 other.asrLanguage == asrLanguage) &&
+            (identical(other.asrGpuEnabled, asrGpuEnabled) ||
+                other.asrGpuEnabled == asrGpuEnabled) &&
+            (identical(other.asrGpuDevice, asrGpuDevice) ||
+                other.asrGpuDevice == asrGpuDevice) &&
+            (identical(other.onnxGpuEnabled, onnxGpuEnabled) ||
+                other.onnxGpuEnabled == onnxGpuEnabled) &&
+            (identical(other.onnxExecutionProvider, onnxExecutionProvider) ||
+                other.onnxExecutionProvider == onnxExecutionProvider) &&
+            (identical(other.onnxGpuDevice, onnxGpuDevice) ||
+                other.onnxGpuDevice == onnxGpuDevice) &&
             (identical(other.useGpu, useGpu) || other.useGpu == useGpu) &&
             (identical(other.gpuDeviceIndex, gpuDeviceIndex) ||
                 other.gpuDeviceIndex == gpuDeviceIndex) &&
@@ -326,6 +429,11 @@ class _$ModelConfigImpl extends _ModelConfig {
       asrModelId,
       nsfwModelId,
       asrLanguage,
+      asrGpuEnabled,
+      asrGpuDevice,
+      onnxGpuEnabled,
+      onnxExecutionProvider,
+      onnxGpuDevice,
       useGpu,
       gpuDeviceIndex,
       cpuThreads,
@@ -356,8 +464,13 @@ abstract class _ModelConfig extends ModelConfig {
       {required final String asrModelId,
       final String nsfwModelId,
       final String asrLanguage,
-      final bool useGpu,
-      final int gpuDeviceIndex,
+      final bool asrGpuEnabled,
+      final int asrGpuDevice,
+      final bool onnxGpuEnabled,
+      final String onnxExecutionProvider,
+      final int? onnxGpuDevice,
+      @Deprecated('Use asrGpuEnabled instead') final bool useGpu,
+      @Deprecated('Use asrGpuDevice instead') final int gpuDeviceIndex,
       final int cpuThreads,
       final int batchSize,
       final bool useFp16,
@@ -374,10 +487,22 @@ abstract class _ModelConfig extends ModelConfig {
   @override
   String get nsfwModelId;
   @override
-  String get asrLanguage;
+  String get asrLanguage; // New GPU selection fields
   @override
+  bool get asrGpuEnabled;
+  @override
+  int get asrGpuDevice;
+  @override
+  bool get onnxGpuEnabled;
+  @override
+  String get onnxExecutionProvider;
+  @override
+  int? get onnxGpuDevice; // Deprecated fields for backwards compatibility
+  @override
+  @Deprecated('Use asrGpuEnabled instead')
   bool get useGpu;
   @override
+  @Deprecated('Use asrGpuDevice instead')
   int get gpuDeviceIndex;
   @override
   int get cpuThreads;
@@ -930,7 +1055,7 @@ class _$ContentDetectionConfigImpl extends _ContentDetectionConfig {
   const _$ContentDetectionConfigImpl(
       {final List<ContentCategory> categories = const [],
       this.votingConfig = const VotingConfig(),
-      this.schemaVersion = 3})
+      this.schemaVersion = 4})
       : _categories = categories,
         super._();
 

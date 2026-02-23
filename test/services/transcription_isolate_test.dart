@@ -17,7 +17,7 @@ void main() {
         expect(params.modelPath, equals('/models/base.bin'));
         expect(params.language, isNull);
         expect(params.translateToEnglish, isFalse);
-        expect(params.useGpu, isTrue);
+        expect(params.asrGpuEnabled, isTrue);
         expect(params.nThreads, equals(0));
         expect(params.beamSize, equals(5));
       });
@@ -29,14 +29,14 @@ void main() {
           modelPath: '/models/base.bin',
           language: 'en',
           translateToEnglish: true,
-          useGpu: false,
+          asrGpuEnabled: false,
           nThreads: 8,
           beamSize: 3,
         );
 
         expect(params.language, equals('en'));
         expect(params.translateToEnglish, isTrue);
-        expect(params.useGpu, isFalse);
+        expect(params.asrGpuEnabled, isFalse);
         expect(params.nThreads, equals(8));
         expect(params.beamSize, equals(3));
       });
@@ -48,10 +48,10 @@ void main() {
           libraryPath: '/lib/whisper.dll',
           audioPath: '/tmp/audio.wav',
           modelPath: '/models/base.bin',
-          useGpu: false,
+          asrGpuEnabled: false,
         );
 
-        expect(params.useGpu, isFalse);
+        expect(params.asrGpuEnabled, isFalse);
       });
 
       test('should persist high thread count', () {

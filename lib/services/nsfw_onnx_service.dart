@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:kidslens_video_editor/data/models/gpu_config.dart';
 import 'package:kidslens_video_editor/jobs/cancellation_token.dart';
 import 'package:kidslens_video_editor/native/bindings/onnx_bindings.dart';
 
@@ -10,9 +11,11 @@ import 'package:kidslens_video_editor/native/bindings/onnx_bindings.dart';
 class NsfwOnnxService {
   NsfwOnnxService({
     required this.onnx,
+    required this.gpuConfig,
   });
 
   final ONNXBindings onnx;
+  final GpuConfig gpuConfig;
 
   /// Run batch inference on multiple frames.
   ///
@@ -22,6 +25,11 @@ class NsfwOnnxService {
   /// - 'neutral': Probability of neutral/safe content
   /// - 'porn': Probability of pornographic content
   /// - 'sexy': Probability of suggestive content
+  ///
+  /// GPU acceleration is determined by the injected [gpuConfig]:
+  /// - Execution providers are configured during ONNXBindings initialization
+  /// - The first available provider from [gpuConfig.onnxExecutionProviders] is used
+  /// - Falls back to CPU if GPU providers are unavailable
   ///
   /// [modelPath] - Path to the ONNX model file
   /// [rgbDataBatch] - List of RGB byte arrays for each frame
@@ -41,7 +49,13 @@ class NsfwOnnxService {
     await onnx.initialize();
 
     // Load model if not already cached
-    await onnx.loadModel(modelPath);
+    await onnx.loadModel(
+      modelPath,
+      deviceId: gpuConfig.onnxGpuDevice,
+      executionProvider: gpuConfig.onnxGpuEnabled
+          ? gpuConfig.onnxExecutionProviders.first
+          : 'CPUExecutionProvider',
+    );
 
     final results = <Map<String, double>>[];
 
@@ -71,7 +85,13 @@ class NsfwOnnxService {
   /// latency for the first real inference request.
   Future<void> warmup(String modelPath) async {
     await onnx.initialize();
-    await onnx.loadModel(modelPath);
+    await onnx.loadModel(
+      modelPath,
+      deviceId: gpuConfig.onnxGpuDevice,
+      executionProvider: gpuConfig.onnxGpuEnabled
+          ? gpuConfig.onnxExecutionProviders.first
+          : 'CPUExecutionProvider',
+    );
     await onnx.warmup(modelPath);
   }
 

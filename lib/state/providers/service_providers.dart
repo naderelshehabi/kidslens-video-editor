@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kidslens_video_editor/data/models/gpu_config.dart';
 import 'package:kidslens_video_editor/native/bindings/ffmpeg_bindings.dart';
 import 'package:kidslens_video_editor/native/bindings/mms_bindings.dart';
 import 'package:kidslens_video_editor/native/bindings/onnx_bindings.dart';
@@ -25,6 +26,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'service_providers.g.dart';
 
+// GPU Configuration
+@Riverpod(keepAlive: true)
+GpuConfig gpuConfig(Ref ref) {
+  final settings = ref.watch(settingsNotifierProvider).analysisSettings;
+  return GpuConfig.fromModelConfig(settings.modelConfig);
+}
+
 // Native bindings (singletons)
 @Riverpod(keepAlive: true)
 FFmpegBindings ffmpegBindings(Ref ref) => FFmpegBindings();
@@ -36,11 +44,24 @@ WhisperBindings whisperBindings(Ref ref) => WhisperBindings();
 MMSBindings mmsBindings(Ref ref) => MMSBindings();
 
 @Riverpod(keepAlive: true)
-ONNXBindings onnxBindings(Ref ref) => ONNXBindings();
+ONNXBindings onnxBindings(Ref ref) {
+  final config = ref.watch(gpuConfigProvider);
+  final bindings = ONNXBindings();
+
+  ref.onDispose(() => bindings.dispose());
+
+  bindings.initialize(
+    executionProviders: config.onnxExecutionProviders,
+  );
+
+  return bindings;
+}
 
 @Riverpod(keepAlive: true)
-NsfwOnnxService nsfwOnnxService(Ref ref) =>
-    NsfwOnnxService(onnx: ref.watch(onnxBindingsProvider));
+NsfwOnnxService nsfwOnnxService(Ref ref) => NsfwOnnxService(
+      onnx: ref.watch(onnxBindingsProvider),
+      gpuConfig: ref.watch(gpuConfigProvider),
+    );
 
 // GPU Manager
 @Riverpod(keepAlive: true)
@@ -108,6 +129,7 @@ AsrService asrService(Ref ref) => AsrService(
       modelManager: ref.watch(modelManagerServiceProvider),
       ffmpeg: ref.watch(ffmpegBindingsProvider),
       cache: ref.watch(asrCacheServiceProvider),
+      gpuConfig: ref.watch(gpuConfigProvider),
     );
 
 @Riverpod(keepAlive: true)

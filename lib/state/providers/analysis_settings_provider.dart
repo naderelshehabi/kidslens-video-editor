@@ -20,6 +20,12 @@ class AnalysisSettingsState {
     this.gpuDeviceIndex = 0,
     this.cpuThreads = 4,
     this.contentDetectionConfig = const ContentDetectionConfig(),
+    // New GPU selection fields
+    this.asrGpuEnabled = true,
+    this.asrGpuDevice = 0,
+    this.onnxGpuEnabled = true,
+    this.onnxExecutionProvider = 'auto',
+    this.onnxGpuDevice,
   });
 
   factory AnalysisSettingsState.fromJson(Map<String, dynamic> json) =>
@@ -40,6 +46,15 @@ class AnalysisSettingsState {
                 json['contentDetectionConfig'] as Map<String, dynamic>,
               )
             : const ContentDetectionConfig(),
+        // New GPU selection fields
+        asrGpuEnabled: json['asrGpuEnabled'] as bool? ?? 
+            (json['useGpuAcceleration'] as bool? ?? true),
+        asrGpuDevice: json['asrGpuDevice'] as int? ?? 
+            (json['gpuDeviceIndex'] as int? ?? 0),
+        onnxGpuEnabled: json['onnxGpuEnabled'] as bool? ?? 
+            (json['useGpuAcceleration'] as bool? ?? true),
+        onnxExecutionProvider: json['onnxExecutionProvider'] as String? ?? 'auto',
+        onnxGpuDevice: json['onnxGpuDevice'] as int?,
       );
 
   factory AnalysisSettingsState.withDefaults() => const AnalysisSettingsState();
@@ -64,6 +79,12 @@ class AnalysisSettingsState {
   final int gpuDeviceIndex;
   final int cpuThreads;
   final ContentDetectionConfig contentDetectionConfig;
+  // New GPU selection fields
+  final bool asrGpuEnabled;
+  final int asrGpuDevice;
+  final bool onnxGpuEnabled;
+  final String onnxExecutionProvider;
+  final int? onnxGpuDevice;
 
   AnalysisSettingsState copyWith({
     String? asrModelId,
@@ -76,6 +97,11 @@ class AnalysisSettingsState {
     int? gpuDeviceIndex,
     int? cpuThreads,
     ContentDetectionConfig? contentDetectionConfig,
+    bool? asrGpuEnabled,
+    int? asrGpuDevice,
+    bool? onnxGpuEnabled,
+    String? onnxExecutionProvider,
+    int? onnxGpuDevice,
   }) =>
       AnalysisSettingsState(
         asrModelId: asrModelId ?? this.asrModelId,
@@ -89,6 +115,11 @@ class AnalysisSettingsState {
         cpuThreads: cpuThreads ?? this.cpuThreads,
         contentDetectionConfig:
             contentDetectionConfig ?? this.contentDetectionConfig,
+        asrGpuEnabled: asrGpuEnabled ?? this.asrGpuEnabled,
+        asrGpuDevice: asrGpuDevice ?? this.asrGpuDevice,
+        onnxGpuEnabled: onnxGpuEnabled ?? this.onnxGpuEnabled,
+        onnxExecutionProvider: onnxExecutionProvider ?? this.onnxExecutionProvider,
+        onnxGpuDevice: onnxGpuDevice ?? this.onnxGpuDevice,
       );
 
   AnalysisSettings toAnalysisSettings() => AnalysisSettings(
@@ -99,6 +130,12 @@ class AnalysisSettingsState {
           useGpu: useGpuAcceleration,
           gpuDeviceIndex: gpuDeviceIndex,
           cpuThreads: cpuThreads,
+          // New GPU selection fields
+          asrGpuEnabled: asrGpuEnabled,
+          asrGpuDevice: asrGpuDevice,
+          onnxGpuEnabled: onnxGpuEnabled,
+          onnxExecutionProvider: onnxExecutionProvider,
+          onnxGpuDevice: onnxGpuDevice,
         ),
         profanityConfig: ProfanityConfig.defaults().copyWith(
           fuzzyThreshold: profanityThreshold,
@@ -119,6 +156,12 @@ class AnalysisSettingsState {
         'gpuDeviceIndex': gpuDeviceIndex,
         'cpuThreads': cpuThreads,
         'contentDetectionConfig': contentDetectionConfig.toJson(),
+        // New GPU selection fields
+        'asrGpuEnabled': asrGpuEnabled,
+        'asrGpuDevice': asrGpuDevice,
+        'onnxGpuEnabled': onnxGpuEnabled,
+        'onnxExecutionProvider': onnxExecutionProvider,
+        'onnxGpuDevice': onnxGpuDevice,
       };
 }
 
@@ -194,6 +237,34 @@ class AnalysisSettingsNotifier extends _$AnalysisSettingsNotifier {
 
   void setCpuThreads(int threads) {
     state = state.copyWith(cpuThreads: threads.clamp(1, 32));
+    saveSettings();
+  }
+
+  void setAsrGpuEnabled({required bool enabled}) {
+    state = state.copyWith(asrGpuEnabled: enabled);
+    saveSettings();
+  }
+
+  void setAsrGpuDevice(int device) {
+    state = state.copyWith(asrGpuDevice: device < 0 ? 0 : device);
+    saveSettings();
+  }
+
+  void setOnnxGpuEnabled({required bool enabled}) {
+    state = state.copyWith(onnxGpuEnabled: enabled);
+    saveSettings();
+  }
+
+  void setOnnxExecutionProvider(String provider) {
+    const validProviders = ['auto', 'cuda', 'directml', 'coreml', 'cpu'];
+    if (validProviders.contains(provider)) {
+      state = state.copyWith(onnxExecutionProvider: provider);
+      saveSettings();
+    }
+  }
+
+  void setOnnxGpuDevice(int? device) {
+    state = state.copyWith(onnxGpuDevice: device != null && device < 0 ? 0 : device);
     saveSettings();
   }
 

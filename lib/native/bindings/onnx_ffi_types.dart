@@ -43,6 +43,12 @@ final class OrtTensorTypeAndShapeInfo extends Opaque {}
 /// OrtTypeInfo - Type information
 final class OrtTypeInfo extends Opaque {}
 
+/// OrtCUDAProviderOptionsV2 - CUDA provider options (opaque)
+final class OrtCUDAProviderOptionsV2 extends Opaque {}
+
+/// OrtROCMProviderOptions - ROCm provider options (opaque)
+final class OrtROCMProviderOptions extends Opaque {}
+
 /// OrtApiBase - Base API for getting versioned API
 final class OrtApiBase extends Struct {
   external Pointer<NativeFunction<Pointer<Void> Function(Uint32)>> GetApi;
@@ -240,6 +246,15 @@ abstract class OrtApiIndex {
   static const int ReleaseTensorTypeAndShapeInfo = 99;
   static const int ReleaseSessionOptions = 100;
   static const int ReleaseCustomOpDomain = 101;
+
+  // CUDA Provider V2 API functions (150-153)
+  static const int SessionOptionsAppendExecutionProvider_CUDA_V2 = 150;
+  static const int CreateCUDAProviderOptions = 151;
+  static const int UpdateCUDAProviderOptions = 152;
+  static const int ReleaseCUDAProviderOptions = 153;
+
+  // Generic execution provider append (180)
+  static const int SessionOptionsAppendExecutionProvider = 180;
 }
 
 // ============================================================================
@@ -541,3 +556,88 @@ typedef ReleaseSessionOptionsDart = void Function(Pointer<OrtSessionOptions>);
 // OrtGetApiBase function type
 typedef OrtGetApiBaseNative = Pointer<OrtApiBase> Function();
 typedef OrtGetApiBaseDart = Pointer<OrtApiBase> Function();
+
+// ============================================================================
+// CUDA Provider V2 API function types
+// ============================================================================
+
+typedef CreateCUDAProviderOptionsNative = Pointer<OrtStatus> Function(
+  Pointer<Pointer<OrtCUDAProviderOptionsV2>> outOptions,
+);
+typedef CreateCUDAProviderOptionsDart = Pointer<OrtStatus> Function(
+  Pointer<Pointer<OrtCUDAProviderOptionsV2>> outOptions,
+);
+
+typedef UpdateCUDAProviderOptionsNative = Pointer<OrtStatus> Function(
+  Pointer<OrtCUDAProviderOptionsV2> cudaOptions,
+  Pointer<Pointer<Utf8>> providerOptionsKeys,
+  Pointer<Pointer<Utf8>> providerOptionsValues,
+  Size numKeys,
+);
+typedef UpdateCUDAProviderOptionsDart = Pointer<OrtStatus> Function(
+  Pointer<OrtCUDAProviderOptionsV2> cudaOptions,
+  Pointer<Pointer<Utf8>> providerOptionsKeys,
+  Pointer<Pointer<Utf8>> providerOptionsValues,
+  int numKeys,
+);
+
+typedef SessionOptionsAppendExecutionProvider_CUDA_V2Native = Pointer<OrtStatus> Function(
+  Pointer<OrtSessionOptions> options,
+  Pointer<OrtCUDAProviderOptionsV2> cudaOptions,
+);
+typedef SessionOptionsAppendExecutionProvider_CUDA_V2Dart = Pointer<OrtStatus> Function(
+  Pointer<OrtSessionOptions> options,
+  Pointer<OrtCUDAProviderOptionsV2> cudaOptions,
+);
+
+typedef ReleaseCUDAProviderOptionsNative = Void Function(
+  Pointer<OrtCUDAProviderOptionsV2> cudaOptions,
+);
+typedef ReleaseCUDAProviderOptionsDart = void Function(
+  Pointer<OrtCUDAProviderOptionsV2> cudaOptions,
+);
+
+// ============================================================================
+// Generic execution provider API function types
+// ============================================================================
+
+typedef SessionOptionsAppendExecutionProviderNative = Pointer<OrtStatus> Function(
+  Pointer<OrtSessionOptions> options,
+  Pointer<Utf8> providerName,
+  Pointer<Pointer<Utf8>> providerOptionsKeys,
+  Pointer<Pointer<Utf8>> providerOptionsValues,
+  Size numKeys,
+);
+typedef SessionOptionsAppendExecutionProviderDart = Pointer<OrtStatus> Function(
+  Pointer<OrtSessionOptions> options,
+  Pointer<Utf8> providerName,
+  Pointer<Pointer<Utf8>> providerOptionsKeys,
+  Pointer<Pointer<Utf8>> providerOptionsValues,
+  int numKeys,
+);
+
+// ============================================================================
+// DirectML device configuration helper
+// ============================================================================
+
+/// Configuration for DirectML execution provider
+class DirectMLDeviceConfig {
+  const DirectMLDeviceConfig({
+    required this.deviceId,
+    this.enableGraphCapture = true,
+    this.disableMetaCommands = false,
+  });
+
+  final int deviceId;
+  final bool enableGraphCapture;
+  final bool disableMetaCommands;
+
+  /// Convert configuration to key-value pairs for ONNX Runtime
+  Map<String, String> toKeyValuePairs() {
+    return {
+      'device_id': deviceId.toString(),
+      if (enableGraphCapture) 'enable_graph_capture': '1',
+      if (disableMetaCommands) 'disable_metacommands': '1',
+    };
+  }
+}

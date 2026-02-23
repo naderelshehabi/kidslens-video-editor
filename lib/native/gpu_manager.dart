@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -53,6 +54,26 @@ class CudaGpuDevice {
   final String? computeCapability;
 }
 
+/// DirectML GPU device information (Windows)
+class DirectMLDevice {
+  const DirectMLDevice({
+    required this.deviceId,
+    required this.name,
+    required this.adapterRAM,
+    this.driverVersion,
+  });
+
+  final int deviceId;
+  final String name;
+  final int adapterRAM; // in bytes
+  final String? driverVersion;
+
+  int get vramMB => (adapterRAM / (1024 * 1024)).round();
+
+  @override
+  String toString() => 'DirectMLDevice($deviceId: $name, ${vramMB}MB)';
+}
+
 /// Result of system requirements check
 class RequirementsCheckResult {
   const RequirementsCheckResult({
@@ -82,6 +103,7 @@ class GPUAccelerationManager {
   AcceleratorInfo? _detectedAccelerator;
   GpuInfoDetails? _gpuDetails;
   List<CudaGpuDevice>? _cudaDevices;
+  List<DirectMLDevice>? _directmlDevices;
   bool _initialized = false;
   int? _systemRamMB;
 
@@ -333,6 +355,112 @@ class GPUAccelerationManager {
       warnings: warnings,
       suggestions: suggestions,
     );
+  }
+
+  /// Get available DirectML devices (Windows only)
+  /// 
+  /// Returns list of DirectML-capable GPUs using WMI query
+  Future<List<DirectMLDevice>> getDirectMLDevices() async {
+    if (_directmlDevices != null) return _directmlDevices!;
+    if (!Platform.isWindows) return const [];
+
+    try {
+      final result = await Process.run(
+        'powershell',
+        [
+          '-Command',
+          'Get-WmiObject -Class Win32_VideoController | Select-Object Name, AdapterRAM, DriverVersion | ConvertTo-Json',
+        ],
+        runInShell: true,
+      );
+
+      if (result.exitCode != 0) return const [];
+
+      final output = result.stdout.toString().trim();
+      if (output.isEmpty) return const [];
+
+      // Parse JSON output
+      final devices = <DirectMLDevice>[];
+      try {
+        // Handle both single object and array
+        final List<dynamic> jsonData;
+        if (output.startsWith('[')) {
+          jsonData = jsonDecode(output) as List<dynamic>;
+        } else {
+          jsonData = [jsonDecode(output)];
+        }
+
+        var deviceId = 0;
+        for (final item in jsonData) {
+          final itemMap = item as Map<String, dynamic>;
+          final name = itemMap['Name'] as String? ?? 'Unknown GPU';
+          final ram = itemMap['AdapterRAM'] as int? ?? 0;
+          final driver = itemMap['DriverVersion'] as String?;
+
+          devices.add(
+            DirectMLDevice(
+              deviceId: deviceId++,
+              name: name,
+              adapterRAM: ram,
+              driverVersion: driver,
+            ),
+          );
+        }
+      } catch (_) {
+        // Parsing failed, return empty list
+        return const [];
+      }
+
+      devices.sort((a, b) => a.deviceId.compareTo(b.deviceId));
+      _directmlDevices = devices;
+      return devices;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// Query available ONNX Runtime execution providers
+  /// 
+  /// Returns a list of provider names that can be used with the current system
+  Future<List<String>> queryAvailableProviders() async {
+    final providers = <String>[
+      // Always available
+      'CPUExecutionProvider',
+    ];
+
+    // Check CUDA
+    if (Platform.isWindows || Platform.isLinux) {
+      final cudaDevices = await getCudaDevices();
+      if (cudaDevices.isNotEmpty) {
+        providers.add('CUDAExecutionProvider');
+      }
+    }
+
+    // Check DirectML
+    if (Platform.isWindows) {
+      final directMLDevices = await getDirectMLDevices();
+      if (directMLDevices.isNotEmpty) {
+        providers.add('DmlExecutionProvider');
+      }
+    }
+
+    // Check CoreML
+    if (Platform.isMacOS) {
+      // CoreML is available on all modern macOS systems
+      providers.add('CoreMLExecutionProvider');
+    }
+
+    // Check ROCm
+    if (Platform.isLinux) {
+      try {
+        final result = await Process.run('which', ['rocm-smi']);
+        if (result.exitCode == 0) {
+          providers.add('ROCMExecutionProvider');
+        }
+      } catch (_) {}
+    }
+
+    return providers;
   }
   
   Future<int> _getSystemRamMB() async {
@@ -685,6 +813,7 @@ class GPUAccelerationManager {
     _detectedAccelerator = null;
     _gpuDetails = null;
     _cudaDevices = null;
+    _directmlDevices = null;
     _systemRamMB = null;
   }
 

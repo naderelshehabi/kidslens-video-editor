@@ -12,6 +12,11 @@ _$ModelConfigImpl _$$ModelConfigImplFromJson(Map<String, dynamic> json) =>
       nsfwModelId:
           json['nsfwModelId'] as String? ?? 'nsfw-gantman-mobilenet-v2-224',
       asrLanguage: json['asrLanguage'] as String? ?? 'en',
+      asrGpuEnabled: json['asrGpuEnabled'] as bool? ?? true,
+      asrGpuDevice: (json['asrGpuDevice'] as num?)?.toInt() ?? 0,
+      onnxGpuEnabled: json['onnxGpuEnabled'] as bool? ?? true,
+      onnxExecutionProvider: json['onnxExecutionProvider'] as String? ?? 'auto',
+      onnxGpuDevice: (json['onnxGpuDevice'] as num?)?.toInt() ?? null,
       useGpu: json['useGpu'] as bool? ?? true,
       gpuDeviceIndex: (json['gpuDeviceIndex'] as num?)?.toInt() ?? 0,
       cpuThreads: (json['cpuThreads'] as num?)?.toInt() ?? 4,
@@ -27,6 +32,11 @@ Map<String, dynamic> _$$ModelConfigImplToJson(_$ModelConfigImpl instance) =>
       'asrModelId': instance.asrModelId,
       'nsfwModelId': instance.nsfwModelId,
       'asrLanguage': instance.asrLanguage,
+      'asrGpuEnabled': instance.asrGpuEnabled,
+      'asrGpuDevice': instance.asrGpuDevice,
+      'onnxGpuEnabled': instance.onnxGpuEnabled,
+      'onnxExecutionProvider': instance.onnxExecutionProvider,
+      'onnxGpuDevice': instance.onnxGpuDevice,
       'useGpu': instance.useGpu,
       'gpuDeviceIndex': instance.gpuDeviceIndex,
       'cpuThreads': instance.cpuThreads,
@@ -86,7 +96,7 @@ _$ContentDetectionConfigImpl _$$ContentDetectionConfigImplFromJson(
       votingConfig: json['votingConfig'] == null
           ? const VotingConfig()
           : VotingConfig.fromJson(json['votingConfig'] as Map<String, dynamic>),
-      schemaVersion: (json['schemaVersion'] as num?)?.toInt() ?? 3,
+      schemaVersion: (json['schemaVersion'] as num?)?.toInt() ?? 4,
     );
 
 Map<String, dynamic> _$$ContentDetectionConfigImplToJson(

@@ -23,6 +23,8 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
   SystemCapabilities? _systemCapabilities;
   GpuInfoDetails? _gpuDetails;
   List<CudaGpuDevice> _cudaDevices = const [];
+  List<DirectMLDevice> _directmlDevices = const []; // Reserved for future DirectML device selection UI
+  List<String> _availableProviders = const [];
   bool _isLoadingCapabilities = true;
 
   @override
@@ -41,6 +43,8 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
       // Get detailed GPU info
       final gpuDetails = await gpuManager.getGpuInfo();
       final cudaDevices = await gpuManager.getCudaDevices();
+      final directmlDevices = await gpuManager.getDirectMLDevices();
+      final availableProviders = await gpuManager.queryAvailableProviders();
 
       // Get system info
       final cpuCores = Platform.numberOfProcessors;
@@ -72,6 +76,8 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
         setState(() {
           _gpuDetails = gpuDetails;
           _cudaDevices = cudaDevices;
+          _directmlDevices = directmlDevices;
+          _availableProviders = availableProviders;
           _systemCapabilities = SystemCapabilities(
             cpuCores: cpuCores,
             ramMB: systemRam,
@@ -180,6 +186,70 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
           _buildSectionHeader(context, 'GPU Acceleration', Icons.bolt),
           const SizedBox(height: 16),
 
+          // Execution Provider Selector
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Acceleration Method', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Choose how AI models process frames',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SegmentedButton<String>(
+                    segments: [
+                      const ButtonSegment(
+                        value: 'auto',
+                        label: Text('Auto'),
+                        icon: Icon(Icons.auto_awesome),
+                      ),
+                      ButtonSegment(
+                        value: 'cuda',
+                        label: const Text('CUDA'),
+                        icon: const Icon(Icons.bolt),
+                        enabled: _availableProviders.contains('CUDAExecutionProvider'),
+                      ),
+                      ButtonSegment(
+                        value: 'directml',
+                        label: const Text('DirectML'),
+                        icon: const Icon(Icons.dashboard_customize),
+                        enabled: _availableProviders.contains('DmlExecutionProvider'),
+                      ),
+                      ButtonSegment(
+                        value: 'coreml',
+                        label: const Text('CoreML'),
+                        icon: const Icon(Icons.apple),
+                        enabled: _availableProviders.contains('CoreMLExecutionProvider'),
+                      ),
+                      const ButtonSegment(
+                        value: 'cpu',
+                        label: Text('CPU Only'),
+                        icon: Icon(Icons.developer_board),
+                      ),
+                    ],
+                    selected: {modelConfig.onnxExecutionProvider},
+                    onSelectionChanged: (Set<String> selection) {
+                      _updateModelConfig(
+                        ref,
+                        settings,
+                        onnxExecutionProvider: selection.first,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _buildProviderInfoBanner(modelConfig.onnxExecutionProvider),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // GPU toggle
           Card(
             child: SwitchListTile(
@@ -205,7 +275,7 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
               ),
             ),
           ),
-          if (_cudaDevices.isNotEmpty) ...[
+          if (_cudaDevices.isNotEmpty && modelConfig.asrGpuEnabled) ...[
             const SizedBox(height: 12),
             Card(
               child: Padding(
@@ -213,20 +283,26 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'CUDA Device',
-                      style: theme.textTheme.titleSmall,
+                    Row(
+                      children: [
+                        const Icon(Icons.mic, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Transcript Generation GPU',
+                          style: theme.textTheme.titleSmall,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Choose the GPU used for ASR inference.',
+                      'GPU used for Whisper speech-to-text',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<int>(
-                      initialValue: _resolveSelectedCudaIndex(modelConfig),
+                      initialValue: _resolveSelectedCudaIndex(modelConfig.asrGpuDevice),
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                         isDense: true,
@@ -242,13 +318,74 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
                             ),
                           )
                           .toList(),
-                      onChanged: modelConfig.useGpu
+                      onChanged: modelConfig.asrGpuEnabled
                           ? (value) {
                               if (value == null) return;
                               _updateModelConfig(
                                 ref,
                                 settings,
-                                gpuDeviceIndex: value,
+                                asrGpuDevice: value,
+                              );
+                            }
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (_cudaDevices.isNotEmpty && 
+              modelConfig.onnxGpuEnabled && 
+              modelConfig.onnxExecutionProvider == 'cuda') ...[
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.shield, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Content Analysis GPU',
+                          style: theme.textTheme.titleSmall,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'GPU used for visual content detection',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<int>(
+                      initialValue: _resolveSelectedCudaIndex(modelConfig.onnxGpuDevice ?? 0),
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      items: _cudaDevices
+                          .map(
+                            (gpu) => DropdownMenuItem<int>(
+                              value: gpu.index,
+                              child: Text(
+                                'GPU ${gpu.index}: ${gpu.name}'
+                                '${gpu.memoryTotalMB != null ? ' (${(gpu.memoryTotalMB! / 1024).toStringAsFixed(1)} GB)' : ''}',
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: modelConfig.onnxGpuEnabled
+                          ? (value) {
+                              if (value == null) return;
+                              _updateModelConfig(
+                                ref,
+                                settings,
+                                onnxGpuDevice: value,
                               );
                             }
                           : null,
@@ -644,11 +781,71 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
     );
   }
 
-  int? _resolveSelectedCudaIndex(ModelConfig config) {
+  int? _resolveSelectedCudaIndex(int deviceIndex) {
     if (_cudaDevices.isEmpty) return null;
-    final selected = config.gpuDeviceIndex;
-    final exists = _cudaDevices.any((gpu) => gpu.index == selected);
-    return exists ? selected : _cudaDevices.first.index;
+    final exists = _cudaDevices.any((gpu) => gpu.index == deviceIndex);
+    return exists ? deviceIndex : _cudaDevices.first.index;
+  }
+
+  Widget _buildProviderInfoBanner(String provider) {
+    final theme = Theme.of(context);
+    
+    final (icon, color, title, message) = switch (provider) {
+      'cuda' => (
+        Icons.rocket_launch,
+        Colors.green,
+        'Maximum Performance',
+        'CUDA provides fastest inference on NVIDIA GPUs',
+      ),
+      'directml' => (
+        Icons.info,
+        Colors.blue,
+        'Universal Compatibility',
+        'DirectML works with NVIDIA, AMD, and Intel GPUs',
+      ),
+      'coreml' => (
+        Icons.apple,
+        Colors.blue,
+        'Apple Silicon Optimized',
+        'Leverages Neural Engine for efficient inference',
+      ),
+      'cpu' => (
+        Icons.warning_amber,
+        Colors.orange,
+        'Limited Performance',
+        'CPU-only mode is significantly slower',
+      ),
+      _ => (
+        Icons.auto_awesome,
+        Colors.blue,
+        'Automatic Selection',
+        'Automatically chooses the best available accelerator',
+      ),
+    };
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: theme.textTheme.titleSmall),
+                Text(message, style: theme.textTheme.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _updateModelConfig(
@@ -659,6 +856,9 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
     int? gpuDeviceIndex,
     int? cpuThreads,
     int? batchSize,
+    int? asrGpuDevice,
+    int? onnxGpuDevice,
+    String? onnxExecutionProvider,
   }) {
     final updatedConfig = settings.modelConfig.copyWith(
       useGpu: useGpu ?? settings.modelConfig.useGpu,
@@ -666,6 +866,9 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
       gpuDeviceIndex: gpuDeviceIndex ?? settings.modelConfig.gpuDeviceIndex,
       cpuThreads: cpuThreads ?? settings.modelConfig.cpuThreads,
       batchSize: batchSize ?? settings.modelConfig.batchSize,
+      asrGpuDevice: asrGpuDevice ?? settings.modelConfig.asrGpuDevice,
+      onnxGpuDevice: onnxGpuDevice ?? settings.modelConfig.onnxGpuDevice,
+      onnxExecutionProvider: onnxExecutionProvider ?? settings.modelConfig.onnxExecutionProvider,
     );
     final updated = settings.copyWith(modelConfig: updatedConfig);
     ref.read(settingsNotifierProvider.notifier).updateAnalysisSettings(updated);

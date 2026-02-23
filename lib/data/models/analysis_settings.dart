@@ -12,7 +12,16 @@ class ModelConfig with _$ModelConfig {
     required String asrModelId,
     @Default('nsfw-gantman-mobilenet-v2-224') String nsfwModelId,
     @Default('en') String asrLanguage,
+    // New GPU selection fields
+    @Default(true) bool asrGpuEnabled,
+    @Default(0) int asrGpuDevice,
+    @Default(true) bool onnxGpuEnabled,
+    @Default('auto') String onnxExecutionProvider,
+    @Default(null) int? onnxGpuDevice,
+    // Deprecated fields for backwards compatibility
+    @Deprecated('Use asrGpuEnabled instead')
     @Default(true) bool useGpu,
+    @Deprecated('Use asrGpuDevice instead')
     @Default(0) int gpuDeviceIndex,
     @Default(4) int cpuThreads,
     @Default(8) int batchSize,
@@ -30,6 +39,35 @@ class ModelConfig with _$ModelConfig {
   factory ModelConfig.defaults() => const ModelConfig(
         asrModelId: 'whisper-base',
       );
+}
+
+// Validation extension for ModelConfig
+extension ModelConfigValidation on ModelConfig {
+  List<String> validate() {
+    final issues = <String>[];
+    
+    if (asrGpuEnabled && asrGpuDevice < 0) {
+      issues.add('ASR GPU device must be non-negative');
+    }
+    
+    if (onnxGpuDevice != null && onnxGpuDevice! < 0) {
+      issues.add('ONNX GPU device must be non-negative');
+    }
+    
+    if (onnxGpuEnabled && onnxExecutionProvider == 'cpu') {
+      issues.add('Cannot enable GPU with CPU execution provider');
+    }
+    
+    // Validate execution provider value
+    const validProviders = ['auto', 'cuda', 'directml', 'coreml', 'cpu'];
+    if (!validProviders.contains(onnxExecutionProvider)) {
+      issues.add('Invalid ONNX execution provider: $onnxExecutionProvider');
+    }
+    
+    return issues;
+  }
+  
+  bool get isValid => validate().isEmpty;
 }
 
 @freezed
@@ -71,7 +109,7 @@ class ContentDetectionConfig with _$ContentDetectionConfig {
   const factory ContentDetectionConfig({
     @Default([]) List<ContentCategory> categories,
     @Default(VotingConfig()) VotingConfig votingConfig,
-    @Default(3) int schemaVersion,
+    @Default(4) int schemaVersion,
   }) = _ContentDetectionConfig;
 
   const ContentDetectionConfig._();

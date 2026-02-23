@@ -67,8 +67,8 @@ class TranscriptionIsolateParams {
     required this.modelPath,
     this.language,
     this.translateToEnglish = false,
-    this.useGpu = true,
-    this.gpuDeviceIndex = 0,
+    this.asrGpuEnabled = true,
+    this.asrGpuDevice = 0,
     this.nThreads = 0,
     this.beamSize = 5,
   });
@@ -79,12 +79,13 @@ class TranscriptionIsolateParams {
   final String? language;
   final bool translateToEnglish;
 
-  /// Whether to use GPU acceleration. Mirrors [AnalysisSettingsState.useGpuAcceleration].
-  final bool useGpu;
-  final int gpuDeviceIndex;
+  /// Whether to use GPU acceleration for ASR.
+  final bool asrGpuEnabled;
+  
+  /// GPU device index for ASR.
+  final int asrGpuDevice;
 
   /// Number of CPU threads for inference. 0 means auto-detect.
-  /// Mirrors [AnalysisSettingsState.cpuThreads].
   final int nThreads;
 
   /// Beam search beam size. Smaller = faster, larger = more accurate.
@@ -355,10 +356,10 @@ void chunkedTranscriptionEntry(
               ..nThreads = params.nThreads > 0
                   ? params.nThreads.clamp(1, 32)
                   : Platform.numberOfProcessors.clamp(1, 16)
-              ..useGpu = params.useGpu
-              ..gpuDevice = params.gpuDeviceIndex < 0
+              ..useGpu = params.asrGpuEnabled
+              ..gpuDevice = params.asrGpuDevice < 0
                   ? 0
-                  : params.gpuDeviceIndex
+                  : params.asrGpuDevice
               ..translate = params.translateToEnglish
               ..wordTimestamps = true
               ..wordThreshold = 0.01
@@ -576,8 +577,8 @@ Transcript performTranscriptionInIsolate(TranscriptionIsolateParams params) {
       ..nThreads = params.nThreads > 0
           ? params.nThreads.clamp(1, 32)
           : Platform.numberOfProcessors.clamp(1, 16)
-      ..useGpu = params.useGpu
-      ..gpuDevice = params.gpuDeviceIndex < 0 ? 0 : params.gpuDeviceIndex
+      ..useGpu = params.asrGpuEnabled
+      ..gpuDevice = params.asrGpuDevice < 0 ? 0 : params.asrGpuDevice
       ..translate = params.translateToEnglish
       ..wordTimestamps = true
       ..wordThreshold = 0.01

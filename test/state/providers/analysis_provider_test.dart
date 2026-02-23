@@ -270,7 +270,7 @@ void main() {
       final settings = AnalysisSettings.defaults();
 
       expect(settings.enableProfanity, isTrue);
-      expect(settings.hasVisualDetection, isFalse);
+      expect(settings.hasVisualDetection, isTrue);
     });
 
     test('should create strict settings', () {

@@ -128,6 +128,34 @@ class _InferenceMutex {
   }
 }
 
+/// Key for caching ONNX sessions by model path and device configuration
+class _SessionKey {
+  const _SessionKey({
+    required this.modelPath,
+    required this.deviceId,
+    required this.executionProvider,
+  });
+
+  final String modelPath;
+  final int deviceId;
+  final String executionProvider;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _SessionKey &&
+          runtimeType == other.runtimeType &&
+          modelPath == other.modelPath &&
+          deviceId == other.deviceId &&
+          executionProvider == other.executionProvider;
+
+  @override
+  int get hashCode => Object.hash(modelPath, deviceId, executionProvider);
+
+  @override
+  String toString() => '_SessionKey($modelPath, device=$deviceId, provider=$executionProvider)';
+}
+
 /// FFI bindings for ONNX Runtime using official C API
 class ONNXBindings extends NativeResource {
   DynamicLibrary? _lib;
@@ -136,11 +164,11 @@ class ONNXBindings extends NativeResource {
   Pointer<OrtAllocator>? _allocator;
   bool _initialized = false;
 
-  final Map<String, _LoadedSession> _loadedSessions = {};
+  final Map<_SessionKey, _LoadedSession> _loadedSessions = {};
   List<String> _executionProviders = ['CPUExecutionProvider'];
 
   static const int _maxCachedSessions = 5;
-  final List<String> _sessionAccessOrder = [];
+  final List<_SessionKey> _sessionAccessOrder = [];
   final _InferenceMutex _inferenceMutex = _InferenceMutex();
 
   static const List<String> _canonicalNsfwLabels = <String>[
@@ -259,11 +287,24 @@ class ONNXBindings extends NativeResource {
   }
 
   /// Load an ONNX model with caching
-  Future<void> loadModel(String modelPath) async {
+  Future<void> loadModel(
+    String modelPath, {
+    int? deviceId,
+    String? executionProvider,
+    Map<String, String>? providerOptions,
+  }) async {
     _ensureInitialized();
 
-    if (_loadedSessions.containsKey(modelPath)) {
-      _updateAccessOrder(modelPath);
+    final effectiveProvider = executionProvider ?? _executionProviders.first;
+    final effectiveDeviceId = deviceId ?? 0;
+    final sessionKey = _SessionKey(
+      modelPath: modelPath,
+      deviceId: effectiveDeviceId,
+      executionProvider: effectiveProvider,
+    );
+
+    if (_loadedSessions.containsKey(sessionKey)) {
+      _updateAccessOrder(sessionKey);
       return;
     }
 
@@ -302,6 +343,21 @@ class ONNXBindings extends NativeResource {
           .asFunction<SetIntraOpNumThreadsDart>();
       status = setThreads(options, 0);
       _checkStatus(status);
+
+      // Append execution provider if specified
+      if (executionProvider != null) {
+        try {
+          await _appendExecutionProvider(
+            options,
+            executionProvider,
+            deviceId: deviceId ?? 0,
+            providerOptions: providerOptions,
+          );
+        } catch (e) {
+          // Log warning but continue with CPU fallback
+          print('Warning: Failed to configure $executionProvider: $e');
+        }
+      }
 
       // Create session from file - use wide string on Windows
       final sessionPtr = calloc<Pointer<OrtSession>>();
@@ -342,7 +398,8 @@ class ONNXBindings extends NativeResource {
       final session = _LoadedSession(
         path: modelPath,
         loadedAt: DateTime.now(),
-        executionProvider: _executionProviders.first,
+        executionProvider: effectiveProvider,
+        deviceId: effectiveDeviceId,
         optionsPtr: options,
         sessionPtr: ortSession,
         inputNames: inputNames,
@@ -365,8 +422,8 @@ class ONNXBindings extends NativeResource {
           ),
         ];
 
-      _loadedSessions[modelPath] = session;
-      _sessionAccessOrder.add(modelPath);
+      _loadedSessions[sessionKey] = session;
+      _sessionAccessOrder.add(sessionKey);
     } catch (e) {
       throw ONNXModelLoadException('Failed to load model: $e');
     }
@@ -474,16 +531,202 @@ class ONNXBindings extends NativeResource {
     return names;
   }
 
-  void _updateAccessOrder(String modelPath) {
+  /// Append execution provider to session options
+  Future<void> _appendExecutionProvider(
+    Pointer<OrtSessionOptions> options,
+    String providerName, {
+    int deviceId = 0,
+    Map<String, String>? providerOptions,
+  }) async {
+    switch (providerName) {
+      case 'CUDAExecutionProvider':
+        await _appendCudaProvider(options, deviceId, providerOptions ?? {});
+      case 'DmlExecutionProvider':
+        await _appendDirectMLProvider(options, deviceId, providerOptions ?? {});
+      case 'CoreMLExecutionProvider':
+        await _appendCoreMLProvider(options, providerOptions ?? {});
+      case 'ROCMExecutionProvider':
+        await _appendGenericProvider(
+          options,
+          'ROCMExecutionProvider',
+          {...providerOptions ?? {}, 'device_id': deviceId.toString()},
+        );
+      default:
+        // For other providers, use generic API if available
+        if (providerOptions != null && providerOptions.isNotEmpty) {
+          await _appendGenericProvider(options, providerName, providerOptions);
+        }
+    }
+  }
+
+  /// Append CUDA execution provider using V2 API
+  Future<void> _appendCudaProvider(
+    Pointer<OrtSessionOptions> options,
+    int deviceId,
+    Map<String, String> config,
+  ) async {
+    Pointer<OrtCUDAProviderOptionsV2>? cudaOptions;
+
+    try {
+      // 1. Create CUDA options
+      final cudaOptionsPtr = calloc<Pointer<OrtCUDAProviderOptionsV2>>();
+      try {
+        final createOptions = _api!
+            .getFunction<CreateCUDAProviderOptionsNative>(
+                OrtApiIndex.CreateCUDAProviderOptions)
+            .asFunction<CreateCUDAProviderOptionsDart>();
+        
+        var status = createOptions(cudaOptionsPtr);
+        _checkStatus(status);
+        cudaOptions = cudaOptionsPtr.value;
+      } finally {
+        calloc.free(cudaOptionsPtr);
+      }
+
+      // 2. Update with key-value pairs
+      final fullConfig = {'device_id': deviceId.toString(), ...config};
+      final keys = fullConfig.keys.toList();
+      final values = fullConfig.values.toList();
+
+      final keysPtr = calloc<Pointer<Utf8>>(keys.length);
+      final valuesPtr = calloc<Pointer<Utf8>>(values.length);
+
+      try {
+        for (var i = 0; i < keys.length; i++) {
+          keysPtr[i] = keys[i].toNativeUtf8();
+          valuesPtr[i] = values[i].toNativeUtf8();
+        }
+
+        final updateOptions = _api!
+            .getFunction<UpdateCUDAProviderOptionsNative>(
+                OrtApiIndex.UpdateCUDAProviderOptions)
+            .asFunction<UpdateCUDAProviderOptionsDart>();
+
+        final status = updateOptions(cudaOptions!, keysPtr, valuesPtr, keys.length);
+        _checkStatus(status);
+
+        // 3. Append to session options
+        final appendProvider = _api!
+            .getFunction<SessionOptionsAppendExecutionProvider_CUDA_V2Native>(
+                OrtApiIndex.SessionOptionsAppendExecutionProvider_CUDA_V2)
+            .asFunction<SessionOptionsAppendExecutionProvider_CUDA_V2Dart>();
+
+        final appendStatus = appendProvider(options, cudaOptions);
+        _checkStatus(appendStatus);
+      } finally {
+        // Free key-value strings
+        for (var i = 0; i < keys.length; i++) {
+          calloc.free(keysPtr[i]);
+          calloc.free(valuesPtr[i]);
+        }
+        calloc.free(keysPtr);
+        calloc.free(valuesPtr);
+      }
+    } finally {
+      // 4. Release CUDA options
+      if (cudaOptions != null && cudaOptions != nullptr) {
+        final releaseOptions = _api!
+            .getFunction<ReleaseCUDAProviderOptionsNative>(
+                OrtApiIndex.ReleaseCUDAProviderOptions)
+            .asFunction<ReleaseCUDAProviderOptionsDart>();
+        releaseOptions(cudaOptions);
+      }
+    }
+  }
+
+  /// Append DirectML execution provider
+  Future<void> _appendDirectMLProvider(
+    Pointer<OrtSessionOptions> options,
+    int deviceId,
+    Map<String, String> config,
+  ) async {
+    final fullConfig = DirectMLDeviceConfig(
+      deviceId: deviceId,
+      enableGraphCapture: config['enable_graph_capture'] != '0',
+      disableMetaCommands: config['disable_metacommands'] == '1',
+    ).toKeyValuePairs();
+
+    await _appendGenericProvider(options, 'DmlExecutionProvider', fullConfig);
+  }
+
+  /// Append CoreML execution provider
+  Future<void> _appendCoreMLProvider(
+    Pointer<OrtSessionOptions> options,
+    Map<String, String> config,
+  ) async {
+    await _appendGenericProvider(options, 'CoreMLExecutionProvider', config);
+  }
+
+  /// Generic execution provider append helper
+  Future<void> _appendGenericProvider(
+    Pointer<OrtSessionOptions> options,
+    String providerName,
+    Map<String, String> config,
+  ) async {
+    final keys = config.keys.toList();
+    final values = config.values.toList();
+
+    final providerNamePtr = providerName.toNativeUtf8();
+    final keysPtr = calloc<Pointer<Utf8>>(keys.length);
+    final valuesPtr = calloc<Pointer<Utf8>>(values.length);
+
+    try {
+      for (var i = 0; i < keys.length; i++) {
+        keysPtr[i] = keys[i].toNativeUtf8();
+        valuesPtr[i] = values[i].toNativeUtf8();
+      }
+
+      final appendProvider = _api!
+          .getFunction<SessionOptionsAppendExecutionProviderNative>(
+              OrtApiIndex.SessionOptionsAppendExecutionProvider)
+          .asFunction<SessionOptionsAppendExecutionProviderDart>();
+
+      final status = appendProvider(
+        options,
+        providerNamePtr,
+        keysPtr,
+        valuesPtr,
+        keys.length,
+      );
+      _checkStatus(status);
+    } finally {
+      calloc.free(providerNamePtr);
+      for (var i = 0; i < keys.length; i++) {
+        calloc.free(keysPtr[i]);
+        calloc.free(valuesPtr[i]);
+      }
+      calloc.free(keysPtr);
+      calloc.free(valuesPtr);
+    }
+  }
+
+  void _updateAccessOrder(_SessionKey key) {
     _sessionAccessOrder
-      ..remove(modelPath)
-      ..add(modelPath);
+      ..remove(key)
+      ..add(key);
+  }
+
+  /// Find a session key for the given model path (returns first match)
+  _SessionKey? _findSessionKey(String modelPath) {
+    return _loadedSessions.keys
+        .firstWhere(
+          (key) => key.modelPath == modelPath,
+          orElse: () => _SessionKey(
+            modelPath: '',
+            deviceId: -1,
+            executionProvider: '',
+          ),
+        )
+        .modelPath
+        .isNotEmpty
+        ? _loadedSessions.keys.firstWhere((key) => key.modelPath == modelPath)
+        : null;
   }
 
   Future<void> _evictLRUSession() async {
     if (_sessionAccessOrder.isEmpty) return;
-    final lruPath = _sessionAccessOrder.removeAt(0);
-    await disposeSession(lruPath);
+    final lruKey = _sessionAccessOrder.removeAt(0);
+    await _disposeSessionByKey(lruKey);
   }
 
   void unloadModel(String modelPath) {
@@ -491,8 +734,19 @@ class ONNXBindings extends NativeResource {
   }
 
   Future<void> disposeSession(String modelPath) async {
-    final session = _loadedSessions.remove(modelPath);
-    _sessionAccessOrder.remove(modelPath);
+    // Dispose all sessions for this model path
+    final keysToRemove = _loadedSessions.keys
+        .where((key) => key.modelPath == modelPath)
+        .toList();
+    
+    for (final key in keysToRemove) {
+      await _disposeSessionByKey(key);
+    }
+  }
+
+  Future<void> _disposeSessionByKey(_SessionKey key) async {
+    final session = _loadedSessions.remove(key);
+    _sessionAccessOrder.remove(key);
 
     if (session == null) return;
 
@@ -516,7 +770,10 @@ class ONNXBindings extends NativeResource {
   }
 
   ONNXSessionInfo? getSessionInfo(String modelPath) {
-    final session = _loadedSessions[modelPath];
+    final key = _findSessionKey(modelPath);
+    if (key == null) return null;
+    
+    final session = _loadedSessions[key];
     if (session == null) return null;
 
     return ONNXSessionInfo(
@@ -532,11 +789,13 @@ class ONNXBindings extends NativeResource {
   Future<Duration> warmup(String modelPath) async {
     _ensureInitialized();
 
-    if (!_loadedSessions.containsKey(modelPath)) {
+    final key = _findSessionKey(modelPath);
+    if (key == null) {
       await loadModel(modelPath);
     }
 
-    final session = _loadedSessions[modelPath]!;
+    final effectiveKey = _findSessionKey(modelPath)!;
+    final session = _loadedSessions[effectiveKey]!;
     if (session.warmedUp) {
       return Duration.zero;
     }
@@ -578,10 +837,12 @@ class ONNXBindings extends NativeResource {
   ) async {
     _ensureInitialized();
 
-    if (!_loadedSessions.containsKey(modelPath)) {
+    final key = _findSessionKey(modelPath);
+    if (key == null) {
       await loadModel(modelPath);
     }
-    _updateAccessOrder(modelPath);
+    final effectiveKey = _findSessionKey(modelPath)!;
+    _updateAccessOrder(effectiveKey);
 
     try {
       return await _withInferenceLock(
@@ -599,10 +860,11 @@ class ONNXBindings extends NativeResource {
     int width,
     int height,
   ) {
-    final session = _loadedSessions[modelPath];
-    if (session == null) {
+    final key = _findSessionKey(modelPath);
+    if (key == null) {
       throw ONNXInferenceException('Model is not loaded: $modelPath');
     }
+    final session = _loadedSessions[key]!;
     final modelType = _inferModelType(modelPath);
 
     switch (modelType) {
@@ -1159,10 +1421,12 @@ class ONNXBindings extends NativeResource {
   }) async {
     _ensureInitialized();
 
-    if (!_loadedSessions.containsKey(modelPath)) {
+    final key = _findSessionKey(modelPath);
+    if (key == null) {
       await loadModel(modelPath);
     }
-    _updateAccessOrder(modelPath);
+    final effectiveKey = _findSessionKey(modelPath)!;
+    _updateAccessOrder(effectiveKey);
 
     final effectiveBatchSize = batchSize ?? rgbDataList.length;
     final results = <Map<String, double>>[];
@@ -1197,10 +1461,12 @@ class ONNXBindings extends NativeResource {
   }) async {
     _ensureInitialized();
 
-    if (!_loadedSessions.containsKey(modelPath)) {
+    final key = _findSessionKey(modelPath);
+    if (key == null) {
       await loadModel(modelPath);
     }
-    _updateAccessOrder(modelPath);
+    final effectiveKey = _findSessionKey(modelPath)!;
+    _updateAccessOrder(effectiveKey);
 
     final stopwatch = Stopwatch()..start();
 
@@ -1293,10 +1559,12 @@ class ONNXBindings extends NativeResource {
   }) async {
     _ensureInitialized();
 
-    if (!_loadedSessions.containsKey(modelPath)) {
+    final key = _findSessionKey(modelPath);
+    if (key == null) {
       await loadModel(modelPath);
     }
-    _updateAccessOrder(modelPath);
+    final effectiveKey = _findSessionKey(modelPath)!;
+    _updateAccessOrder(effectiveKey);
 
     try {
       return await _withInferenceLock(() async {
@@ -1522,6 +1790,7 @@ class _LoadedSession {
     required this.path,
     required this.loadedAt,
     required this.executionProvider,
+    required this.deviceId,
     required this.optionsPtr,
     required this.sessionPtr,
     required this.inputNames,
@@ -1531,6 +1800,7 @@ class _LoadedSession {
   final String path;
   final DateTime loadedAt;
   final String executionProvider;
+  final int deviceId;
   final Pointer<OrtSessionOptions> optionsPtr;
   final Pointer<OrtSession> sessionPtr;
   final List<String> inputNames;

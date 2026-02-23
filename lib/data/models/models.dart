@@ -11,6 +11,7 @@ export 'detection.dart';
 export 'edit_action.dart';
 export 'frame_analysis_result.dart';
 export 'frame_data.dart';
+export 'gpu_config.dart';
 export 'huggingface_model.dart';
 export 'media_file.dart';
 export 'model_info.dart';

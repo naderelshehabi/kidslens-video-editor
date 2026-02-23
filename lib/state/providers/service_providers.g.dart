@@ -6,6 +6,22 @@ part of 'service_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+String _$gpuConfigHash() => r'3488ddeacc9fab02ffa88b2910e6243ba50949c7';
+
+/// See also [gpuConfig].
+@ProviderFor(gpuConfig)
+final gpuConfigProvider = Provider<GpuConfig>.internal(
+  gpuConfig,
+  name: r'gpuConfigProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$gpuConfigHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef GpuConfigRef = ProviderRef<GpuConfig>;
 String _$ffmpegBindingsHash() => r'843cba7ca61a394251f99669f82944dabfc58f99';
 
 /// See also [ffmpegBindings].
@@ -56,7 +72,7 @@ final mmsBindingsProvider = Provider<MMSBindings>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef MmsBindingsRef = ProviderRef<MMSBindings>;
-String _$onnxBindingsHash() => r'cbce28e6fa1b06559b26a70494a8786da92d2185';
+String _$onnxBindingsHash() => r'3af83a691331c032f420075b79400b5cbe9e76ea';
 
 /// See also [onnxBindings].
 @ProviderFor(onnxBindings)
@@ -72,7 +88,7 @@ final onnxBindingsProvider = Provider<ONNXBindings>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef OnnxBindingsRef = ProviderRef<ONNXBindings>;
-String _$nsfwOnnxServiceHash() => r'93f296cb85c670aa202c2288008fd3a7bc51c3c2';
+String _$nsfwOnnxServiceHash() => r'34c17b5ec8b99303af390dd6b7bd226f57851537';
 
 /// See also [nsfwOnnxService].
 @ProviderFor(nsfwOnnxService)
@@ -279,7 +295,7 @@ final asrCacheServiceProvider = Provider<AsrCacheService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AsrCacheServiceRef = ProviderRef<AsrCacheService>;
-String _$asrServiceHash() => r'139405a1f408453779b92c741339e00015c45d33';
+String _$asrServiceHash() => r'dcff2d49365dddb3da7c55a1ddd3f022a15b19b1';
 
 /// See also [asrService].
 @ProviderFor(asrService)
