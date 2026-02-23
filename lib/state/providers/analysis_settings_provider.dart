@@ -17,6 +17,7 @@ class AnalysisSettingsState {
     this.frameSamplingRate = 5,
     this.asrLanguage = 'en',
     this.useGpuAcceleration = true,
+    this.gpuDeviceIndex = 0,
     this.cpuThreads = 4,
     this.contentDetectionConfig = const ContentDetectionConfig(),
   });
@@ -32,6 +33,7 @@ class AnalysisSettingsState {
         frameSamplingRate: json['frameSamplingRate'] as int? ?? 5,
         asrLanguage: json['asrLanguage'] as String? ?? 'en',
         useGpuAcceleration: json['useGpuAcceleration'] as bool? ?? true,
+        gpuDeviceIndex: json['gpuDeviceIndex'] as int? ?? 0,
         cpuThreads: json['cpuThreads'] as int? ?? 4,
         contentDetectionConfig: json['contentDetectionConfig'] != null
             ? ContentDetectionConfig.fromJson(
@@ -59,6 +61,7 @@ class AnalysisSettingsState {
   final int frameSamplingRate;
   final String asrLanguage;
   final bool useGpuAcceleration;
+  final int gpuDeviceIndex;
   final int cpuThreads;
   final ContentDetectionConfig contentDetectionConfig;
 
@@ -70,6 +73,7 @@ class AnalysisSettingsState {
     int? frameSamplingRate,
     String? asrLanguage,
     bool? useGpuAcceleration,
+    int? gpuDeviceIndex,
     int? cpuThreads,
     ContentDetectionConfig? contentDetectionConfig,
   }) =>
@@ -81,6 +85,7 @@ class AnalysisSettingsState {
         frameSamplingRate: frameSamplingRate ?? this.frameSamplingRate,
         asrLanguage: asrLanguage ?? this.asrLanguage,
         useGpuAcceleration: useGpuAcceleration ?? this.useGpuAcceleration,
+        gpuDeviceIndex: gpuDeviceIndex ?? this.gpuDeviceIndex,
         cpuThreads: cpuThreads ?? this.cpuThreads,
         contentDetectionConfig:
             contentDetectionConfig ?? this.contentDetectionConfig,
@@ -92,6 +97,7 @@ class AnalysisSettingsState {
           nsfwModelId: nsfwModelId,
           asrLanguage: asrLanguage,
           useGpu: useGpuAcceleration,
+          gpuDeviceIndex: gpuDeviceIndex,
           cpuThreads: cpuThreads,
         ),
         profanityConfig: ProfanityConfig.defaults().copyWith(
@@ -110,6 +116,7 @@ class AnalysisSettingsState {
         'frameSamplingRate': frameSamplingRate,
         'asrLanguage': asrLanguage,
         'useGpuAcceleration': useGpuAcceleration,
+        'gpuDeviceIndex': gpuDeviceIndex,
         'cpuThreads': cpuThreads,
         'contentDetectionConfig': contentDetectionConfig.toJson(),
       };
@@ -177,6 +184,11 @@ class AnalysisSettingsNotifier extends _$AnalysisSettingsNotifier {
 
   void setGpuAcceleration({required bool enabled}) {
     state = state.copyWith(useGpuAcceleration: enabled);
+    saveSettings();
+  }
+
+  void setGpuDeviceIndex(int index) {
+    state = state.copyWith(gpuDeviceIndex: index < 0 ? 0 : index);
     saveSettings();
   }
 

@@ -99,7 +99,13 @@ class AnalysisProgress with _$AnalysisProgress {
     if (processed == null || total == null || total <= 0) {
       return null;
     }
-    return (processed / total).clamp(0.0, 1.0);
+    final raw = (processed / total).clamp(0.0, 1.0);
+    if (stepName == 'Analysis complete') {
+      return raw;
+    }
+    // Keep non-terminal stages below 100% so the UI only hits 100%
+    // when the terminal completion event is emitted.
+    return raw >= 1.0 ? 0.99 : raw;
   }
 
   /// Overall progress as percentage (0-100)

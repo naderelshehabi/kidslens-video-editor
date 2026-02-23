@@ -21,7 +21,6 @@ class NsfwModelSpec {
     required this.inputHeight,
     required this.outputIsLogits,
     this.isFallback = false,
-    this.isTensorflowJs = false,
   });
 
   final String modelId;
@@ -33,7 +32,6 @@ class NsfwModelSpec {
   final int inputHeight;
   final bool outputIsLogits;
   final bool isFallback;
-  final bool isTensorflowJs;
 
   bool get hasCanonicalClassOrder {
     if (classOrder.length != kCanonicalNsfwLabels.length) {
@@ -59,30 +57,28 @@ class NsfwModelManifest {
   };
 
   static const Map<String, NsfwModelSpec> byModelId = <String, NsfwModelSpec>{
-    'nsfw-gantman-mobilenet-v2-224': NsfwModelSpec(
-      modelId: 'nsfw-gantman-mobilenet-v2-224',
+    'nsfw-onnx-community-vit-224': NsfwModelSpec(
+      modelId: 'nsfw-onnx-community-vit-224',
       sourceUrl:
-          'https://raw.githubusercontent.com/infinitered/nsfwjs/master/models/mobilenet_v2/model.json',
+          'https://huggingface.co/onnx-community/nsfw-image-detector-ONNX/resolve/main/onnx/model.onnx',
       sha256: '',
       license: 'MIT',
       classOrder: kCanonicalNsfwLabels,
       inputWidth: 224,
       inputHeight: 224,
-      outputIsLogits: false,
-      isTensorflowJs: true,
+      outputIsLogits: true,
     ),
-    'nsfw-gantman-inception-299': NsfwModelSpec(
-      modelId: 'nsfw-gantman-inception-299',
+    'nsfw-onnx-community-vit-224-int8': NsfwModelSpec(
+      modelId: 'nsfw-onnx-community-vit-224-int8',
       sourceUrl:
-          'https://raw.githubusercontent.com/infinitered/nsfwjs/master/models/inception_v3/model.json',
+          'https://huggingface.co/onnx-community/nsfw-image-detector-ONNX/resolve/main/onnx/model_int8.onnx',
       sha256: '',
       license: 'MIT',
       classOrder: kCanonicalNsfwLabels,
-      inputWidth: 299,
-      inputHeight: 299,
-      outputIsLogits: false,
+      inputWidth: 224,
+      inputHeight: 224,
+      outputIsLogits: true,
       isFallback: true,
-      isTensorflowJs: true,
     ),
   };
 

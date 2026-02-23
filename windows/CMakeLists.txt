@@ -204,20 +204,6 @@ install(DIRECTORY "${NATIVE_ASSETS_DIR}"
    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
    COMPONENT Runtime)
 
-# Bundle TensorFlow JS runtime assets for NSFW inference.
-set(TENSORFLOW_RUNTIME_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../native/tensorflow/runtime")
-if(EXISTS "${TENSORFLOW_RUNTIME_DIR}")
-  install(DIRECTORY "${TENSORFLOW_RUNTIME_DIR}"
-    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}/native/tensorflow"
-    COMPONENT Runtime)
-endif()
-set(TENSORFLOW_NODE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../native/tensorflow/node")
-if(EXISTS "${TENSORFLOW_NODE_DIR}")
-  install(DIRECTORY "${TENSORFLOW_NODE_DIR}"
-    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}/native/tensorflow"
-    COMPONENT Runtime)
-endif()
-
 # Fully re-copy the assets directory on each build to avoid having stale files
 # from a previous install.
 set(FLUTTER_ASSET_DIR_NAME "flutter_assets")

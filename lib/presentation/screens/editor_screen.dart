@@ -714,6 +714,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         asrModelId: asrModelId,
         hasNativeSupport: whisper.hasNativeSupport,
         useGpu: useGpu,
+        gpuDeviceIndex: modelConfig.gpuDeviceIndex,
         nThreads: modelConfig.cpuThreads,
       ),
     );
@@ -1324,6 +1325,7 @@ class _SubtitleGenerationDialog extends ConsumerStatefulWidget {
     required this.asrModelId,
     required this.hasNativeSupport,
     required this.useGpu,
+    required this.gpuDeviceIndex,
     required this.nThreads,
   });
 
@@ -1333,6 +1335,7 @@ class _SubtitleGenerationDialog extends ConsumerStatefulWidget {
   final String asrModelId;
   final bool hasNativeSupport;
   final bool useGpu;
+  final int gpuDeviceIndex;
   final int nThreads;
 
   @override
@@ -1399,6 +1402,7 @@ class _SubtitleGenerationDialogState
         preferredModel: widget.asrModelId,
         mediaDuration: widget.mediaDuration,
         useGpu: widget.useGpu,
+        gpuDeviceIndex: widget.gpuDeviceIndex,
         nThreads: widget.nThreads,
         onProgress: _updatePhase,
         cancelToken: _cancelToken,

@@ -24,6 +24,7 @@ mixin _$ModelConfig {
   String get nsfwModelId => throw _privateConstructorUsedError;
   String get asrLanguage => throw _privateConstructorUsedError;
   bool get useGpu => throw _privateConstructorUsedError;
+  int get gpuDeviceIndex => throw _privateConstructorUsedError;
   int get cpuThreads => throw _privateConstructorUsedError;
   int get batchSize => throw _privateConstructorUsedError;
   bool get useFp16 => throw _privateConstructorUsedError;
@@ -52,6 +53,7 @@ abstract class $ModelConfigCopyWith<$Res> {
       String nsfwModelId,
       String asrLanguage,
       bool useGpu,
+      int gpuDeviceIndex,
       int cpuThreads,
       int batchSize,
       bool useFp16,
@@ -79,6 +81,7 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
     Object? nsfwModelId = null,
     Object? asrLanguage = null,
     Object? useGpu = null,
+    Object? gpuDeviceIndex = null,
     Object? cpuThreads = null,
     Object? batchSize = null,
     Object? useFp16 = null,
@@ -103,6 +106,10 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
           ? _value.useGpu
           : useGpu // ignore: cast_nullable_to_non_nullable
               as bool,
+      gpuDeviceIndex: null == gpuDeviceIndex
+          ? _value.gpuDeviceIndex
+          : gpuDeviceIndex // ignore: cast_nullable_to_non_nullable
+              as int,
       cpuThreads: null == cpuThreads
           ? _value.cpuThreads
           : cpuThreads // ignore: cast_nullable_to_non_nullable
@@ -144,6 +151,7 @@ abstract class _$$ModelConfigImplCopyWith<$Res>
       String nsfwModelId,
       String asrLanguage,
       bool useGpu,
+      int gpuDeviceIndex,
       int cpuThreads,
       int batchSize,
       bool useFp16,
@@ -169,6 +177,7 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
     Object? nsfwModelId = null,
     Object? asrLanguage = null,
     Object? useGpu = null,
+    Object? gpuDeviceIndex = null,
     Object? cpuThreads = null,
     Object? batchSize = null,
     Object? useFp16 = null,
@@ -193,6 +202,10 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
           ? _value.useGpu
           : useGpu // ignore: cast_nullable_to_non_nullable
               as bool,
+      gpuDeviceIndex: null == gpuDeviceIndex
+          ? _value.gpuDeviceIndex
+          : gpuDeviceIndex // ignore: cast_nullable_to_non_nullable
+              as int,
       cpuThreads: null == cpuThreads
           ? _value.cpuThreads
           : cpuThreads // ignore: cast_nullable_to_non_nullable
@@ -229,6 +242,7 @@ class _$ModelConfigImpl extends _ModelConfig {
       this.nsfwModelId = 'nsfw-gantman-mobilenet-v2-224',
       this.asrLanguage = 'en',
       this.useGpu = true,
+      this.gpuDeviceIndex = 0,
       this.cpuThreads = 4,
       this.batchSize = 8,
       this.useFp16 = false,
@@ -253,6 +267,9 @@ class _$ModelConfigImpl extends _ModelConfig {
   final bool useGpu;
   @override
   @JsonKey()
+  final int gpuDeviceIndex;
+  @override
+  @JsonKey()
   final int cpuThreads;
   @override
   @JsonKey()
@@ -272,7 +289,7 @@ class _$ModelConfigImpl extends _ModelConfig {
 
   @override
   String toString() {
-    return 'ModelConfig(asrModelId: $asrModelId, nsfwModelId: $nsfwModelId, asrLanguage: $asrLanguage, useGpu: $useGpu, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16, translateToEnglish: $translateToEnglish, wordLevelTimestamps: $wordLevelTimestamps, beamSize: $beamSize)';
+    return 'ModelConfig(asrModelId: $asrModelId, nsfwModelId: $nsfwModelId, asrLanguage: $asrLanguage, useGpu: $useGpu, gpuDeviceIndex: $gpuDeviceIndex, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16, translateToEnglish: $translateToEnglish, wordLevelTimestamps: $wordLevelTimestamps, beamSize: $beamSize)';
   }
 
   @override
@@ -287,6 +304,8 @@ class _$ModelConfigImpl extends _ModelConfig {
             (identical(other.asrLanguage, asrLanguage) ||
                 other.asrLanguage == asrLanguage) &&
             (identical(other.useGpu, useGpu) || other.useGpu == useGpu) &&
+            (identical(other.gpuDeviceIndex, gpuDeviceIndex) ||
+                other.gpuDeviceIndex == gpuDeviceIndex) &&
             (identical(other.cpuThreads, cpuThreads) ||
                 other.cpuThreads == cpuThreads) &&
             (identical(other.batchSize, batchSize) ||
@@ -308,6 +327,7 @@ class _$ModelConfigImpl extends _ModelConfig {
       nsfwModelId,
       asrLanguage,
       useGpu,
+      gpuDeviceIndex,
       cpuThreads,
       batchSize,
       useFp16,
@@ -337,6 +357,7 @@ abstract class _ModelConfig extends ModelConfig {
       final String nsfwModelId,
       final String asrLanguage,
       final bool useGpu,
+      final int gpuDeviceIndex,
       final int cpuThreads,
       final int batchSize,
       final bool useFp16,
@@ -356,6 +377,8 @@ abstract class _ModelConfig extends ModelConfig {
   String get asrLanguage;
   @override
   bool get useGpu;
+  @override
+  int get gpuDeviceIndex;
   @override
   int get cpuThreads;
   @override

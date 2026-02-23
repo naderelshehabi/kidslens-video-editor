@@ -112,6 +112,7 @@ class AsrService {
       final startTime = DateTime.now();
 
       // Perform transcription with prepared audio
+      await whisper.initialize();
       final transcript = await whisper.transcribe(
         preparedAudioPath,
         modelPath,
@@ -171,6 +172,7 @@ class AsrService {
         throw AsrException('Failed to load model: $modelId');
       }
 
+      await whisper.initialize();
       return await whisper.transcribe(
         preparedAudioPath,
         modelPath,
@@ -200,6 +202,7 @@ class AsrService {
     String? preferredModel,
     Duration? mediaDuration,
     bool? useGpu,
+    int? gpuDeviceIndex,
     int? nThreads,
     int? beamSize,
     void Function(
@@ -281,6 +284,7 @@ class AsrService {
           'Generating placeholder subtitles...',
           null,
         );
+        await whisper.initialize();
         final transcript = await whisper.transcribe(
           preparedAudioPath,
           modelPath,
@@ -303,6 +307,8 @@ class AsrService {
         'Starting transcription...',
         Duration.zero,
       );
+      final resolvedGpuDeviceIndex =
+          await _resolveGpuDeviceIndex(gpuDeviceIndex ?? 0);
 
       final params = TranscriptionIsolateParams(
         libraryPath: libraryPath,
@@ -310,6 +316,7 @@ class AsrService {
         modelPath: modelPath,
         language: language,
         useGpu: useGpu ?? true,
+        gpuDeviceIndex: resolvedGpuDeviceIndex,
         nThreads: nThreads ?? 0,
         beamSize: beamSize ?? adaptiveBeamSize(modelId),
       );
@@ -346,6 +353,7 @@ class AsrService {
             language: params.language,
             translateToEnglish: params.translateToEnglish,
             useGpu: false,
+            gpuDeviceIndex: params.gpuDeviceIndex,
             nThreads: params.nThreads,
             beamSize: params.beamSize,
           );
@@ -591,6 +599,42 @@ class AsrService {
 
     // Return the best available model
     return asrModels.first.id;
+  }
+
+  Future<int> _resolveGpuDeviceIndex(int requestedIndex) async {
+    if (!Platform.isWindows && !Platform.isLinux) {
+      return requestedIndex < 0 ? 0 : requestedIndex;
+    }
+
+    try {
+      final result = await Process.run('nvidia-smi', [
+        '--query-gpu=index',
+        '--format=csv,noheader,nounits',
+      ]);
+      if (result.exitCode != 0) {
+        return requestedIndex < 0 ? 0 : requestedIndex;
+      }
+
+      final indexes = result.stdout
+          .toString()
+          .trim()
+          .split('\n')
+          .map((line) => int.tryParse(line.trim()))
+          .whereType<int>()
+          .toList()
+        ..sort();
+      if (indexes.isEmpty) {
+        return requestedIndex < 0 ? 0 : requestedIndex;
+      }
+
+      if (indexes.contains(requestedIndex)) {
+        return requestedIndex;
+      }
+
+      return indexes.first;
+    } catch (_) {
+      return requestedIndex < 0 ? 0 : requestedIndex;
+    }
   }
 
   /// Ensure model is loaded and return its path

@@ -4,8 +4,10 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:ffi/ffi.dart';
+
+import 'package:kidslens_video_editor/native/bindings/onnx_ffi_types.dart';
 import 'package:kidslens_video_editor/native/resource_manager.dart';
-import 'package:onnxruntime/onnxruntime.dart' as ort;
 
 /// Information about an ONNX Runtime session
 class ONNXSessionInfo {
@@ -57,25 +59,12 @@ class DetectionBox {
     required this.height,
   });
 
-  /// Class index from the model output
   final int classId;
-
-  /// Human-readable class name
   final String className;
-
-  /// Detection confidence score (0.0 to 1.0)
   final double confidence;
-
-  /// X coordinate of top-left corner (normalized 0-1 in original image space)
   final double x;
-
-  /// Y coordinate of top-left corner (normalized 0-1 in original image space)
   final double y;
-
-  /// Width of detection box (normalized 0-1 in original image space)
   final double width;
-
-  /// Height of detection box (normalized 0-1 in original image space)
   final double height;
 
   @override
@@ -92,27 +81,17 @@ class DetectionResult {
     this.inferenceTimeMs,
   });
 
-  /// Detected bounding boxes after NMS
   final List<DetectionBox> boxes;
-
-  /// Inference time in milliseconds
   final int? inferenceTimeMs;
-
-  /// Number of detections
   int get count => boxes.length;
-
-  /// Whether any detections were found
   bool get isEmpty => boxes.isEmpty;
 
-  /// Filter boxes by minimum confidence
   List<DetectionBox> boxesAboveThreshold(double threshold) =>
       boxes.where((b) => b.confidence >= threshold).toList();
 
-  /// Filter boxes by class name
   List<DetectionBox> boxesForClass(String className) =>
       boxes.where((b) => b.className == className).toList();
 
-  /// Get unique class names detected
   Set<String> get detectedClasses => boxes.map((b) => b.className).toSet();
 }
 
@@ -132,9 +111,6 @@ class _LetterboxResult {
 }
 
 /// Simple mutex for serializing inference calls.
-///
-/// Ensures only one inference runs at a time on the GPU,
-/// preventing thread-safety issues regardless of async patterns.
 class _InferenceMutex {
   Completer<void>? _completer;
 
@@ -152,22 +128,21 @@ class _InferenceMutex {
   }
 }
 
-/// FFI bindings for ONNX Runtime
+/// FFI bindings for ONNX Runtime using official C API
 class ONNXBindings extends NativeResource {
-  // ignore: unused_field - Will be used when FFI is fully implemented
   DynamicLibrary? _lib;
+  OrtApiAccessor? _api;
+  Pointer<OrtEnv>? _env;
+  Pointer<OrtAllocator>? _allocator;
   bool _initialized = false;
+
   final Map<String, _LoadedSession> _loadedSessions = {};
   List<String> _executionProviders = ['CPUExecutionProvider'];
 
-  /// Maximum number of cached sessions
   static const int _maxCachedSessions = 5;
-
-  /// LRU ordering for cache eviction
   final List<String> _sessionAccessOrder = [];
-
-  /// Mutex for serializing all inference calls
   final _InferenceMutex _inferenceMutex = _InferenceMutex();
+
   static const List<String> _canonicalNsfwLabels = <String>[
     'drawings',
     'hentai',
@@ -176,24 +151,7 @@ class ONNXBindings extends NativeResource {
     'sexy',
   ];
 
-  /// Initialize ONNX Runtime bindings
-  ///
-  /// [executionProviders] List of execution providers in priority order.
-  /// Common providers: 'CUDAExecutionProvider', 'CoreMLExecutionProvider',
-  /// 'DnnlExecutionProvider', 'CPUExecutionProvider'
-  ///
-  /// Implementation Plan:
-  /// 1. Load ONNX Runtime shared library
-  /// 2. Get OrtApi via OrtGetApiBase()->GetApi(ORT_API_VERSION)
-  /// 3. Create OrtEnv with OrtCreateEnv()
-  /// 4. Create OrtSessionOptions with CreateSessionOptions()
-  /// 5. Configure execution providers:
-  ///    - For CUDA: OrtSessionOptionsAppendExecutionProvider_CUDA()
-  ///    - For CoreML: OrtSessionOptionsAppendExecutionProvider_CoreML()
-  ///    - For CPU: Always available as fallback
-  /// 6. Set optimization level via SetSessionGraphOptimizationLevel()
-  /// 7. Enable memory pattern optimization
-  /// 8. Store global session options for reuse
+  /// Initialize ONNX Runtime bindings using official C API
   Future<void> initialize({
     List<String>? executionProviders,
   }) async {
@@ -201,7 +159,63 @@ class ONNXBindings extends NativeResource {
 
     try {
       _lib = _loadLibrary();
-      ort.OrtEnv.instance.init(logId: 'kidslens_video_editor');
+
+      // Get OrtApiBase and then OrtApi
+      final getApiBase =
+          _lib!.lookupFunction<OrtGetApiBaseNative, OrtGetApiBaseDart>(
+        'OrtGetApiBase',
+      );
+      final apiBase = getApiBase();
+      if (apiBase == nullptr) {
+        throw ONNXInitializationException('OrtGetApiBase returned null');
+      }
+
+      // Get versioned API - returns a Pointer<Void> to the function table
+      final getApi = apiBase.ref.GetApi
+          .asFunction<Pointer<Void> Function(int)>();
+      final apiPtr = getApi(ORT_API_VERSION);
+      if (apiPtr == nullptr) {
+        throw ONNXInitializationException(
+          'GetApi returned null for version $ORT_API_VERSION',
+        );
+      }
+
+      // Wrap in accessor for index-based function lookup
+      _api = OrtApiAccessor(apiPtr);
+
+      // Create environment
+      final envPtr = calloc<Pointer<OrtEnv>>();
+      final logId = 'kidslens_video_editor'.toNativeUtf8();
+      try {
+        final createEnv = _api!
+            .getFunction<CreateEnvNative>(OrtApiIndex.CreateEnv)
+            .asFunction<CreateEnvDart>();
+
+        final status = createEnv(
+          OrtLoggingLevel.ORT_LOGGING_LEVEL_WARNING,
+          logId,
+          envPtr,
+        );
+        _checkStatus(status);
+        _env = envPtr.value;
+      } finally {
+        calloc.free(logId);
+        calloc.free(envPtr);
+      }
+
+      // Get default allocator
+      final allocatorPtr = calloc<Pointer<OrtAllocator>>();
+      try {
+        final getAllocator = _api!
+            .getFunction<GetAllocatorWithDefaultOptionsNative>(
+                OrtApiIndex.GetAllocatorWithDefaultOptions)
+            .asFunction<GetAllocatorWithDefaultOptionsDart>();
+        final status = getAllocator(allocatorPtr);
+        _checkStatus(status);
+        _allocator = allocatorPtr.value;
+      } finally {
+        calloc.free(allocatorPtr);
+      }
 
       if (executionProviders != null) {
         _executionProviders = executionProviders;
@@ -210,16 +224,7 @@ class ONNXBindings extends NativeResource {
         _executionProviders = [..._executionProviders, 'CPUExecutionProvider'];
       }
 
-      // FFI Implementation Plan:
-      // 1. const OrtApi* g_ort = OrtGetApiBase()->GetApi(ORT_API_VERSION)
-      // 2. g_ort->CreateEnv(ORT_LOGGING_LEVEL_WARNING, "onnx_bindings", &env)
-      // 3. g_ort->CreateSessionOptions(&session_options)
-      // 4. Configure each execution provider from _executionProviders list
-      // 5. g_ort->SetSessionGraphOptimizationLevel(session_options, ORT_ENABLE_ALL)
-      // 6. g_ort->EnableMemPattern(session_options)
-
       _initialized = true;
-      _runStartupSelfTest();
     } catch (e) {
       throw ONNXInitializationException('Failed to load ONNX Runtime: $e');
     }
@@ -236,75 +241,125 @@ class ONNXBindings extends NativeResource {
     throw UnsupportedError('Platform not supported');
   }
 
+  /// Check ONNX Runtime status and throw if error
+  void _checkStatus(Pointer<OrtStatus> status) {
+    if (status == nullptr) return; // Success
+
+    final getErrorMessage = _api!
+        .getFunction<GetErrorMessageNative>(OrtApiIndex.GetErrorMessage)
+        .asFunction<GetErrorMessageDart>();
+    final releaseStatus = _api!
+        .getFunction<ReleaseStatusNative>(OrtApiIndex.ReleaseStatus)
+        .asFunction<ReleaseStatusDart>();
+
+    final msgPtr = getErrorMessage(status);
+    final message = msgPtr != nullptr ? msgPtr.toDartString() : 'Unknown ONNX Runtime error';
+    releaseStatus(status);
+    throw ONNXInferenceException(message);
+  }
+
   /// Load an ONNX model with caching
-  ///
-  /// Uses LRU caching strategy to keep frequently used models in memory.
-  /// Automatically evicts least recently used sessions when cache is full.
-  ///
-  /// Implementation Plan:
-  /// 1. Check if model already cached (return early if so)
-  /// 2. If cache full (_loadedSessions.length >= _maxCachedSessions):
-  ///    - Find LRU session from _sessionAccessOrder
-  ///    - Call disposeSession() on it
-  ///    - Remove from cache and access order
-  /// 3. Create new session:
-  ///    - g_ort->CreateSession(env, modelPath, session_options, &session)
-  ///    - Query input/output info via GetSessionInputCount/OutputCount
-  ///    - For each input/output: GetSessionInputName, GetSessionInputTypeInfo
-  ///    - Extract tensor shape and data type
-  /// 4. Build _LoadedSession with metadata
-  /// 5. Add to cache and update access order
   Future<void> loadModel(String modelPath) async {
     _ensureInitialized();
 
-    // Check cache and update access order
     if (_loadedSessions.containsKey(modelPath)) {
       _updateAccessOrder(modelPath);
       return;
     }
 
-    // Validate model file exists
     final modelFile = File(modelPath);
     if (!modelFile.existsSync()) {
       throw ONNXModelLoadException('Model file not found: $modelPath');
     }
 
-    // Evict LRU session if cache is full
     if (_loadedSessions.length >= _maxCachedSessions) {
       await _evictLRUSession();
     }
 
     try {
-      final modelBytes = await modelFile.readAsBytes();
-      final options = ort.OrtSessionOptions()
-        ..setSessionGraphOptimizationLevel(
-          ort.GraphOptimizationLevel.ortEnableAll,
-        )
-        ..setIntraOpNumThreads(0)
-        ..appendCPUProvider(ort.CPUFlags.useArena);
-      final ortSession = ort.OrtSession.fromBuffer(modelBytes, options);
+      // Create session options
+      final optionsPtr = calloc<Pointer<OrtSessionOptions>>();
+      final createOptions = _api!
+          .getFunction<CreateSessionOptionsNative>(OrtApiIndex.CreateSessionOptions)
+          .asFunction<CreateSessionOptionsDart>();
+
+      var status = createOptions(optionsPtr);
+      _checkStatus(status);
+      final options = optionsPtr.value;
+      calloc.free(optionsPtr);
+
+      // Set optimization level
+      final setOptLevel = _api!
+          .getFunction<SetSessionGraphOptimizationLevelNative>(
+              OrtApiIndex.SetSessionGraphOptimizationLevel)
+          .asFunction<SetSessionGraphOptimizationLevelDart>();
+      status = setOptLevel(options, GraphOptimizationLevel.ORT_ENABLE_ALL);
+      _checkStatus(status);
+
+      // Set thread count (0 = auto)
+      final setThreads = _api!
+          .getFunction<SetIntraOpNumThreadsNative>(OrtApiIndex.SetIntraOpNumThreads)
+          .asFunction<SetIntraOpNumThreadsDart>();
+      status = setThreads(options, 0);
+      _checkStatus(status);
+
+      // Create session from file - use wide string on Windows
+      final sessionPtr = calloc<Pointer<OrtSession>>();
+      final modelPathNative = modelPath.toNativeUtf16();
+      try {
+        final createSession = _api!
+            .getFunction<CreateSessionNative>(OrtApiIndex.CreateSession)
+            .asFunction<CreateSessionDart>();
+
+        status = createSession(_env!, modelPathNative, options, sessionPtr);
+        _checkStatus(status);
+      } finally {
+        calloc.free(modelPathNative);
+      }
+
+      final ortSession = sessionPtr.value;
+      calloc.free(sessionPtr);
+
+      if (ortSession == nullptr) {
+        throw ONNXModelLoadException('CreateSession returned null session');
+      }
+
+      // Get input/output names (try FFI, fallback to model-specific defaults)
+      var inputNames = _getInputNames(ortSession);
+      var outputNames = _getOutputNames(ortSession);
+      
+      // Use model-specific defaults if FFI retrieval fails
+      if (inputNames.isEmpty) {
+        inputNames = [_getDefaultInputName(modelPath)];
+      }
+      if (outputNames.isEmpty) {
+        outputNames = [_getDefaultOutputName(modelPath)];
+      }
+
+      final inferredSize = _inferInputImageSize(modelPath);
+      final inferredClassCount = _inferClassCount(modelPath);
 
       final session = _LoadedSession(
         path: modelPath,
         loadedAt: DateTime.now(),
         executionProvider: _executionProviders.first,
-        options: options,
-        ortSession: ortSession,
+        optionsPtr: options,
+        sessionPtr: ortSession,
+        inputNames: inputNames,
+        outputNames: outputNames,
       );
 
-      final inferredSize = _inferInputImageSize(modelPath);
-      final inferredClassCount = _inferClassCount(modelPath);
       session
         ..inputInfo = <ONNXTensorInfo>[
           ONNXTensorInfo(
-            name: ortSession.inputNames.first,
+            name: inputNames.first,
             shape: <int>[1, 3, inferredSize.$1, inferredSize.$2],
             dataType: 'float32',
           ),
         ]
         ..outputInfo = <ONNXTensorInfo>[
           ONNXTensorInfo(
-            name: ortSession.outputNames.first,
+            name: outputNames.first,
             shape: <int>[1, inferredClassCount],
             dataType: 'float32',
           ),
@@ -317,6 +372,108 @@ class ONNXBindings extends NativeResource {
     }
   }
 
+  List<String> _getInputNames(Pointer<OrtSession> session) {
+    final names = <String>[];
+    final countPtr = calloc<Size>();
+    
+    try {
+      // Get input count
+      final getInputCount = _api!
+          .getFunction<SessionGetInputCountNative>(OrtApiIndex.SessionGetInputCount)
+          .asFunction<SessionGetInputCountDart>();
+      final countStatus = getInputCount(session, countPtr);
+      _checkStatus(countStatus);
+      
+      final count = countPtr.value;
+      
+      if (count == 0) {
+        return names;
+      }
+      
+      // Get each input name
+      final getInputName = _api!
+          .getFunction<SessionGetInputNameNative>(OrtApiIndex.SessionGetInputName)
+          .asFunction<SessionGetInputNameDart>();
+      final freeAllocator = _api!
+          .getFunction<AllocatorFreeNative>(OrtApiIndex.AllocatorFree)
+          .asFunction<AllocatorFreeDart>();
+      
+      for (var i = 0; i < count; i++) {
+        final namePtr = calloc<Pointer<Utf8>>();
+        try {
+          final nameStatus = getInputName(session, i, _allocator!, namePtr);
+          _checkStatus(nameStatus);
+          
+          if (namePtr.value != nullptr) {
+            final name = namePtr.value.toDartString();
+            names.add(name);
+            // Free the string allocated by ONNX Runtime
+            freeAllocator(_allocator!, namePtr.value.cast<Void>());
+          }
+        } finally {
+          calloc.free(namePtr);
+        }
+      }
+    } catch (e) {
+      // Return empty list on error - caller will use model-specific defaults
+    } finally {
+      calloc.free(countPtr);
+    }
+    
+    return names;
+  }
+
+  List<String> _getOutputNames(Pointer<OrtSession> session) {
+    final names = <String>[];
+    final countPtr = calloc<Size>();
+    
+    try {
+      // Get output count
+      final getOutputCount = _api!
+          .getFunction<SessionGetOutputCountNative>(OrtApiIndex.SessionGetOutputCount)
+          .asFunction<SessionGetOutputCountDart>();
+      final countStatus = getOutputCount(session, countPtr);
+      _checkStatus(countStatus);
+      
+      final count = countPtr.value;
+      
+      if (count == 0) {
+        return names;
+      }
+      
+      // Get each output name
+      final getOutputName = _api!
+          .getFunction<SessionGetOutputNameNative>(OrtApiIndex.SessionGetOutputName)
+          .asFunction<SessionGetOutputNameDart>();
+      final freeAllocator = _api!
+          .getFunction<AllocatorFreeNative>(OrtApiIndex.AllocatorFree)
+          .asFunction<AllocatorFreeDart>();
+      
+      for (var i = 0; i < count; i++) {
+        final namePtr = calloc<Pointer<Utf8>>();
+        try {
+          final nameStatus = getOutputName(session, i, _allocator!, namePtr);
+          _checkStatus(nameStatus);
+          
+          if (namePtr.value != nullptr) {
+            final name = namePtr.value.toDartString();
+            names.add(name);
+            // Free the string allocated by ONNX Runtime
+            freeAllocator(_allocator!, namePtr.value.cast<Void>());
+          }
+        } finally {
+          calloc.free(namePtr);
+        }
+      }
+    } catch (e) {
+      // Return empty list on error - caller will use model-specific defaults
+    } finally {
+      calloc.free(countPtr);
+    }
+    
+    return names;
+  }
+
   void _updateAccessOrder(String modelPath) {
     _sessionAccessOrder
       ..remove(modelPath)
@@ -325,34 +482,31 @@ class ONNXBindings extends NativeResource {
 
   Future<void> _evictLRUSession() async {
     if (_sessionAccessOrder.isEmpty) return;
-
     final lruPath = _sessionAccessOrder.removeAt(0);
     await disposeSession(lruPath);
   }
 
-  /// Unload an ONNX model from cache
   void unloadModel(String modelPath) {
     disposeSession(modelPath);
   }
 
-  /// Dispose of a specific session and free resources
-  ///
-  /// Implementation Plan:
-  /// 1. Get session from cache
-  /// 2. Call g_ort->ReleaseSession(session) to free native memory
-  /// 3. Release any allocated tensors
-  /// 4. Remove from cache and access order
   Future<void> disposeSession(String modelPath) async {
     final session = _loadedSessions.remove(modelPath);
     _sessionAccessOrder.remove(modelPath);
 
     if (session == null) return;
 
-    session.ortSession.release();
-    session.options.release();
+    final releaseSession = _api!
+        .getFunction<ReleaseSessionNative>(OrtApiIndex.ReleaseSession)
+        .asFunction<ReleaseSessionDart>();
+    final releaseOptions = _api!
+        .getFunction<ReleaseSessionOptionsNative>(OrtApiIndex.ReleaseSessionOptions)
+        .asFunction<ReleaseSessionOptionsDart>();
+
+    releaseSession(session.sessionPtr);
+    releaseOptions(session.optionsPtr);
   }
 
-  /// Dispose all cached sessions
   Future<void> disposeAllSessions() async {
     final paths = List<String>.from(_loadedSessions.keys);
     for (final path in paths) {
@@ -361,14 +515,10 @@ class ONNXBindings extends NativeResource {
     _sessionAccessOrder.clear();
   }
 
-  /// Get information about a loaded session
-  ///
-  /// Returns null if the session is not loaded.
   ONNXSessionInfo? getSessionInfo(String modelPath) {
     final session = _loadedSessions[modelPath];
     if (session == null) return null;
 
-    // Build session info from cached metadata
     return ONNXSessionInfo(
       modelPath: session.path,
       executionProvider: session.executionProvider,
@@ -379,19 +529,6 @@ class ONNXBindings extends NativeResource {
     );
   }
 
-  /// Warm up a model by running a dummy inference
-  ///
-  /// This pre-compiles kernels and allocates memory, reducing
-  /// latency for the first real inference request.
-  ///
-  /// Implementation Plan:
-  /// 1. Ensure model is loaded
-  /// 2. Create dummy input tensor matching model input shape
-  ///    - Fill with zeros or random values
-  /// 3. Run inference with dummy data
-  /// 4. Discard output (we only care about warming up)
-  /// 5. Mark session as warmed up
-  /// 6. Log warmup time for diagnostics
   Future<Duration> warmup(String modelPath) async {
     _ensureInitialized();
 
@@ -401,7 +538,7 @@ class ONNXBindings extends NativeResource {
 
     final session = _loadedSessions[modelPath]!;
     if (session.warmedUp) {
-      return Duration.zero; // Already warmed up
+      return Duration.zero;
     }
 
     final stopwatch = Stopwatch()..start();
@@ -424,10 +561,6 @@ class ONNXBindings extends NativeResource {
     }
   }
 
-  // ============ Inference Mutex ============
-
-  /// Serialize all inference calls through the mutex to prevent
-  /// concurrent GPU access regardless of async patterns.
   Future<T> _withInferenceLock<T>(Future<T> Function() fn) async {
     await _inferenceMutex.acquire();
     try {
@@ -437,32 +570,6 @@ class ONNXBindings extends NativeResource {
     }
   }
 
-  // ============ Classification Inference ============
-
-  /// Run classification inference on image data
-  ///
-  /// Returns detection scores appropriate for each model type:
-  /// - NSFW models: porn, sexy, hentai, drawings, neutral scores
-  /// - Violence models: violent, non_violent scores
-  /// - Blood models: blood, no_blood scores
-  /// - Weapons models: weapon, no_weapon scores
-  ///
-  /// TODO: Replace with actual FFI implementation:
-  /// 1. Ensure model loaded (auto-load if not)
-  /// 2. Update session access order for LRU tracking
-  /// 3. Validate input dimensions match model input shape
-  /// 4. Pre-process input:
-  ///    - Convert RGB bytes to Float32
-  ///    - Normalize to [0, 1] or [-1, 1] based on model requirements
-  ///    - Apply mean/std normalization if needed
-  ///    - Reshape to NCHW or NHWC based on model
-  /// 5. Create input OrtValue tensor
-  /// 6. Run inference:
-  ///    - g_ort->Run(session, null, input_names, &input_tensor, 1, output_names, 1, &output_tensor)
-  /// 7. Extract output values from output tensor
-  /// 8. Apply softmax if needed
-  /// 9. Map output values to class labels
-  /// 10. Release tensors and return results
   Future<Map<String, double>> runInference(
     String modelPath,
     List<int> rgbData,
@@ -486,10 +593,6 @@ class ONNXBindings extends NativeResource {
     }
   }
 
-  /// Run model inference and return detection scores
-  ///
-  /// Uses image data characteristics (variance) to generate
-  /// slightly varied but consistent results based on model type.
   Map<String, double> _runModelInference(
     String modelPath,
     List<int> rgbData,
@@ -541,14 +644,6 @@ class ONNXBindings extends NativeResource {
     }
   }
 
-  void _runStartupSelfTest() {
-    if (!_executionProviders.contains('CPUExecutionProvider')) {
-      throw ONNXInitializationException(
-        'CPUExecutionProvider is required for ONNX runtime startup',
-      );
-    }
-  }
-
   Map<String, double> _runOrtNsfwInference(
     _LoadedSession session,
     List<int> rgbData,
@@ -587,7 +682,9 @@ class ONNXBindings extends NativeResource {
         ..inputLayout = expected.layout
         ..inputInfo = <ONNXTensorInfo>[
           ONNXTensorInfo(
-            name: session.ortSession.inputNames.first,
+            name: session.inputNames.isNotEmpty 
+                ? session.inputNames.first 
+                : _getDefaultInputName(session.path),
             shape: expected.layout == _InputLayout.nchw
                 ? <int>[1, 3, expected.height, expected.width]
                 : <int>[1, expected.height, expected.width, 3],
@@ -632,40 +729,218 @@ class ONNXBindings extends NativeResource {
         ? <int>[1, 3, targetHeight, targetWidth]
         : <int>[1, targetHeight, targetWidth, 3];
 
-    final inputTensor = ort.OrtValueTensor.createTensorWithDataList(
-      input,
-      inputShape,
-    );
-    final runOptions = ort.OrtRunOptions();
-    var outputs = const <ort.OrtValue?>[];
-    try {
-      outputs = session.ortSession.run(
-        runOptions,
-        <String, ort.OrtValue>{
-          session.ortSession.inputNames.first: inputTensor,
-        },
+    // Run inference using FFI
+    final outputs = _runSession(session, input, inputShape);
+    
+    if (outputs.isEmpty) {
+      throw ONNXInferenceException('NSFW model produced no output');
+    }
+
+    final flattened = outputs;
+    if (flattened.length != _canonicalNsfwLabels.length) {
+      throw ONNXInferenceException(
+        'Unexpected NSFW output size: ${flattened.length} (expected ${_canonicalNsfwLabels.length})',
       );
-      if (outputs.isEmpty || outputs.first is! ort.OrtValueTensor) {
-        throw ONNXInferenceException('NSFW model produced no tensor output');
+    }
+    
+    final mapped = <String, double>{};
+    for (var i = 0; i < _canonicalNsfwLabels.length; i++) {
+      mapped[_canonicalNsfwLabels[i]] = flattened[i];
+    }
+    return mapped;
+  }
+
+  /// Run ONNX session inference using FFI
+  List<double> _runSession(
+    _LoadedSession session,
+    Float32List inputData,
+    List<int> inputShape,
+  ) {
+    // Create memory info for CPU
+    final memInfoPtr = calloc<Pointer<OrtMemoryInfo>>();
+    final createMemInfo = _api!
+        .getFunction<CreateCpuMemoryInfoNative>(OrtApiIndex.CreateCpuMemoryInfo)
+        .asFunction<CreateCpuMemoryInfoDart>();
+    
+    var status = createMemInfo(
+      OrtAllocatorType.OrtArenaAllocator,
+      OrtMemType.OrtMemTypeDefault,
+      memInfoPtr,
+    );
+    _checkStatus(status);
+    final memInfo = memInfoPtr.value;
+    calloc.free(memInfoPtr);
+
+    // Allocate native memory for input data
+    final dataPtr = calloc<Float>(inputData.length);
+    for (var i = 0; i < inputData.length; i++) {
+      dataPtr[i] = inputData[i];
+    }
+
+    // Allocate shape array
+    final shapePtr = calloc<Int64>(inputShape.length);
+    for (var i = 0; i < inputShape.length; i++) {
+      shapePtr[i] = inputShape[i];
+    }
+
+    // Create input tensor
+    final inputTensorPtr = calloc<Pointer<OrtValue>>();
+    final createTensor = _api!
+        .getFunction<CreateTensorWithDataAsOrtValueNative>(
+            OrtApiIndex.CreateTensorWithDataAsOrtValue)
+        .asFunction<CreateTensorWithDataAsOrtValueDart>();
+
+    status = createTensor(
+      memInfo,
+      dataPtr.cast<Void>(),
+      inputData.length * 4, // Float32 = 4 bytes
+      shapePtr,
+      inputShape.length,
+      ONNXTensorElementDataType.ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT,
+      inputTensorPtr,
+    );
+    _checkStatus(status);
+    final inputTensor = inputTensorPtr.value;
+
+    // Create run options
+    final runOptionsPtr = calloc<Pointer<OrtRunOptions>>();
+    final createRunOptions = _api!
+        .getFunction<CreateRunOptionsNative>(OrtApiIndex.CreateRunOptions)
+        .asFunction<CreateRunOptionsDart>();
+    status = createRunOptions(runOptionsPtr);
+    _checkStatus(status);
+    final runOptions = runOptionsPtr.value;
+
+    // Prepare input/output name arrays
+    // session.inputNames/outputNames should always have values from loadModel,
+    // but use model-specific defaults as extra safety
+    final inputName = session.inputNames.isNotEmpty
+        ? session.inputNames.first
+        : _getDefaultInputName(session.path);
+    final outputName = session.outputNames.isNotEmpty
+        ? session.outputNames.first
+        : _getDefaultOutputName(session.path);
+
+    final inputNamePtr = inputName.toNativeUtf8();
+    final outputNamePtr = outputName.toNativeUtf8();
+    final inputNamesArray = calloc<Pointer<Utf8>>(1);
+    final outputNamesArray = calloc<Pointer<Utf8>>(1);
+    inputNamesArray[0] = inputNamePtr;
+    outputNamesArray[0] = outputNamePtr;
+
+    final inputsArray = calloc<Pointer<OrtValue>>(1);
+    inputsArray[0] = inputTensor;
+
+    final outputsArray = calloc<Pointer<OrtValue>>(1);
+    outputsArray[0] = nullptr;
+
+    try {
+      // Run inference
+      final run = _api!
+          .getFunction<RunNative>(OrtApiIndex.Run)
+          .asFunction<RunDart>();
+
+      status = run(
+        session.sessionPtr,
+        runOptions,
+        inputNamesArray,
+        inputsArray,
+        1,
+        outputNamesArray,
+        1,
+        outputsArray,
+      );
+      _checkStatus(status);
+
+      // Extract output data
+      final outputTensor = outputsArray[0];
+      final outputDataPtr = calloc<Pointer<Void>>();
+      final getTensorData = _api!
+          .getFunction<GetTensorMutableDataNative>(OrtApiIndex.GetTensorMutableData)
+          .asFunction<GetTensorMutableDataDart>();
+      status = getTensorData(outputTensor, outputDataPtr);
+      _checkStatus(status);
+
+      // Get output shape to determine size
+      final shapeInfoPtr = calloc<Pointer<OrtTensorTypeAndShapeInfo>>();
+      final getShapeInfo = _api!
+          .getFunction<GetTensorTypeAndShapeNative>(OrtApiIndex.GetTensorTypeAndShape)
+          .asFunction<GetTensorTypeAndShapeDart>();
+      status = getShapeInfo(outputTensor, shapeInfoPtr);
+      _checkStatus(status);
+
+      final dimCountPtr = calloc<Size>();
+      final getDimCount = _api!
+          .getFunction<GetDimensionsCountNative>(OrtApiIndex.GetDimensionsCount)
+          .asFunction<GetDimensionsCountDart>();
+      status = getDimCount(shapeInfoPtr.value, dimCountPtr);
+      _checkStatus(status);
+
+      final dimCount = dimCountPtr.value;
+      final dimsPtr = calloc<Int64>(dimCount);
+      final getDims = _api!
+          .getFunction<GetDimensionsNative>(OrtApiIndex.GetDimensions)
+          .asFunction<GetDimensionsDart>();
+      status = getDims(shapeInfoPtr.value, dimsPtr, dimCount);
+      _checkStatus(status);
+
+      var outputSize = 1;
+      for (var i = 0; i < dimCount; i++) {
+        outputSize *= dimsPtr[i];
       }
-      final raw = (outputs.first! as ort.OrtValueTensor).value;
-      final flattened = _flattenNumericTensor(raw);
-      if (flattened.length != _canonicalNsfwLabels.length) {
-        throw ONNXInferenceException(
-          'Unexpected NSFW output size: ${flattened.length} (expected ${_canonicalNsfwLabels.length})',
-        );
+
+      // Copy output data
+      final outputFloats = outputDataPtr.value.cast<Float>();
+      final results = <double>[];
+      for (var i = 0; i < outputSize; i++) {
+        results.add(outputFloats[i]);
       }
-      final mapped = <String, double>{};
-      for (var i = 0; i < _canonicalNsfwLabels.length; i++) {
-        mapped[_canonicalNsfwLabels[i]] = flattened[i];
-      }
-      return mapped;
+
+      // Release shape info
+      final releaseShapeInfo = _api!
+          .getFunction<ReleaseTensorTypeAndShapeInfoNative>(
+              OrtApiIndex.ReleaseTensorTypeAndShapeInfo)
+          .asFunction<ReleaseTensorTypeAndShapeInfoDart>();
+      releaseShapeInfo(shapeInfoPtr.value);
+
+      calloc.free(shapeInfoPtr);
+      calloc.free(dimCountPtr);
+      calloc.free(dimsPtr);
+      calloc.free(outputDataPtr);
+
+      // Release output tensor
+      final releaseValue = _api!
+          .getFunction<ReleaseValueNative>(OrtApiIndex.ReleaseValue)
+          .asFunction<ReleaseValueDart>();
+      releaseValue(outputTensor);
+
+      return results;
     } finally {
-      runOptions.release();
-      inputTensor.release();
-      for (final output in outputs) {
-        output?.release();
-      }
+      // Cleanup
+      final releaseValue = _api!
+          .getFunction<ReleaseValueNative>(OrtApiIndex.ReleaseValue)
+          .asFunction<ReleaseValueDart>();
+      final releaseRunOptions = _api!
+          .getFunction<ReleaseRunOptionsNative>(OrtApiIndex.ReleaseRunOptions)
+          .asFunction<ReleaseRunOptionsDart>();
+      final releaseMemInfo = _api!
+          .getFunction<ReleaseMemoryInfoNative>(OrtApiIndex.ReleaseMemoryInfo)
+          .asFunction<ReleaseMemoryInfoDart>();
+
+      releaseValue(inputTensor);
+      releaseRunOptions(runOptions);
+      releaseMemInfo(memInfo);
+
+      calloc.free(inputTensorPtr);
+      calloc.free(runOptionsPtr);
+      calloc.free(inputNamePtr);
+      calloc.free(outputNamePtr);
+      calloc.free(inputNamesArray);
+      calloc.free(outputNamesArray);
+      calloc.free(inputsArray);
+      calloc.free(outputsArray);
+      calloc.free(dataPtr);
+      calloc.free(shapePtr);
     }
   }
 
@@ -761,26 +1036,6 @@ class ONNXBindings extends NativeResource {
     return null;
   }
 
-  List<double> _flattenNumericTensor(Object? value) {
-    final flattened = <double>[];
-    void collect(Object? node) {
-      if (node is num) {
-        flattened.add(node.toDouble());
-        return;
-      }
-      if (node is List) {
-        node.forEach(collect);
-        return;
-      }
-      throw ONNXInferenceException(
-        'Unsupported output tensor node: ${node.runtimeType}',
-      );
-    }
-
-    collect(value);
-    return flattened;
-  }
-
   (int, int) _inferInputImageSize(String modelPath) {
     final lower = modelPath.toLowerCase();
     if (lower.contains('299') || lower.contains('inception')) {
@@ -797,7 +1052,6 @@ class ONNXBindings extends NativeResource {
     return 2;
   }
 
-  /// Infer model type from model path/name
   _ModelType _inferModelType(String modelPath) {
     final lowerPath = modelPath.toLowerCase();
 
@@ -819,15 +1073,61 @@ class ONNXBindings extends NativeResource {
     return _ModelType.unknown;
   }
 
-  /// Compute a simple variance metric from image data
-  ///
-  /// Used to add realistic variation to simulated inference results.
-  /// The variance makes the same image return consistent results while
-  /// different images return slightly different scores.
+  /// Get model-specific default input name based on model type
+  String _getDefaultInputName(String modelPath) {
+    final lowerPath = modelPath.toLowerCase();
+    
+    // ViT-based models (HuggingFace transformers) use 'pixel_values'
+    // This includes: onnx-community/nsfw-image-detector-ONNX
+    if (lowerPath.contains('vit') || 
+        lowerPath.contains('model_fp16') || 
+        lowerPath.contains('model_int8') ||
+        lowerPath.contains('onnx-community') ||
+        lowerPath.contains('nsfw-onnx-community') ||
+        lowerPath.contains('nsfw-image-detector')) {
+      return 'pixel_values';
+    }
+    
+    // MobileNet-v2 models (typical NSFW.js style)
+    if (lowerPath.contains('mobilenet')) {
+      return 'input_1';
+    }
+    
+    // Inception models
+    if (lowerPath.contains('inception')) {
+      return 'input_1';
+    }
+    
+    // Default fallback
+    return 'input';
+  }
+
+  /// Get model-specific default output name based on model type
+  String _getDefaultOutputName(String modelPath) {
+    final lowerPath = modelPath.toLowerCase();
+    
+    // ViT-based models use 'logits'
+    if (lowerPath.contains('vit') || 
+        lowerPath.contains('model_fp16') || 
+        lowerPath.contains('model_int8') ||
+        lowerPath.contains('onnx-community') ||
+        lowerPath.contains('nsfw-onnx-community') ||
+        lowerPath.contains('nsfw-image-detector')) {
+      return 'logits';
+    }
+    
+    // MobileNet/Inception models typically use 'output' or 'Identity'
+    if (lowerPath.contains('mobilenet') || lowerPath.contains('inception')) {
+      return 'output';
+    }
+    
+    // Default fallback
+    return 'output';
+  }
+
   double _computeImageVariance(List<int> rgbData, int width, int height) {
     if (rgbData.isEmpty) return 0.5;
 
-    // Sample pixels for efficiency
     final sampleSize = (rgbData.length / 100).clamp(10, 1000).toInt();
     final step = rgbData.length ~/ sampleSize;
 
@@ -847,32 +1147,9 @@ class ONNXBindings extends NativeResource {
     final mean = sum / count;
     final variance = (sumSq / count) - (mean * mean);
 
-    // Normalize variance to [0, 1] range
     return (variance / 16384).clamp(0.0, 1.0);
   }
 
-  /// Run batch inference on multiple images
-  ///
-  /// More efficient than calling runInference multiple times as it
-  /// batches inputs into a single inference call when possible.
-  ///
-  /// [batchSize] Maximum number of images to process in single inference.
-  /// If null, processes all images in one batch (memory permitting).
-  ///
-  /// Implementation Plan:
-  /// 1. Validate all inputs have same dimensions
-  /// 2. Determine optimal batch size based on:
-  ///    - Available GPU memory
-  ///    - Model input shape constraints
-  ///    - Provided batchSize parameter
-  /// 3. Split inputs into batches
-  /// 4. For each batch:
-  ///    - Stack inputs along batch dimension (NCHW format)
-  ///    - Create batched input tensor
-  ///    - Run single inference call
-  ///    - Split batch outputs back to individual results
-  /// 5. Concatenate all batch results
-  /// 6. Return results in original input order
   Future<List<Map<String, double>>> runBatchInference(
     String modelPath,
     List<List<int>> rgbDataList,
@@ -891,18 +1168,10 @@ class ONNXBindings extends NativeResource {
     final results = <Map<String, double>>[];
 
     try {
-      // Process in batches
       for (var i = 0; i < rgbDataList.length; i += effectiveBatchSize) {
         final batchEnd = (i + effectiveBatchSize).clamp(0, rgbDataList.length);
         final batch = rgbDataList.sublist(i, batchEnd);
 
-        // FFI Implementation Plan:
-        // 1. Create batched input tensor with shape [batch.length, 3, height, width]
-        // 2. Copy all batch images into single contiguous buffer
-        // 3. Run inference with batched input
-        // 4. Extract batch outputs and split into individual results
-
-        // Placeholder: process each image individually
         for (final rgbData in batch) {
           final result = await runInference(modelPath, rgbData, width, height);
           results.add(result);
@@ -915,22 +1184,6 @@ class ONNXBindings extends NativeResource {
     }
   }
 
-  // ============ Object Detection Inference ============
-
-  /// Run object detection inference (YOLOv8 format)
-  ///
-  /// Preprocesses with letterbox padding, runs inference, and performs
-  /// per-class NMS on the output.
-  ///
-  /// [modelPath] Path to the ONNX detection model
-  /// [rgbData] Raw RGB pixel data
-  /// [width] Image width in pixels
-  /// [height] Image height in pixels
-  /// [classNames] Ordered list of class names matching model output indices
-  /// [confidenceThreshold] Minimum confidence to keep a detection
-  /// [iouThreshold] IoU threshold for NMS suppression
-  /// [inputSize] Model input size (default: 640 for YOLOv8)
-  /// [maxDetections] Maximum number of detections to return
   Future<DetectionResult> runDetectionInference(
     String modelPath,
     List<int> rgbData,
@@ -953,16 +1206,8 @@ class ONNXBindings extends NativeResource {
 
     try {
       final result = await _withInferenceLock(() async {
-        // Step 1: Letterbox preprocess
         final letterboxed = _letterbox(rgbData, width, height, inputSize);
 
-        // FFI Implementation Plan:
-        // 1. Create OrtValue tensor from letterboxed.data with shape [1, 3, inputSize, inputSize]
-        // 2. Run inference: g_ort->Run(session, null, input_names, &input_tensor, 1, output_names, 1, &output_tensor)
-        // 3. Extract output tensor data
-        // 4. Process YOLOv8 output format
-
-        // Placeholder: simulate detection output
         final boxes = _simulateDetectionOutput(
           rgbData,
           width,
@@ -972,9 +1217,6 @@ class ONNXBindings extends NativeResource {
           letterboxed,
         );
 
-        // Step 2: Per-class NMS
-
-        // Step 3: Cap at maxDetections by confidence
         final nmsBoxes = _nonMaxSuppression(boxes, iouThreshold)
           ..sort((a, b) => b.confidence.compareTo(a.confidence));
         final cappedBoxes = nmsBoxes.length > maxDetections
@@ -996,7 +1238,6 @@ class ONNXBindings extends NativeResource {
     }
   }
 
-  /// Simulate detection model output for placeholder implementation
   List<DetectionBox> _simulateDetectionOutput(
     List<int> rgbData,
     int width,
@@ -1005,32 +1246,25 @@ class ONNXBindings extends NativeResource {
     double confidenceThreshold,
     _LetterboxResult letterboxed,
   ) {
-    // Use image variance for consistent pseudo-random results
     final variance = _computeImageVariance(rgbData, width, height);
     final random = Random(variance.hashCode);
 
-    // Simulate mostly clean frames (no detections)
-    // ~5% chance of generating a detection for simulation purposes
     if (random.nextDouble() > 0.05) {
       return [];
     }
 
-    // Generate 1-2 simulated detections
     final numDetections = random.nextInt(2) + 1;
     final boxes = <DetectionBox>[];
 
     for (var i = 0; i < numDetections; i++) {
       final classId = random.nextInt(classNames.length);
-      final confidence =
-          (random.nextDouble() * 0.4 + 0.3).clamp(0.0, 1.0); // 0.3-0.7
+      final confidence = (random.nextDouble() * 0.4 + 0.3).clamp(0.0, 1.0);
 
       if (confidence < confidenceThreshold) continue;
 
-      // Random box position (normalized)
-      final x = random.nextDouble() * 0.6; // Keep within bounds
+      final x = random.nextDouble() * 0.6;
       final y = random.nextDouble() * 0.6;
-      final w =
-          (random.nextDouble() * 0.3 + 0.05).clamp(0.0, 1.0 - x); // 5-35% width
+      final w = (random.nextDouble() * 0.3 + 0.05).clamp(0.0, 1.0 - x);
       final h = (random.nextDouble() * 0.3 + 0.05).clamp(0.0, 1.0 - y);
 
       boxes.add(
@@ -1049,20 +1283,6 @@ class ONNXBindings extends NativeResource {
     return boxes;
   }
 
-  // ============ Embedding Inference (CLIP) ============
-
-  /// Run embedding inference for CLIP-style models
-  ///
-  /// For vision encoder: preprocesses with CLIP normalization (center crop +
-  /// mean/std), runs inference, L2-normalizes the output.
-  ///
-  /// For text encoder: takes pre-tokenized Int32 tensor, runs inference,
-  /// L2-normalizes the output.
-  ///
-  /// [modelPath] Path to the ONNX embedding model
-  /// [inputData] Float32List for vision or Int32List for text
-  /// [inputShape] Tensor shape (e.g., [1, 3, 224, 224] for vision, [1, 77] for text)
-  /// [isVisionModel] If true, input is image data requiring CLIP preprocessing
   Future<List<double>> runEmbeddingInference(
     String modelPath, {
     List<int>? rgbData,
@@ -1086,30 +1306,11 @@ class ONNXBindings extends NativeResource {
               'Vision model requires rgbData, width, and height',
             );
           }
-
-          // Step 1: CLIP preprocessing (center crop + normalize)
-          // FFI Implementation Plan:
-          // 1. Create OrtValue tensor from preprocessed with shape [1, 3, 224, 224]
-          // 2. Run inference: g_ort->Run(session, ...)
-          // 3. Extract 512-dim output vector
-          // 4. L2-normalize
-
-          // Placeholder: simulate 512-dim embedding
           return _simulateEmbedding(rgbData, width, height);
         } else {
           if (tokenIds == null) {
-            throw ONNXInferenceException(
-              'Text model requires tokenIds',
-            );
+            throw ONNXInferenceException('Text model requires tokenIds');
           }
-
-          // FFI Implementation Plan:
-          // 1. Create OrtValue tensor from tokenIds with shape [1, 77]
-          // 2. Run inference
-          // 3. Extract 512-dim output vector
-          // 4. L2-normalize
-
-          // Placeholder: simulate 512-dim text embedding
           return _simulateTextEmbedding(tokenIds);
         }
       });
@@ -1119,32 +1320,23 @@ class ONNXBindings extends NativeResource {
     }
   }
 
-  /// Simulate a 512-dim vision embedding
   List<double> _simulateEmbedding(List<int> rgbData, int width, int height) {
     final variance = _computeImageVariance(rgbData, width, height);
     final random = Random(variance.hashCode);
-
-    // Generate 512-dim pseudo-random embedding
     final embedding = List.generate(512, (_) => random.nextDouble() * 2 - 1);
-
-    // L2-normalize
     return _l2Normalize(embedding);
   }
 
-  /// Simulate a 512-dim text embedding
   List<double> _simulateTextEmbedding(Int32List tokenIds) {
-    // Use token content for deterministic output
     var seed = 0;
     for (final id in tokenIds) {
       seed = seed * 31 + id;
     }
     final random = Random(seed);
-
     final embedding = List.generate(512, (_) => random.nextDouble() * 2 - 1);
     return _l2Normalize(embedding);
   }
 
-  /// L2-normalize an embedding vector
   List<double> _l2Normalize(List<double> embedding) {
     var norm = 0.0;
     for (final v in embedding) {
@@ -1152,49 +1344,33 @@ class ONNXBindings extends NativeResource {
     }
     norm = sqrt(norm);
     if (norm < 1e-12) return embedding;
-
     return embedding.map((v) => v / norm).toList();
   }
 
-  // ============ Preprocessing Helpers ============
-
-  /// Letterbox preprocessing for object detection models
-  ///
-  /// Resizes the image preserving aspect ratio to fit within
-  /// [targetSize] x [targetSize], pads shorter dimension with gray
-  /// (114/255 = 0.447), and normalizes to [0, 1] in NCHW format.
-  ///
-  /// Returns letterboxed data with padding info for coordinate un-mapping.
   _LetterboxResult _letterbox(
     List<int> rgbData,
     int srcW,
     int srcH,
     int targetSize,
   ) {
-    // Compute scale to fit within targetSize while preserving aspect ratio
     final scale = min(targetSize / srcW, targetSize / srcH);
     final newW = (srcW * scale).round();
     final newH = (srcH * scale).round();
 
-    // Padding to center the resized image
     final padX = (targetSize - newW) / 2.0;
     final padY = (targetSize - newH) / 2.0;
     final padXInt = padX.round();
     final padYInt = padY.round();
 
-    // Create output buffer in NCHW format [1, 3, targetSize, targetSize]
     final output = Float32List(3 * targetSize * targetSize);
 
-    // Fill with gray padding (114/255 ≈ 0.447)
     const grayValue = 114.0 / 255.0;
     for (var i = 0; i < output.length; i++) {
       output[i] = grayValue;
     }
 
-    // Resize and place image using nearest-neighbor (bilinear for production FFI)
     for (var y = 0; y < newH; y++) {
       for (var x = 0; x < newW; x++) {
-        // Map back to source coordinates
         final srcX = (x / scale).round().clamp(0, srcW - 1);
         final srcY = (y / scale).round().clamp(0, srcH - 1);
         final srcIdx = (srcY * srcW + srcX) * 3;
@@ -1206,14 +1382,12 @@ class ONNXBindings extends NativeResource {
 
         if (destX >= targetSize || destY >= targetSize) continue;
 
-        // NCHW layout: channel * H * W + y * W + x
-        // Normalize to [0, 1]
         output[0 * targetSize * targetSize + destY * targetSize + destX] =
-            rgbData[srcIdx] / 255.0; // R
+            rgbData[srcIdx] / 255.0;
         output[1 * targetSize * targetSize + destY * targetSize + destX] =
-            rgbData[srcIdx + 1] / 255.0; // G
+            rgbData[srcIdx + 1] / 255.0;
         output[2 * targetSize * targetSize + destY * targetSize + destX] =
-            rgbData[srcIdx + 2] / 255.0; // B
+            rgbData[srcIdx + 2] / 255.0;
       }
     }
 
@@ -1225,19 +1399,12 @@ class ONNXBindings extends NativeResource {
     );
   }
 
-  // ============ NMS (Non-Maximum Suppression) ============
-
-  /// Per-class non-maximum suppression
-  ///
-  /// Groups detections by class, sorts by confidence within each class,
-  /// and greedily suppresses overlapping boxes above [iouThreshold].
   List<DetectionBox> _nonMaxSuppression(
     List<DetectionBox> boxes,
     double iouThreshold,
   ) {
     if (boxes.isEmpty) return [];
 
-    // Group by class
     final byClass = <int, List<DetectionBox>>{};
     for (final box in boxes) {
       byClass.putIfAbsent(box.classId, () => []).add(box);
@@ -1246,7 +1413,6 @@ class ONNXBindings extends NativeResource {
     final result = <DetectionBox>[];
 
     for (final classBoxes in byClass.values) {
-      // Sort by confidence descending
       classBoxes.sort((a, b) => b.confidence.compareTo(a.confidence));
 
       final kept = <DetectionBox>[];
@@ -1270,15 +1436,14 @@ class ONNXBindings extends NativeResource {
     return result;
   }
 
-  /// Compute Intersection over Union between two detection boxes
   double _computeIoU(DetectionBox a, DetectionBox b) {
     final x1 = max(a.x, b.x);
     final y1 = max(a.y, b.y);
     final x2 = min(a.x + a.width, b.x + b.width);
     final y2 = min(a.y + a.height, b.y + b.height);
 
-    final intersectionW = max(0, x2 - x1);
-    final intersectionH = max(0, y2 - y1);
+    final intersectionW = max(0.0, x2 - x1);
+    final intersectionH = max(0.0, y2 - y1);
     final intersection = intersectionW * intersectionH;
 
     final areaA = a.width * a.height;
@@ -1289,21 +1454,6 @@ class ONNXBindings extends NativeResource {
     return intersection / union;
   }
 
-  // ============ Metadata ============
-
-  /// Get model metadata
-  ///
-  /// Implementation Plan:
-  /// 1. Load model if not already loaded
-  /// 2. Query ONNX model metadata:
-  ///    - g_ort->SessionGetModelMetadata(session, &metadata)
-  ///    - g_ort->ModelMetadataGetProducerName(metadata, allocator, &name)
-  ///    - g_ort->ModelMetadataGetDescription(metadata, allocator, &desc)
-  /// 3. Query input info:
-  ///    - g_ort->SessionGetInputCount(session, &count)
-  ///    - For each: get name, type, shape
-  /// 4. Query output info similarly
-  /// 5. Build and return ONNXModelMetadata object
   Future<ONNXModelMetadata> getModelMetadata(String modelPath) async {
     _ensureInitialized();
 
@@ -1314,8 +1464,8 @@ class ONNXBindings extends NativeResource {
     final session = _loadedSessions[modelPath]!;
 
     return ONNXModelMetadata(
-      inputNames: session.inputInfo.map((i) => i.name).toList(),
-      outputNames: session.outputInfo.map((o) => o.name).toList(),
+      inputNames: session.inputNames,
+      outputNames: session.outputNames,
       inputShapes: session.inputInfo.map((i) => i.shape).toList(),
       outputShapes: session.outputInfo.map((o) => o.shape).toList(),
     );
@@ -1329,22 +1479,34 @@ class ONNXBindings extends NativeResource {
 
   @override
   void releaseNative() {
-    // Dispose all sessions synchronously
     for (final session in _loadedSessions.values) {
-      session.ortSession.release();
-      session.options.release();
+      final releaseSession = _api!
+          .getFunction<ReleaseSessionNative>(OrtApiIndex.ReleaseSession)
+          .asFunction<ReleaseSessionDart>();
+      final releaseOptions = _api!
+          .getFunction<ReleaseSessionOptionsNative>(OrtApiIndex.ReleaseSessionOptions)
+          .asFunction<ReleaseSessionOptionsDart>();
+      releaseSession(session.sessionPtr);
+      releaseOptions(session.optionsPtr);
     }
     _loadedSessions.clear();
     _sessionAccessOrder.clear();
 
-    ort.OrtEnv.instance.release();
+    if (_env != null) {
+      final releaseEnv = _api!
+          .getFunction<ReleaseEnvNative>(OrtApiIndex.ReleaseEnv)
+          .asFunction<ReleaseEnvDart>();
+      releaseEnv(_env!);
+      _env = null;
+    }
 
+    _allocator = null;
+    _api = null;
     _lib = null;
     _initialized = false;
   }
 }
 
-/// Internal enum for model type detection
 enum _ModelType {
   nsfw,
   violence,
@@ -1360,21 +1522,24 @@ class _LoadedSession {
     required this.path,
     required this.loadedAt,
     required this.executionProvider,
-    required this.options,
-    required this.ortSession,
+    required this.optionsPtr,
+    required this.sessionPtr,
+    required this.inputNames,
+    required this.outputNames,
   });
 
   final String path;
   final DateTime loadedAt;
   final String executionProvider;
-  final ort.OrtSessionOptions options;
-  final ort.OrtSession ortSession;
+  final Pointer<OrtSessionOptions> optionsPtr;
+  final Pointer<OrtSession> sessionPtr;
+  final List<String> inputNames;
+  final List<String> outputNames;
   bool warmedUp = false;
   int? inputWidth;
   int? inputHeight;
   _InputLayout inputLayout = _InputLayout.nchw;
 
-  // Placeholder input/output info - would be populated from FFI
   List<ONNXTensorInfo> inputInfo = [
     const ONNXTensorInfo(
       name: 'input',
@@ -1408,7 +1573,6 @@ class _ExpectedInputConfig {
   final _InputLayout layout;
 }
 
-/// ONNX model metadata
 class ONNXModelMetadata {
   ONNXModelMetadata({
     required this.inputNames,
@@ -1423,36 +1587,29 @@ class ONNXModelMetadata {
   final List<List<int>> outputShapes;
 }
 
-/// Exception thrown when ONNX initialization fails
 class ONNXInitializationException implements Exception {
   ONNXInitializationException(this.message);
-
   final String message;
 
   @override
   String toString() => 'ONNXInitializationException: $message';
 }
 
-/// Exception thrown when ONNX is not initialized
 class ONNXNotInitializedException implements Exception {
   @override
   String toString() => 'ONNX Runtime not initialized. Call initialize() first.';
 }
 
-/// Exception thrown when model loading fails
 class ONNXModelLoadException implements Exception {
   ONNXModelLoadException(this.message);
-
   final String message;
 
   @override
   String toString() => 'ONNXModelLoadException: $message';
 }
 
-/// Exception thrown when inference fails
 class ONNXInferenceException implements Exception {
   ONNXInferenceException(this.message);
-
   final String message;
 
   @override

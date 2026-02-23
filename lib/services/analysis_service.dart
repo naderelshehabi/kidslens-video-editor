@@ -12,8 +12,8 @@ import 'package:kidslens_video_editor/services/frame_sampling_service.dart';
 import 'package:kidslens_video_editor/services/huggingface_model_registry.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
 import 'package:kidslens_video_editor/services/nsfw_model_adapter.dart';
+import 'package:kidslens_video_editor/services/nsfw_onnx_service.dart';
 import 'package:kidslens_video_editor/services/profanity_service.dart';
-import 'package:kidslens_video_editor/services/tensorflow_nsfw_service.dart';
 import 'package:path/path.dart' as p;
 
 /// Checkpoint for resuming analysis
@@ -132,18 +132,20 @@ class AnalysisService {
     required this.ffmpeg,
     required this.whisper,
     required this.mms,
-    required this.tensorflowNsfw,
+    required this.nsfwOnnx,
     required this.modelManager,
     required this.profanity,
     this.asrService,
   });
 
-  static const int pipelineVersion = 5;
+  /// Pipeline version - increment when checkpoints become incompatible.
+  /// Bumped to 6 for ONNX migration.
+  static const int pipelineVersion = 6;
 
   final FFmpegBindings ffmpeg;
   final WhisperBindings whisper;
   final MMSBindings mms;
-  final TensorflowNsfwService tensorflowNsfw;
+  final NsfwOnnxService nsfwOnnx;
   final ModelManagerService modelManager;
   final ProfanityService profanity;
   final AsrService? asrService;
@@ -356,6 +358,7 @@ class AnalysisService {
               ? null
               : settings.modelConfig.asrLanguage,
           useGpu: settings.modelConfig.useGpu,
+          gpuDeviceIndex: settings.modelConfig.gpuDeviceIndex,
           nThreads: settings.modelConfig.cpuThreads,
           beamSize: settings.modelConfig.beamSize,
           cancelToken: cancelCompleter,
@@ -366,6 +369,7 @@ class AnalysisService {
     }
 
     if (asrModel.startsWith('whisper')) {
+      await whisper.initialize();
       final transcript = await whisper.transcribe(mediaPath, modelPath);
       await _checkState(cancellationToken);
       return transcript;
@@ -493,8 +497,26 @@ class AnalysisService {
     );
     final adapter = NsfwModelAdapter(context.spec);
 
-    final sampledFrames =
-        await sampler.sampleFrames(mediaPath, config: sampleConfig).toList();
+    final sampledFrames = <FrameData>[];
+    final mediaDurationMs = mediaDuration.inMilliseconds <= 0
+        ? 1
+        : mediaDuration.inMilliseconds;
+    var sampledCount = 0;
+    await for (final frame
+        in sampler.sampleFrames(mediaPath, config: sampleConfig)) {
+      await _checkState(cancellationToken);
+      sampledFrames.add(frame);
+      sampledCount++;
+      final processedDurationMs = frame.timestamp.inMilliseconds.clamp(
+        0,
+        mediaDurationMs,
+      );
+      yield _VisualProgressUpdate(
+        processedDurationMs: processedDurationMs,
+        itemsProcessed: sampledCount,
+        totalItems: sampledCount,
+      );
+    }
     if (sampledFrames.isEmpty) {
       yield const _VisualProgressUpdate(
         processedDurationMs: 0,
@@ -523,11 +545,12 @@ class AnalysisService {
 
       final rgbBatch =
           chunk.map((f) => f.data.toList(growable: false)).toList();
-      final rawBatch = await tensorflowNsfw.runBatchInference(
-        modelDir: p.dirname(context.modelPath),
+      final rawBatch = await nsfwOnnx.runBatchInference(
+        modelPath: context.modelPath,
         rgbDataBatch: rgbBatch,
         width: context.spec.inputWidth,
         height: context.spec.inputHeight,
+        cancellationToken: cancellationToken,
       );
 
       for (var j = 0; j < chunk.length; j++) {

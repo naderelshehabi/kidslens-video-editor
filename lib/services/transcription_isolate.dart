@@ -68,6 +68,7 @@ class TranscriptionIsolateParams {
     this.language,
     this.translateToEnglish = false,
     this.useGpu = true,
+    this.gpuDeviceIndex = 0,
     this.nThreads = 0,
     this.beamSize = 5,
   });
@@ -80,6 +81,7 @@ class TranscriptionIsolateParams {
 
   /// Whether to use GPU acceleration. Mirrors [AnalysisSettingsState.useGpuAcceleration].
   final bool useGpu;
+  final int gpuDeviceIndex;
 
   /// Number of CPU threads for inference. 0 means auto-detect.
   /// Mirrors [AnalysisSettingsState.cpuThreads].
@@ -343,7 +345,9 @@ void chunkedTranscriptionEntry(
                   ? params.nThreads.clamp(1, 32)
                   : Platform.numberOfProcessors.clamp(1, 16)
               ..useGpu = params.useGpu
-              ..gpuDevice = 0
+              ..gpuDevice = params.gpuDeviceIndex < 0
+                  ? 0
+                  : params.gpuDeviceIndex
               ..translate = params.translateToEnglish
               ..wordTimestamps = true
               ..wordThreshold = 0.01
@@ -562,7 +566,7 @@ Transcript performTranscriptionInIsolate(TranscriptionIsolateParams params) {
           ? params.nThreads.clamp(1, 32)
           : Platform.numberOfProcessors.clamp(1, 16)
       ..useGpu = params.useGpu
-      ..gpuDevice = 0
+      ..gpuDevice = params.gpuDeviceIndex < 0 ? 0 : params.gpuDeviceIndex
       ..translate = params.translateToEnglish
       ..wordTimestamps = true
       ..wordThreshold = 0.01

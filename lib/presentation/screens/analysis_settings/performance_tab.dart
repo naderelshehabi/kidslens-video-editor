@@ -22,6 +22,7 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
   /// System capabilities detected from actual hardware
   SystemCapabilities? _systemCapabilities;
   GpuInfoDetails? _gpuDetails;
+  List<CudaGpuDevice> _cudaDevices = const [];
   bool _isLoadingCapabilities = true;
 
   @override
@@ -39,6 +40,7 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
 
       // Get detailed GPU info
       final gpuDetails = await gpuManager.getGpuInfo();
+      final cudaDevices = await gpuManager.getCudaDevices();
 
       // Get system info
       final cpuCores = Platform.numberOfProcessors;
@@ -52,8 +54,24 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
       final executionProviders = gpuManager.getOnnxExecutionProviders();
 
       if (mounted) {
+        final settings = ref.read(settingsNotifierProvider).analysisSettings;
+        if (cudaDevices.isNotEmpty &&
+            !cudaDevices.any(
+              (gpu) => gpu.index == settings.modelConfig.gpuDeviceIndex,
+            )) {
+          final updated = settings.copyWith(
+            modelConfig: settings.modelConfig.copyWith(
+              gpuDeviceIndex: cudaDevices.first.index,
+            ),
+          );
+          ref
+              .read(settingsNotifierProvider.notifier)
+              .updateAnalysisSettings(updated);
+        }
+
         setState(() {
           _gpuDetails = gpuDetails;
+          _cudaDevices = cudaDevices;
           _systemCapabilities = SystemCapabilities(
             cpuCores: cpuCores,
             ramMB: systemRam,
@@ -127,6 +145,12 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
     final settingsState = ref.watch(settingsNotifierProvider);
     final settings = settingsState.analysisSettings;
     final modelConfig = settings.modelConfig;
+    final hasCudaDevices = _cudaDevices.isNotEmpty;
+    final gpuAccelerationAvailable =
+        hasCudaDevices || _systemCapabilities?.accelerator != null;
+    final gpuDisplayName = hasCudaDevices
+        ? _cudaDevices.first.name
+        : (_systemCapabilities?.accelerator?.name ?? 'GPU');
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -161,12 +185,12 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
             child: SwitchListTile(
               title: const Text('Use GPU Acceleration'),
               subtitle: Text(
-                _systemCapabilities?.accelerator != null
-                    ? 'Use ${_systemCapabilities!.accelerator!.name} for faster processing'
+                gpuAccelerationAvailable
+                    ? 'Use $gpuDisplayName for faster processing'
                     : 'No compatible GPU detected',
               ),
               value: modelConfig.useGpu,
-              onChanged: _systemCapabilities?.accelerator != null
+              onChanged: gpuAccelerationAvailable
                   ? (value) => _updateModelConfig(
                         ref,
                         settings,
@@ -175,12 +199,65 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
                   : null,
               secondary: Icon(
                 Icons.memory,
-                color: _systemCapabilities?.accelerator != null
+                color: gpuAccelerationAvailable
                     ? theme.colorScheme.primary
                     : theme.colorScheme.outline,
               ),
             ),
           ),
+          if (_cudaDevices.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'CUDA Device',
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Choose the GPU used for ASR inference.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<int>(
+                      initialValue: _resolveSelectedCudaIndex(modelConfig),
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      items: _cudaDevices
+                          .map(
+                            (gpu) => DropdownMenuItem<int>(
+                              value: gpu.index,
+                              child: Text(
+                                'GPU ${gpu.index}: ${gpu.name}'
+                                '${gpu.memoryTotalMB != null ? ' (${(gpu.memoryTotalMB! / 1024).toStringAsFixed(1)} GB)' : ''}',
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: modelConfig.useGpu
+                          ? (value) {
+                              if (value == null) return;
+                              _updateModelConfig(
+                                ref,
+                                settings,
+                                gpuDeviceIndex: value,
+                              );
+                            }
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
 
           // FP16 toggle
@@ -567,17 +644,26 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
     );
   }
 
+  int? _resolveSelectedCudaIndex(ModelConfig config) {
+    if (_cudaDevices.isEmpty) return null;
+    final selected = config.gpuDeviceIndex;
+    final exists = _cudaDevices.any((gpu) => gpu.index == selected);
+    return exists ? selected : _cudaDevices.first.index;
+  }
+
   void _updateModelConfig(
     WidgetRef ref,
     AnalysisSettings settings, {
     bool? useGpu,
     bool? useFp16,
+    int? gpuDeviceIndex,
     int? cpuThreads,
     int? batchSize,
   }) {
     final updatedConfig = settings.modelConfig.copyWith(
       useGpu: useGpu ?? settings.modelConfig.useGpu,
       useFp16: useFp16 ?? settings.modelConfig.useFp16,
+      gpuDeviceIndex: gpuDeviceIndex ?? settings.modelConfig.gpuDeviceIndex,
       cpuThreads: cpuThreads ?? settings.modelConfig.cpuThreads,
       batchSize: batchSize ?? settings.modelConfig.batchSize,
     );

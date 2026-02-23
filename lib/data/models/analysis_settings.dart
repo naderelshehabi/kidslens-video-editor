@@ -13,6 +13,7 @@ class ModelConfig with _$ModelConfig {
     @Default('nsfw-gantman-mobilenet-v2-224') String nsfwModelId,
     @Default('en') String asrLanguage,
     @Default(true) bool useGpu,
+    @Default(0) int gpuDeviceIndex,
     @Default(4) int cpuThreads,
     @Default(8) int batchSize,
     @Default(false) bool useFp16,

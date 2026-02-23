@@ -28,6 +28,7 @@ class AnalysisJob extends Job<AnalysisResult> {
   String? _checkpointPath;
   DateTime? _startTime;
   List<Detection> _detectedDetections = const [];
+  int _lastCheckpointBucket = -1;
 
   List<Detection> get detectedDetections => _detectedDetections;
 
@@ -69,9 +70,14 @@ class AnalysisJob extends Job<AnalysisResult> {
       lastProgress = progress;
       reportProgress(progress.overallProgress, progress.stepName);
 
-      // Save checkpoint periodically
-      if (progress.overallProgress > 0 &&
-          (progress.overallProgress * 100).toInt() % 10 == 0) {
+      // Save checkpoints once per 10% bucket (10..90) to avoid repeatedly
+      // serializing large frame result payloads near completion.
+      final percentage = (progress.overallProgress * 100).floor();
+      final bucket = percentage ~/ 10;
+      final shouldSaveCheckpoint =
+          bucket > _lastCheckpointBucket && bucket >= 1 && bucket <= 9;
+      if (shouldSaveCheckpoint) {
+        _lastCheckpointBucket = bucket;
         await _saveCheckpoint(
           AnalysisCheckpoint(
             lastAnalyzedFrame: progress.itemsProcessed ?? 0,

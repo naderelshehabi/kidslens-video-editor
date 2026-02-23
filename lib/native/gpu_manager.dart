@@ -39,6 +39,20 @@ class GpuInfoDetails {
   String toString() => 'GpuInfoDetails($name, $vramMB MB, $vendor)';
 }
 
+class CudaGpuDevice {
+  const CudaGpuDevice({
+    required this.index,
+    required this.name,
+    this.memoryTotalMB,
+    this.computeCapability,
+  });
+
+  final int index;
+  final String name;
+  final int? memoryTotalMB;
+  final String? computeCapability;
+}
+
 /// Result of system requirements check
 class RequirementsCheckResult {
   const RequirementsCheckResult({
@@ -67,6 +81,7 @@ class RequirementsCheckResult {
 class GPUAccelerationManager {
   AcceleratorInfo? _detectedAccelerator;
   GpuInfoDetails? _gpuDetails;
+  List<CudaGpuDevice>? _cudaDevices;
   bool _initialized = false;
   int? _systemRamMB;
 
@@ -122,21 +137,32 @@ class GPUAccelerationManager {
   
   Future<GpuInfoDetails?> _getNvidiaGpuDetails() async {
     try {
-      final result = await Process.run('nvidia-smi', [
+      final result = await _runNvidiaSmi(<String>[
         '--query-gpu=name,memory.total,memory.used,driver_version,temperature.gpu,utilization.gpu',
         '--format=csv,noheader,nounits',
       ]);
       
-      if (result.exitCode != 0) return null;
+      if (result == null || result.exitCode != 0) return null;
       
-      final parts = result.stdout.toString().trim().split(',').map((s) => s.trim()).toList();
+      final lines = result.stdout
+          .toString()
+          .trim()
+          .split('\n')
+          .map((line) => line.trim())
+          .where((line) => line.isNotEmpty)
+          .toList();
+      if (lines.isEmpty) return null;
+      final parts = lines.first.split(',').map((s) => s.trim()).toList();
       if (parts.length < 4) return null;
       
       // Get CUDA version
       String? cudaVersion;
       try {
-        final cudaResult = await Process.run('nvidia-smi', ['--query-gpu=cuda_version', '--format=csv,noheader']);
-        if (cudaResult.exitCode == 0) {
+        final cudaResult = await _runNvidiaSmi(<String>[
+          '--query-gpu=cuda_version',
+          '--format=csv,noheader',
+        ]);
+        if (cudaResult != null && cudaResult.exitCode == 0) {
           cudaVersion = cudaResult.stdout.toString().trim();
         }
       } catch (_) {}
@@ -338,23 +364,12 @@ class GPUAccelerationManager {
     if (!Platform.isWindows && !Platform.isLinux) return null;
 
     try {
-      // Check for nvidia-smi
-      final result = await Process.run('nvidia-smi', [
-        '--query-gpu=name,memory.total,compute_cap',
-        '--format=csv,noheader,nounits',
-      ]);
-
-      if (result.exitCode != 0) return null;
-
-      final output = result.stdout.toString().trim();
-      if (output.isEmpty) return null;
-
-      final parts = output.split(',').map((s) => s.trim()).toList();
-      if (parts.length < 2) return null;
-
-      final name = parts[0];
-      final vramMB = int.tryParse(parts[1]) ?? 0;
-      final computeCapability = parts.length > 2 ? parts[2] : null;
+      final devices = await getCudaDevices();
+      if (devices.isEmpty) return null;
+      final first = devices.first;
+      final name = first.name;
+      final vramMB = first.memoryTotalMB ?? 0;
+      final computeCapability = first.computeCapability;
 
       return AcceleratorInfo(
         type: AcceleratorType.cuda,
@@ -365,6 +380,74 @@ class GPUAccelerationManager {
       );
     } catch (_) {
       return null;
+    }
+  }
+
+  Future<List<CudaGpuDevice>> getCudaDevices() async {
+    if (_cudaDevices != null) return _cudaDevices!;
+    if (!Platform.isWindows && !Platform.isLinux) return const [];
+
+    try {
+      final result = await _runNvidiaSmi(<String>[
+        '--query-gpu=index,name,memory.total',
+        '--format=csv,noheader,nounits',
+      ]);
+      if (result == null || result.exitCode != 0) return const [];
+
+      final lines = result.stdout
+          .toString()
+          .trim()
+          .split('\n')
+          .map((line) => line.trim())
+          .where((line) => line.isNotEmpty)
+          .toList();
+      if (lines.isEmpty) return const [];
+
+      List<String>? computeCaps;
+      try {
+        final capResult = await _runNvidiaSmi(<String>[
+          '--query-gpu=compute_cap',
+          '--format=csv,noheader,nounits',
+        ]);
+        if (capResult != null && capResult.exitCode == 0) {
+          final caps = capResult.stdout
+              .toString()
+              .trim()
+              .split('\n')
+              .map((line) => line.trim())
+              .where((line) => line.isNotEmpty)
+              .toList();
+          if (caps.isNotEmpty) {
+            computeCaps = caps;
+          }
+        }
+      } catch (_) {
+        computeCaps = null;
+      }
+
+      final devices = <CudaGpuDevice>[];
+      for (var i = 0; i < lines.length; i++) {
+        final line = lines[i];
+        final parts = line.split(',').map((s) => s.trim()).toList();
+        if (parts.length < 3) continue;
+        final index = int.tryParse(parts[0]);
+        if (index == null) continue;
+        devices.add(
+          CudaGpuDevice(
+            index: index,
+            name: parts[1],
+            memoryTotalMB: int.tryParse(parts[2]),
+            computeCapability:
+                computeCaps != null && i < computeCaps.length ? computeCaps[i] : null,
+          ),
+        );
+      }
+
+      devices.sort((a, b) => a.index.compareTo(b.index));
+      _cudaDevices = devices;
+      return devices;
+    } catch (_) {
+      return const [];
     }
   }
 
@@ -601,6 +684,31 @@ class GPUAccelerationManager {
     _initialized = false;
     _detectedAccelerator = null;
     _gpuDetails = null;
+    _cudaDevices = null;
     _systemRamMB = null;
+  }
+
+  Future<ProcessResult?> _runNvidiaSmi(List<String> args) async {
+    final candidates = <String>[
+      'nvidia-smi',
+      if (Platform.isWindows)
+        r'C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe',
+    ];
+
+    for (final cmd in candidates) {
+      try {
+        final result = await Process.run(
+          cmd,
+          args,
+          runInShell: Platform.isWindows,
+        );
+        if (result.exitCode == 0) {
+          return result;
+        }
+      } catch (_) {
+        // try next candidate
+      }
+    }
+    return null;
   }
 }
