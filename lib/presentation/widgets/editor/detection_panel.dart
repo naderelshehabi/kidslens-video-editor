@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:kidslens_video_editor/data/models/content_category.dart';
 import 'package:kidslens_video_editor/data/models/detection.dart';
 import 'package:kidslens_video_editor/data/models/edit_action.dart';
 
@@ -29,7 +30,7 @@ class DetectionPanel extends StatefulWidget {
   final List<Detection> detections;
   final List<EditAction> editActions;
   final void Function(Detection) onSeekToDetection;
-  final void Function(Detection, EditActionType) onApplyAction;
+  final void Function(Detection, RemediationAction) onApplyAction;
   final void Function(Detection) onRejectDetection;
   final void Function(Detection) onAcceptDetection;
   final void Function(EditAction) onToggleEditAction;
@@ -572,7 +573,22 @@ class _DetectionPanelState extends State<DetectionPanel>
   void _applyAllSuggested() {
     for (final detection in widget.detections) {
       if (!detection.isRejected && !detection.hasAction) {
-        widget.onApplyAction(detection, detection.suggestedAction);
+        // Convert EditActionType to RemediationAction
+        final RemediationAction action;
+        if (detection.isAudioDetection) {
+          action = detection.suggestedAction == EditActionType.beep 
+              ? RemediationAction.beep 
+              : RemediationAction.mute;
+        } else {
+          switch (detection.suggestedAction) {
+            case EditActionType.cut:
+            case EditActionType.skip:
+              action = RemediationAction.cutScene;
+            default:
+              action = RemediationAction.blurRegion;
+          }
+        }
+        widget.onApplyAction(detection, action);
       }
     }
   }
@@ -591,7 +607,7 @@ class _DetectionTile extends StatelessWidget {
 
   final Detection detection;
   final VoidCallback onSeek;
-  final void Function(EditActionType) onApplyAction;
+  final void Function(RemediationAction) onApplyAction;
   final VoidCallback onReject;
   final VoidCallback onAccept;
   final bool isSelected;
@@ -746,31 +762,8 @@ class _DetectionTile extends StatelessWidget {
                   spacing: 4,
                   runSpacing: 4,
                   children: [
-                    _ActionChip(
-                      icon: Icons.volume_off,
-                      label: 'Mute',
-                      color: Colors.purple,
-                      onTap: () => onApplyAction(EditActionType.mute),
-                    ),
-                    _ActionChip(
-                      icon: Icons.notifications,
-                      label: 'Beep',
-                      color: Colors.indigo,
-                      onTap: () => onApplyAction(EditActionType.beep),
-                    ),
-                    if (detection.isVisualDetection)
-                      _ActionChip(
-                        icon: Icons.blur_on,
-                        label: 'Blur',
-                        color: Colors.blue,
-                        onTap: () => onApplyAction(EditActionType.blur),
-                      ),
-                    _ActionChip(
-                      icon: Icons.content_cut,
-                      label: 'Cut',
-                      color: Colors.red,
-                      onTap: () => onApplyAction(EditActionType.cut),
-                    ),
+                    // Show different actions based on detection type
+                    ..._buildActionChips(detection, colorScheme),
                     _ActionChip(
                       icon: Icons.block,
                       label: 'Reject',
@@ -788,6 +781,61 @@ class _DetectionTile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Build action chips based on detection type (visual vs audio)
+  List<Widget> _buildActionChips(Detection detection, ColorScheme colorScheme) {
+    if (detection.isAudioDetection) {
+      // Audio detections (profanity) - only mute and beep
+      return [
+        _ActionChip(
+          icon: Icons.volume_off,
+          label: 'Mute',
+          color: Colors.purple,
+          onTap: () => onApplyAction(RemediationAction.mute),
+        ),
+        _ActionChip(
+          icon: Icons.music_note,
+          label: 'Beep',
+          color: Colors.indigo,
+          onTap: () => onApplyAction(RemediationAction.beep),
+        ),
+      ];
+    } else {
+      // Visual detections (NSFW, violence, blood, etc.) - visual actions only
+      return [
+        _ActionChip(
+          icon: Icons.blur_on,
+          label: 'Blur Region',
+          color: Colors.blue,
+          onTap: () => onApplyAction(RemediationAction.blurRegion),
+        ),
+        _ActionChip(
+          icon: Icons.grid_on,
+          label: 'Pixelate',
+          color: Colors.teal,
+          onTap: () => onApplyAction(RemediationAction.pixelateRegion),
+        ),
+        _ActionChip(
+          icon: Icons.crop_square,
+          label: 'Black Box',
+          color: Colors.grey.shade700,
+          onTap: () => onApplyAction(RemediationAction.blackBoxRegion),
+        ),
+        _ActionChip(
+          icon: Icons.blur_circular,
+          label: 'Blur Frame',
+          color: Colors.blueGrey,
+          onTap: () => onApplyAction(RemediationAction.blurFullFrame),
+        ),
+        _ActionChip(
+          icon: Icons.content_cut,
+          label: 'Cut',
+          color: Colors.red,
+          onTap: () => onApplyAction(RemediationAction.cutScene),
+        ),
+      ];
+    }
   }
 
   Color _getTypeColor(ContentType type) {

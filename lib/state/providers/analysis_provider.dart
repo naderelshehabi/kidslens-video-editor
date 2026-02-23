@@ -88,6 +88,7 @@ class AnalysisNotifier extends _$AnalysisNotifier {
     required AnalysisSettings settings,
     required Duration mediaDuration,
     Transcript? existingTranscript,
+    bool clearExistingDetections = true,
   }) async {
     await _jobProgressSubscription?.cancel();
     _activeJob?.cancel();
@@ -102,9 +103,11 @@ class AnalysisNotifier extends _$AnalysisNotifier {
       clearError: true,
     );
 
-    final projectNotifier = ref.read(projectNotifierProvider.notifier)
-      ..removeAllDetections(mediaId)
-      ..updateAnalysisProgress(0);
+    final projectNotifier = ref.read(projectNotifierProvider.notifier);
+    if (clearExistingDetections) {
+      projectNotifier.removeAllDetections(mediaId);
+    }
+    projectNotifier.updateAnalysisProgress(0);
 
     try {
       final analysisService = ref.read(analysisServiceProvider);

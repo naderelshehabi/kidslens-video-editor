@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/app.dart';
 import 'package:kidslens_video_editor/core/constants/supported_formats.dart';
+import 'package:kidslens_video_editor/data/models/content_category.dart';
 import 'package:kidslens_video_editor/data/models/gpu_info.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/presentation/screens/analysis_settings/analysis_settings_screen.dart';
@@ -280,7 +281,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             label: 'Analysis',
             items: [
               _MenuItem('Start Analysis', Icons.play_arrow, _startAnalysis),
-              _MenuItem('Stop Analysis', Icons.stop, _stopAnalysis),
               const _MenuDivider(),
               _MenuItem(
                 'Analysis Settings',
@@ -779,7 +779,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     }
   }
 
-  void _startAnalysis() {
+  void _startAnalysis() async {
     final project = ref.read(projectNotifierProvider).currentProject;
     if (project == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -796,6 +796,42 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       return;
     }
 
+    // Check for existing detections
+    bool shouldClearDetections = true;
+    final existingDetections = project.detectionsForMedia(selectedMedia.id);
+    if (existingDetections.isNotEmpty) {
+      final result = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Existing Detections Found'),
+          content: Text(
+            'This media file has ${existingDetections.length} existing detection(s). '
+            'What would you like to do?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop('cancel'),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop('clear'),
+              child: const Text('Clear & Analyze'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop('keep'),
+              child: const Text('Keep & Analyze'),
+            ),
+          ],
+        ),
+      );
+
+      if (result == null || result == 'cancel') {
+        return;
+      }
+
+      shouldClearDetections = result == 'clear';
+    }
+
     // Show analysis dialog
     showDialog<void>(
       context: context,
@@ -804,6 +840,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         mediaPath: selectedMedia.path,
         mediaId: selectedMedia.id,
         mediaDuration: selectedMedia.duration,
+        clearExistingDetections: shouldClearDetections,
       ),
     );
   }
@@ -914,33 +951,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
-  void _stopAnalysis() {
-    final analysisState = ref.read(analysisNotifierProvider);
-
-    if (analysisState.status == AnalysisStatus.running) {
-      if (analysisState.isCancelling) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cancellation already in progress. Please wait...'),
-          ),
-        );
-        return;
-      }
-      ref.read(analysisNotifierProvider.notifier).cancel();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Cancellation requested. Stopping may take a few minutes.',
-          ),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No analysis is currently running')),
-      );
-    }
-  }
-
   void _openAnalysisSettings() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -958,7 +968,23 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _onSeek(detection.startTime);
   }
 
-  void _onApplyAction(Detection detection, EditActionType actionType) {
+  void _onApplyAction(Detection detection, RemediationAction action) {
+    // Convert RemediationAction to EditActionType
+    final EditActionType actionType;
+    switch (action) {
+      case RemediationAction.mute:
+        actionType = EditActionType.mute;
+      case RemediationAction.beep:
+        actionType = EditActionType.beep;
+      case RemediationAction.blurRegion:
+      case RemediationAction.pixelateRegion:
+      case RemediationAction.blackBoxRegion:
+      case RemediationAction.blurFullFrame:
+        actionType = EditActionType.blur;
+      case RemediationAction.cutScene:
+        actionType = EditActionType.cut;
+    }
+    
     ref.read(projectNotifierProvider.notifier).addEditAction(
           ref.read(projectNotifierProvider).currentProject!.selectedMediaId!,
           detection.startTime,
@@ -1753,11 +1779,13 @@ class _AnalysisDialog extends ConsumerStatefulWidget {
     required this.mediaPath,
     required this.mediaId,
     required this.mediaDuration,
+    this.clearExistingDetections = true,
   });
 
   final String mediaPath;
   final String mediaId;
   final Duration mediaDuration;
+  final bool clearExistingDetections;
 
   @override
   ConsumerState<_AnalysisDialog> createState() => _AnalysisDialogState();
@@ -2139,6 +2167,7 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
           settings: settings,
           mediaDuration: widget.mediaDuration,
           existingTranscript: existingTranscript,
+          clearExistingDetections: widget.clearExistingDetections,
         );
   }
 

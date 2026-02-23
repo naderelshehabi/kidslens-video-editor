@@ -111,6 +111,12 @@ int _gChunkOffsetMs = 0;
 /// Duration of the current chunk in milliseconds.
 int _gChunkDurationMs = 0;
 
+/// Current chunk index (1-based for display)
+int _gCurrentChunkIndex = 0;
+
+/// Total number of chunks
+int _gTotalChunks = 0;
+
 /// Native progress callback invoked by whisper.cpp during transcription.
 ///
 /// Called synchronously on the isolate thread from within `whisper_full`.
@@ -121,11 +127,14 @@ void _nativeProgressCallback(int progress, Pointer<Void> userData) {
   if (port == null) return;
   final pct = _gChunkBaseProgress + (progress / 100.0) * _gChunkProgressRange;
   final tsMs = _gChunkOffsetMs + (progress * _gChunkDurationMs ~/ 100);
+  final chunkInfo = _gTotalChunks > 1
+      ? 'Transcribing chunk $_gCurrentChunkIndex/$_gTotalChunks ($progress%)'
+      : 'Transcribing... ($progress%)';
   port.send({
     'type': 'progress',
     'progress': pct.clamp(0.0, 1.0),
     'timestampMs': tsMs,
-    'message': 'Transcribing...',
+    'message': chunkInfo,
   });
 }
 
@@ -318,6 +327,8 @@ void chunkedTranscriptionEntry(
         _gChunkProgressRange = progressRange / chunkDescs.length;
         _gChunkOffsetMs = chunkOffsetMs;
         _gChunkDurationMs = chunkDurMs;
+        _gCurrentChunkIndex = ci + 1;
+        _gTotalChunks = chunkDescs.length;
 
         sendPort.send({
           'type': 'progress',

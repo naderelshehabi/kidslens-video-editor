@@ -181,14 +181,59 @@ class AnalysisService {
     if (shouldTranscribe) {
       if (existingTranscript != null) {
         transcript = existingTranscript;
+        yield _durationProgress(
+          stepName: 'Using existing transcript',
+          processedDurationMs: 0,
+          totalDurationMs: mediaDurationMs,
+        );
       } else if (checkpoint?.transcript != null) {
         transcript = checkpoint!.transcript;
+        yield _durationProgress(
+          stepName: 'Resuming from checkpoint transcript',
+          processedDurationMs: 0,
+          totalDurationMs: mediaDurationMs,
+        );
       } else {
-        transcript = await _transcribeAudio(
+        // Stream transcription progress updates
+        yield _durationProgress(
+          stepName: 'Starting audio transcription...',
+          processedDurationMs: 0,
+          totalDurationMs: mediaDurationMs,
+        );
+
+        // Use a StreamController to forward progress from the callback
+        final progressController = StreamController<AnalysisProgress>();
+        final transcriptCompleter = Completer<Transcript>();
+
+        // ignore: unawaited_futures
+        _transcribeAudio(
           mediaPath,
           settings,
           cancellationToken: cancellationToken,
-        );
+          onProgress: (message, progress) {
+            if (!progressController.isClosed) {
+              progressController.add(_durationProgress(
+                stepName: message,
+                processedDurationMs: (progress * mediaDurationMs).round(),
+                totalDurationMs: mediaDurationMs,
+              ));
+            }
+          },
+        ).then((result) {
+          transcriptCompleter.complete(result);
+          progressController.close();
+        }).catchError((Object error, StackTrace stackTrace) {
+          transcriptCompleter.completeError(error, stackTrace);
+          progressController.close();
+        });
+
+        // Yield progress updates while transcription runs
+        await for (final progress in progressController.stream) {
+          yield progress;
+        }
+
+        // Get the transcript result
+        transcript = await transcriptCompleter.future;
       }
       final transcriptValue = transcript!;
       yield _durationProgress(
@@ -214,6 +259,11 @@ class AnalysisService {
       if (checkpoint?.profanityMatches != null) {
         profanityMatches = checkpoint!.profanityMatches!;
       } else {
+        yield _durationProgress(
+          stepName: 'Detecting profanity...',
+          processedDurationMs: 0,
+          totalDurationMs: mediaDurationMs,
+        );
         profanityMatches = await _detectProfanity(
           transcript!,
           settings,
@@ -334,6 +384,7 @@ class AnalysisService {
     String mediaPath,
     AnalysisSettings settings, {
     CancellationToken? cancellationToken,
+    void Function(String message, double progress)? onProgress,
   }) async {
     await _checkState(cancellationToken);
     final asrModel = settings.modelConfig.asrModelId;
@@ -362,6 +413,11 @@ class AnalysisService {
           nThreads: settings.modelConfig.cpuThreads,
           beamSize: settings.modelConfig.beamSize,
           cancelToken: cancelCompleter,
+          onProgress: onProgress != null
+              ? (phase, progress, message, timestamp) {
+                  onProgress(message, progress);
+                }
+              : null,
         );
       } on AsrCancelledException {
         throw CancelledException();
