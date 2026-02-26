@@ -268,6 +268,8 @@ The release build requires native libraries to be bundled:
 | ONNX Runtime | `onnxruntime.dll` | AI inference |
 
 > **Note**: `whisper_wrapper.dll` is automatically built during `flutter build windows`. No manual setup required.
+>
+> **Note**: ONNX Runtime DLLs (`onnxruntime*.dll`) are automatically downloaded/generated if missing when you run `flutter run -d windows` or `flutter build windows`, then bundled into the Windows output directory.
 
 ### GPU Acceleration (Optional)
 
