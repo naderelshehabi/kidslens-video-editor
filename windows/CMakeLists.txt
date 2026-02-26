@@ -19,7 +19,35 @@ option(BUILD_WHISPER_WRAPPER "Build whisper_wrapper native library" ON)
 option(WHISPER_USE_CUDA "Enable CUDA GPU acceleration for Whisper (preferred)" ON)
 option(WHISPER_USE_VULKAN "Enable Vulkan GPU acceleration for Whisper (fallback)" ON)
 set(ONNXRUNTIME_VERSION "1.20.1" CACHE STRING "Pinned ONNX Runtime ABI version for Windows")
-set(ONNXRUNTIME_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../native/onnxruntime/binaries/windows-x64")
+set(ONNXRUNTIME_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/onnxruntime/binaries")
+set(ONNXRUNTIME_DIR "${ONNXRUNTIME_OUTPUT_DIR}/windows-x64")
+set(ONNXRUNTIME_BUNDLED_DLLS)
+
+# Ensure ONNX Runtime binaries are available for standard Flutter build/run.
+set(ONNXRUNTIME_DOWNLOADER "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/download_onnxruntime.ps1")
+if(EXISTS "${ONNXRUNTIME_DOWNLOADER}")
+  set(ONNXRUNTIME_REQUIRED_CORE "${ONNXRUNTIME_DIR}/onnxruntime.dll")
+  set(ONNXRUNTIME_REQUIRED_SHARED "${ONNXRUNTIME_DIR}/onnxruntime_providers_shared.dll")
+  set(ONNXRUNTIME_REQUIRED_GPU "${ONNXRUNTIME_DIR}/onnxruntime_providers_cuda.dll")
+
+  if(NOT EXISTS "${ONNXRUNTIME_REQUIRED_CORE}" OR NOT EXISTS "${ONNXRUNTIME_REQUIRED_SHARED}" OR NOT EXISTS "${ONNXRUNTIME_REQUIRED_GPU}")
+    message(STATUS "ONNX Runtime GPU provider DLLs missing. Auto-downloading ONNX Runtime ${ONNXRUNTIME_VERSION} (gpu package)...")
+
+    execute_process(
+      COMMAND powershell -ExecutionPolicy Bypass -File "${ONNXRUNTIME_DOWNLOADER}" -Version "${ONNXRUNTIME_VERSION}" -Architecture "x64" -Package "gpu" -OutputDir "${ONNXRUNTIME_OUTPUT_DIR}"
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
+      RESULT_VARIABLE ONNXRUNTIME_DOWNLOAD_RESULT
+      OUTPUT_VARIABLE ONNXRUNTIME_DOWNLOAD_OUTPUT
+      ERROR_VARIABLE ONNXRUNTIME_DOWNLOAD_ERROR
+    )
+
+    if(NOT ONNXRUNTIME_DOWNLOAD_RESULT EQUAL 0)
+      message(WARNING "ONNX Runtime GPU download failed (code: ${ONNXRUNTIME_DOWNLOAD_RESULT}). Continuing; app may run ONNX on CPU.\n${ONNXRUNTIME_DOWNLOAD_OUTPUT}\n${ONNXRUNTIME_DOWNLOAD_ERROR}")
+    endif()
+  endif()
+
+  file(GLOB ONNXRUNTIME_BUNDLED_DLLS "${ONNXRUNTIME_DIR}/onnxruntime*.dll")
+endif()
 
 # ============================================================================
 # GPU Backend Auto-Detection: CUDA > Vulkan > CPU
@@ -175,12 +203,14 @@ if(PLUGIN_BUNDLED_LIBRARIES)
     COMPONENT Runtime)
 endif()
 
-if(EXISTS "${ONNXRUNTIME_DIR}/onnxruntime.dll")
+if(ONNXRUNTIME_BUNDLED_DLLS)
   message(STATUS "Installing ONNX Runtime ${ONNXRUNTIME_VERSION} from ${ONNXRUNTIME_DIR}")
   install(FILES
-    "${ONNXRUNTIME_DIR}/onnxruntime.dll"
+    ${ONNXRUNTIME_BUNDLED_DLLS}
     DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
     COMPONENT Runtime)
+else()
+  message(WARNING "ONNX Runtime DLLs were not found at ${ONNXRUNTIME_DIR}. Flutter run/build may fail at runtime until binaries are downloaded.")
 endif()
 
 # ============================================================================

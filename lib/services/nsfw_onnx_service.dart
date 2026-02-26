@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:ffi';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import 'package:kidslens_video_editor/data/models/gpu_config.dart';
@@ -22,6 +24,7 @@ class NsfwOnnxService {
   final GPUAccelerationManager gpuManager;
 
   String? _resolvedExecutionProvider;
+  int? _resolvedDeviceIndex;
 
   /// Run batch inference on multiple frames.
   ///
@@ -95,6 +98,24 @@ class NsfwOnnxService {
   }
 
   Future<(String, int)> _loadModelWithBestProvider(String modelPath) async {
+    if (_resolvedExecutionProvider != null && _resolvedDeviceIndex != null) {
+      try {
+        await onnx.loadModel(
+          modelPath,
+          deviceId: _resolvedDeviceIndex,
+          executionProvider: _resolvedExecutionProvider,
+          allowProviderFallbackToCpu: false,
+        );
+        return (_resolvedExecutionProvider!, _resolvedDeviceIndex!);
+      } catch (e) {
+        debugPrint(
+          'NSFW ONNX cached provider failed, re-resolving: provider=$_resolvedExecutionProvider, deviceId=$_resolvedDeviceIndex, error=$e',
+        );
+        _resolvedExecutionProvider = null;
+        _resolvedDeviceIndex = null;
+      }
+    }
+
     if (!gpuConfig.useGpu) {
       await onnx.loadModel(
         modelPath,
@@ -102,12 +123,20 @@ class NsfwOnnxService {
         executionProvider: 'CPUExecutionProvider',
       );
       _resolvedExecutionProvider = 'CPUExecutionProvider';
+      _resolvedDeviceIndex = 0;
       return ('CPUExecutionProvider', 0);
     }
 
     final candidateProviders = gpuConfig.onnxExecutionProviders;
 
     for (final provider in candidateProviders) {
+      if (!_providerRuntimeLikelyAvailable(provider)) {
+        debugPrint(
+          'NSFW ONNX provider skipped (runtime prerequisites missing): $provider',
+        );
+        continue;
+      }
+
       final deviceIndex = await _getMappedDeviceIndex(provider);
       try {
         await onnx.loadModel(
@@ -118,6 +147,7 @@ class NsfwOnnxService {
         );
 
         _resolvedExecutionProvider = provider;
+        _resolvedDeviceIndex = deviceIndex;
         return (provider, deviceIndex);
       } catch (e) {
         debugPrint(
@@ -129,6 +159,91 @@ class NsfwOnnxService {
     throw const NsfwOnnxException(
       'Failed to load ONNX model with all configured execution providers.',
     );
+  }
+
+  bool _providerRuntimeLikelyAvailable(String provider) {
+    if (!Platform.isWindows) return true;
+
+    bool canLoadFromSearchPaths(String fileName) {
+      final exeDir = File(Platform.resolvedExecutable).parent.path;
+      final cwd = Directory.current.path;
+
+      final candidatePaths = <String>[
+        '$exeDir/$fileName',
+        '$cwd/$fileName',
+      ];
+
+      for (final candidate in candidatePaths) {
+        if (!File(candidate).existsSync()) {
+          continue;
+        }
+        try {
+          DynamicLibrary.open(candidate);
+          return true;
+        } catch (_) {
+          // Try next candidate path.
+        }
+      }
+
+      try {
+        DynamicLibrary.open(fileName);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    bool canLoadAny(List<String> fileNames) {
+      for (final fileName in fileNames) {
+        if (canLoadFromSearchPaths(fileName)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    switch (provider) {
+      case 'CUDAExecutionProvider':
+        final hasOrtShared =
+            canLoadFromSearchPaths('onnxruntime_providers_shared.dll');
+        final hasOrtCuda =
+            canLoadFromSearchPaths('onnxruntime_providers_cuda.dll');
+        final hasCudaRuntime =
+            canLoadAny(const ['cudart64_12.dll', 'cudart64_11.dll']);
+        final hasCudnnRuntime = canLoadAny(const [
+          'cudnn64_9.dll',
+          'cudnn64_8.dll',
+          'cudnn_ops_infer64_8.dll',
+        ]);
+
+        final available = hasOrtShared &&
+            hasOrtCuda &&
+            hasCudaRuntime &&
+            hasCudnnRuntime;
+        if (!available) {
+          debugPrint(
+            'NSFW ONNX CUDA runtime unavailable: '
+            'ortShared=$hasOrtShared, ortCuda=$hasOrtCuda, '
+            'cudaRuntime=$hasCudaRuntime, cudnnRuntime=$hasCudnnRuntime',
+          );
+        }
+        return available;
+      case 'DmlExecutionProvider':
+        final hasOrtShared =
+            canLoadFromSearchPaths('onnxruntime_providers_shared.dll');
+        final hasOrtDml = canLoadFromSearchPaths('onnxruntime_providers_dml.dll');
+        final hasDirectMl = canLoadFromSearchPaths('DirectML.dll');
+        final available = hasOrtShared && hasOrtDml && hasDirectMl;
+        if (!available) {
+          debugPrint(
+            'NSFW ONNX DirectML runtime unavailable: '
+            'ortShared=$hasOrtShared, ortDml=$hasOrtDml, directML=$hasDirectMl',
+          );
+        }
+        return available;
+      default:
+        return true;
+    }
   }
 
   Future<int> _resolveCudaDeviceIndex() async {

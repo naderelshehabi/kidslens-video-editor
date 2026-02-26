@@ -10,6 +10,7 @@ import 'package:kidslens_video_editor/data/models/media_file.dart';
 import 'package:kidslens_video_editor/data/models/subtitle_track.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/blur_region_overlay.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/subtitle_overlay.dart';
+import 'package:kidslens_video_editor/services/beep_audio_service.dart';
 import 'package:kidslens_video_editor/state/providers/playback_provider.dart';
 import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 import 'package:media_kit/media_kit.dart' hide SubtitleTrack;
@@ -44,10 +45,15 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   Player? _player;
   VideoController? _videoController;
   String? _currentMediaPath;
+  bool _isDisposing = false;
   /// Tracks the previous audio effect state to detect changes
   AudioEffectState _previousEffectState = AudioEffectState.none;
   int _previousBeepFrequency = 0;
+  double _lastKnownUserVolume = 1.0;
+  bool _lastKnownIsPlaying = false;
   bool _isFullScreen = false;
+  BeepAudioService? _beepAudioService;
+  PlaybackNotifier? _playbackNotifier;
   
   // Stream subscriptions for proper cleanup
   StreamSubscription<Duration>? _positionSubscription;
@@ -61,31 +67,36 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   }
 
   void _initializePlayer() {
+    _beepAudioService = ref.read(beepAudioServiceProvider);
+    _playbackNotifier = ref.read(playbackNotifierProvider.notifier);
+    _lastKnownUserVolume = ref.read(playbackNotifierProvider).userVolume;
+    _lastKnownIsPlaying = ref.read(playbackNotifierProvider).isPlaying;
     _player = Player();
     _videoController = VideoController(_player!);
 
     // Register player with playback provider after build phase
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        ref.read(playbackNotifierProvider.notifier).setPlayer(_player!);
+      if (mounted && !_isDisposing) {
+        _playbackNotifier?.setPlayer(_player!);
       }
     });
 
     // Listen to player streams and update provider
     _positionSubscription = _player!.stream.position.listen((position) {
-      if (!mounted) return;
-      ref.read(playbackNotifierProvider.notifier).updatePosition(position);
+      if (!mounted || _isDisposing) return;
+      _playbackNotifier?.updatePosition(position);
       _checkAndApplyEditActions(position);
     });
 
     _durationSubscription = _player!.stream.duration.listen((duration) {
-      if (!mounted) return;
-      ref.read(playbackNotifierProvider.notifier).updateDuration(duration);
+      if (!mounted || _isDisposing) return;
+      _playbackNotifier?.updateDuration(duration);
     });
 
     _playingSubscription = _player!.stream.playing.listen((playing) {
-      if (!mounted) return;
-      ref.read(playbackNotifierProvider.notifier).updatePlaying(isPlaying: playing);
+      if (!mounted || _isDisposing) return;
+      _lastKnownIsPlaying = playing;
+      _playbackNotifier?.updatePlaying(isPlaying: playing);
       // Handle playback stop - beep should stop immediately
       if (!playing) {
         _stopAllAudioEffects();
@@ -97,27 +108,20 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   }
 
   /// Stop all audio effects and restore normal playback volume
-  void _stopAllAudioEffects({bool notifyProvider = true}) {
-    if (!mounted) {
-      _player?.setVolume(100);
-      _previousEffectState = AudioEffectState.none;
-      _previousBeepFrequency = 0;
-      return;
-    }
-
+  void _stopAllAudioEffects({bool notifyProvider = true, bool allowRefAccess = true}) {
     // Stop beep audio
-    ref.read(beepAudioServiceProvider).stopBeep();
+    _beepAudioService?.stopBeep();
     
     // Reset effect state
     _previousEffectState = AudioEffectState.none;
     _previousBeepFrequency = 0;
     
     // Restore user's intended volume
-    final userVolume = ref.read(playbackNotifierProvider).userVolume;
+    final userVolume = _lastKnownUserVolume;
     _player?.setVolume(userVolume * 100);
 
-    if (notifyProvider) {
-      ref.read(playbackNotifierProvider.notifier).updateAudioEffect(
+    if (notifyProvider && allowRefAccess && mounted && !_isDisposing) {
+      _playbackNotifier?.updateAudioEffect(
         AudioEffectState.none,
         beepFrequency: 0,
       );
@@ -125,10 +129,18 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   }
 
   void _checkAndApplyEditActions(Duration position) {
-    final playbackState = ref.read(playbackNotifierProvider);
+    if (!mounted || _isDisposing) return;
+    PlaybackState playbackState;
+    try {
+      playbackState = ref.read(playbackNotifierProvider);
+    } on StateError {
+      return;
+    }
+    _lastKnownUserVolume = playbackState.userVolume;
+    _lastKnownIsPlaying = playbackState.isPlaying;
     
     // Only apply effects during active playback
-    if (!playbackState.isPlaying) {
+    if (!_lastKnownIsPlaying) {
       return;
     }
     
@@ -184,7 +196,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
 
   /// Apply the audio effect state, managing player volume and beep playback
   void _applyAudioEffectState(AudioEffectState newState, int beepFrequency, double userVolume) {
-    if (!mounted) return;
+    if (!mounted || _isDisposing) return;
 
     final beepService = ref.read(beepAudioServiceProvider);
     
@@ -220,7 +232,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     }
     
     // Update provider state for UI indicators
-    ref.read(playbackNotifierProvider.notifier).updateAudioEffect(
+    _playbackNotifier?.updateAudioEffect(
       newState, 
       beepFrequency: beepFrequency,
     );
@@ -268,16 +280,19 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
 
   @override
   void dispose() {
+    _isDisposing = true;
     // Cancel all stream subscriptions first to prevent callbacks after dispose
     _positionSubscription?.cancel();
     _durationSubscription?.cancel();
     _playingSubscription?.cancel();
     
     // Stop all audio effects
-    _stopAllAudioEffects(notifyProvider: false);
+    _stopAllAudioEffects(notifyProvider: false, allowRefAccess: false);
     
     // Dispose the player
     _player?.dispose();
+    _playbackNotifier = null;
+    _beepAudioService = null;
     super.dispose();
   }
 
@@ -285,6 +300,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final playbackState = ref.watch(playbackNotifierProvider);
+    _lastKnownUserVolume = playbackState.userVolume;
 
     return ColoredBox(
       color: colorScheme.surfaceContainerLowest,
