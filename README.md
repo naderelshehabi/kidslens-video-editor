@@ -19,6 +19,7 @@ KidsLens is a powerful desktop application that uses local AI models to analyze 
 For detailed technical information, please refer to the documentation in the `docs/` folder:
 
 - [Technical Reference](docs/TECHNICAL_REFERENCE.md) - **New!** Comprehensive guide on architecture, UI, and FFmpeg setup.
+- [Dev Machine Setup](docs/dev-machine-setup.md) - Standard Windows toolchain prerequisites and verification checklist.
 - [Architecture](docs/architecture.md) - High-level system design.
 - [Native Integration](docs/native-integration.md) - Details on FFI and native libraries.
 - [Getting Started](docs/getting-started.md) - Setup guide for developers.
@@ -57,6 +58,7 @@ flutter run -d linux
 
 - [Architecture Overview](docs/architecture.md)
 - [Getting Started Guide](docs/getting-started.md)
+- [Dev Machine Setup](docs/dev-machine-setup.md)
 - [State Management](docs/state-management.md)
 - [Native Integration](docs/native-integration.md)
 - [Testing Guide](docs/testing.md)

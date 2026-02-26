@@ -193,30 +193,37 @@ KL_WHISPER_API KLWhisperConfig kl_whisper_default_config(void) {
 // Initialization & Cleanup
 // ============================================================================
 
-KL_WHISPER_API KLWhisperHandle kl_whisper_init(const char* model_path) {
+KL_WHISPER_API KLWhisperHandle kl_whisper_init_with_config(
+    const char* model_path,
+    const KLWhisperConfig* config
+) {
     if (!model_path) {
         set_error("Model path is null");
         return nullptr;
     }
 
-    // Initialize whisper context - try GPU first, fallback to CPU
+    const KLWhisperConfig effective_config = config ? *config : kl_whisper_default_config();
+
+    // Initialize whisper context - try requested backend first, fallback to CPU
     struct whisper_context_params cparams = whisper_context_default_params();
     struct whisper_context* ctx = nullptr;
     bool using_gpu = false;
-    
-    // Try GPU first
-    cparams.use_gpu = true;
+
+    cparams.use_gpu = effective_config.use_gpu;
+    cparams.gpu_device = effective_config.gpu_device < 0 ? 0 : effective_config.gpu_device;
+
     ctx = whisper_init_from_file_with_params(model_path, cparams);
-    
+
     if (ctx) {
-        using_gpu = true;
+        using_gpu = cparams.use_gpu;
     } else {
-        // GPU failed, try CPU fallback
+        // Requested mode failed, try CPU fallback
         cparams.use_gpu = false;
+        cparams.gpu_device = 0;
         ctx = whisper_init_from_file_with_params(model_path, cparams);
-        
+
         if (!ctx) {
-            set_error("Failed to load whisper model (tried both GPU and CPU)");
+            set_error("Failed to load whisper model (tried requested mode and CPU fallback)");
             return nullptr;
         }
     }
@@ -255,6 +262,11 @@ KL_WHISPER_API KLWhisperHandle kl_whisper_init(const char* model_path) {
 
     kl_whisper_clear_error();
     return wrapper;
+}
+
+KL_WHISPER_API KLWhisperHandle kl_whisper_init(const char* model_path) {
+    const KLWhisperConfig config = kl_whisper_default_config();
+    return kl_whisper_init_with_config(model_path, &config);
 }
 
 KL_WHISPER_API void kl_whisper_free(KLWhisperHandle handle) {

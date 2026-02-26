@@ -12,17 +12,10 @@ class ModelConfig with _$ModelConfig {
     required String asrModelId,
     @Default('nsfw-gantman-mobilenet-v2-224') String nsfwModelId,
     @Default('en') String asrLanguage,
-    // New GPU selection fields
-    @Default(true) bool asrGpuEnabled,
-    @Default(0) int asrGpuDevice,
-    @Default(true) bool onnxGpuEnabled,
-    @Default('auto') String onnxExecutionProvider,
-    @Default(null) int? onnxGpuDevice,
-    // Deprecated fields for backwards compatibility
-    @Deprecated('Use asrGpuEnabled instead')
+    // Unified GPU selection fields
     @Default(true) bool useGpu,
-    @Deprecated('Use asrGpuDevice instead')
     @Default(0) int gpuDeviceIndex,
+    @Default('auto') String onnxExecutionProvider,
     @Default(4) int cpuThreads,
     @Default(8) int batchSize,
     @Default(false) bool useFp16,
@@ -46,15 +39,11 @@ extension ModelConfigValidation on ModelConfig {
   List<String> validate() {
     final issues = <String>[];
     
-    if (asrGpuEnabled && asrGpuDevice < 0) {
-      issues.add('ASR GPU device must be non-negative');
+    if (useGpu && gpuDeviceIndex < 0) {
+      issues.add('GPU device index must be non-negative');
     }
     
-    if (onnxGpuDevice != null && onnxGpuDevice! < 0) {
-      issues.add('ONNX GPU device must be non-negative');
-    }
-    
-    if (onnxGpuEnabled && onnxExecutionProvider == 'cpu') {
+    if (useGpu && onnxExecutionProvider == 'cpu') {
       issues.add('Cannot enable GPU with CPU execution provider');
     }
     

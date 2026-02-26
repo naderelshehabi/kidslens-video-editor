@@ -108,6 +108,12 @@ typedef void (*KLWhisperProgressCallback)(int progress, void* user_data);
 /// Initialize whisper context from model file
 KL_WHISPER_API KLWhisperHandle kl_whisper_init(const char* model_path);
 
+/// Initialize whisper context from model file with explicit configuration
+KL_WHISPER_API KLWhisperHandle kl_whisper_init_with_config(
+  const char* model_path,
+  const KLWhisperConfig* config
+);
+
 /// Free whisper context and resources
 KL_WHISPER_API void kl_whisper_free(KLWhisperHandle handle);
 

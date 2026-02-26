@@ -88,7 +88,7 @@ final onnxBindingsProvider = Provider<ONNXBindings>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef OnnxBindingsRef = ProviderRef<ONNXBindings>;
-String _$nsfwOnnxServiceHash() => r'34c17b5ec8b99303af390dd6b7bd226f57851537';
+String _$nsfwOnnxServiceHash() => r'85778eecafaee7f505383c691a565962154e687c';
 
 /// See also [nsfwOnnxService].
 @ProviderFor(nsfwOnnxService)

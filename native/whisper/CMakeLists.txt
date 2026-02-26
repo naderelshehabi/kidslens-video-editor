@@ -13,6 +13,8 @@
 # Linux/macOS: cmake -B build && cmake --build build
 
 cmake_minimum_required(VERSION 3.16)
+# Keep subbuild SDK selection compatible across VS generators.
+set(CMAKE_SYSTEM_VERSION 10.0.19041.0)
 project(whisper_wrapper VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)

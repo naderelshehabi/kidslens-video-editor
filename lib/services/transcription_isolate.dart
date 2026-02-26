@@ -195,6 +195,16 @@ void chunkedTranscriptionEntry(
         .lookup<NativeFunction<WhisperInitNative>>('kl_whisper_init')
         .asFunction<WhisperInitDart>();
 
+    WhisperInitWithConfigDart? whisperInitWithConfig;
+    try {
+      whisperInitWithConfig = lib
+          .lookup<NativeFunction<WhisperInitWithConfigNative>>(
+              'kl_whisper_init_with_config',)
+          .asFunction<WhisperInitWithConfigDart>();
+    } catch (_) {
+      // Optional in older builds
+    }
+
     final whisperFree = lib
         .lookup<NativeFunction<WhisperFreeNative>>('kl_whisper_free')
         .asFunction<WhisperFreeDart>();
@@ -238,11 +248,34 @@ void chunkedTranscriptionEntry(
     });
 
     final modelPathPtr = params.modelPath.toNativeUtf8();
+    final initConfigPtr = calloc<WhisperConfigNative>();
     Pointer modelHandle;
     try {
-      modelHandle = whisperInit(modelPathPtr);
+      final initConfig = initConfigPtr.ref
+        ..nThreads = params.nThreads > 0
+            ? params.nThreads.clamp(1, 32)
+            : Platform.numberOfProcessors.clamp(1, 16)
+        ..useGpu = params.asrGpuEnabled
+        ..gpuDevice = params.asrGpuDevice < 0 ? 0 : params.asrGpuDevice
+        ..language = nullptr
+        ..translate = params.translateToEnglish
+        ..wordTimestamps = true
+        ..wordThreshold = 0.01
+        ..maxSegmentLength = 0
+        ..splitOnWord = true
+        ..temperature = 0.0
+        ..beamSize = params.beamSize
+        ..entropyThreshold = 2.4
+        ..suppressBlank = true
+        ..suppressNonSpeech = true
+        ..noSpeechThreshold = 0.6;
+
+      modelHandle = whisperInitWithConfig != null
+          ? whisperInitWithConfig(modelPathPtr, initConfigPtr)
+          : whisperInit(modelPathPtr);
     } finally {
       malloc.free(modelPathPtr);
+      calloc.free(initConfigPtr);
     }
 
     if (modelHandle == nullptr) {
@@ -530,6 +563,16 @@ Transcript performTranscriptionInIsolate(TranscriptionIsolateParams params) {
       .lookup<NativeFunction<WhisperInitNative>>('kl_whisper_init')
       .asFunction<WhisperInitDart>();
 
+  WhisperInitWithConfigDart? whisperInitWithConfig;
+  try {
+    whisperInitWithConfig = lib
+        .lookup<NativeFunction<WhisperInitWithConfigNative>>(
+            'kl_whisper_init_with_config',)
+        .asFunction<WhisperInitWithConfigDart>();
+  } catch (_) {
+    // Optional in older builds
+  }
+
   final whisperFree = lib
       .lookup<NativeFunction<WhisperFreeNative>>('kl_whisper_free')
       .asFunction<WhisperFreeDart>();
@@ -552,11 +595,34 @@ Transcript performTranscriptionInIsolate(TranscriptionIsolateParams params) {
   } catch (_) {}
 
   final modelPathPtr = params.modelPath.toNativeUtf8();
+  final initConfigPtr = calloc<WhisperConfigNative>();
   Pointer modelHandle;
   try {
-    modelHandle = whisperInit(modelPathPtr);
+    final initConfig = initConfigPtr.ref
+      ..nThreads = params.nThreads > 0
+          ? params.nThreads.clamp(1, 32)
+          : Platform.numberOfProcessors.clamp(1, 16)
+      ..useGpu = params.asrGpuEnabled
+      ..gpuDevice = params.asrGpuDevice < 0 ? 0 : params.asrGpuDevice
+      ..language = nullptr
+      ..translate = params.translateToEnglish
+      ..wordTimestamps = true
+      ..wordThreshold = 0.01
+      ..maxSegmentLength = 0
+      ..splitOnWord = true
+      ..temperature = 0.0
+      ..beamSize = params.beamSize
+      ..entropyThreshold = 2.4
+      ..suppressBlank = true
+      ..suppressNonSpeech = true
+      ..noSpeechThreshold = 0.6;
+
+    modelHandle = whisperInitWithConfig != null
+        ? whisperInitWithConfig(modelPathPtr, initConfigPtr)
+        : whisperInit(modelPathPtr);
   } finally {
     malloc.free(modelPathPtr);
+    calloc.free(initConfigPtr);
   }
 
   if (modelHandle == nullptr) {

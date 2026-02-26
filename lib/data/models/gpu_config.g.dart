@@ -8,11 +8,9 @@ part of 'gpu_config.dart';
 
 _$GpuConfigImpl _$$GpuConfigImplFromJson(Map<String, dynamic> json) =>
     _$GpuConfigImpl(
-      asrGpuEnabled: json['asrGpuEnabled'] as bool? ?? true,
-      asrGpuDevice: (json['asrGpuDevice'] as num?)?.toInt() ?? 0,
-      onnxGpuEnabled: json['onnxGpuEnabled'] as bool? ?? true,
+      useGpu: json['useGpu'] as bool? ?? true,
+      gpuDeviceIndex: (json['gpuDeviceIndex'] as num?)?.toInt() ?? 0,
       onnxExecutionProvider: json['onnxExecutionProvider'] as String? ?? 'auto',
-      onnxGpuDevice: (json['onnxGpuDevice'] as num?)?.toInt(),
       cpuThreads: (json['cpuThreads'] as num?)?.toInt() ?? 4,
       batchSize: (json['batchSize'] as num?)?.toInt() ?? 8,
       useFp16: json['useFp16'] as bool? ?? false,
@@ -20,11 +18,9 @@ _$GpuConfigImpl _$$GpuConfigImplFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$$GpuConfigImplToJson(_$GpuConfigImpl instance) =>
     <String, dynamic>{
-      'asrGpuEnabled': instance.asrGpuEnabled,
-      'asrGpuDevice': instance.asrGpuDevice,
-      'onnxGpuEnabled': instance.onnxGpuEnabled,
+      'useGpu': instance.useGpu,
+      'gpuDeviceIndex': instance.gpuDeviceIndex,
       'onnxExecutionProvider': instance.onnxExecutionProvider,
-      'onnxGpuDevice': instance.onnxGpuDevice,
       'cpuThreads': instance.cpuThreads,
       'batchSize': instance.batchSize,
       'useFp16': instance.useFp16,

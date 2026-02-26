@@ -20,12 +20,7 @@ class AnalysisSettingsState {
     this.gpuDeviceIndex = 0,
     this.cpuThreads = 4,
     this.contentDetectionConfig = const ContentDetectionConfig(),
-    // New GPU selection fields
-    this.asrGpuEnabled = true,
-    this.asrGpuDevice = 0,
-    this.onnxGpuEnabled = true,
     this.onnxExecutionProvider = 'auto',
-    this.onnxGpuDevice,
   });
 
   factory AnalysisSettingsState.fromJson(Map<String, dynamic> json) =>
@@ -38,23 +33,17 @@ class AnalysisSettingsState {
         enableProfanity: json['enableProfanity'] as bool? ?? true,
         frameSamplingRate: json['frameSamplingRate'] as int? ?? 5,
         asrLanguage: json['asrLanguage'] as String? ?? 'en',
-        useGpuAcceleration: json['useGpuAcceleration'] as bool? ?? true,
-        gpuDeviceIndex: json['gpuDeviceIndex'] as int? ?? 0,
+        useGpuAcceleration: json['useGpuAcceleration'] as bool? ?? 
+            (json['asrGpuEnabled'] as bool? ?? true),
+        gpuDeviceIndex: json['gpuDeviceIndex'] as int? ?? 
+            (json['asrGpuDevice'] as int? ?? 0),
         cpuThreads: json['cpuThreads'] as int? ?? 4,
         contentDetectionConfig: json['contentDetectionConfig'] != null
             ? ContentDetectionConfig.fromJson(
                 json['contentDetectionConfig'] as Map<String, dynamic>,
               )
             : const ContentDetectionConfig(),
-        // New GPU selection fields
-        asrGpuEnabled: json['asrGpuEnabled'] as bool? ?? 
-            (json['useGpuAcceleration'] as bool? ?? true),
-        asrGpuDevice: json['asrGpuDevice'] as int? ?? 
-            (json['gpuDeviceIndex'] as int? ?? 0),
-        onnxGpuEnabled: json['onnxGpuEnabled'] as bool? ?? 
-            (json['useGpuAcceleration'] as bool? ?? true),
         onnxExecutionProvider: json['onnxExecutionProvider'] as String? ?? 'auto',
-        onnxGpuDevice: json['onnxGpuDevice'] as int?,
       );
 
   factory AnalysisSettingsState.withDefaults() => const AnalysisSettingsState();
@@ -79,12 +68,7 @@ class AnalysisSettingsState {
   final int gpuDeviceIndex;
   final int cpuThreads;
   final ContentDetectionConfig contentDetectionConfig;
-  // New GPU selection fields
-  final bool asrGpuEnabled;
-  final int asrGpuDevice;
-  final bool onnxGpuEnabled;
   final String onnxExecutionProvider;
-  final int? onnxGpuDevice;
 
   AnalysisSettingsState copyWith({
     String? asrModelId,
@@ -97,11 +81,7 @@ class AnalysisSettingsState {
     int? gpuDeviceIndex,
     int? cpuThreads,
     ContentDetectionConfig? contentDetectionConfig,
-    bool? asrGpuEnabled,
-    int? asrGpuDevice,
-    bool? onnxGpuEnabled,
     String? onnxExecutionProvider,
-    int? onnxGpuDevice,
   }) =>
       AnalysisSettingsState(
         asrModelId: asrModelId ?? this.asrModelId,
@@ -115,11 +95,7 @@ class AnalysisSettingsState {
         cpuThreads: cpuThreads ?? this.cpuThreads,
         contentDetectionConfig:
             contentDetectionConfig ?? this.contentDetectionConfig,
-        asrGpuEnabled: asrGpuEnabled ?? this.asrGpuEnabled,
-        asrGpuDevice: asrGpuDevice ?? this.asrGpuDevice,
-        onnxGpuEnabled: onnxGpuEnabled ?? this.onnxGpuEnabled,
         onnxExecutionProvider: onnxExecutionProvider ?? this.onnxExecutionProvider,
-        onnxGpuDevice: onnxGpuDevice ?? this.onnxGpuDevice,
       );
 
   AnalysisSettings toAnalysisSettings() => AnalysisSettings(
@@ -130,12 +106,7 @@ class AnalysisSettingsState {
           useGpu: useGpuAcceleration,
           gpuDeviceIndex: gpuDeviceIndex,
           cpuThreads: cpuThreads,
-          // New GPU selection fields
-          asrGpuEnabled: asrGpuEnabled,
-          asrGpuDevice: asrGpuDevice,
-          onnxGpuEnabled: onnxGpuEnabled,
           onnxExecutionProvider: onnxExecutionProvider,
-          onnxGpuDevice: onnxGpuDevice,
         ),
         profanityConfig: ProfanityConfig.defaults().copyWith(
           fuzzyThreshold: profanityThreshold,
@@ -156,12 +127,7 @@ class AnalysisSettingsState {
         'gpuDeviceIndex': gpuDeviceIndex,
         'cpuThreads': cpuThreads,
         'contentDetectionConfig': contentDetectionConfig.toJson(),
-        // New GPU selection fields
-        'asrGpuEnabled': asrGpuEnabled,
-        'asrGpuDevice': asrGpuDevice,
-        'onnxGpuEnabled': onnxGpuEnabled,
         'onnxExecutionProvider': onnxExecutionProvider,
-        'onnxGpuDevice': onnxGpuDevice,
       };
 }
 

@@ -1,5 +1,7 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
+# Pin SDK to a widely available version to avoid toolchain/subbuild mismatches.
+set(CMAKE_SYSTEM_VERSION 10.0.19041.0)
 project(kidslens_video_editor LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
@@ -27,39 +29,38 @@ set(ONNXRUNTIME_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../native/onnxruntime/binaries/
 # ============================================================================
 
 # Step 1: Try CUDA (preferred — fastest for NVIDIA hardware)
+set(KL_WHISPER_ENABLE_CUDA OFF)
+set(KL_WHISPER_ENABLE_VULKAN OFF)
 if(WHISPER_USE_CUDA)
   include(CheckLanguage)
   check_language(CUDA)
-  if(CMAKE_CUDA_COMPILER)
+  if(CMAKE_CUDA_COMPILER AND NOT CMAKE_CUDA_COMPILER STREQUAL "NOTFOUND")
     enable_language(CUDA)
+    set(KL_WHISPER_ENABLE_CUDA ON)
     message(STATUS "CUDA compiler found — enabling CUDA backend (preferred)")
-    set(WHISPER_USE_CUDA ON CACHE BOOL "" FORCE)
-    # When CUDA is available, disable Vulkan to avoid conflicts
-    set(WHISPER_USE_VULKAN OFF CACHE BOOL "" FORCE)
   else()
-    message(STATUS "CUDA compiler not found — falling back to Vulkan/CPU")
-    set(WHISPER_USE_CUDA OFF CACHE BOOL "" FORCE)
+    message(STATUS "CUDA compiler not found or unsupported with current toolchain — falling back to Vulkan/CPU")
   endif()
 endif()
 
 # Step 2: Try Vulkan (fallback for non-NVIDIA or when CUDA unavailable)
-if(NOT WHISPER_USE_CUDA AND WHISPER_USE_VULKAN)
+if(NOT KL_WHISPER_ENABLE_CUDA AND WHISPER_USE_VULKAN)
   find_package(Vulkan QUIET)
   if(NOT Vulkan_FOUND)
     message(STATUS "Vulkan SDK not found — building Whisper with CPU-only support")
     message(STATUS "For GPU acceleration, install:")
     message(STATUS "  NVIDIA: CUDA Toolkit — https://developer.nvidia.com/cuda-toolkit")
     message(STATUS "  AMD/Intel: Vulkan SDK — https://vulkan.lunarg.com/sdk/home")
-    set(WHISPER_USE_VULKAN OFF CACHE BOOL "" FORCE)
   else()
     message(STATUS "Vulkan SDK found — GPU acceleration via Vulkan")
+    set(KL_WHISPER_ENABLE_VULKAN ON)
   endif()
 endif()
 
 # Summary
-if(WHISPER_USE_CUDA)
+if(KL_WHISPER_ENABLE_CUDA)
   message(STATUS "Whisper GPU backend: CUDA")
-elseif(WHISPER_USE_VULKAN)
+elseif(KL_WHISPER_ENABLE_VULKAN)
   message(STATUS "Whisper GPU backend: Vulkan")
 else()
   message(STATUS "Whisper GPU backend: CPU-only")
@@ -79,13 +80,9 @@ if(BUILD_WHISPER_WRAPPER)
     set(WHISPER_WRAPPER_BUILD_SHARED ON CACHE BOOL "" FORCE)
     set(WHISPER_USE_BUNDLED ON CACHE BOOL "" FORCE)
     
-    # Pass GPU options
-    if(WHISPER_USE_CUDA)
-      set(WHISPER_USE_CUDA ON CACHE BOOL "" FORCE)
-    endif()
-    if(WHISPER_USE_VULKAN)
-      set(WHISPER_USE_VULKAN ON CACHE BOOL "" FORCE)
-    endif()
+    # Pass computed GPU backend options to whisper_wrapper subproject.
+    set(WHISPER_USE_CUDA ${KL_WHISPER_ENABLE_CUDA} CACHE BOOL "" FORCE)
+    set(WHISPER_USE_VULKAN ${KL_WHISPER_ENABLE_VULKAN} CACHE BOOL "" FORCE)
     
     # EXCLUDE_FROM_ALL prevents whisper.cpp's install targets from running
     # We handle installation of whisper_wrapper ourselves below
@@ -116,10 +113,11 @@ else()
   endif()
 endif()
 # Define settings for the Profile build mode.
-set(CMAKE_EXE_LINKER_FLAGS_PROFILE "${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
-set(CMAKE_SHARED_LINKER_FLAGS_PROFILE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE}")
-set(CMAKE_C_FLAGS_PROFILE "${CMAKE_C_FLAGS_RELEASE}")
-set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
+set(CMAKE_EXE_LINKER_FLAGS_PROFILE "${CMAKE_EXE_LINKER_FLAGS_RELEASE}" CACHE STRING "Flags used by the linker during PROFILE builds." FORCE)
+set(CMAKE_SHARED_LINKER_FLAGS_PROFILE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE}" CACHE STRING "Flags used by the shared linker during PROFILE builds." FORCE)
+set(CMAKE_MODULE_LINKER_FLAGS_PROFILE "${CMAKE_MODULE_LINKER_FLAGS_RELEASE}" CACHE STRING "Flags used by the module linker during PROFILE builds." FORCE)
+set(CMAKE_C_FLAGS_PROFILE "${CMAKE_C_FLAGS_RELEASE}" CACHE STRING "Flags used by the C compiler during PROFILE builds." FORCE)
+set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}" CACHE STRING "Flags used by the C++ compiler during PROFILE builds." FORCE)
 
 # Use Unicode for all projects.
 add_definitions(-DUNICODE -D_UNICODE)
@@ -157,9 +155,7 @@ include(flutter/generated_plugins.cmake)
 set(BUILD_BUNDLE_DIR "$<TARGET_FILE_DIR:${BINARY_NAME}>")
 # Make the "install" step default, as it's required to run.
 set(CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD 1)
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX "${BUILD_BUNDLE_DIR}" CACHE PATH "..." FORCE)
-endif()
+set(CMAKE_INSTALL_PREFIX "${BUILD_BUNDLE_DIR}" CACHE PATH "..." FORCE)
 
 set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
 set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")

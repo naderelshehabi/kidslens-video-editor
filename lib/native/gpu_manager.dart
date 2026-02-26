@@ -579,6 +579,71 @@ class GPUAccelerationManager {
     }
   }
 
+  /// Map a CUDA device index to the corresponding DirectML device index
+  ///
+  /// This is necessary because DirectML enumerates ALL GPUs (integrated + discrete),
+  /// while CUDA only shows NVIDIA GPUs. For example, on a laptop with Intel iGPU
+  /// and NVIDIA dGPU:
+  /// - CUDA GPU 0 = NVIDIA dGPU
+  /// - DirectML GPU 0 = Intel iGPU, DirectML GPU 1 = NVIDIA dGPU
+  ///
+  /// Returns the mapped DirectML device index, or the original index if mapping fails.
+  Future<int> mapCudaToDirectMLDeviceIndex(int cudaIndex) async {
+    final cudaDevices = await getCudaDevices();
+    final directmlDevices = await getDirectMLDevices();
+
+    if (cudaDevices.isEmpty || directmlDevices.isEmpty) {
+      return cudaIndex; // No mapping possible
+    }
+
+    // Get the CUDA device at the specified index
+    final cudaDevice = cudaDevices.where((d) => d.index == cudaIndex).firstOrNull;
+    if (cudaDevice == null) {
+      return cudaIndex; // Invalid index
+    }
+
+    // Find matching DirectML device by name
+    for (final dmlDevice in directmlDevices) {
+      if (_deviceNamesMatch(cudaDevice.name, dmlDevice.name)) {
+        return dmlDevice.deviceId;
+      }
+    }
+
+    // Fallback: if we have multiple DirectML devices and cudaIndex is 0,
+    // assume the discrete GPU is the last device in the DirectML list
+    if (cudaIndex == 0 && directmlDevices.length > 1) {
+      return directmlDevices.last.deviceId;
+    }
+
+    return cudaIndex;
+  }
+
+  /// Check if two GPU names refer to the same device
+  bool _deviceNamesMatch(String name1, String name2) {
+    final n1 = name1.toLowerCase();
+    final n2 = name2.toLowerCase();
+
+    // Direct substring match
+    if (n1.contains(n2) || n2.contains(n1)) return true;
+
+    // Common NVIDIA identifiers
+    final nvidiaKeywords = ['nvidia', 'geforce', 'rtx', 'gtx', 'quadro', 'tesla'];
+    final hasNvidia1 = nvidiaKeywords.any((k) => n1.contains(k));
+    final hasNvidia2 = nvidiaKeywords.any((k) => n2.contains(k));
+
+    if (hasNvidia1 && hasNvidia2) {
+      // Extract model numbers (e.g., "3060", "4090")
+      final modelMatch1 = RegExp(r'\b\d{4}\b').firstMatch(n1);
+      final modelMatch2 = RegExp(r'\b\d{4}\b').firstMatch(n2);
+      if (modelMatch1 != null && modelMatch2 != null) {
+        return modelMatch1.group(0) == modelMatch2.group(0);
+      }
+      return true; // Both NVIDIA, assume same device if no model number
+    }
+
+    return false;
+  }
+
   Future<AcceleratorInfo?> _tryAppleMetal() async {
     if (!Platform.isMacOS) return null;
 

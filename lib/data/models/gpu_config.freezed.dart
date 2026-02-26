@@ -20,11 +20,9 @@ GpuConfig _$GpuConfigFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$GpuConfig {
-  bool get asrGpuEnabled => throw _privateConstructorUsedError;
-  int get asrGpuDevice => throw _privateConstructorUsedError;
-  bool get onnxGpuEnabled => throw _privateConstructorUsedError;
+  bool get useGpu => throw _privateConstructorUsedError;
+  int get gpuDeviceIndex => throw _privateConstructorUsedError;
   String get onnxExecutionProvider => throw _privateConstructorUsedError;
-  int? get onnxGpuDevice => throw _privateConstructorUsedError;
   int get cpuThreads => throw _privateConstructorUsedError;
   int get batchSize => throw _privateConstructorUsedError;
   bool get useFp16 => throw _privateConstructorUsedError;
@@ -45,11 +43,9 @@ abstract class $GpuConfigCopyWith<$Res> {
       _$GpuConfigCopyWithImpl<$Res, GpuConfig>;
   @useResult
   $Res call(
-      {bool asrGpuEnabled,
-      int asrGpuDevice,
-      bool onnxGpuEnabled,
+      {bool useGpu,
+      int gpuDeviceIndex,
       String onnxExecutionProvider,
-      int? onnxGpuDevice,
       int cpuThreads,
       int batchSize,
       bool useFp16});
@@ -70,36 +66,26 @@ class _$GpuConfigCopyWithImpl<$Res, $Val extends GpuConfig>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? asrGpuEnabled = null,
-    Object? asrGpuDevice = null,
-    Object? onnxGpuEnabled = null,
+    Object? useGpu = null,
+    Object? gpuDeviceIndex = null,
     Object? onnxExecutionProvider = null,
-    Object? onnxGpuDevice = freezed,
     Object? cpuThreads = null,
     Object? batchSize = null,
     Object? useFp16 = null,
   }) {
     return _then(_value.copyWith(
-      asrGpuEnabled: null == asrGpuEnabled
-          ? _value.asrGpuEnabled
-          : asrGpuEnabled // ignore: cast_nullable_to_non_nullable
+      useGpu: null == useGpu
+          ? _value.useGpu
+          : useGpu // ignore: cast_nullable_to_non_nullable
               as bool,
-      asrGpuDevice: null == asrGpuDevice
-          ? _value.asrGpuDevice
-          : asrGpuDevice // ignore: cast_nullable_to_non_nullable
+      gpuDeviceIndex: null == gpuDeviceIndex
+          ? _value.gpuDeviceIndex
+          : gpuDeviceIndex // ignore: cast_nullable_to_non_nullable
               as int,
-      onnxGpuEnabled: null == onnxGpuEnabled
-          ? _value.onnxGpuEnabled
-          : onnxGpuEnabled // ignore: cast_nullable_to_non_nullable
-              as bool,
       onnxExecutionProvider: null == onnxExecutionProvider
           ? _value.onnxExecutionProvider
           : onnxExecutionProvider // ignore: cast_nullable_to_non_nullable
               as String,
-      onnxGpuDevice: freezed == onnxGpuDevice
-          ? _value.onnxGpuDevice
-          : onnxGpuDevice // ignore: cast_nullable_to_non_nullable
-              as int?,
       cpuThreads: null == cpuThreads
           ? _value.cpuThreads
           : cpuThreads // ignore: cast_nullable_to_non_nullable
@@ -125,11 +111,9 @@ abstract class _$$GpuConfigImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {bool asrGpuEnabled,
-      int asrGpuDevice,
-      bool onnxGpuEnabled,
+      {bool useGpu,
+      int gpuDeviceIndex,
       String onnxExecutionProvider,
-      int? onnxGpuDevice,
       int cpuThreads,
       int batchSize,
       bool useFp16});
@@ -148,36 +132,26 @@ class __$$GpuConfigImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? asrGpuEnabled = null,
-    Object? asrGpuDevice = null,
-    Object? onnxGpuEnabled = null,
+    Object? useGpu = null,
+    Object? gpuDeviceIndex = null,
     Object? onnxExecutionProvider = null,
-    Object? onnxGpuDevice = freezed,
     Object? cpuThreads = null,
     Object? batchSize = null,
     Object? useFp16 = null,
   }) {
     return _then(_$GpuConfigImpl(
-      asrGpuEnabled: null == asrGpuEnabled
-          ? _value.asrGpuEnabled
-          : asrGpuEnabled // ignore: cast_nullable_to_non_nullable
+      useGpu: null == useGpu
+          ? _value.useGpu
+          : useGpu // ignore: cast_nullable_to_non_nullable
               as bool,
-      asrGpuDevice: null == asrGpuDevice
-          ? _value.asrGpuDevice
-          : asrGpuDevice // ignore: cast_nullable_to_non_nullable
+      gpuDeviceIndex: null == gpuDeviceIndex
+          ? _value.gpuDeviceIndex
+          : gpuDeviceIndex // ignore: cast_nullable_to_non_nullable
               as int,
-      onnxGpuEnabled: null == onnxGpuEnabled
-          ? _value.onnxGpuEnabled
-          : onnxGpuEnabled // ignore: cast_nullable_to_non_nullable
-              as bool,
       onnxExecutionProvider: null == onnxExecutionProvider
           ? _value.onnxExecutionProvider
           : onnxExecutionProvider // ignore: cast_nullable_to_non_nullable
               as String,
-      onnxGpuDevice: freezed == onnxGpuDevice
-          ? _value.onnxGpuDevice
-          : onnxGpuDevice // ignore: cast_nullable_to_non_nullable
-              as int?,
       cpuThreads: null == cpuThreads
           ? _value.cpuThreads
           : cpuThreads // ignore: cast_nullable_to_non_nullable
@@ -198,11 +172,9 @@ class __$$GpuConfigImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$GpuConfigImpl extends _GpuConfig {
   const _$GpuConfigImpl(
-      {this.asrGpuEnabled = true,
-      this.asrGpuDevice = 0,
-      this.onnxGpuEnabled = true,
+      {this.useGpu = true,
+      this.gpuDeviceIndex = 0,
       this.onnxExecutionProvider = 'auto',
-      this.onnxGpuDevice,
       this.cpuThreads = 4,
       this.batchSize = 8,
       this.useFp16 = false})
@@ -213,18 +185,13 @@ class _$GpuConfigImpl extends _GpuConfig {
 
   @override
   @JsonKey()
-  final bool asrGpuEnabled;
+  final bool useGpu;
   @override
   @JsonKey()
-  final int asrGpuDevice;
-  @override
-  @JsonKey()
-  final bool onnxGpuEnabled;
+  final int gpuDeviceIndex;
   @override
   @JsonKey()
   final String onnxExecutionProvider;
-  @override
-  final int? onnxGpuDevice;
   @override
   @JsonKey()
   final int cpuThreads;
@@ -237,7 +204,7 @@ class _$GpuConfigImpl extends _GpuConfig {
 
   @override
   String toString() {
-    return 'GpuConfig(asrGpuEnabled: $asrGpuEnabled, asrGpuDevice: $asrGpuDevice, onnxGpuEnabled: $onnxGpuEnabled, onnxExecutionProvider: $onnxExecutionProvider, onnxGpuDevice: $onnxGpuDevice, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16)';
+    return 'GpuConfig(useGpu: $useGpu, gpuDeviceIndex: $gpuDeviceIndex, onnxExecutionProvider: $onnxExecutionProvider, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16)';
   }
 
   @override
@@ -245,16 +212,11 @@ class _$GpuConfigImpl extends _GpuConfig {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$GpuConfigImpl &&
-            (identical(other.asrGpuEnabled, asrGpuEnabled) ||
-                other.asrGpuEnabled == asrGpuEnabled) &&
-            (identical(other.asrGpuDevice, asrGpuDevice) ||
-                other.asrGpuDevice == asrGpuDevice) &&
-            (identical(other.onnxGpuEnabled, onnxGpuEnabled) ||
-                other.onnxGpuEnabled == onnxGpuEnabled) &&
+            (identical(other.useGpu, useGpu) || other.useGpu == useGpu) &&
+            (identical(other.gpuDeviceIndex, gpuDeviceIndex) ||
+                other.gpuDeviceIndex == gpuDeviceIndex) &&
             (identical(other.onnxExecutionProvider, onnxExecutionProvider) ||
                 other.onnxExecutionProvider == onnxExecutionProvider) &&
-            (identical(other.onnxGpuDevice, onnxGpuDevice) ||
-                other.onnxGpuDevice == onnxGpuDevice) &&
             (identical(other.cpuThreads, cpuThreads) ||
                 other.cpuThreads == cpuThreads) &&
             (identical(other.batchSize, batchSize) ||
@@ -264,16 +226,8 @@ class _$GpuConfigImpl extends _GpuConfig {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      asrGpuEnabled,
-      asrGpuDevice,
-      onnxGpuEnabled,
-      onnxExecutionProvider,
-      onnxGpuDevice,
-      cpuThreads,
-      batchSize,
-      useFp16);
+  int get hashCode => Object.hash(runtimeType, useGpu, gpuDeviceIndex,
+      onnxExecutionProvider, cpuThreads, batchSize, useFp16);
 
   /// Create a copy of GpuConfig
   /// with the given fields replaced by the non-null parameter values.
@@ -293,11 +247,9 @@ class _$GpuConfigImpl extends _GpuConfig {
 
 abstract class _GpuConfig extends GpuConfig {
   const factory _GpuConfig(
-      {final bool asrGpuEnabled,
-      final int asrGpuDevice,
-      final bool onnxGpuEnabled,
+      {final bool useGpu,
+      final int gpuDeviceIndex,
       final String onnxExecutionProvider,
-      final int? onnxGpuDevice,
       final int cpuThreads,
       final int batchSize,
       final bool useFp16}) = _$GpuConfigImpl;
@@ -307,15 +259,11 @@ abstract class _GpuConfig extends GpuConfig {
       _$GpuConfigImpl.fromJson;
 
   @override
-  bool get asrGpuEnabled;
+  bool get useGpu;
   @override
-  int get asrGpuDevice;
-  @override
-  bool get onnxGpuEnabled;
+  int get gpuDeviceIndex;
   @override
   String get onnxExecutionProvider;
-  @override
-  int? get onnxGpuDevice;
   @override
   int get cpuThreads;
   @override

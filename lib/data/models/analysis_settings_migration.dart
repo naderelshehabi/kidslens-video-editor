@@ -35,18 +35,29 @@ class AnalysisSettingsMigration {
     final modelConfig = json['modelConfig'] as Map<String, dynamic>?;
     if (modelConfig == null) return json;
 
-    // Migrate useGpu → asrGpuEnabled & onnxGpuEnabled
-    final useGpu = modelConfig['useGpu'] as bool? ?? true;
-    modelConfig['asrGpuEnabled'] = useGpu;
-    modelConfig['onnxGpuEnabled'] = useGpu;
+    // Consolidate to single GPU fields
+    // Priority: asrGpuEnabled > useGpu
+    final useGpu = (modelConfig['asrGpuEnabled'] as bool?) ?? 
+                   (modelConfig['useGpu'] as bool?) ?? 
+                   true;
+    modelConfig['useGpu'] = useGpu;
 
-    // Migrate gpuDeviceIndex → asrGpuDevice
-    final gpuDeviceIndex = modelConfig['gpuDeviceIndex'] as int? ?? 0;
-    modelConfig['asrGpuDevice'] = gpuDeviceIndex;
+    // Priority: asrGpuDevice > gpuDeviceIndex
+    final gpuDeviceIndex = (modelConfig['asrGpuDevice'] as int?) ?? 
+                          (modelConfig['gpuDeviceIndex'] as int?) ?? 
+                          0;
+    modelConfig['gpuDeviceIndex'] = gpuDeviceIndex;
 
-    // Set defaults for new fields
-    modelConfig['onnxExecutionProvider'] = 'auto';
-    modelConfig['onnxGpuDevice'] = null;
+    // Set default for execution provider if not present
+    if (!modelConfig.containsKey('onnxExecutionProvider')) {
+      modelConfig['onnxExecutionProvider'] = 'auto';
+    }
+
+    // Remove old dual-selector fields
+    modelConfig.remove('asrGpuEnabled');
+    modelConfig.remove('asrGpuDevice');
+    modelConfig.remove('onnxGpuEnabled');
+    modelConfig.remove('onnxGpuDevice');
 
     // Update schema version
     final config = json['contentDetectionConfig'] as Map<String, dynamic>?;

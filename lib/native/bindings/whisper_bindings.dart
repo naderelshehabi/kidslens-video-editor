@@ -142,6 +142,16 @@ final class WhisperModelInfoNative extends Struct {
 typedef WhisperInitNative = Pointer Function(Pointer<Utf8> modelPath);
 typedef WhisperInitDart = Pointer Function(Pointer<Utf8> modelPath);
 
+// whisper_init_with_config
+typedef WhisperInitWithConfigNative = Pointer Function(
+  Pointer<Utf8> modelPath,
+  Pointer<WhisperConfigNative> config,
+);
+typedef WhisperInitWithConfigDart = Pointer Function(
+  Pointer<Utf8> modelPath,
+  Pointer<WhisperConfigNative> config,
+);
+
 // whisper_free
 typedef WhisperFreeNative = Void Function(Pointer handle);
 typedef WhisperFreeDart = void Function(Pointer handle);
@@ -304,6 +314,13 @@ class WhisperBindings extends NativeResource {
   /// Whether GPU acceleration is available in the loaded native library
   bool get isGpuAvailable => _whisperGpuAvailable?.call() ?? false;
 
+  /// GPU backend name reported by native library (e.g., CUDA, Vulkan, Metal)
+  String? get gpuBackendName {
+    final ptr = _whisperGpuName?.call();
+    if (ptr == null || ptr == nullptr) return null;
+    return ptr.toDartString();
+  }
+
   /// Initialize Whisper bindings by loading the native library
   Future<void> initialize() async {
     if (_initialized) return;
@@ -314,6 +331,7 @@ class WhisperBindings extends NativeResource {
       if (_lib != null) {
         _bindFunctions();
         debugPrint('Whisper FFI library loaded successfully');
+        debugPrint('Whisper native library path: ${_nativeLibraryPath ?? 'unknown'}');
         debugPrint('GPU available: ${_whisperGpuAvailable?.call() ?? false}');
 
         final gpuName = _whisperGpuName?.call();
@@ -339,12 +357,19 @@ class WhisperBindings extends NativeResource {
   DynamicLibrary? _loadNativeLibrary() {
     try {
       if (Platform.isWindows) {
+        final cwd = Directory.current.path;
+        final exeDir = p.dirname(Platform.resolvedExecutable);
+
         // Try to find library in various locations
         final possiblePaths = [
+          p.join(cwd, 'build', 'windows', 'x64-vs17', 'runner', 'Debug', 'whisper_wrapper.dll'),
+          p.join(cwd, 'build', 'windows', 'x64-vs17', 'runner', 'Release', 'whisper_wrapper.dll'),
+          p.join(exeDir, '..', '..', '..', 'x64-vs17', 'runner', 'Debug', 'whisper_wrapper.dll'),
+          p.join(exeDir, '..', '..', '..', 'x64-vs17', 'runner', 'Release', 'whisper_wrapper.dll'),
           'whisper_wrapper.dll',
           'data/flutter_assets/native/whisper_wrapper.dll',
-          '${p.dirname(Platform.resolvedExecutable)}/whisper_wrapper.dll',
-          '${p.dirname(Platform.resolvedExecutable)}/data/flutter_assets/native/whisper_wrapper.dll',
+          '$exeDir/whisper_wrapper.dll',
+          '$exeDir/data/flutter_assets/native/whisper_wrapper.dll',
         ];
 
         for (final libPath in possiblePaths) {
@@ -570,6 +595,7 @@ class WhisperBindings extends NativeResource {
     bool translateToEnglish = false,
     Duration? mediaDuration,
     bool useGpu = true,
+    int gpuDeviceIndex = 0,
     int nThreads = 0,
     int beamSize = 5,
   }) async {
@@ -595,6 +621,7 @@ class WhisperBindings extends NativeResource {
         language: language,
         translateToEnglish: translateToEnglish,
         useGpu: useGpu,
+        gpuDeviceIndex: gpuDeviceIndex,
         nThreads: nThreads,
         beamSize: beamSize,
       );
@@ -615,6 +642,7 @@ class WhisperBindings extends NativeResource {
     String? language,
     bool translateToEnglish = false,
     bool useGpu = true,
+    int gpuDeviceIndex = 0,
     int nThreads = 0,
     int beamSize = 5,
   }) async {
@@ -628,7 +656,7 @@ class WhisperBindings extends NativeResource {
       final config = configPtr.ref
         ..nThreads = nThreads > 0 ? nThreads : Platform.numberOfProcessors.clamp(1, 8)
         ..useGpu = useGpu
-        ..gpuDevice = 0
+        ..gpuDevice = gpuDeviceIndex < 0 ? 0 : gpuDeviceIndex
         ..translate = translateToEnglish
         ..wordTimestamps = true
         ..wordThreshold = 0.01

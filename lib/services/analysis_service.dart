@@ -426,7 +426,17 @@ class AnalysisService {
 
     if (asrModel.startsWith('whisper')) {
       await whisper.initialize();
-      final transcript = await whisper.transcribe(mediaPath, modelPath);
+      final transcript = await whisper.transcribe(
+        mediaPath,
+        modelPath,
+        language: settings.modelConfig.asrLanguage == 'auto'
+            ? null
+            : settings.modelConfig.asrLanguage,
+        useGpu: settings.modelConfig.useGpu,
+        gpuDeviceIndex: settings.modelConfig.gpuDeviceIndex,
+        nThreads: settings.modelConfig.cpuThreads,
+        beamSize: settings.modelConfig.beamSize,
+      );
       await _checkState(cancellationToken);
       return transcript;
     }

@@ -61,6 +61,7 @@ ONNXBindings onnxBindings(Ref ref) {
 NsfwOnnxService nsfwOnnxService(Ref ref) => NsfwOnnxService(
       onnx: ref.watch(onnxBindingsProvider),
       gpuConfig: ref.watch(gpuConfigProvider),
+      gpuManager: ref.watch(gpuAccelerationManagerProvider),
     );
 
 // GPU Manager

@@ -119,6 +119,10 @@ class AsrService {
         preparedAudioPath,
         modelPath,
         language: language,
+        useGpu: gpuConfig.useGpu,
+        gpuDeviceIndex: gpuConfig.gpuDeviceIndex,
+        nThreads: gpuConfig.cpuThreads,
+        beamSize: gpuConfig.useGpu ? adaptiveBeamSize(modelId) : 1,
       );
 
       final processingTime = DateTime.now().difference(startTime);
@@ -180,6 +184,10 @@ class AsrService {
         modelPath,
         language: language,
         mediaDuration: mediaDuration,
+        useGpu: gpuConfig.useGpu,
+        gpuDeviceIndex: gpuConfig.gpuDeviceIndex,
+        nThreads: gpuConfig.cpuThreads,
+        beamSize: adaptiveBeamSize(modelId),
       );
     } finally {
       await _cleanupTempAudio();
@@ -310,17 +318,23 @@ class AsrService {
         Duration.zero,
       );
       final resolvedGpuDeviceIndex =
-          await _resolveGpuDeviceIndex(gpuDeviceIndex ?? gpuConfig.asrGpuDevice);
+          await _resolveGpuDeviceIndex(gpuDeviceIndex ?? gpuConfig.gpuDeviceIndex);
 
       final params = TranscriptionIsolateParams(
         libraryPath: libraryPath,
         audioPath: preparedAudioPath,
         modelPath: modelPath,
         language: language,
-        asrGpuEnabled: useGpu ?? gpuConfig.asrGpuEnabled,
+        asrGpuEnabled: useGpu ?? gpuConfig.useGpu,
         asrGpuDevice: resolvedGpuDeviceIndex,
         nThreads: nThreads ?? gpuConfig.cpuThreads,
         beamSize: beamSize ?? adaptiveBeamSize(modelId),
+      );
+
+      debugPrint(
+        'ASR isolate config: useGpu=${params.asrGpuEnabled}, '
+        'gpuDevice=${params.asrGpuDevice}, threads=${params.nThreads}, '
+        'whisperGpuBackend=${whisper.gpuBackendName ?? 'unknown'}',
       );
 
       checkCancelled();

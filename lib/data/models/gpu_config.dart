@@ -13,11 +13,9 @@ part 'gpu_config.g.dart';
 @freezed
 class GpuConfig with _$GpuConfig {
   const factory GpuConfig({
-    @Default(true) bool asrGpuEnabled,
-    @Default(0) int asrGpuDevice,
-    @Default(true) bool onnxGpuEnabled,
+    @Default(true) bool useGpu,
+    @Default(0) int gpuDeviceIndex,
     @Default('auto') String onnxExecutionProvider,
-    int? onnxGpuDevice,
     @Default(4) int cpuThreads,
     @Default(8) int batchSize,
     @Default(false) bool useFp16,
@@ -30,11 +28,9 @@ class GpuConfig with _$GpuConfig {
 
   /// Create GpuConfig from ModelConfig settings
   factory GpuConfig.fromModelConfig(ModelConfig config) => GpuConfig(
-        asrGpuEnabled: config.asrGpuEnabled,
-        asrGpuDevice: config.asrGpuDevice,
-        onnxGpuEnabled: config.onnxGpuEnabled,
+        useGpu: config.useGpu,
+        gpuDeviceIndex: config.gpuDeviceIndex,
         onnxExecutionProvider: config.onnxExecutionProvider,
-        onnxGpuDevice: config.onnxGpuDevice,
         cpuThreads: config.cpuThreads,
         batchSize: config.batchSize,
         useFp16: config.useFp16,
@@ -51,7 +47,7 @@ class GpuConfig with _$GpuConfig {
   /// - macOS: CoreML → CPU
   /// - Linux: CUDA → ROCm → CPU
   List<String> get onnxExecutionProviders {
-    if (!onnxGpuEnabled) return ['CPUExecutionProvider'];
+    if (!useGpu) return ['CPUExecutionProvider'];
 
     if (onnxExecutionProvider == 'auto') {
       // Platform-specific defaults
