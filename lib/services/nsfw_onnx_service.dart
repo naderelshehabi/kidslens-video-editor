@@ -54,15 +54,8 @@ class NsfwOnnxService {
     // Ensure ONNX is initialized
     await onnx.initialize();
 
-    final executionProvider = await _resolveExecutionProvider();
-    final deviceIndex = await _getMappedDeviceIndex(executionProvider);
-
-    // Load model if not already cached
-    await onnx.loadModel(
-      modelPath,
-      deviceId: deviceIndex,
-      executionProvider: executionProvider,
-    );
+    final (executionProvider, deviceIndex) =
+        await _loadModelWithBestProvider(modelPath);
 
     debugPrint(
       'NSFW ONNX session: provider=$executionProvider, deviceId=$deviceIndex, configuredChain=${gpuConfig.onnxExecutionProviders.join(' -> ')}',
@@ -97,36 +90,66 @@ class NsfwOnnxService {
   Future<void> warmup(String modelPath) async {
     await onnx.initialize();
 
-    final executionProvider = await _resolveExecutionProvider();
-    final deviceIndex = await _getMappedDeviceIndex(executionProvider);
-
-    await onnx.loadModel(
-      modelPath,
-      deviceId: deviceIndex,
-      executionProvider: executionProvider,
-    );
+    await _loadModelWithBestProvider(modelPath);
     await onnx.warmup(modelPath);
   }
 
-  Future<String> _resolveExecutionProvider() async {
-    if (_resolvedExecutionProvider != null) {
-      return _resolvedExecutionProvider!;
-    }
-
+  Future<(String, int)> _loadModelWithBestProvider(String modelPath) async {
     if (!gpuConfig.useGpu) {
+      await onnx.loadModel(
+        modelPath,
+        deviceId: 0,
+        executionProvider: 'CPUExecutionProvider',
+      );
       _resolvedExecutionProvider = 'CPUExecutionProvider';
-      return _resolvedExecutionProvider!;
+      return ('CPUExecutionProvider', 0);
     }
 
-    final availableProviders = await gpuManager.queryAvailableProviders();
-    final configuredProviders = gpuConfig.onnxExecutionProviders;
+    final candidateProviders = gpuConfig.onnxExecutionProviders;
 
-    _resolvedExecutionProvider = configuredProviders.firstWhere(
-      availableProviders.contains,
-      orElse: () => 'CPUExecutionProvider',
+    for (final provider in candidateProviders) {
+      final deviceIndex = await _getMappedDeviceIndex(provider);
+      try {
+        await onnx.loadModel(
+          modelPath,
+          deviceId: deviceIndex,
+          executionProvider: provider,
+          allowProviderFallbackToCpu: false,
+        );
+
+        _resolvedExecutionProvider = provider;
+        return (provider, deviceIndex);
+      } catch (e) {
+        debugPrint(
+          'NSFW ONNX provider attempt failed: provider=$provider, deviceId=$deviceIndex, error=$e',
+        );
+      }
+    }
+
+    throw const NsfwOnnxException(
+      'Failed to load ONNX model with all configured execution providers.',
     );
+  }
 
-    return _resolvedExecutionProvider!;
+  Future<int> _resolveCudaDeviceIndex() async {
+    final requestedIndex = gpuConfig.gpuDeviceIndex;
+    if (requestedIndex < 0) return 0;
+
+    try {
+      final cudaDevices = await gpuManager.getCudaDevices();
+      if (cudaDevices.isEmpty) {
+        return requestedIndex;
+      }
+
+      final indexes = cudaDevices.map((d) => d.index).toSet();
+      if (indexes.contains(requestedIndex)) {
+        return requestedIndex;
+      }
+
+      return cudaDevices.first.index;
+    } catch (_) {
+      return requestedIndex;
+    }
   }
 
   /// Map GPU device index based on execution provider
@@ -138,15 +161,17 @@ class NsfwOnnxService {
   Future<int> _getMappedDeviceIndex(String executionProvider) async {
     if (!gpuConfig.useGpu) return 0;
 
+    final cudaDeviceIndex = await _resolveCudaDeviceIndex();
+
     // If using DirectML, map CUDA index to DirectML index
     if (executionProvider == 'DmlExecutionProvider') {
       return await gpuManager.mapCudaToDirectMLDeviceIndex(
-        gpuConfig.gpuDeviceIndex,
+        cudaDeviceIndex,
       );
     }
 
     // For CUDA and other providers, use index as-is
-    return gpuConfig.gpuDeviceIndex;
+    return cudaDeviceIndex;
   }
 
   /// Unload a model from the cache.

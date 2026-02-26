@@ -74,31 +74,22 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     // Listen to player streams and update provider
     _positionSubscription = _player!.stream.position.listen((position) {
       if (!mounted) return;
-      Future.microtask(() {
-        if (!mounted) return;
-        ref.read(playbackNotifierProvider.notifier).updatePosition(position);
-      });
+      ref.read(playbackNotifierProvider.notifier).updatePosition(position);
       _checkAndApplyEditActions(position);
     });
 
     _durationSubscription = _player!.stream.duration.listen((duration) {
       if (!mounted) return;
-      Future.microtask(() {
-        if (!mounted) return;
-        ref.read(playbackNotifierProvider.notifier).updateDuration(duration);
-      });
+      ref.read(playbackNotifierProvider.notifier).updateDuration(duration);
     });
 
     _playingSubscription = _player!.stream.playing.listen((playing) {
       if (!mounted) return;
-      Future.microtask(() {
-        if (!mounted) return;
-        ref.read(playbackNotifierProvider.notifier).updatePlaying(isPlaying: playing);
-        // Handle playback stop - beep should stop immediately
-        if (!playing) {
-          _stopAllAudioEffects();
-        }
-      });
+      ref.read(playbackNotifierProvider.notifier).updatePlaying(isPlaying: playing);
+      // Handle playback stop - beep should stop immediately
+      if (!playing) {
+        _stopAllAudioEffects();
+      }
     });
 
     // Load initial media if available
@@ -106,7 +97,14 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   }
 
   /// Stop all audio effects and restore normal playback volume
-  void _stopAllAudioEffects() {
+  void _stopAllAudioEffects({bool notifyProvider = true}) {
+    if (!mounted) {
+      _player?.setVolume(100);
+      _previousEffectState = AudioEffectState.none;
+      _previousBeepFrequency = 0;
+      return;
+    }
+
     // Stop beep audio
     ref.read(beepAudioServiceProvider).stopBeep();
     
@@ -117,6 +115,13 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     // Restore user's intended volume
     final userVolume = ref.read(playbackNotifierProvider).userVolume;
     _player?.setVolume(userVolume * 100);
+
+    if (notifyProvider) {
+      ref.read(playbackNotifierProvider.notifier).updateAudioEffect(
+        AudioEffectState.none,
+        beepFrequency: 0,
+      );
+    }
   }
 
   void _checkAndApplyEditActions(Duration position) {
@@ -179,6 +184,8 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
 
   /// Apply the audio effect state, managing player volume and beep playback
   void _applyAudioEffectState(AudioEffectState newState, int beepFrequency, double userVolume) {
+    if (!mounted) return;
+
     final beepService = ref.read(beepAudioServiceProvider);
     
     // Check if state changed
@@ -267,7 +274,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     _playingSubscription?.cancel();
     
     // Stop all audio effects
-    _stopAllAudioEffects();
+    _stopAllAudioEffects(notifyProvider: false);
     
     // Dispose the player
     _player?.dispose();

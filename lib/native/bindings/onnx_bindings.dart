@@ -292,6 +292,7 @@ class ONNXBindings extends NativeResource {
     int? deviceId,
     String? executionProvider,
     Map<String, String>? providerOptions,
+    bool allowProviderFallbackToCpu = true,
   }) async {
     _ensureInitialized();
 
@@ -354,6 +355,11 @@ class ONNXBindings extends NativeResource {
             providerOptions: providerOptions,
           );
         } catch (e) {
+          if (!allowProviderFallbackToCpu) {
+            throw ONNXModelLoadException(
+              'Failed to configure $executionProvider: $e',
+            );
+          }
           // Log warning but continue with CPU fallback
           print('Warning: Failed to configure $executionProvider: $e');
         }

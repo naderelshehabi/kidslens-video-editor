@@ -112,6 +112,8 @@ class AsrService {
       );
 
       final startTime = DateTime.now();
+      final resolvedGpuDeviceIndex =
+          await _resolveGpuDeviceIndex(gpuConfig.gpuDeviceIndex);
 
       // Perform transcription with prepared audio
       await whisper.initialize();
@@ -120,7 +122,7 @@ class AsrService {
         modelPath,
         language: language,
         useGpu: gpuConfig.useGpu,
-        gpuDeviceIndex: gpuConfig.gpuDeviceIndex,
+        gpuDeviceIndex: resolvedGpuDeviceIndex,
         nThreads: gpuConfig.cpuThreads,
         beamSize: gpuConfig.useGpu ? adaptiveBeamSize(modelId) : 1,
       );
@@ -177,6 +179,8 @@ class AsrService {
       if (modelPath == null) {
         throw AsrException('Failed to load model: $modelId');
       }
+      final resolvedGpuDeviceIndex =
+          await _resolveGpuDeviceIndex(gpuConfig.gpuDeviceIndex);
 
       await whisper.initialize();
       return await whisper.transcribe(
@@ -185,7 +189,7 @@ class AsrService {
         language: language,
         mediaDuration: mediaDuration,
         useGpu: gpuConfig.useGpu,
-        gpuDeviceIndex: gpuConfig.gpuDeviceIndex,
+        gpuDeviceIndex: resolvedGpuDeviceIndex,
         nThreads: gpuConfig.cpuThreads,
         beamSize: adaptiveBeamSize(modelId),
       );
