@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/data/models/detection.dart';
 import 'package:kidslens_video_editor/data/models/edit_action.dart';
+import 'package:kidslens_video_editor/data/models/frame_analysis_result.dart';
 import 'package:kidslens_video_editor/data/models/media_file.dart';
 import 'package:kidslens_video_editor/data/models/subtitle_track.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/blur_region_overlay.dart';
@@ -15,6 +16,56 @@ import 'package:kidslens_video_editor/state/providers/playback_provider.dart';
 import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 import 'package:media_kit/media_kit.dart' hide SubtitleTrack;
 import 'package:media_kit_video/media_kit_video.dart';
+
+FrameAnalysisResult? _findNearestFrameResult(
+  List<FrameAnalysisResult> frameResults,
+  Duration position,
+) {
+  if (frameResults.isEmpty) return null;
+
+  final targetMs = position.inMilliseconds;
+  var low = 0;
+  var high = frameResults.length - 1;
+
+  while (low <= high) {
+    final mid = (low + high) >> 1;
+    final midMs = frameResults[mid].timestamp.inMilliseconds;
+    if (midMs == targetMs) {
+      return frameResults[mid];
+    }
+    if (midMs < targetMs) {
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  FrameAnalysisResult? best;
+  var bestDeltaMs = 1 << 30;
+
+  for (final index in [high, low]) {
+    if (index < 0 || index >= frameResults.length) continue;
+    final candidate = frameResults[index];
+    final delta = (candidate.timestamp.inMilliseconds - targetMs).abs();
+    if (delta < bestDeltaMs) {
+      best = candidate;
+      bestDeltaMs = delta;
+    }
+  }
+
+  if (best == null) return null;
+
+  if (frameResults.length <= 1) {
+    return best;
+  }
+
+  final firstMs = frameResults.first.timestamp.inMilliseconds;
+  final lastMs = frameResults.last.timestamp.inMilliseconds;
+  final avgStepMs =
+      ((lastMs - firstMs).abs() / math.max(1, frameResults.length - 1)).round();
+  final toleranceMs = math.max(700, avgStepMs * 3);
+  return bestDeltaMs <= toleranceMs ? best : null;
+}
 
 /// Preview panel for video/audio with playback controls using media_kit
 class PreviewPanel extends ConsumerStatefulWidget {
@@ -27,6 +78,9 @@ class PreviewPanel extends ConsumerStatefulWidget {
     this.onEditActionUpdated,
     this.editingBlurActionId,
     this.onEditingBlurActionChanged,
+    this.debugModeEnabled = false,
+    this.nsfwFrameResults = const <FrameAnalysisResult>[],
+    this.nsfwThreshold = 0.5,
   });
 
   final MediaFile? media;
@@ -36,6 +90,9 @@ class PreviewPanel extends ConsumerStatefulWidget {
   final void Function(EditAction)? onEditActionUpdated;
   final String? editingBlurActionId;
   final void Function(String?)? onEditingBlurActionChanged;
+  final bool debugModeEnabled;
+  final List<FrameAnalysisResult> nsfwFrameResults;
+  final double nsfwThreshold;
 
   @override
   ConsumerState<PreviewPanel> createState() => _PreviewPanelState();
@@ -45,7 +102,9 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   Player? _player;
   VideoController? _videoController;
   String? _currentMediaPath;
+  String? _mediaLoadError;
   bool _isDisposing = false;
+
   /// Tracks the previous audio effect state to detect changes
   AudioEffectState _previousEffectState = AudioEffectState.none;
   int _previousBeepFrequency = 0;
@@ -54,7 +113,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   bool _isFullScreen = false;
   BeepAudioService? _beepAudioService;
   PlaybackNotifier? _playbackNotifier;
-  
+
   // Stream subscriptions for proper cleanup
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<Duration>? _durationSubscription;
@@ -108,14 +167,15 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   }
 
   /// Stop all audio effects and restore normal playback volume
-  void _stopAllAudioEffects({bool notifyProvider = true, bool allowRefAccess = true}) {
+  void _stopAllAudioEffects(
+      {bool notifyProvider = true, bool allowRefAccess = true}) {
     // Stop beep audio
     _beepAudioService?.stopBeep();
-    
+
     // Reset effect state
     _previousEffectState = AudioEffectState.none;
     _previousBeepFrequency = 0;
-    
+
     // Restore user's intended volume
     final userVolume = _lastKnownUserVolume;
     _player?.setVolume(userVolume * 100);
@@ -138,17 +198,18 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     }
     _lastKnownUserVolume = playbackState.userVolume;
     _lastKnownIsPlaying = playbackState.isPlaying;
-    
+
     // Only apply effects during active playback
     if (!_lastKnownIsPlaying) {
       return;
     }
-    
+
     // Find any cut actions that should skip
     for (final action in widget.editActions) {
       if (!action.enabled) continue;
-      
-      if (action.type == EditActionType.cut || action.type == EditActionType.skip) {
+
+      if (action.type == EditActionType.cut ||
+          action.type == EditActionType.skip) {
         if (action.containsTime(position)) {
           // Skip past this section
           _player?.seek(action.endTime);
@@ -156,11 +217,11 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
         }
       }
     }
-    
+
     // Determine current audio effect state
     var newEffectState = AudioEffectState.none;
     var beepFrequency = 1000;
-    
+
     // Check for beep region (takes precedence over mute)
     final beepAction = widget.editActions.firstWhere(
       (action) =>
@@ -174,69 +235,74 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
         endTime: Duration.zero,
       ),
     );
-    
+
     if (beepAction.id.isNotEmpty) {
       newEffectState = AudioEffectState.beep;
       beepFrequency = beepAction.beepFrequency.toInt();
     } else {
       // Check for mute region
-      final inMuteRegion = widget.editActions.any((action) =>
-          action.enabled &&
-          action.type == EditActionType.mute &&
-          action.containsTime(position),);
-      
+      final inMuteRegion = widget.editActions.any(
+        (action) =>
+            action.enabled &&
+            action.type == EditActionType.mute &&
+            action.containsTime(position),
+      );
+
       if (inMuteRegion) {
         newEffectState = AudioEffectState.muted;
       }
     }
-    
+
     // Apply audio effect changes
-    _applyAudioEffectState(newEffectState, beepFrequency, playbackState.userVolume);
+    _applyAudioEffectState(
+        newEffectState, beepFrequency, playbackState.userVolume);
   }
 
   /// Apply the audio effect state, managing player volume and beep playback
-  void _applyAudioEffectState(AudioEffectState newState, int beepFrequency, double userVolume) {
+  void _applyAudioEffectState(
+      AudioEffectState newState, int beepFrequency, double userVolume) {
     if (!mounted || _isDisposing) return;
 
     final beepService = ref.read(beepAudioServiceProvider);
-    
+
     // Check if state changed
     final stateChanged = newState != _previousEffectState;
-    final frequencyChanged = newState == AudioEffectState.beep && 
-                             beepFrequency != _previousBeepFrequency;
-    
+    final frequencyChanged = newState == AudioEffectState.beep &&
+        beepFrequency != _previousBeepFrequency;
+
     if (!stateChanged && !frequencyChanged) {
       return; // No change, nothing to do
     }
-    
+
     // Handle transition from previous state
-    if (_previousEffectState == AudioEffectState.beep && newState != AudioEffectState.beep) {
+    if (_previousEffectState == AudioEffectState.beep &&
+        newState != AudioEffectState.beep) {
       // Was beeping, now not beeping - stop beep
       beepService.stopBeep();
     }
-    
+
     // Apply new state
     switch (newState) {
       case AudioEffectState.none:
         // Normal playback - restore user volume
         _player?.setVolume(userVolume * 100);
-        
+
       case AudioEffectState.muted:
         // Mute the video player
         _player?.setVolume(0);
-        
+
       case AudioEffectState.beep:
         // Mute video and play beep
         _player?.setVolume(0);
         beepService.startBeep(frequency: beepFrequency);
     }
-    
+
     // Update provider state for UI indicators
     _playbackNotifier?.updateAudioEffect(
-      newState, 
+      newState,
       beepFrequency: beepFrequency,
     );
-    
+
     // Remember current state for next comparison
     _previousEffectState = newState;
     _previousBeepFrequency = beepFrequency;
@@ -256,26 +322,44 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
       _stopAllAudioEffects();
       _player?.stop();
       _currentMediaPath = null;
+      _mediaLoadError = null;
       return;
     }
 
     final mediaPath = widget.media!.path;
-    if (mediaPath == _currentMediaPath) return;
+    if (mediaPath == _currentMediaPath && _mediaLoadError == null) return;
 
     // Stop any effects from previous media
     _stopAllAudioEffects();
-    
+
     _currentMediaPath = mediaPath;
 
     // Check if file exists
     final file = File(mediaPath);
     if (!file.existsSync()) {
+      _player?.stop();
+      setState(() {
+        _mediaLoadError = mediaPath;
+      });
       debugPrint('Media file not found: $mediaPath');
       return;
     }
 
-    // Open media file
-    _player?.open(Media(mediaPath), play: false);
+    try {
+      // Open media file
+      _player?.open(Media(mediaPath), play: false);
+      if (_mediaLoadError != null) {
+        setState(() {
+          _mediaLoadError = null;
+        });
+      }
+    } catch (e) {
+      _player?.stop();
+      setState(() {
+        _mediaLoadError = mediaPath;
+      });
+      debugPrint('Failed to open media file: $mediaPath, error: $e');
+    }
   }
 
   @override
@@ -285,10 +369,10 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     _positionSubscription?.cancel();
     _durationSubscription?.cancel();
     _playingSubscription?.cancel();
-    
+
     // Stop all audio effects
     _stopAllAudioEffects(notifyProvider: false, allowRefAccess: false);
-    
+
     // Dispose the player
     _player?.dispose();
     _playbackNotifier = null;
@@ -301,6 +385,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     final colorScheme = Theme.of(context).colorScheme;
     final playbackState = ref.watch(playbackNotifierProvider);
     _lastKnownUserVolume = playbackState.userVolume;
+    final hasMediaLoadError = _mediaLoadError != null;
 
     return ColoredBox(
       color: colorScheme.surfaceContainerLowest,
@@ -310,15 +395,71 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
           Expanded(
             child: widget.media == null
                 ? _buildEmptyState(context)
-                : widget.media!.isVideo
-                    ? _buildVideoPreview(context, playbackState)
-                    : _buildAudioPreview(context, playbackState),
+                : hasMediaLoadError
+                    ? _buildMissingMediaState(context, _mediaLoadError!)
+                    : widget.media!.isVideo
+                        ? _buildVideoPreview(context, playbackState)
+                        : _buildAudioPreview(context, playbackState),
           ),
-          
+
           // Playback controls
-          if (widget.media != null)
+          if (widget.media != null && !hasMediaLoadError)
             _buildPlaybackControls(context, playbackState),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMissingMediaState(BuildContext context, String mediaPath) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 620),
+        padding: const EdgeInsets.all(20),
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colorScheme.errorContainer,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: colorScheme.error.withValues(alpha: 0.35)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: colorScheme.error,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Media file is missing',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onErrorContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'This file was moved, deleted, or is no longer accessible.\nRe-import the media from the Media Bin to continue.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onErrorContainer,
+              ),
+            ),
+            const SizedBox(height: 10),
+            SelectableText(
+              mediaPath,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onErrorContainer.withValues(alpha: 0.85),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -350,7 +491,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
 
   Widget _buildVideoPreview(BuildContext context, PlaybackState playbackState) {
     final position = playbackState.position;
-    
+
     // Detection overlays for current position
     final activeDetections = widget.detections
         .where((d) => d.containsTime(position) && !d.isRejected)
@@ -358,32 +499,36 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
 
     // Active blur actions for current position
     final activeBlurActions = widget.editActions
-        .where((a) => a.type == EditActionType.blur && 
-                      a.enabled && 
-                      a.containsTime(position),)
+        .where(
+          (a) =>
+              a.type == EditActionType.blur &&
+              a.enabled &&
+              a.containsTime(position),
+        )
         .toList();
 
     // Active mute actions for current position
-    final isMuted = widget.editActions.any((a) => 
-        a.type == EditActionType.mute && 
-        a.enabled && 
-        a.containsTime(position),);
+    final isMuted = widget.editActions.any(
+      (a) =>
+          a.type == EditActionType.mute &&
+          a.enabled &&
+          a.containsTime(position),
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final aspectRatio = widget.media!.aspectRatio > 0 
-            ? widget.media!.aspectRatio 
-            : 16 / 9;
-        
+        final aspectRatio =
+            widget.media!.aspectRatio > 0 ? widget.media!.aspectRatio : 16 / 9;
+
         // Calculate actual video display size
         var videoWidth = constraints.maxWidth;
         var videoHeight = videoWidth / aspectRatio;
-        
+
         if (videoHeight > constraints.maxHeight) {
           videoHeight = constraints.maxHeight;
           videoWidth = videoHeight * aspectRatio;
         }
-        
+
         final displaySize = Size(videoWidth, videoHeight);
 
         return Stack(
@@ -396,22 +541,25 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                 child: Stack(
                   children: [
                     // Video widget - wrapped to disable default gesture handlers
-                    if (_videoController != null) IgnorePointer(
-                            child: Video(
-                              controller: _videoController!,
-                              controls: (state) => const SizedBox.shrink(),
-                            ),
-                          ) else const ColoredBox(
-                            color: Colors.black,
-                            child: Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          ),
-                    
+                    if (_videoController != null)
+                      IgnorePointer(
+                        child: Video(
+                          controller: _videoController!,
+                          controls: (state) => const SizedBox.shrink(),
+                        ),
+                      )
+                    else
+                      const ColoredBox(
+                        color: Colors.black,
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+
                     // Blur overlays during playback
                     ...activeBlurActions.map((action) {
                       final isEditing = widget.editingBlurActionId == action.id;
-                      
+
                       if (isEditing) {
                         return BlurRegionOverlay(
                           blurAction: action,
@@ -440,12 +588,12 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                         );
                       }
                     }),
-                    
+
                     // Detection visual overlays
                     ...activeDetections
                         .where((d) => d.isVisualDetection)
                         .map(_buildDetectionOverlay),
-                    
+
                     // Subtitle overlay
                     SubtitleOverlay(
                       subtitleTrack: widget.subtitleTrack,
@@ -455,15 +603,18 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                 ),
               ),
             ),
-            
+
             // Detection indicators on the side
             if (activeDetections.isNotEmpty)
               Positioned(
                 top: 8,
                 right: 48, // Make room for fullscreen button
                 child: Column(
-                  children: activeDetections.map((d) => 
-                    _buildDetectionBadge(context, d),).toList(),
+                  children: activeDetections
+                      .map(
+                        (d) => _buildDetectionBadge(context, d),
+                      )
+                      .toList(),
                 ),
               ),
 
@@ -490,7 +641,8 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                 top: 8,
                 left: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.purple.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(4),
@@ -500,7 +652,8 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                     children: [
                       Icon(Icons.volume_off, size: 14, color: Colors.white),
                       SizedBox(width: 4),
-                      Text('Muted', style: TextStyle(color: Colors.white, fontSize: 12)),
+                      Text('Muted',
+                          style: TextStyle(color: Colors.white, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -543,7 +696,8 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                 bottom: 8,
                 left: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.blue.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(4),
@@ -554,11 +708,93 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                   ),
                 ),
               ),
+
+            if (widget.debugModeEnabled)
+              Positioned(
+                right: 8,
+                bottom: 8,
+                child: _buildNsfwDebugPanel(context, position),
+              ),
           ],
         );
       },
     );
   }
+
+  Widget _buildNsfwDebugPanel(BuildContext context, Duration position) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final frame = _findNearestFrameResult(widget.nsfwFrameResults, position);
+
+    if (frame == null) {
+      return Container(
+        constraints: const BoxConstraints(maxWidth: 260),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: colorScheme.surface.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colorScheme.outlineVariant),
+        ),
+        child: Text(
+          'NSFW Debug\nNo sampled frame near ${_formatDuration(position)}',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      );
+    }
+
+    final maxScore = frame.nsfw.maxNsfwScore;
+    final isUnsafe = maxScore >= widget.nsfwThreshold;
+    final deltaMs =
+        (frame.timestamp.inMilliseconds - position.inMilliseconds).abs();
+
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 280),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: colorScheme.surface.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isUnsafe ? colorScheme.error : colorScheme.primary,
+        ),
+      ),
+      child: DefaultTextStyle(
+        style: Theme.of(context).textTheme.bodySmall ??
+            const TextStyle(fontSize: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'NSFW Debug',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Playback ${_formatDuration(position)} | Frame ${_formatDuration(frame.timestamp)} (Δ ${deltaMs}ms)',
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Max ${maxScore.toStringAsFixed(3)}  Threshold ${widget.nsfwThreshold.toStringAsFixed(3)}  ${isUnsafe ? 'UNSAFE' : 'SAFE'}',
+              style: TextStyle(
+                color: isUnsafe ? colorScheme.error : colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            _buildDebugScoreRow('porn', frame.nsfw.porn),
+            _buildDebugScoreRow('sexy', frame.nsfw.sexy),
+            _buildDebugScoreRow('hentai', frame.nsfw.hentai),
+            _buildDebugScoreRow('drawings', frame.nsfw.drawings),
+            _buildDebugScoreRow('neutral', frame.nsfw.neutral),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDebugScoreRow(String label, double score) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 1),
+        child: Text('$label: ${score.toStringAsFixed(3)}'),
+      );
 
   Widget _buildDetectionOverlay(Detection detection) {
     // For visual detections, we would show bounding boxes here
@@ -577,7 +813,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
 
   Widget _buildDetectionBadge(BuildContext context, Detection detection) {
     final color = _getDetectionColor(detection);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -638,20 +874,23 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
             ],
           ),
         ),
-        
+
         // Waveform visualization
         Expanded(
           child: _buildWaveform(context, playbackState),
         ),
-        
+
         // Active detections
         if (activeDetections.isNotEmpty)
           Padding(
             padding: const EdgeInsets.all(8),
             child: Wrap(
               spacing: 8,
-              children: activeDetections.map((d) => 
-                _buildDetectionBadge(context, d),).toList(),
+              children: activeDetections
+                  .map(
+                    (d) => _buildDetectionBadge(context, d),
+                  )
+                  .toList(),
             ),
           ),
       ],
@@ -660,10 +899,10 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
 
   Widget _buildWaveform(BuildContext context, PlaybackState playbackState) {
     final colorScheme = Theme.of(context).colorScheme;
-    final duration = playbackState.duration.inMilliseconds > 0 
-        ? playbackState.duration 
+    final duration = playbackState.duration.inMilliseconds > 0
+        ? playbackState.duration
         : (widget.media?.duration ?? Duration.zero);
-    
+
     return CustomPaint(
       painter: _WaveformPainter(
         color: colorScheme.primary,
@@ -679,11 +918,12 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     );
   }
 
-  Widget _buildPlaybackControls(BuildContext context, PlaybackState playbackState) {
+  Widget _buildPlaybackControls(
+      BuildContext context, PlaybackState playbackState) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final duration = playbackState.duration.inMilliseconds > 0 
-        ? playbackState.duration 
+    final duration = playbackState.duration.inMilliseconds > 0
+        ? playbackState.duration
         : (widget.media?.duration ?? Duration.zero);
 
     return Container(
@@ -714,14 +954,17 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                   ),
                   child: Slider(
                     value: duration.inMilliseconds > 0
-                        ? (playbackState.position.inMilliseconds / 
-                           duration.inMilliseconds).clamp(0.0, 1.0)
+                        ? (playbackState.position.inMilliseconds /
+                                duration.inMilliseconds)
+                            .clamp(0.0, 1.0)
                         : 0,
                     onChanged: (value) {
                       final seekPosition = Duration(
                         milliseconds: (value * duration.inMilliseconds).round(),
                       );
-                      ref.read(playbackNotifierProvider.notifier).seek(seekPosition);
+                      ref
+                          .read(playbackNotifierProvider.notifier)
+                          .seek(seekPosition);
                     },
                   ),
                 ),
@@ -733,22 +976,25 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 8),
-          
+
           // Playback buttons
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton(
                 icon: const Icon(Icons.skip_previous),
-                onPressed: () => ref.read(playbackNotifierProvider.notifier).seek(Duration.zero),
+                onPressed: () => ref
+                    .read(playbackNotifierProvider.notifier)
+                    .seek(Duration.zero),
               ),
               IconButton(
                 icon: const Icon(Icons.replay_10),
                 onPressed: () {
                   final newPosition = Duration(
-                    milliseconds: math.max(0, playbackState.position.inMilliseconds - 10000),
+                    milliseconds: math.max(
+                        0, playbackState.position.inMilliseconds - 10000),
                   );
                   ref.read(playbackNotifierProvider.notifier).seek(newPosition);
                 },
@@ -756,8 +1002,10 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
               const SizedBox(width: 8),
               FloatingActionButton(
                 mini: true,
-                onPressed: () => ref.read(playbackNotifierProvider.notifier).playOrPause(),
-                child: Icon(playbackState.isPlaying ? Icons.pause : Icons.play_arrow),
+                onPressed: () =>
+                    ref.read(playbackNotifierProvider.notifier).playOrPause(),
+                child: Icon(
+                    playbackState.isPlaying ? Icons.pause : Icons.play_arrow),
               ),
               const SizedBox(width: 8),
               IconButton(
@@ -774,47 +1022,58 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
               ),
               IconButton(
                 icon: const Icon(Icons.skip_next),
-                onPressed: () => ref.read(playbackNotifierProvider.notifier).seek(duration),
+                onPressed: () =>
+                    ref.read(playbackNotifierProvider.notifier).seek(duration),
               ),
-              
+
               const SizedBox(width: 16),
 
               // Selection buttons
               IconButton(
                 icon: Icon(
                   Icons.start,
-                  color: playbackState.selectionStart != null ? Colors.blue : null,
+                  color:
+                      playbackState.selectionStart != null ? Colors.blue : null,
                 ),
                 tooltip: 'Set selection start (I)',
-                onPressed: () => ref.read(playbackNotifierProvider.notifier).setSelectionStart(),
+                onPressed: () => ref
+                    .read(playbackNotifierProvider.notifier)
+                    .setSelectionStart(),
               ),
               IconButton(
                 icon: Icon(
                   Icons.last_page,
-                  color: playbackState.selectionEnd != null ? Colors.blue : null,
+                  color:
+                      playbackState.selectionEnd != null ? Colors.blue : null,
                 ),
                 tooltip: 'Set selection end (O)',
-                onPressed: () => ref.read(playbackNotifierProvider.notifier).setSelectionEnd(),
+                onPressed: () => ref
+                    .read(playbackNotifierProvider.notifier)
+                    .setSelectionEnd(),
               ),
               if (playbackState.hasSelection)
                 IconButton(
                   icon: const Icon(Icons.clear),
                   tooltip: 'Clear selection',
-                  onPressed: () => ref.read(playbackNotifierProvider.notifier).clearSelection(),
+                  onPressed: () => ref
+                      .read(playbackNotifierProvider.notifier)
+                      .clearSelection(),
                 ),
-              
+
               const SizedBox(width: 16),
-              
+
               // Volume control
               IconButton(
                 icon: Icon(
-                  playbackState.volume == 0 ? Icons.volume_off : Icons.volume_up,
+                  playbackState.volume == 0
+                      ? Icons.volume_off
+                      : Icons.volume_up,
                   size: 18,
                 ),
                 onPressed: () {
                   ref.read(playbackNotifierProvider.notifier).setVolume(
-                    playbackState.volume == 0 ? 1.0 : 0,
-                  );
+                        playbackState.volume == 0 ? 1.0 : 0,
+                      );
                 },
               ),
               SizedBox(
@@ -822,7 +1081,9 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                 child: Slider(
                   value: playbackState.volume,
                   onChanged: (value) {
-                    ref.read(playbackNotifierProvider.notifier).setVolume(value);
+                    ref
+                        .read(playbackNotifierProvider.notifier)
+                        .setVolume(value);
                   },
                 ),
               ),
@@ -909,6 +1170,9 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
             media: widget.media,
             detections: widget.detections,
             editActions: widget.editActions,
+            debugModeEnabled: widget.debugModeEnabled,
+            nsfwFrameResults: widget.nsfwFrameResults,
+            nsfwThreshold: widget.nsfwThreshold,
             playbackNotifier: ref.read(playbackNotifierProvider.notifier),
             onExitFullScreen: () {
               setState(() => _isFullScreen = false);
@@ -928,6 +1192,9 @@ class _FullScreenPreview extends StatefulWidget {
     required this.media,
     required this.detections,
     required this.editActions,
+    required this.debugModeEnabled,
+    required this.nsfwFrameResults,
+    required this.nsfwThreshold,
     required this.playbackNotifier,
     required this.onExitFullScreen,
   });
@@ -937,6 +1204,9 @@ class _FullScreenPreview extends StatefulWidget {
   final MediaFile? media;
   final List<Detection> detections;
   final List<EditAction> editActions;
+  final bool debugModeEnabled;
+  final List<FrameAnalysisResult> nsfwFrameResults;
+  final double nsfwThreshold;
   final PlaybackNotifier playbackNotifier;
   final VoidCallback onExitFullScreen;
 
@@ -978,126 +1248,162 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      backgroundColor: Colors.black,
-      body: GestureDetector(
-        onTap: _onTap,
-        child: Stack(
-          children: [
-            // Video
-            Center(
-              child: widget.videoController != null
-                  ? Video(
-                      controller: widget.videoController!,
-                      controls: (state) => const SizedBox.shrink(),
-                    )
-                  : const SizedBox.shrink(),
-            ),
+        backgroundColor: Colors.black,
+        body: GestureDetector(
+          onTap: _onTap,
+          child: Stack(
+            children: [
+              // Video
+              Center(
+                child: widget.videoController != null
+                    ? Video(
+                        controller: widget.videoController!,
+                        controls: (state) => const SizedBox.shrink(),
+                      )
+                    : const SizedBox.shrink(),
+              ),
 
-            // Controls overlay
-            AnimatedOpacity(
-              opacity: _showControls ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 200),
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.black54, Colors.transparent, Colors.transparent, Colors.black54],
-                    stops: [0.0, 0.15, 0.85, 1.0],
+              if (widget.debugModeEnabled)
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: StreamBuilder<Duration>(
+                    stream: widget.player?.stream.position,
+                    builder: (context, snapshot) {
+                      final position = snapshot.data ?? Duration.zero;
+                      return _buildNsfwDebugPanel(context, position);
+                    },
                   ),
                 ),
-                child: SafeArea(
-                  child: Column(
-                    children: [
-                      // Top bar
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.arrow_back, color: Colors.white),
-                              onPressed: () {
-                                widget.onExitFullScreen();
-                                Navigator.of(context).pop();
-                              },
-                            ),
-                            const Spacer(),
-                            if (widget.media != null)
-                              Text(
-                                widget.media!.name,
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                            const Spacer(),
-                            IconButton(
-                              icon: const Icon(Icons.fullscreen_exit, color: Colors.white),
-                              onPressed: () {
-                                widget.onExitFullScreen();
-                                Navigator.of(context).pop();
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      const Spacer(),
-                      
-                      // Center play button
-                      StreamBuilder<bool>(
-                        stream: widget.player?.stream.playing,
-                        builder: (context, snapshot) {
-                          final isPlaying = snapshot.data ?? false;
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+
+              // Controls overlay
+              AnimatedOpacity(
+                opacity: _showControls ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 200),
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black54,
+                        Colors.transparent,
+                        Colors.transparent,
+                        Colors.black54
+                      ],
+                      stops: [0.0, 0.15, 0.85, 1.0],
+                    ),
+                  ),
+                  child: SafeArea(
+                    child: Column(
+                      children: [
+                        // Top bar
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Row(
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.replay_10, color: Colors.white, size: 32),
+                                icon: const Icon(Icons.arrow_back,
+                                    color: Colors.white),
                                 onPressed: () {
-                                  final position = widget.player?.state.position ?? Duration.zero;
-                                  widget.player?.seek(Duration(
-                                    milliseconds: math.max(0, position.inMilliseconds - 10000),
-                                  ),);
+                                  widget.onExitFullScreen();
+                                  Navigator.of(context).pop();
                                 },
                               ),
-                              const SizedBox(width: 24),
-                              IconButton(
-                                icon: Icon(
-                                  isPlaying ? Icons.pause : Icons.play_arrow,
-                                  color: Colors.white,
-                                  size: 64,
+                              const Spacer(),
+                              if (widget.media != null)
+                                Text(
+                                  widget.media!.name,
+                                  style: const TextStyle(color: Colors.white),
                                 ),
-                                onPressed: () => widget.playbackNotifier.playOrPause(),
-                              ),
-                              const SizedBox(width: 24),
+                              const Spacer(),
                               IconButton(
-                                icon: const Icon(Icons.forward_10, color: Colors.white, size: 32),
+                                icon: const Icon(Icons.fullscreen_exit,
+                                    color: Colors.white),
                                 onPressed: () {
-                                  final position = widget.player?.state.position ?? Duration.zero;
-                                  final duration = widget.player?.state.duration ?? Duration.zero;
-                                  widget.player?.seek(Duration(
-                                    milliseconds: math.min(
-                                      duration.inMilliseconds,
-                                      position.inMilliseconds + 10000,
-                                    ),
-                                  ),);
+                                  widget.onExitFullScreen();
+                                  Navigator.of(context).pop();
                                 },
                               ),
                             ],
-                          );
-                        },
-                      ),
-                      
-                      const Spacer(),
-                      
-                      // Bottom controls with timeline
-                      StreamBuilder<Duration>(
-                        stream: widget.player?.stream.position,
-                        builder: (context, positionSnapshot) => StreamBuilder<Duration>(
+                          ),
+                        ),
+
+                        const Spacer(),
+
+                        // Center play button
+                        StreamBuilder<bool>(
+                          stream: widget.player?.stream.playing,
+                          builder: (context, snapshot) {
+                            final isPlaying = snapshot.data ?? false;
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.replay_10,
+                                      color: Colors.white, size: 32),
+                                  onPressed: () {
+                                    final position =
+                                        widget.player?.state.position ??
+                                            Duration.zero;
+                                    widget.player?.seek(
+                                      Duration(
+                                        milliseconds: math.max(
+                                            0, position.inMilliseconds - 10000),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 24),
+                                IconButton(
+                                  icon: Icon(
+                                    isPlaying ? Icons.pause : Icons.play_arrow,
+                                    color: Colors.white,
+                                    size: 64,
+                                  ),
+                                  onPressed: () =>
+                                      widget.playbackNotifier.playOrPause(),
+                                ),
+                                const SizedBox(width: 24),
+                                IconButton(
+                                  icon: const Icon(Icons.forward_10,
+                                      color: Colors.white, size: 32),
+                                  onPressed: () {
+                                    final position =
+                                        widget.player?.state.position ??
+                                            Duration.zero;
+                                    final duration =
+                                        widget.player?.state.duration ??
+                                            Duration.zero;
+                                    widget.player?.seek(
+                                      Duration(
+                                        milliseconds: math.min(
+                                          duration.inMilliseconds,
+                                          position.inMilliseconds + 10000,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+
+                        const Spacer(),
+
+                        // Bottom controls with timeline
+                        StreamBuilder<Duration>(
+                          stream: widget.player?.stream.position,
+                          builder: (context, positionSnapshot) =>
+                              StreamBuilder<Duration>(
                             stream: widget.player?.stream.duration,
                             builder: (context, durationSnapshot) {
-                              final position = positionSnapshot.data ?? Duration.zero;
-                              final duration = durationSnapshot.data ?? 
+                              final position =
+                                  positionSnapshot.data ?? Duration.zero;
+                              final duration = durationSnapshot.data ??
                                   (widget.media?.duration ?? Duration.zero);
-                              
+
                               return Padding(
                                 padding: const EdgeInsets.all(16),
                                 child: Column(
@@ -1108,29 +1414,41 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                                         activeTrackColor: Colors.white,
                                         inactiveTrackColor: Colors.white38,
                                         thumbColor: Colors.white,
-                                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                                        thumbShape: const RoundSliderThumbShape(
+                                            enabledThumbRadius: 6),
                                       ),
                                       child: Slider(
                                         value: duration.inMilliseconds > 0
-                                            ? (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0)
+                                            ? (position.inMilliseconds /
+                                                    duration.inMilliseconds)
+                                                .clamp(0.0, 1.0)
                                             : 0,
                                         onChanged: (value) {
-                                          widget.player?.seek(Duration(
-                                            milliseconds: (value * duration.inMilliseconds).round(),
-                                          ),);
+                                          widget.player?.seek(
+                                            Duration(
+                                              milliseconds: (value *
+                                                      duration.inMilliseconds)
+                                                  .round(),
+                                            ),
+                                          );
                                         },
                                       ),
                                     ),
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
                                           _formatDuration(position),
-                                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12),
                                         ),
                                         Text(
                                           _formatDuration(duration),
-                                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12),
                                         ),
                                       ],
                                     ),
@@ -1139,16 +1457,79 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                               );
                             },
                           ),
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildNsfwDebugPanel(BuildContext context, Duration position) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final frame = _findNearestFrameResult(widget.nsfwFrameResults, position);
+
+    if (frame == null) {
+      return Container(
+        constraints: const BoxConstraints(maxWidth: 300),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.black87,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colorScheme.outline),
+        ),
+        child: const Text(
+          'NSFW Debug\nNo sampled frame nearby',
+          style: TextStyle(color: Colors.white, fontSize: 11),
+        ),
+      );
+    }
+
+    final maxScore = frame.nsfw.maxNsfwScore;
+    final unsafe = maxScore >= widget.nsfwThreshold;
+
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 320),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: unsafe ? colorScheme.error : colorScheme.primary,
+        ),
+      ),
+      child: DefaultTextStyle(
+        style: const TextStyle(color: Colors.white, fontSize: 11),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'NSFW Debug • ${unsafe ? 'UNSAFE' : 'SAFE'}',
+              style: TextStyle(
+                color: unsafe ? colorScheme.error : colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
+            const SizedBox(height: 4),
+            Text('Frame ${_formatDuration(frame.timestamp)}'),
+            Text(
+              'max ${maxScore.toStringAsFixed(3)} | threshold ${widget.nsfwThreshold.toStringAsFixed(3)}',
+            ),
+            const SizedBox(height: 6),
+            Text('porn: ${frame.nsfw.porn.toStringAsFixed(3)}'),
+            Text('sexy: ${frame.nsfw.sexy.toStringAsFixed(3)}'),
+            Text('hentai: ${frame.nsfw.hentai.toStringAsFixed(3)}'),
+            Text('drawings: ${frame.nsfw.drawings.toStringAsFixed(3)}'),
+            Text('neutral: ${frame.nsfw.neutral.toStringAsFixed(3)}'),
           ],
         ),
       ),
     );
+  }
 
   String _formatDuration(Duration duration) {
     final hours = duration.inHours;
@@ -1193,14 +1574,15 @@ class _WaveformPainter extends CustomPainter {
 
     // Draw selection region
     if (selectionStart != null && selectionEnd != null) {
-      final startX = (selectionStart!.inMilliseconds / 
-          duration.inMilliseconds) * size.width;
-      final endX = (selectionEnd!.inMilliseconds / 
-          duration.inMilliseconds) * size.width;
-      
+      final startX =
+          (selectionStart!.inMilliseconds / duration.inMilliseconds) *
+              size.width;
+      final endX =
+          (selectionEnd!.inMilliseconds / duration.inMilliseconds) * size.width;
+
       final selectionPaint = Paint()
         ..color = Colors.blue.withValues(alpha: 0.2);
-      
+
       canvas.drawRect(
         Rect.fromLTRB(startX, 0, endX, size.height),
         selectionPaint,
@@ -1210,15 +1592,16 @@ class _WaveformPainter extends CustomPainter {
     // Draw edit action regions
     for (final action in editActions) {
       if (!action.enabled) continue;
-      
-      final startX = (action.startTime.inMilliseconds / 
-          duration.inMilliseconds) * size.width;
-      final endX = (action.endTime.inMilliseconds / 
-          duration.inMilliseconds) * size.width;
-      
+
+      final startX =
+          (action.startTime.inMilliseconds / duration.inMilliseconds) *
+              size.width;
+      final endX = (action.endTime.inMilliseconds / duration.inMilliseconds) *
+          size.width;
+
       final actionPaint = Paint()
         ..color = _getEditActionColor(action.type).withValues(alpha: 0.3);
-      
+
       canvas.drawRect(
         Rect.fromLTRB(startX, 0, endX, size.height),
         actionPaint,
@@ -1228,15 +1611,17 @@ class _WaveformPainter extends CustomPainter {
     // Draw detection regions
     for (final detection in detections) {
       if (detection.isRejected) continue;
-      
-      final startX = (detection.startTime.inMilliseconds / 
-          duration.inMilliseconds) * size.width;
-      final endX = (detection.endTime.inMilliseconds / 
-          duration.inMilliseconds) * size.width;
-      
+
+      final startX =
+          (detection.startTime.inMilliseconds / duration.inMilliseconds) *
+              size.width;
+      final endX =
+          (detection.endTime.inMilliseconds / duration.inMilliseconds) *
+              size.width;
+
       final detectionPaint = Paint()
         ..color = _getDetectionColor(detection.type).withValues(alpha: 0.3);
-      
+
       canvas.drawRect(
         Rect.fromLTRB(startX, 0, endX, size.height),
         detectionPaint,
@@ -1247,10 +1632,10 @@ class _WaveformPainter extends CustomPainter {
     final wavePaint = Paint()
       ..color = color
       ..strokeWidth = 1;
-    
+
     final centerY = size.height / 2;
     final random = math.Random(42); // Fixed seed for consistent waveform
-    
+
     for (double x = 0; x < size.width; x += 2) {
       final amplitude = random.nextDouble() * size.height * 0.35;
       canvas.drawLine(
@@ -1261,12 +1646,12 @@ class _WaveformPainter extends CustomPainter {
     }
 
     // Draw position indicator
-    final positionX = (position.inMilliseconds / 
-        duration.inMilliseconds) * size.width;
+    final positionX =
+        (position.inMilliseconds / duration.inMilliseconds) * size.width;
     final positionPaint = Paint()
       ..color = Colors.white
       ..strokeWidth = 2;
-    
+
     canvas.drawLine(
       Offset(positionX, 0),
       Offset(positionX, size.height),
@@ -1315,10 +1700,11 @@ class _WaveformPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _WaveformPainter oldDelegate) => oldDelegate.position != position ||
-        oldDelegate.duration != duration ||
-        oldDelegate.detections != detections ||
-        oldDelegate.editActions != editActions ||
-        oldDelegate.selectionStart != selectionStart ||
-        oldDelegate.selectionEnd != selectionEnd;
+  bool shouldRepaint(covariant _WaveformPainter oldDelegate) =>
+      oldDelegate.position != position ||
+      oldDelegate.duration != duration ||
+      oldDelegate.detections != detections ||
+      oldDelegate.editActions != editActions ||
+      oldDelegate.selectionStart != selectionStart ||
+      oldDelegate.selectionEnd != selectionEnd;
 }

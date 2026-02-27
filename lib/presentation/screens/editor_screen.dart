@@ -49,12 +49,33 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   // Subtitle generation state
   bool _isGeneratingSubtitles = false;
 
+  // Debug mode state
+  bool _nsfwDebugModeEnabled = false;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final projectState = ref.watch(projectNotifierProvider);
     final project = projectState.currentProject;
+
+    final selectedMedia = project?.selectedMedia;
+    final analysisResult = _nsfwDebugModeEnabled
+        ? ref.watch(analysisNotifierProvider.select((state) => state.result))
+        : null;
+
+    final nsfwFrameResults = analysisResult != null &&
+            selectedMedia != null &&
+            analysisResult.mediaFileId == selectedMedia.id
+        ? analysisResult.frameResults
+        : const <FrameAnalysisResult>[];
+
+    final nsfwThreshold = _nsfwDebugModeEnabled
+        ? ref.watch(
+            settingsNotifierProvider.select(
+                (state) => _resolveNsfwThreshold(state.analysisSettings)),
+          )
+        : 0.5;
 
     if (project == null) {
       // Navigate back to welcome screen when project is closed
@@ -140,6 +161,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                               editingBlurActionId: _editingBlurActionId,
                               onEditingBlurActionChanged:
                                   _onEditingBlurActionChanged,
+                              debugModeEnabled: _nsfwDebugModeEnabled,
+                              nsfwFrameResults: nsfwFrameResults,
+                              nsfwThreshold: nsfwThreshold,
                             ),
                           ),
                         ],
@@ -214,6 +238,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   onGenerateSubtitles: _generateSubtitles,
                   onDeleteSubtitleTrack: _deleteSubtitleTrack,
                   isGeneratingSubtitles: _isGeneratingSubtitles,
+                  showNsfwGraph: _nsfwDebugModeEnabled,
+                  nsfwFrameResults: nsfwFrameResults,
+                  nsfwThreshold: nsfwThreshold,
                 ),
               ),
             ],
@@ -281,6 +308,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             label: 'Analysis',
             items: [
               _MenuItem('Start Analysis', Icons.play_arrow, _startAnalysis),
+              _MenuItem(
+                _nsfwDebugModeEnabled
+                    ? 'Disable NSFW Debug'
+                    : 'Enable NSFW Debug',
+                _nsfwDebugModeEnabled
+                    ? Icons.bug_report
+                    : Icons.bug_report_outlined,
+                _toggleNsfwDebugMode,
+              ),
               const _MenuDivider(),
               _MenuItem(
                 'Analysis Settings',
@@ -849,6 +885,30 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     ref.read(playbackNotifierProvider.notifier).playOrPause();
   }
 
+  double _resolveNsfwThreshold(AnalysisSettings settings) {
+    for (final category
+        in settings.contentDetectionConfig.enabledVisualCategories) {
+      if (category.id == 'nsfw') {
+        return category.threshold;
+      }
+    }
+    return 0.5;
+  }
+
+  void _toggleNsfwDebugMode() {
+    setState(() => _nsfwDebugModeEnabled = !_nsfwDebugModeEnabled);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _nsfwDebugModeEnabled
+              ? 'NSFW debug mode enabled'
+              : 'NSFW debug mode disabled',
+        ),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
   void _cutSelection() {
     final playbackState = ref.read(playbackNotifierProvider);
     final project = ref.read(projectNotifierProvider).currentProject;
@@ -984,7 +1044,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       case RemediationAction.cutScene:
         actionType = EditActionType.cut;
     }
-    
+
     ref.read(projectNotifierProvider.notifier).addEditAction(
           ref.read(projectNotifierProvider).currentProject!.selectedMediaId!,
           detection.startTime,
@@ -2128,7 +2188,6 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
         ] else ...[
           FilledButton(
             onPressed: () {
-              ref.read(analysisNotifierProvider.notifier).reset();
               Navigator.of(context).pop();
             },
             child: const Text('Close'),

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/data/models/detection.dart';
 import 'package:kidslens_video_editor/data/models/edit_action.dart';
+import 'package:kidslens_video_editor/data/models/frame_analysis_result.dart';
 import 'package:kidslens_video_editor/data/models/media_file.dart';
 import 'package:kidslens_video_editor/data/models/subtitle_track.dart';
 import 'package:kidslens_video_editor/state/providers/playback_provider.dart';
@@ -31,6 +32,9 @@ class TimelinePanel extends ConsumerStatefulWidget {
     this.onGenerateSubtitles,
     this.onDeleteSubtitleTrack,
     this.isGeneratingSubtitles = false,
+    this.showNsfwGraph = false,
+    this.nsfwFrameResults = const <FrameAnalysisResult>[],
+    this.nsfwThreshold = 0.5,
   });
 
   final MediaFile? media;
@@ -46,6 +50,9 @@ class TimelinePanel extends ConsumerStatefulWidget {
   final VoidCallback? onGenerateSubtitles;
   final VoidCallback? onDeleteSubtitleTrack;
   final bool isGeneratingSubtitles;
+  final bool showNsfwGraph;
+  final List<FrameAnalysisResult> nsfwFrameResults;
+  final double nsfwThreshold;
 
   @override
   ConsumerState<TimelinePanel> createState() => _TimelinePanelState();
@@ -395,6 +402,12 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                     color: colorScheme.secondary,
                     height: 40,
                   ),
+                  if (widget.showNsfwGraph)
+                    const _TrackLabel(
+                      icon: Icons.show_chart,
+                      label: 'NSFW Score',
+                      color: Colors.pink,
+                    ),
                   // Detections track label
                   const _TrackLabel(
                     icon: Icons.warning_amber,
@@ -566,11 +579,24 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                         children: [
                           // Video track with thumbnails
                           _buildVideoTrack(
-                              context, timelineWidth, playbackState,),
+                            context,
+                            timelineWidth,
+                            playbackState,
+                          ),
 
                           // Audio track with waveform
                           _buildAudioTrack(
-                              context, timelineWidth, playbackState,),
+                            context,
+                            timelineWidth,
+                            playbackState,
+                          ),
+
+                          if (widget.showNsfwGraph)
+                            _buildNsfwScoreTrack(
+                              context,
+                              timelineWidth,
+                              playbackState,
+                            ),
 
                           // Detections track
                           _buildTrack(
@@ -595,7 +621,10 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
 
                           // Subtitles track
                           _buildSubtitlesTrack(
-                              context, timelineWidth, playbackState,),
+                            context,
+                            timelineWidth,
+                            playbackState,
+                          ),
                         ],
                       ),
                     ),
@@ -610,7 +639,10 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
   }
 
   Widget _buildVideoTrack(
-      BuildContext context, double timelineWidth, PlaybackState playbackState,) {
+    BuildContext context,
+    double timelineWidth,
+    PlaybackState playbackState,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     final duration = widget.media?.duration ?? Duration.zero;
     // Match the loading logic with settings
@@ -692,7 +724,11 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
             _buildDragSelectionOverlay(trackHeight, timelineWidth, duration),
           if (playbackState.hasSelection && duration.inMilliseconds > 0)
             _buildSelectionRegion(
-                trackHeight, playbackState, timelineWidth, duration,),
+              trackHeight,
+              playbackState,
+              timelineWidth,
+              duration,
+            ),
           // Playhead
           _buildPlayhead(trackHeight, playbackState, timelineWidth),
         ],
@@ -701,7 +737,10 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
   }
 
   Widget _buildAudioTrack(
-      BuildContext context, double timelineWidth, PlaybackState playbackState,) {
+    BuildContext context,
+    double timelineWidth,
+    PlaybackState playbackState,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     final duration = widget.media?.duration ?? Duration.zero;
 
@@ -739,7 +778,10 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
   }
 
   Widget _buildSubtitlesTrack(
-      BuildContext context, double timelineWidth, PlaybackState playbackState,) {
+    BuildContext context,
+    double timelineWidth,
+    PlaybackState playbackState,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     final duration = widget.media?.duration ?? Duration.zero;
     const trackHeight = 30.0;
@@ -821,8 +863,7 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                     height: 12,
                     child: CircularProgressIndicator(
                       strokeWidth: 1.5,
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(trackColor),
+                      valueColor: AlwaysStoppedAnimation<Color>(trackColor),
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -841,7 +882,11 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
             _buildDragSelectionOverlay(trackHeight, timelineWidth, duration),
           if (playbackState.hasSelection && duration.inMilliseconds > 0)
             _buildSelectionRegion(
-                trackHeight, playbackState, timelineWidth, duration,),
+              trackHeight,
+              playbackState,
+              timelineWidth,
+              duration,
+            ),
           // Playhead
           _buildPlayhead(trackHeight, playbackState, timelineWidth),
         ],
@@ -849,8 +894,47 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     );
   }
 
+  Widget _buildNsfwScoreTrack(
+    BuildContext context,
+    double timelineWidth,
+    PlaybackState playbackState,
+  ) {
+    final duration = widget.media?.duration ?? Duration.zero;
+
+    return _buildTrack(
+      context,
+      height: 30,
+      color: Colors.pink.withValues(alpha: 0.08),
+      playbackState: playbackState,
+      timelineWidth: timelineWidth,
+      child: widget.nsfwFrameResults.isEmpty || duration.inMilliseconds == 0
+          ? Center(
+              child: Text(
+                'No NSFW frame scores available',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: Theme.of(context).colorScheme.outline,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            )
+          : CustomPaint(
+              painter: _NsfwScorePainter(
+                duration: duration,
+                frameResults: widget.nsfwFrameResults,
+                threshold: widget.nsfwThreshold,
+                lineColor: Colors.pink,
+              ),
+              size: Size(timelineWidth, 30),
+            ),
+    );
+  }
+
   Widget _buildDragSelectionOverlay(
-      double height, double timelineWidth, Duration duration,) {
+    double height,
+    double timelineWidth,
+    Duration duration,
+  ) {
     if (_dragSelectionStart == null || _dragSelectionEnd == null) {
       return const SizedBox.shrink();
     }
@@ -879,11 +963,14 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
               borderRadius: BorderRadius.circular(2),
             ),
             child: Text(
-              _formatDuration(Duration(
+              _formatDuration(
+                Duration(
                   milliseconds:
                       (width / timelineWidth * duration.inMilliseconds)
                           .round()
-                          .abs(),),),
+                          .abs(),
+                ),
+              ),
               style: const TextStyle(color: Colors.white, fontSize: 9),
             ),
           ),
@@ -975,7 +1062,11 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
             _buildDragSelectionOverlay(height, timelineWidth, duration),
           if (playbackState.hasSelection && duration.inMilliseconds > 0)
             _buildSelectionRegion(
-                height, playbackState, timelineWidth, duration,),
+              height,
+              playbackState,
+              timelineWidth,
+              duration,
+            ),
           // Playhead
           _buildPlayhead(height, playbackState, timelineWidth),
         ],
@@ -983,8 +1074,12 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     );
   }
 
-  Widget _buildSelectionRegion(double height, PlaybackState playbackState,
-      double timelineWidth, Duration duration,) {
+  Widget _buildSelectionRegion(
+    double height,
+    PlaybackState playbackState,
+    double timelineWidth,
+    Duration duration,
+  ) {
     final startX = (playbackState.selectionStart!.inMilliseconds /
             duration.inMilliseconds) *
         timelineWidth;
@@ -1010,7 +1105,10 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
   }
 
   Widget _buildPlayhead(
-      double height, PlaybackState playbackState, double timelineWidth,) {
+    double height,
+    PlaybackState playbackState,
+    double timelineWidth,
+  ) {
     final duration = widget.media?.duration ?? Duration.zero;
     if (duration.inMilliseconds == 0) return const SizedBox.shrink();
 
@@ -1125,8 +1223,9 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-          content: Text('Cut added to timeline'),
-          duration: Duration(seconds: 1),),
+        content: Text('Cut added to timeline'),
+        duration: Duration(seconds: 1),
+      ),
     );
   }
 
@@ -1146,8 +1245,9 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-          content: Text('Mute added to timeline'),
-          duration: Duration(seconds: 1),),
+        content: Text('Mute added to timeline'),
+        duration: Duration(seconds: 1),
+      ),
     );
   }
 
@@ -1176,8 +1276,9 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-          content: Text('Blur added - drag handles to adjust region'),
-          duration: Duration(seconds: 2),),
+        content: Text('Blur added - drag handles to adjust region'),
+        duration: Duration(seconds: 2),
+      ),
     );
   }
 
@@ -1197,8 +1298,9 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-          content: Text('Beep added to timeline'),
-          duration: Duration(seconds: 1),),
+        content: Text('Beep added to timeline'),
+        duration: Duration(seconds: 1),
+      ),
     );
   }
 
@@ -1410,14 +1512,19 @@ class _EditActionMarkerState extends State<_EditActionMarker> {
                           .withValues(alpha: _isDragging ? 0.9 : 0.7),
                       borderRadius: BorderRadius.circular(2),
                       border: Border.all(
-                          color: widget.editColor, width: _isDragging ? 2 : 1,),
+                        color: widget.editColor,
+                        width: _isDragging ? 2 : 1,
+                      ),
                     ),
                     child: Tooltip(
                       message:
                           '${widget.action.typeLabel}\n${widget.formatDuration(widget.action.startTime)} - ${widget.formatDuration(widget.action.endTime)}',
                       child: Center(
-                        child: Icon(widget.editIcon,
-                            size: 12, color: Colors.white,),
+                        child: Icon(
+                          widget.editIcon,
+                          size: 12,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -1840,8 +1947,12 @@ class _ThumbnailStripPainter extends CustomPainter {
             destWidth,
             destHeight,
           );
-          canvas.drawImageRect(image, srcRect, destRect,
-              Paint()..filterQuality = FilterQuality.medium,);
+          canvas.drawImageRect(
+            image,
+            srcRect,
+            destRect,
+            Paint()..filterQuality = FilterQuality.medium,
+          );
         } else {
           // Crop to fill the slot
           final cropWidth = image.height * (thumbnailWidth / destHeight);
@@ -1852,8 +1963,12 @@ class _ThumbnailStripPainter extends CustomPainter {
             math.min(cropWidth, image.width.toDouble()),
             image.height.toDouble(),
           );
-          canvas.drawImageRect(image, croppedSrcRect, rect,
-              Paint()..filterQuality = FilterQuality.medium,);
+          canvas.drawImageRect(
+            image,
+            croppedSrcRect,
+            rect,
+            Paint()..filterQuality = FilterQuality.medium,
+          );
         }
 
         // Draw subtle border around thumbnail
@@ -1919,13 +2034,21 @@ class _ThumbnailStripPainter extends CustomPainter {
           final perfY = iconRect.top + iconSize * (p + 1) / 4;
           canvas
             ..drawRect(
-              Rect.fromLTWH(iconRect.left - perfSize - 1, perfY - perfSize / 2,
-                  perfSize, perfSize,),
+              Rect.fromLTWH(
+                iconRect.left - perfSize - 1,
+                perfY - perfSize / 2,
+                perfSize,
+                perfSize,
+              ),
               Paint()..color = primaryColor.withValues(alpha: 0.3),
             )
             ..drawRect(
               Rect.fromLTWH(
-                  iconRect.right + 1, perfY - perfSize / 2, perfSize, perfSize,),
+                iconRect.right + 1,
+                perfY - perfSize / 2,
+                perfSize,
+                perfSize,
+              ),
               Paint()..color = primaryColor.withValues(alpha: 0.3),
             );
         }
@@ -2106,4 +2229,92 @@ class _MiniWaveformPainter extends CustomPainter {
       oldDelegate.duration != duration ||
       oldDelegate.zoom != zoom ||
       oldDelegate.detections != detections;
+}
+
+class _NsfwScorePainter extends CustomPainter {
+  _NsfwScorePainter({
+    required this.duration,
+    required this.frameResults,
+    required this.threshold,
+    required this.lineColor,
+  });
+
+  final Duration duration;
+  final List<FrameAnalysisResult> frameResults;
+  final double threshold;
+  final Color lineColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (duration.inMilliseconds <= 0 || frameResults.isEmpty) {
+      return;
+    }
+
+    final clampedThreshold = threshold.clamp(0.0, 1.0);
+    final thresholdY = (1 - clampedThreshold) * size.height;
+    final thresholdPaint = Paint()
+      ..color = lineColor.withValues(alpha: 0.45)
+      ..strokeWidth = 1;
+    canvas.drawLine(
+      Offset(0, thresholdY),
+      Offset(size.width, thresholdY),
+      thresholdPaint,
+    );
+
+    final stride =
+        math.max(1, (frameResults.length / math.max(1.0, size.width)).ceil());
+
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+    final fillPaint = Paint()
+      ..color = lineColor.withValues(alpha: 0.15)
+      ..style = PaintingStyle.fill;
+
+    final linePath = Path();
+    final fillPath = Path();
+    var hasPoint = false;
+
+    void addPoint(FrameAnalysisResult frame) {
+      final x = (frame.timestamp.inMilliseconds / duration.inMilliseconds) *
+          size.width;
+      final y = (1 - frame.nsfw.maxNsfwScore.clamp(0.0, 1.0)) * size.height;
+      if (!hasPoint) {
+        linePath.moveTo(x, y);
+        fillPath
+          ..moveTo(x, size.height)
+          ..lineTo(x, y);
+        hasPoint = true;
+      } else {
+        linePath.lineTo(x, y);
+        fillPath.lineTo(x, y);
+      }
+    }
+
+    for (var i = 0; i < frameResults.length; i += stride) {
+      addPoint(frameResults[i]);
+    }
+    if (frameResults.length > 1) {
+      addPoint(frameResults.last);
+    }
+
+    if (!hasPoint) {
+      return;
+    }
+
+    fillPath
+      ..lineTo(size.width, size.height)
+      ..close();
+
+    canvas.drawPath(fillPath, fillPaint);
+    canvas.drawPath(linePath, linePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _NsfwScorePainter oldDelegate) =>
+      oldDelegate.duration != duration ||
+      oldDelegate.frameResults != frameResults ||
+      oldDelegate.threshold != threshold ||
+      oldDelegate.lineColor != lineColor;
 }
