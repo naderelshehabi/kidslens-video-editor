@@ -153,7 +153,8 @@ class _SessionKey {
   int get hashCode => Object.hash(modelPath, deviceId, executionProvider);
 
   @override
-  String toString() => '_SessionKey($modelPath, device=$deviceId, provider=$executionProvider)';
+  String toString() =>
+      '_SessionKey($modelPath, device=$deviceId, provider=$executionProvider)';
 }
 
 /// FFI bindings for ONNX Runtime using official C API
@@ -199,8 +200,8 @@ class ONNXBindings extends NativeResource {
       }
 
       // Get versioned API - returns a Pointer<Void> to the function table
-      final getApi = apiBase.ref.GetApi
-          .asFunction<Pointer<Void> Function(int)>();
+      final getApi =
+          apiBase.ref.GetApi.asFunction<Pointer<Void> Function(int)>();
       final apiPtr = getApi(ORT_API_VERSION);
       if (apiPtr == nullptr) {
         throw ONNXInitializationException(
@@ -281,7 +282,9 @@ class ONNXBindings extends NativeResource {
         .asFunction<ReleaseStatusDart>();
 
     final msgPtr = getErrorMessage(status);
-    final message = msgPtr != nullptr ? msgPtr.toDartString() : 'Unknown ONNX Runtime error';
+    final message = msgPtr != nullptr
+        ? msgPtr.toDartString()
+        : 'Unknown ONNX Runtime error';
     releaseStatus(status);
     throw ONNXInferenceException(message);
   }
@@ -322,7 +325,8 @@ class ONNXBindings extends NativeResource {
       // Create session options
       final optionsPtr = calloc<Pointer<OrtSessionOptions>>();
       final createOptions = _api!
-          .getFunction<CreateSessionOptionsNative>(OrtApiIndex.CreateSessionOptions)
+          .getFunction<CreateSessionOptionsNative>(
+              OrtApiIndex.CreateSessionOptions)
           .asFunction<CreateSessionOptionsDart>();
 
       var status = createOptions(optionsPtr);
@@ -340,7 +344,8 @@ class ONNXBindings extends NativeResource {
 
       // Set thread count (0 = auto)
       final setThreads = _api!
-          .getFunction<SetIntraOpNumThreadsNative>(OrtApiIndex.SetIntraOpNumThreads)
+          .getFunction<SetIntraOpNumThreadsNative>(
+              OrtApiIndex.SetIntraOpNumThreads)
           .asFunction<SetIntraOpNumThreadsDart>();
       status = setThreads(options, 0);
       _checkStatus(status);
@@ -389,7 +394,7 @@ class ONNXBindings extends NativeResource {
       // Get input/output names (try FFI, fallback to model-specific defaults)
       var inputNames = _getInputNames(ortSession);
       var outputNames = _getOutputNames(ortSession);
-      
+
       // Use model-specific defaults if FFI retrieval fails
       if (inputNames.isEmpty) {
         inputNames = [_getDefaultInputName(modelPath)];
@@ -438,35 +443,37 @@ class ONNXBindings extends NativeResource {
   List<String> _getInputNames(Pointer<OrtSession> session) {
     final names = <String>[];
     final countPtr = calloc<Size>();
-    
+
     try {
       // Get input count
       final getInputCount = _api!
-          .getFunction<SessionGetInputCountNative>(OrtApiIndex.SessionGetInputCount)
+          .getFunction<SessionGetInputCountNative>(
+              OrtApiIndex.SessionGetInputCount)
           .asFunction<SessionGetInputCountDart>();
       final countStatus = getInputCount(session, countPtr);
       _checkStatus(countStatus);
-      
+
       final count = countPtr.value;
-      
+
       if (count == 0) {
         return names;
       }
-      
+
       // Get each input name
       final getInputName = _api!
-          .getFunction<SessionGetInputNameNative>(OrtApiIndex.SessionGetInputName)
+          .getFunction<SessionGetInputNameNative>(
+              OrtApiIndex.SessionGetInputName)
           .asFunction<SessionGetInputNameDart>();
       final freeAllocator = _api!
           .getFunction<AllocatorFreeNative>(OrtApiIndex.AllocatorFree)
           .asFunction<AllocatorFreeDart>();
-      
+
       for (var i = 0; i < count; i++) {
         final namePtr = calloc<Pointer<Utf8>>();
         try {
           final nameStatus = getInputName(session, i, _allocator!, namePtr);
           _checkStatus(nameStatus);
-          
+
           if (namePtr.value != nullptr) {
             final name = namePtr.value.toDartString();
             names.add(name);
@@ -482,42 +489,44 @@ class ONNXBindings extends NativeResource {
     } finally {
       calloc.free(countPtr);
     }
-    
+
     return names;
   }
 
   List<String> _getOutputNames(Pointer<OrtSession> session) {
     final names = <String>[];
     final countPtr = calloc<Size>();
-    
+
     try {
       // Get output count
       final getOutputCount = _api!
-          .getFunction<SessionGetOutputCountNative>(OrtApiIndex.SessionGetOutputCount)
+          .getFunction<SessionGetOutputCountNative>(
+              OrtApiIndex.SessionGetOutputCount)
           .asFunction<SessionGetOutputCountDart>();
       final countStatus = getOutputCount(session, countPtr);
       _checkStatus(countStatus);
-      
+
       final count = countPtr.value;
-      
+
       if (count == 0) {
         return names;
       }
-      
+
       // Get each output name
       final getOutputName = _api!
-          .getFunction<SessionGetOutputNameNative>(OrtApiIndex.SessionGetOutputName)
+          .getFunction<SessionGetOutputNameNative>(
+              OrtApiIndex.SessionGetOutputName)
           .asFunction<SessionGetOutputNameDart>();
       final freeAllocator = _api!
           .getFunction<AllocatorFreeNative>(OrtApiIndex.AllocatorFree)
           .asFunction<AllocatorFreeDart>();
-      
+
       for (var i = 0; i < count; i++) {
         final namePtr = calloc<Pointer<Utf8>>();
         try {
           final nameStatus = getOutputName(session, i, _allocator!, namePtr);
           _checkStatus(nameStatus);
-          
+
           if (namePtr.value != nullptr) {
             final name = namePtr.value.toDartString();
             names.add(name);
@@ -533,7 +542,7 @@ class ONNXBindings extends NativeResource {
     } finally {
       calloc.free(countPtr);
     }
-    
+
     return names;
   }
 
@@ -581,7 +590,7 @@ class ONNXBindings extends NativeResource {
             .getFunction<CreateCUDAProviderOptionsNative>(
                 OrtApiIndex.CreateCUDAProviderOptions)
             .asFunction<CreateCUDAProviderOptionsDart>();
-        
+
         var status = createOptions(cudaOptionsPtr);
         _checkStatus(status);
         cudaOptions = cudaOptionsPtr.value;
@@ -608,7 +617,8 @@ class ONNXBindings extends NativeResource {
                 OrtApiIndex.UpdateCUDAProviderOptions)
             .asFunction<UpdateCUDAProviderOptionsDart>();
 
-        final status = updateOptions(cudaOptions!, keysPtr, valuesPtr, keys.length);
+        final status =
+            updateOptions(cudaOptions!, keysPtr, valuesPtr, keys.length);
         _checkStatus(status);
 
         // 3. Append to session options
@@ -715,16 +725,16 @@ class ONNXBindings extends NativeResource {
   /// Find a session key for the given model path (returns first match)
   _SessionKey? _findSessionKey(String modelPath) {
     return _loadedSessions.keys
-        .firstWhere(
-          (key) => key.modelPath == modelPath,
-          orElse: () => _SessionKey(
-            modelPath: '',
-            deviceId: -1,
-            executionProvider: '',
-          ),
-        )
-        .modelPath
-        .isNotEmpty
+            .firstWhere(
+              (key) => key.modelPath == modelPath,
+              orElse: () => _SessionKey(
+                modelPath: '',
+                deviceId: -1,
+                executionProvider: '',
+              ),
+            )
+            .modelPath
+            .isNotEmpty
         ? _loadedSessions.keys.firstWhere((key) => key.modelPath == modelPath)
         : null;
   }
@@ -744,7 +754,7 @@ class ONNXBindings extends NativeResource {
     final keysToRemove = _loadedSessions.keys
         .where((key) => key.modelPath == modelPath)
         .toList();
-    
+
     for (final key in keysToRemove) {
       await _disposeSessionByKey(key);
     }
@@ -760,7 +770,8 @@ class ONNXBindings extends NativeResource {
         .getFunction<ReleaseSessionNative>(OrtApiIndex.ReleaseSession)
         .asFunction<ReleaseSessionDart>();
     final releaseOptions = _api!
-        .getFunction<ReleaseSessionOptionsNative>(OrtApiIndex.ReleaseSessionOptions)
+        .getFunction<ReleaseSessionOptionsNative>(
+            OrtApiIndex.ReleaseSessionOptions)
         .asFunction<ReleaseSessionOptionsDart>();
 
     releaseSession(session.sessionPtr);
@@ -778,7 +789,7 @@ class ONNXBindings extends NativeResource {
   ONNXSessionInfo? getSessionInfo(String modelPath) {
     final key = _findSessionKey(modelPath);
     if (key == null) return null;
-    
+
     final session = _loadedSessions[key];
     if (session == null) return null;
 
@@ -950,8 +961,8 @@ class ONNXBindings extends NativeResource {
         ..inputLayout = expected.layout
         ..inputInfo = <ONNXTensorInfo>[
           ONNXTensorInfo(
-            name: session.inputNames.isNotEmpty 
-                ? session.inputNames.first 
+            name: session.inputNames.isNotEmpty
+                ? session.inputNames.first
                 : _getDefaultInputName(session.path),
             shape: expected.layout == _InputLayout.nchw
                 ? <int>[1, 3, expected.height, expected.width]
@@ -999,7 +1010,7 @@ class ONNXBindings extends NativeResource {
 
     // Run inference using FFI
     final outputs = _runSession(session, input, inputShape);
-    
+
     if (outputs.isEmpty) {
       throw ONNXInferenceException('NSFW model produced no output');
     }
@@ -1010,7 +1021,7 @@ class ONNXBindings extends NativeResource {
         'Unexpected NSFW output size: ${flattened.length} (expected ${_canonicalNsfwLabels.length})',
       );
     }
-    
+
     final mapped = <String, double>{};
     for (var i = 0; i < _canonicalNsfwLabels.length; i++) {
       mapped[_canonicalNsfwLabels[i]] = flattened[i];
@@ -1029,7 +1040,7 @@ class ONNXBindings extends NativeResource {
     final createMemInfo = _api!
         .getFunction<CreateCpuMemoryInfoNative>(OrtApiIndex.CreateCpuMemoryInfo)
         .asFunction<CreateCpuMemoryInfoDart>();
-    
+
     var status = createMemInfo(
       OrtAllocatorType.OrtArenaAllocator,
       OrtMemType.OrtMemTypeDefault,
@@ -1104,9 +1115,8 @@ class ONNXBindings extends NativeResource {
 
     try {
       // Run inference
-      final run = _api!
-          .getFunction<RunNative>(OrtApiIndex.Run)
-          .asFunction<RunDart>();
+      final run =
+          _api!.getFunction<RunNative>(OrtApiIndex.Run).asFunction<RunDart>();
 
       status = run(
         session.sessionPtr,
@@ -1124,7 +1134,8 @@ class ONNXBindings extends NativeResource {
       final outputTensor = outputsArray[0];
       final outputDataPtr = calloc<Pointer<Void>>();
       final getTensorData = _api!
-          .getFunction<GetTensorMutableDataNative>(OrtApiIndex.GetTensorMutableData)
+          .getFunction<GetTensorMutableDataNative>(
+              OrtApiIndex.GetTensorMutableData)
           .asFunction<GetTensorMutableDataDart>();
       status = getTensorData(outputTensor, outputDataPtr);
       _checkStatus(status);
@@ -1132,7 +1143,8 @@ class ONNXBindings extends NativeResource {
       // Get output shape to determine size
       final shapeInfoPtr = calloc<Pointer<OrtTensorTypeAndShapeInfo>>();
       final getShapeInfo = _api!
-          .getFunction<GetTensorTypeAndShapeNative>(OrtApiIndex.GetTensorTypeAndShape)
+          .getFunction<GetTensorTypeAndShapeNative>(
+              OrtApiIndex.GetTensorTypeAndShape)
           .asFunction<GetTensorTypeAndShapeDart>();
       status = getShapeInfo(outputTensor, shapeInfoPtr);
       _checkStatus(status);
@@ -1221,9 +1233,9 @@ class ONNXBindings extends NativeResource {
     final output = Float32List(3 * pixels);
     for (var i = 0; i < pixels; i++) {
       final src = i * 3;
-      output[i] = rgbData[src] / 255.0;
-      output[pixels + i] = rgbData[src + 1] / 255.0;
-      output[(2 * pixels) + i] = rgbData[src + 2] / 255.0;
+      output[i] = _normalizeToUnitCentered(rgbData[src]);
+      output[pixels + i] = _normalizeToUnitCentered(rgbData[src + 1]);
+      output[(2 * pixels) + i] = _normalizeToUnitCentered(rgbData[src + 2]);
     }
     return output;
   }
@@ -1231,9 +1243,14 @@ class ONNXBindings extends NativeResource {
   Float32List _preprocessToNhwcFloat(List<int> rgbData) {
     final output = Float32List(rgbData.length);
     for (var i = 0; i < rgbData.length; i++) {
-      output[i] = rgbData[i] / 255.0;
+      output[i] = _normalizeToUnitCentered(rgbData[i]);
     }
     return output;
+  }
+
+  double _normalizeToUnitCentered(int value) {
+    final rescaled = value / 255.0;
+    return (rescaled - 0.5) / 0.5;
   }
 
   List<int> _resizeRgbNearest({
@@ -1344,28 +1361,28 @@ class ONNXBindings extends NativeResource {
   /// Get model-specific default input name based on model type
   String _getDefaultInputName(String modelPath) {
     final lowerPath = modelPath.toLowerCase();
-    
+
     // ViT-based models (HuggingFace transformers) use 'pixel_values'
     // This includes: onnx-community/nsfw-image-detector-ONNX
-    if (lowerPath.contains('vit') || 
-        lowerPath.contains('model_fp16') || 
+    if (lowerPath.contains('vit') ||
+        lowerPath.contains('model_fp16') ||
         lowerPath.contains('model_int8') ||
         lowerPath.contains('onnx-community') ||
         lowerPath.contains('nsfw-onnx-community') ||
         lowerPath.contains('nsfw-image-detector')) {
       return 'pixel_values';
     }
-    
+
     // MobileNet-v2 models (typical NSFW.js style)
     if (lowerPath.contains('mobilenet')) {
       return 'input_1';
     }
-    
+
     // Inception models
     if (lowerPath.contains('inception')) {
       return 'input_1';
     }
-    
+
     // Default fallback
     return 'input';
   }
@@ -1373,22 +1390,22 @@ class ONNXBindings extends NativeResource {
   /// Get model-specific default output name based on model type
   String _getDefaultOutputName(String modelPath) {
     final lowerPath = modelPath.toLowerCase();
-    
+
     // ViT-based models use 'logits'
-    if (lowerPath.contains('vit') || 
-        lowerPath.contains('model_fp16') || 
+    if (lowerPath.contains('vit') ||
+        lowerPath.contains('model_fp16') ||
         lowerPath.contains('model_int8') ||
         lowerPath.contains('onnx-community') ||
         lowerPath.contains('nsfw-onnx-community') ||
         lowerPath.contains('nsfw-image-detector')) {
       return 'logits';
     }
-    
+
     // MobileNet/Inception models typically use 'output' or 'Identity'
     if (lowerPath.contains('mobilenet') || lowerPath.contains('inception')) {
       return 'output';
     }
-    
+
     // Default fallback
     return 'output';
   }
@@ -1758,7 +1775,8 @@ class ONNXBindings extends NativeResource {
           .getFunction<ReleaseSessionNative>(OrtApiIndex.ReleaseSession)
           .asFunction<ReleaseSessionDart>();
       final releaseOptions = _api!
-          .getFunction<ReleaseSessionOptionsNative>(OrtApiIndex.ReleaseSessionOptions)
+          .getFunction<ReleaseSessionOptionsNative>(
+              OrtApiIndex.ReleaseSessionOptions)
           .asFunction<ReleaseSessionOptionsDart>();
       releaseSession(session.sessionPtr);
       releaseOptions(session.optionsPtr);

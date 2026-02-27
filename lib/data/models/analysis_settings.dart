@@ -10,7 +10,7 @@ part 'analysis_settings.g.dart';
 class ModelConfig with _$ModelConfig {
   const factory ModelConfig({
     required String asrModelId,
-    @Default('nsfw-gantman-mobilenet-v2-224') String nsfwModelId,
+    @Default('nsfw-onnx-community-vit-224') String nsfwModelId,
     @Default('en') String asrLanguage,
     // Unified GPU selection fields
     @Default(true) bool useGpu,
@@ -38,24 +38,24 @@ class ModelConfig with _$ModelConfig {
 extension ModelConfigValidation on ModelConfig {
   List<String> validate() {
     final issues = <String>[];
-    
+
     if (useGpu && gpuDeviceIndex < 0) {
       issues.add('GPU device index must be non-negative');
     }
-    
+
     if (useGpu && onnxExecutionProvider == 'cpu') {
       issues.add('Cannot enable GPU with CPU execution provider');
     }
-    
+
     // Validate execution provider value
     const validProviders = ['auto', 'cuda', 'directml', 'coreml', 'cpu'];
     if (!validProviders.contains(onnxExecutionProvider)) {
       issues.add('Invalid ONNX execution provider: $onnxExecutionProvider');
     }
-    
+
     return issues;
   }
-  
+
   bool get isValid => validate().isEmpty;
 }
 

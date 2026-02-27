@@ -398,10 +398,10 @@ class FrameSamplingService {
       final result = await Process.run(
         ffmpegPath,
         [
-          '-ss',
-          _formatTimestamp(timestamp),
           '-i',
           videoPath,
+          '-ss',
+          _formatTimestamp(timestamp),
           '-vframes',
           '1',
           '-vf',

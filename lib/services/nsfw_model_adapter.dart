@@ -126,11 +126,10 @@ class NsfwModelAdapter {
       values.add(value);
     }
 
-    final probs = spec.outputIsLogits ? _softmax(values) : values;
-    final normalized = _normalize(probs);
     final scoreMap = <String, double>{};
+    final probabilities = _resolveProbabilities(values);
     for (var i = 0; i < spec.classOrder.length; i++) {
-      scoreMap[spec.classOrder[i]] = normalized[i];
+      scoreMap[spec.classOrder[i]] = probabilities[i];
     }
 
     return NsfwResult(
@@ -140,6 +139,24 @@ class NsfwModelAdapter {
       porn: scoreMap['porn']!,
       sexy: scoreMap['sexy']!,
     );
+  }
+
+  List<double> _resolveProbabilities(List<double> values) {
+    if (spec.outputIsLogits && !_looksLikeProbabilities(values)) {
+      return _softmax(values);
+    }
+    return _normalize(values);
+  }
+
+  bool _looksLikeProbabilities(List<double> values) {
+    var sum = 0.0;
+    for (final value in values) {
+      if (!value.isFinite || value < 0 || value > 1) {
+        return false;
+      }
+      sum += value;
+    }
+    return (sum - 1.0).abs() <= 0.05;
   }
 
   List<double> _softmax(List<double> logits) {

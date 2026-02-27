@@ -10,7 +10,7 @@ _$ModelConfigImpl _$$ModelConfigImplFromJson(Map<String, dynamic> json) =>
     _$ModelConfigImpl(
       asrModelId: json['asrModelId'] as String,
       nsfwModelId:
-          json['nsfwModelId'] as String? ?? 'nsfw-gantman-mobilenet-v2-224',
+          json['nsfwModelId'] as String? ?? 'nsfw-onnx-community-vit-224',
       asrLanguage: json['asrLanguage'] as String? ?? 'en',
       useGpu: json['useGpu'] as bool? ?? true,
       gpuDeviceIndex: (json['gpuDeviceIndex'] as num?)?.toInt() ?? 0,

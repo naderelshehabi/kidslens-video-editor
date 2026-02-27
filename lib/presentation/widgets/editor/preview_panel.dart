@@ -17,6 +17,8 @@ import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 import 'package:media_kit/media_kit.dart' hide SubtitleTrack;
 import 'package:media_kit_video/media_kit_video.dart';
 
+const double _kNsfwDebugPanelWidth = 340;
+
 FrameAnalysisResult? _findNearestFrameResult(
   List<FrameAnalysisResult> frameResults,
   Duration position,
@@ -63,7 +65,7 @@ FrameAnalysisResult? _findNearestFrameResult(
   final lastMs = frameResults.last.timestamp.inMilliseconds;
   final avgStepMs =
       ((lastMs - firstMs).abs() / math.max(1, frameResults.length - 1)).round();
-  final toleranceMs = math.max(700, avgStepMs * 3);
+  final toleranceMs = math.max(200, math.min(400, avgStepMs * 2));
   return bestDeltaMs <= toleranceMs ? best : null;
 }
 
@@ -726,17 +728,19 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     final frame = _findNearestFrameResult(widget.nsfwFrameResults, position);
 
     if (frame == null) {
-      return Container(
-        constraints: const BoxConstraints(maxWidth: 260),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: colorScheme.surface.withValues(alpha: 0.92),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: colorScheme.outlineVariant),
-        ),
-        child: Text(
-          'NSFW Debug\nNo sampled frame near ${_formatDuration(position)}',
-          style: Theme.of(context).textTheme.bodySmall,
+      return SizedBox(
+        width: _kNsfwDebugPanelWidth,
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: colorScheme.surface.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: colorScheme.outlineVariant),
+          ),
+          child: Text(
+            'NSFW Debug\nNo sampled frame near ${_formatDuration(position)}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         ),
       );
     }
@@ -745,47 +749,54 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     final isUnsafe = maxScore >= widget.nsfwThreshold;
     final deltaMs =
         (frame.timestamp.inMilliseconds - position.inMilliseconds).abs();
+    final deltaLabel = '${deltaMs.toString().padLeft(4, '0')}ms';
 
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 280),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isUnsafe ? colorScheme.error : colorScheme.primary,
+    return SizedBox(
+      width: _kNsfwDebugPanelWidth,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: colorScheme.surface.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isUnsafe ? colorScheme.error : colorScheme.primary,
+          ),
         ),
-      ),
-      child: DefaultTextStyle(
-        style: Theme.of(context).textTheme.bodySmall ??
-            const TextStyle(fontSize: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'NSFW Debug',
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Playback ${_formatDuration(position)} | Frame ${_formatDuration(frame.timestamp)} (Δ ${deltaMs}ms)',
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Max ${maxScore.toStringAsFixed(3)}  Threshold ${widget.nsfwThreshold.toStringAsFixed(3)}  ${isUnsafe ? 'UNSAFE' : 'SAFE'}',
-              style: TextStyle(
-                color: isUnsafe ? colorScheme.error : colorScheme.primary,
-                fontWeight: FontWeight.w600,
+        child: DefaultTextStyle(
+          style: Theme.of(context).textTheme.bodySmall ??
+              const TextStyle(fontSize: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'NSFW Debug',
+                style: Theme.of(context).textTheme.labelLarge,
               ),
-            ),
-            const SizedBox(height: 6),
-            _buildDebugScoreRow('porn', frame.nsfw.porn),
-            _buildDebugScoreRow('sexy', frame.nsfw.sexy),
-            _buildDebugScoreRow('hentai', frame.nsfw.hentai),
-            _buildDebugScoreRow('drawings', frame.nsfw.drawings),
-            _buildDebugScoreRow('neutral', frame.nsfw.neutral),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                'Playback ${_formatDuration(position)} | Frame ${_formatDuration(frame.timestamp)} (Δ $deltaLabel)',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Max ${maxScore.toStringAsFixed(3)}  Threshold ${widget.nsfwThreshold.toStringAsFixed(3)}  ${isUnsafe ? 'UNSAFE' : 'SAFE'}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isUnsafe ? colorScheme.error : colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              _buildDebugScoreRow('porn', frame.nsfw.porn),
+              _buildDebugScoreRow('sexy', frame.nsfw.sexy),
+              _buildDebugScoreRow('hentai', frame.nsfw.hentai),
+              _buildDebugScoreRow('drawings', frame.nsfw.drawings),
+              _buildDebugScoreRow('neutral', frame.nsfw.neutral),
+            ],
+          ),
         ),
       ),
     );
@@ -1473,17 +1484,19 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
     final frame = _findNearestFrameResult(widget.nsfwFrameResults, position);
 
     if (frame == null) {
-      return Container(
-        constraints: const BoxConstraints(maxWidth: 300),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Colors.black87,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: colorScheme.outline),
-        ),
-        child: const Text(
-          'NSFW Debug\nNo sampled frame nearby',
-          style: TextStyle(color: Colors.white, fontSize: 11),
+      return SizedBox(
+        width: _kNsfwDebugPanelWidth,
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.black87,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: colorScheme.outline),
+          ),
+          child: const Text(
+            'NSFW Debug\nNo sampled frame nearby',
+            style: TextStyle(color: Colors.white, fontSize: 11),
+          ),
         ),
       );
     }
@@ -1491,41 +1504,45 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
     final maxScore = frame.nsfw.maxNsfwScore;
     final unsafe = maxScore >= widget.nsfwThreshold;
 
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 320),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.black87,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: unsafe ? colorScheme.error : colorScheme.primary,
+    return SizedBox(
+      width: _kNsfwDebugPanelWidth,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.black87,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: unsafe ? colorScheme.error : colorScheme.primary,
+          ),
         ),
-      ),
-      child: DefaultTextStyle(
-        style: const TextStyle(color: Colors.white, fontSize: 11),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'NSFW Debug • ${unsafe ? 'UNSAFE' : 'SAFE'}',
-              style: TextStyle(
-                color: unsafe ? colorScheme.error : colorScheme.primary,
-                fontWeight: FontWeight.bold,
+        child: DefaultTextStyle(
+          style: const TextStyle(color: Colors.white, fontSize: 11),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'NSFW Debug • ${unsafe ? 'UNSAFE' : 'SAFE'}',
+                style: TextStyle(
+                  color: unsafe ? colorScheme.error : colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text('Frame ${_formatDuration(frame.timestamp)}'),
-            Text(
-              'max ${maxScore.toStringAsFixed(3)} | threshold ${widget.nsfwThreshold.toStringAsFixed(3)}',
-            ),
-            const SizedBox(height: 6),
-            Text('porn: ${frame.nsfw.porn.toStringAsFixed(3)}'),
-            Text('sexy: ${frame.nsfw.sexy.toStringAsFixed(3)}'),
-            Text('hentai: ${frame.nsfw.hentai.toStringAsFixed(3)}'),
-            Text('drawings: ${frame.nsfw.drawings.toStringAsFixed(3)}'),
-            Text('neutral: ${frame.nsfw.neutral.toStringAsFixed(3)}'),
-          ],
+              const SizedBox(height: 4),
+              Text('Frame ${_formatDuration(frame.timestamp)}'),
+              Text(
+                'max ${maxScore.toStringAsFixed(3)} | threshold ${widget.nsfwThreshold.toStringAsFixed(3)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 6),
+              Text('porn: ${frame.nsfw.porn.toStringAsFixed(3)}'),
+              Text('sexy: ${frame.nsfw.sexy.toStringAsFixed(3)}'),
+              Text('hentai: ${frame.nsfw.hentai.toStringAsFixed(3)}'),
+              Text('drawings: ${frame.nsfw.drawings.toStringAsFixed(3)}'),
+              Text('neutral: ${frame.nsfw.neutral.toStringAsFixed(3)}'),
+            ],
+          ),
         ),
       ),
     );

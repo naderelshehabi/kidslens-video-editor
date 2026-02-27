@@ -564,9 +564,8 @@ class AnalysisService {
     final adapter = NsfwModelAdapter(context.spec);
 
     final sampledFrames = <FrameData>[];
-    final mediaDurationMs = mediaDuration.inMilliseconds <= 0
-        ? 1
-        : mediaDuration.inMilliseconds;
+    final mediaDurationMs =
+        mediaDuration.inMilliseconds <= 0 ? 1 : mediaDuration.inMilliseconds;
     var sampledCount = 0;
     await for (final frame
         in sampler.sampleFrames(mediaPath, config: sampleConfig)) {
@@ -603,6 +602,9 @@ class AnalysisService {
     Duration? activeStart;
     var activeMaxConfidence = 0.0;
     var detectionIndex = 0;
+    const unsafeWindowSize = 3;
+    const unsafeTriggerCount = 2;
+    final safeReleaseFrames = settings.frameSamplingRate <= 2 ? 2 : 3;
 
     for (var i = 0; i < sampledFrames.length; i += batchSize) {
       await _checkState(cancellationToken);
@@ -636,13 +638,15 @@ class AnalysisService {
 
         final unsafe = nsfw.maxNsfwScore >= context.nsfwThreshold;
         unsafeWindow = [...unsafeWindow, unsafe];
-        if (unsafeWindow.length > 3) {
-          unsafeWindow = unsafeWindow.sublist(unsafeWindow.length - 3);
+        if (unsafeWindow.length > unsafeWindowSize) {
+          unsafeWindow =
+              unsafeWindow.sublist(unsafeWindow.length - unsafeWindowSize);
         }
 
         if (!inUnsafeState) {
           final unsafeCount = unsafeWindow.where((value) => value).length;
-          if (unsafeCount >= 2 && unsafeWindow.length == 3) {
+          if (unsafeCount >= unsafeTriggerCount &&
+              unsafeWindow.length == unsafeWindowSize) {
             inUnsafeState = true;
             activeStart = frame.timestamp;
             safeStreak = 0;
@@ -658,7 +662,7 @@ class AnalysisService {
             safeStreak++;
           }
 
-          if (safeStreak >= 5) {
+          if (safeStreak >= safeReleaseFrames) {
             final endTime = frame.timestamp;
             if (activeStart != null && endTime > activeStart) {
               visualDetections.add(
@@ -825,9 +829,10 @@ class AnalysisService {
   String _normalizeLegacyNsfwModelId(String id) {
     switch (id) {
       case 'nsfw-mobilenet-v2':
-        return 'nsfw-gantman-mobilenet-v2-224';
       case 'nsfw-inception-v3':
-        return 'nsfw-gantman-inception-299';
+      case 'nsfw-gantman-mobilenet-v2-224':
+      case 'nsfw-gantman-inception-299':
+        return 'nsfw-onnx-community-vit-224';
       default:
         return id;
     }
