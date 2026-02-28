@@ -785,19 +785,31 @@ class AnalysisService {
     await _checkState(cancellationToken);
     final detections = <Detection>[];
     final metadata = await ffmpeg.probeMedia(mediaPath);
+    final profanityAction = settings.contentDetectionConfig.categories
+        .where((c) => c.id == 'profanity')
+        .firstOrNull
+        ?.action
+        .name;
 
     for (final match in profanityMatches) {
       if (match.confidence >= settings.profanityConfig.fuzzyThreshold) {
-        detections.add(
-          Detection.profanity(
-            id: 'profanity_${detections.length}',
-            mediaId: mediaId,
-            startTime: match.word.startTime,
-            endTime: match.word.endTime,
-            confidence: match.confidence,
-            word: match.word.word,
-          ),
+        var detection = Detection.profanity(
+          id: 'profanity_${detections.length}',
+          mediaId: mediaId,
+          startTime: match.word.startTime,
+          endTime: match.word.endTime,
+          confidence: match.confidence,
+          word: match.word.word,
         );
+        if (profanityAction != null) {
+          detection = detection.copyWith(
+            metadata: {
+              ...?detection.metadata,
+              'action': profanityAction,
+            },
+          );
+        }
+        detections.add(detection);
       }
     }
     detections.addAll(visualDetections);

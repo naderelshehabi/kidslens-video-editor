@@ -13,42 +13,24 @@ class AggregatedDetection {
     required this.frameCount,
   });
 
-  /// Type of content detected
   final ContentType type;
-
-  /// Start time of the aggregated detection
   final Duration start;
-
-  /// End time of the aggregated detection
   final Duration end;
-
-  /// Average confidence across frames
   final double confidence;
-
-  /// Number of frames contributing to this detection
   final int frameCount;
 
-  /// Duration of the detection
   Duration get duration => end - start;
 }
 
-/// Service for aggregating frame-level analysis results into timeline segments
+/// Service for aggregating frame-level analysis results into timeline segments.
 ///
-/// Applies temporal smoothing to convert individual frame detections into
-/// contiguous time ranges suitable for timeline display and editing.
+/// Only NSFW is frame-aggregated. Profanity is audio/transcript-based and does
+/// not participate in frame aggregation.
 class TemporalAggregatorService {
   TemporalAggregatorService();
 
   final _uuid = const Uuid();
 
-  /// Aggregate frame analysis results into timeline segments
-  ///
-  /// [results] - List of frame analysis results, should be sorted by timestamp
-  /// [minDuration] - Minimum duration for a segment to be included (default: 500ms)
-  /// [hysteresis] - Time gap allowed between detections to merge them (default: 1s)
-  /// [thresholds] - Detection thresholds per content type
-  ///
-  /// Returns a list of timeline segments representing detected content regions.
   List<TimelineSegment> aggregate(
     List<FrameAnalysisResult> results, {
     Duration minDuration = const Duration(milliseconds: 500),
@@ -58,49 +40,21 @@ class TemporalAggregatorService {
     if (results.isEmpty) return [];
 
     final effectiveThresholds = thresholds ?? _defaultThresholds;
+    final nsfwThreshold = effectiveThresholds[ContentType.nsfw] ?? 0.5;
+    final nsfwResults = results
+        .where((result) => result.hasNsfwAt(nsfwThreshold))
+        .toList(growable: false);
 
-    // Group results by detection type
-    final detectionsByType = <ContentType, List<FrameAnalysisResult>>{};
-
-    for (final result in results) {
-      // Check each detection type
-      if (result.hasNsfwAt(effectiveThresholds[ContentType.nsfw] ?? 0.5)) {
-        detectionsByType.putIfAbsent(ContentType.nsfw, () => []).add(result);
-      }
-      if (result.hasViolenceAt(effectiveThresholds[ContentType.violence] ?? 0.5)) {
-        detectionsByType.putIfAbsent(ContentType.violence, () => []).add(result);
-      }
-      if (result.hasBloodAt(effectiveThresholds[ContentType.blood] ?? 0.5)) {
-        detectionsByType.putIfAbsent(ContentType.blood, () => []).add(result);
-      }
-      if (result.hasWeaponsAt(effectiveThresholds[ContentType.weapons] ?? 0.5)) {
-        detectionsByType.putIfAbsent(ContentType.weapons, () => []).add(result);
-      }
-    }
-
-    // Aggregate each type separately
-    final segments = <TimelineSegment>[];
-
-    for (final entry in detectionsByType.entries) {
-      final typeSegments = _aggregateType(
-        entry.key,
-        entry.value,
-        minDuration: minDuration,
-        hysteresis: hysteresis,
-      );
-      segments.addAll(typeSegments);
-    }
-
-    // Sort segments by start time
-    segments.sort((a, b) => a.start.compareTo(b.start));
+    final segments = _aggregateType(
+      ContentType.nsfw,
+      nsfwResults,
+      minDuration: minDuration,
+      hysteresis: hysteresis,
+    )..sort((a, b) => a.start.compareTo(b.start));
 
     return segments;
   }
 
-  /// Aggregate detections and return raw aggregated results
-  ///
-  /// Similar to [aggregate] but returns [AggregatedDetection] objects
-  /// instead of [TimelineSegment] for more detailed processing.
   List<AggregatedDetection> aggregateRaw(
     List<FrameAnalysisResult> results, {
     Duration minDuration = const Duration(milliseconds: 500),
@@ -110,35 +64,29 @@ class TemporalAggregatorService {
     if (results.isEmpty) return [];
 
     final effectiveThresholds = thresholds ?? _defaultThresholds;
-    final aggregations = <AggregatedDetection>[];
+    final threshold = effectiveThresholds[ContentType.nsfw] ?? 0.5;
+    final typeResults = results
+        .where((result) => _hasDetectionOfType(result, ContentType.nsfw, threshold))
+        .toList(growable: false);
 
-    // Process each content type
-    for (final type in ContentType.values) {
-      final threshold = effectiveThresholds[type] ?? 0.5;
-      final typeResults = results.where((r) => _hasDetectionOfType(r, type, threshold)).toList();
-
-      if (typeResults.isEmpty) continue;
-
-      final typeAggregations = _aggregateTypeRaw(
-        type,
-        typeResults,
-        minDuration: minDuration,
-        hysteresis: hysteresis,
-      );
-      aggregations.addAll(typeAggregations);
+    if (typeResults.isEmpty) {
+      return const <AggregatedDetection>[];
     }
 
-    return aggregations;
+    return _aggregateTypeRaw(
+      ContentType.nsfw,
+      typeResults,
+      minDuration: minDuration,
+      hysteresis: hysteresis,
+    );
   }
 
-  /// Merge overlapping or adjacent segments of the same type
   List<TimelineSegment> mergeSegments(
     List<TimelineSegment> segments, {
     Duration hysteresis = const Duration(seconds: 1),
   }) {
     if (segments.length <= 1) return segments;
 
-    // Group by content type
     final byType = <ContentType, List<TimelineSegment>>{};
     for (final segment in segments) {
       byType.putIfAbsent(segment.type, () => []).add(segment);
@@ -155,13 +103,11 @@ class TemporalAggregatorService {
         if (current == null) {
           current = segment;
         } else if (segment.start <= current.end + hysteresis) {
-          // Merge with current
           current = current.copyWith(
             end: segment.end > current.end ? segment.end : current.end,
             confidence: (current.confidence + segment.confidence) / 2,
           );
         } else {
-          // Gap too large, start new segment
           merged.add(current);
           current = segment;
         }
@@ -175,9 +121,6 @@ class TemporalAggregatorService {
     return merged..sort((a, b) => a.start.compareTo(b.start));
   }
 
-  /// Apply hysteresis filtering to smooth detection boundaries
-  ///
-  /// Extends detections to fill small gaps and removes very short detections.
   List<TimelineSegment> applyHysteresis(
     List<TimelineSegment> segments, {
     Duration hysteresis = const Duration(seconds: 1),
@@ -187,7 +130,6 @@ class TemporalAggregatorService {
     return mergeSegments(filtered, hysteresis: hysteresis);
   }
 
-  /// Aggregate a single content type into timeline segments
   List<TimelineSegment> _aggregateType(
     ContentType type,
     List<FrameAnalysisResult> results, {
@@ -196,7 +138,6 @@ class TemporalAggregatorService {
   }) {
     if (results.isEmpty) return [];
 
-    // Sort by timestamp
     final sorted = List<FrameAnalysisResult>.from(results)
       ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
@@ -211,23 +152,22 @@ class TemporalAggregatorService {
       final gap = current.timestamp - segmentEnd;
 
       if (gap <= hysteresis) {
-        // Extend current segment
         segmentEnd = current.timestamp;
         confidenceSum += _getConfidenceForType(current, type);
         frameCount++;
       } else {
-        // Gap too large, finalize current segment and start new one
         if (segmentEnd - segmentStart >= minDuration) {
-          segments.add(TimelineSegment(
-            id: _uuid.v4(),
-            start: segmentStart,
-            end: segmentEnd,
-            type: type,
-            confidence: confidenceSum / frameCount,
-          ),);
+          segments.add(
+            TimelineSegment(
+              id: _uuid.v4(),
+              start: segmentStart,
+              end: segmentEnd,
+              type: type,
+              confidence: confidenceSum / frameCount,
+            ),
+          );
         }
 
-        // Start new segment
         segmentStart = current.timestamp;
         segmentEnd = current.timestamp;
         confidenceSum = _getConfidenceForType(current, type);
@@ -235,21 +175,21 @@ class TemporalAggregatorService {
       }
     }
 
-    // Finalize last segment
     if (segmentEnd - segmentStart >= minDuration) {
-      segments.add(TimelineSegment(
-        id: _uuid.v4(),
-        start: segmentStart,
-        end: segmentEnd,
-        type: type,
-        confidence: confidenceSum / frameCount,
-      ),);
+      segments.add(
+        TimelineSegment(
+          id: _uuid.v4(),
+          start: segmentStart,
+          end: segmentEnd,
+          type: type,
+          confidence: confidenceSum / frameCount,
+        ),
+      );
     }
 
     return segments;
   }
 
-  /// Aggregate type into raw aggregated detections
   List<AggregatedDetection> _aggregateTypeRaw(
     ContentType type,
     List<FrameAnalysisResult> results, {
@@ -277,13 +217,15 @@ class TemporalAggregatorService {
         frameCount++;
       } else {
         if (segmentEnd - segmentStart >= minDuration) {
-          aggregations.add(AggregatedDetection(
-            type: type,
-            start: segmentStart,
-            end: segmentEnd,
-            confidence: confidenceSum / frameCount,
-            frameCount: frameCount,
-          ),);
+          aggregations.add(
+            AggregatedDetection(
+              type: type,
+              start: segmentStart,
+              end: segmentEnd,
+              confidence: confidenceSum / frameCount,
+              frameCount: frameCount,
+            ),
+          );
         }
 
         segmentStart = current.timestamp;
@@ -294,19 +236,20 @@ class TemporalAggregatorService {
     }
 
     if (segmentEnd - segmentStart >= minDuration) {
-      aggregations.add(AggregatedDetection(
-        type: type,
-        start: segmentStart,
-        end: segmentEnd,
-        confidence: confidenceSum / frameCount,
-        frameCount: frameCount,
-      ),);
+      aggregations.add(
+        AggregatedDetection(
+          type: type,
+          start: segmentStart,
+          end: segmentEnd,
+          confidence: confidenceSum / frameCount,
+          frameCount: frameCount,
+        ),
+      );
     }
 
     return aggregations;
   }
 
-  /// Check if a frame has a detection of the specified type
   bool _hasDetectionOfType(
     FrameAnalysisResult result,
     ContentType type,
@@ -315,64 +258,22 @@ class TemporalAggregatorService {
     switch (type) {
       case ContentType.nsfw:
         return result.hasNsfwAt(threshold);
-      case ContentType.violence:
-        return result.hasViolenceAt(threshold);
-      case ContentType.blood:
-        return result.hasBloodAt(threshold);
-      case ContentType.weapons:
-        return result.hasWeaponsAt(threshold);
       case ContentType.profanity:
-        return false; // Profanity is audio-based, not frame-based
-      case ContentType.nudity:
-        return false; // Uses MoE pipeline, not legacy per-frame system
-      case ContentType.sexualContent:
-        return false; // Uses MoE pipeline, not legacy per-frame system
-      case ContentType.kissing:
-        return false; // Uses MoE pipeline, not legacy per-frame system
-      case ContentType.immodestDress:
-        return false; // Uses MoE pipeline, not legacy per-frame system
-      case ContentType.custom:
-        return false; // Uses MoE pipeline, not legacy per-frame system
+        return false;
     }
   }
 
-  /// Get confidence score for a specific content type
   double _getConfidenceForType(FrameAnalysisResult result, ContentType type) {
     switch (type) {
       case ContentType.nsfw:
         return result.nsfw.maxNsfwScore;
-      case ContentType.violence:
-        return result.violence.violent;
-      case ContentType.blood:
-        return result.blood?.score ?? 0;
-      case ContentType.weapons:
-        return result.weapons?.score ?? 0;
       case ContentType.profanity:
         return 0;
-      case ContentType.nudity:
-        return 0; // Uses MoE pipeline, not legacy per-frame system
-      case ContentType.sexualContent:
-        return 0; // Uses MoE pipeline, not legacy per-frame system
-      case ContentType.kissing:
-        return 0; // Uses MoE pipeline, not legacy per-frame system
-      case ContentType.immodestDress:
-        return 0; // Uses MoE pipeline, not legacy per-frame system
-      case ContentType.custom:
-        return 0; // Uses MoE pipeline, not legacy per-frame system
     }
   }
 
-  /// Default detection thresholds
   static const _defaultThresholds = <ContentType, double>{
     ContentType.nsfw: 0.5,
-    ContentType.violence: 0.5,
-    ContentType.blood: 0.5,
-    ContentType.weapons: 0.5,
     ContentType.profanity: 0.5,
-    ContentType.nudity: 0.5,
-    ContentType.sexualContent: 0.5,
-    ContentType.kissing: 0.5,
-    ContentType.immodestDress: 0.5,
-    ContentType.custom: 0.5,
   };
 }

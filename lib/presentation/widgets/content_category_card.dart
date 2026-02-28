@@ -15,7 +15,6 @@ class ContentCategoryCard extends StatefulWidget {
     required this.onActionChanged,
     required this.onToggleModel,
     super.key,
-    this.onDelete,
     this.downloadedModelIds = const {},
   });
 
@@ -24,7 +23,6 @@ class ContentCategoryCard extends StatefulWidget {
   final ValueChanged<double> onThresholdChanged;
   final ValueChanged<RemediationAction> onActionChanged;
   final void Function(String modelId, {required bool enabled}) onToggleModel;
-  final VoidCallback? onDelete;
   final Set<String> downloadedModelIds;
 
   @override
@@ -218,23 +216,6 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
                 );
               }).toList(),
             ),
-
-            // Delete button for custom categories
-            if (!_cat.isBuiltIn && widget.onDelete != null) ...[
-              const SizedBox(height: 16),
-              const Divider(),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: widget.onDelete,
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  label: const Text('Remove Category'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: colorScheme.error,
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -263,20 +244,6 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
     switch (categoryId) {
       case 'nsfw':
         return Icons.no_adult_content;
-      case 'violence':
-        return Icons.sports_mma;
-      case 'blood':
-        return Icons.water_drop;
-      case 'weapons':
-        return Icons.gpp_bad;
-      case 'nudity':
-        return Icons.visibility_off;
-      case 'sexual_content':
-        return Icons.block;
-      case 'kissing':
-        return Icons.favorite;
-      case 'immodest_dress':
-        return Icons.checkroom;
       case 'profanity':
         return Icons.volume_off;
       default:

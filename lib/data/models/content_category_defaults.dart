@@ -9,6 +9,9 @@ import 'package:kidslens_video_editor/data/models/huggingface_model.dart';
 class ContentCategoryDefaults {
   ContentCategoryDefaults._();
 
+  /// Supported built-in category IDs.
+  static const Set<String> supportedCategoryIds = {'nsfw', 'profanity'};
+
   /// All built-in categories.
   static List<ContentCategory> get allCategories => [
         ...visualCategories,
@@ -24,6 +27,56 @@ class ContentCategoryDefaults {
   static final List<ContentCategory> audioCategories = [
     profanity,
   ];
+
+  /// Whether a category ID is supported by the current analysis pipeline.
+  static bool isSupportedCategoryId(String id) => supportedCategoryIds.contains(id);
+
+  /// Normalize any category list to only supported built-ins while preserving
+  /// user-configurable values (enabled, threshold, action, model toggles).
+  static List<ContentCategory> normalizeCategories(
+    Iterable<ContentCategory> categories,
+  ) {
+    final existingById = <String, ContentCategory>{};
+    for (final category in categories) {
+      if (isSupportedCategoryId(category.id)) {
+        existingById[category.id] = category;
+      }
+    }
+
+    return allCategories.map((defaultCategory) {
+      final existing = existingById[defaultCategory.id];
+      if (existing == null) {
+        return defaultCategory;
+      }
+
+      final normalizedThreshold =
+          existing.threshold.clamp(0.0, 1.0).toDouble();
+      final normalizedAction = _normalizeActionForType(
+        defaultCategory.type,
+        existing.action,
+      );
+      final normalizedModels = existing.modelContributions.isEmpty
+          ? defaultCategory.modelContributions
+          : existing.modelContributions;
+
+      return defaultCategory.copyWith(
+        enabled: existing.enabled,
+        threshold: normalizedThreshold,
+        action: normalizedAction,
+        modelContributions: normalizedModels,
+      );
+    }).toList(growable: false);
+  }
+
+  static RemediationAction _normalizeActionForType(
+    CategoryType type,
+    RemediationAction action,
+  ) {
+    if (type == CategoryType.visual) {
+      return action.isVisual ? action : nsfw.action;
+    }
+    return action.isAudio ? action : profanity.action;
+  }
 
   /// NSFW visual category using canonical nsfw_model semantics.
   static const nsfw = ContentCategory(

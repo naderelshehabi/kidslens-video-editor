@@ -50,15 +50,7 @@ Map<String, dynamic> _$$DetectionImplToJson(_$DetectionImpl instance) =>
 
 const _$ContentTypeEnumMap = {
   ContentType.nsfw: 'nsfw',
-  ContentType.violence: 'violence',
-  ContentType.blood: 'blood',
   ContentType.profanity: 'profanity',
-  ContentType.weapons: 'weapons',
-  ContentType.nudity: 'nudity',
-  ContentType.sexualContent: 'sexualContent',
-  ContentType.kissing: 'kissing',
-  ContentType.immodestDress: 'immodestDress',
-  ContentType.custom: 'custom',
 };
 
 const _$DetectionUserStatusEnumMap = {

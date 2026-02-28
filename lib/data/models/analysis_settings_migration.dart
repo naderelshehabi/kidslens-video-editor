@@ -1,4 +1,5 @@
 import 'package:kidslens_video_editor/data/models/content_category_defaults.dart';
+import 'package:kidslens_video_editor/data/models/content_category.dart';
 
 /// Migrates analysis settings JSON to schema v4.
 class AnalysisSettingsMigration {
@@ -83,24 +84,26 @@ class AnalysisSettingsMigration {
     // Ensure categories exist
     final migratedConfig =
         migrated['contentDetectionConfig'] as Map<String, dynamic>? ?? {};
-    final categories =
-        (migratedConfig['categories'] as List<dynamic>? ?? <dynamic>[]).toList();
+    final rawCategories =
+        (migratedConfig['categories'] as List<dynamic>? ?? <dynamic>[])
+            .whereType<Map<String, dynamic>>()
+            .toList(growable: false);
 
-    final hasNsfw = categories.any(
-      (c) => c is Map<String, dynamic> && c['id'] == 'nsfw',
-    );
-    if (!hasNsfw) {
-      categories.insert(0, ContentCategoryDefaults.nsfw.toJson());
+    final parsedCategories = <ContentCategory>[];
+    for (final raw in rawCategories) {
+      try {
+        parsedCategories.add(ContentCategory.fromJson(raw));
+      } catch (_) {
+        // Ignore malformed legacy categories and rebuild defaults below.
+      }
     }
 
-    final hasProfanity = categories.any(
-      (c) => c is Map<String, dynamic> && c['id'] == 'profanity',
+    final normalized = ContentCategoryDefaults.normalizeCategories(
+      parsedCategories,
     );
-    if (!hasProfanity) {
-      categories.add(ContentCategoryDefaults.profanity.toJson());
-    }
 
-    migratedConfig['categories'] = categories;
+    migratedConfig['categories'] =
+        normalized.map((c) => c.toJson()).toList(growable: false);
     migrated['contentDetectionConfig'] = migratedConfig;
 
     // Migrate to v4 (GPU selection)

@@ -860,8 +860,8 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
       EditActionType.mute => ContentType.profanity,
       EditActionType.beep => ContentType.profanity,
       EditActionType.blur => ContentType.nsfw,
-      EditActionType.cut => ContentType.violence,
-      EditActionType.skip => ContentType.violence,
+      EditActionType.cut => ContentType.nsfw,
+      EditActionType.skip => ContentType.nsfw,
     };
 
   /// Build ExportSettings based on selected format and quality

@@ -87,7 +87,6 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
                 onActionChanged: (action) => _setCategoryAction(cat.id, action),
                 onToggleModel: (modelId, {required enabled}) =>
                     _toggleModel(cat.id, modelId, enabled),
-                onDelete: cat.isBuiltIn ? null : () => _deleteCategory(cat.id),
               ),
             ),
           ),
@@ -116,20 +115,11 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
                 onActionChanged: (action) => _setCategoryAction(cat.id, action),
                 onToggleModel: (modelId, {required enabled}) =>
                     _toggleModel(cat.id, modelId, enabled),
-                onDelete: cat.isBuiltIn ? null : () => _deleteCategory(cat.id),
               ),
             ),
           ),
           const SizedBox(height: 24),
         ],
-
-        // Add custom category button
-        OutlinedButton.icon(
-          onPressed: _showAddCategoryDialog,
-          icon: const Icon(Icons.add),
-          label: const Text('Add Custom Category'),
-        ),
-        const SizedBox(height: 24),
 
         // Advanced settings (collapsible)
         _buildAdvancedSection(context, config),
@@ -386,34 +376,6 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
         .toggleModelContribution(categoryId, modelId, enabled: enabled);
   }
 
-  void _deleteCategory(String categoryId) {
-    showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remove Category'),
-        content: const Text(
-          'Are you sure you want to remove this custom category?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
-    ).then((confirmed) {
-      if (confirmed ?? false) {
-        ref
-            .read(settingsNotifierProvider.notifier)
-            .removeCustomContentCategory(categoryId);
-      }
-    });
-  }
-
   void _updateVotingConfig(VotingConfig votingConfig) {
     ref
         .read(settingsNotifierProvider.notifier)
@@ -452,109 +414,10 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
             .toList();
     }
 
-    // Preserve any custom categories the user added
-    final customCategories =
-        config.categories.where((c) => !c.isBuiltIn).toList();
-    updated.addAll(customCategories);
-
     ref
         .read(settingsNotifierProvider.notifier)
         .updateContentDetectionConfig(config.copyWith(categories: updated));
   }
-
-  void _showAddCategoryDialog() {
-    final nameController = TextEditingController();
-    final descriptionController = TextEditingController();
-    var selectedAction = RemediationAction.mute;
-
-    showDialog<ContentCategory>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Add Custom Category'),
-          content: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Category Name',
-                    hintText: 'e.g. Smoking',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    hintText: 'What this category detects',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<RemediationAction>(
-                  initialValue: selectedAction,
-                  decoration: const InputDecoration(
-                    labelText: 'Default Action',
-                  ),
-                  items: const [
-                    RemediationAction.mute,
-                    RemediationAction.beep,
-                  ]
-                      .map(
-                        (a) => DropdownMenuItem(
-                          value: a,
-                          child: Text(a.displayName),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setDialogState(() => selectedAction = value);
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final name = nameController.text.trim();
-                if (name.isEmpty) return;
-                final id =
-                    name.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '_');
-                Navigator.pop(
-                  context,
-                  ContentCategory(
-                    id: id,
-                    name: name,
-                    description: descriptionController.text.trim(),
-                    type: CategoryType.audio,
-                    action: selectedAction,
-                    isBuiltIn: false,
-                  ),
-                );
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        ),
-      ),
-    ).then((category) {
-      if (category != null) {
-        ref
-            .read(settingsNotifierProvider.notifier)
-            .addCustomContentCategory(category);
-      }
-    });
-  }
-
 }
 
 enum _Preset { strict, balanced, permissive }

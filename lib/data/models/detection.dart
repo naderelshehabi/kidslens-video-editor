@@ -2,7 +2,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:kidslens_video_editor/data/models/converters.dart';
 import 'package:kidslens_video_editor/data/models/edit_action.dart';
-import 'package:kidslens_video_editor/data/models/visual_content_category.dart';
 
 part 'detection.freezed.dart';
 part 'detection.g.dart';
@@ -12,24 +11,8 @@ part 'detection.g.dart';
 enum ContentType {
   @JsonValue('nsfw')
   nsfw,
-  @JsonValue('violence')
-  violence,
-  @JsonValue('blood')
-  blood,
   @JsonValue('profanity')
   profanity,
-  @JsonValue('weapons')
-  weapons,
-  @JsonValue('nudity')
-  nudity,
-  @JsonValue('sexualContent')
-  sexualContent,
-  @JsonValue('kissing')
-  kissing,
-  @JsonValue('immodestDress')
-  immodestDress,
-  @JsonValue('custom')
-  custom,
 }
 
 /// User review status for a detection
@@ -117,7 +100,7 @@ class Detection with _$Detection {
         metadata: {'word': word},
       );
 
-  /// Creates a visual content detection (NSFW, violence, etc.)
+  /// Creates a visual content detection.
   factory Detection.visual({
     required String id,
     required String mediaId,
@@ -129,14 +112,6 @@ class Detection with _$Detection {
   }) {
     final defaultDescriptions = {
       ContentType.nsfw: 'NSFW content detected',
-      ContentType.violence: 'Violent content detected',
-      ContentType.blood: 'Blood/gore detected',
-      ContentType.weapons: 'Weapon detected',
-      ContentType.nudity: 'Nudity detected',
-      ContentType.sexualContent: 'Sexual content detected',
-      ContentType.kissing: 'Kissing detected',
-      ContentType.immodestDress: 'Immodest dress detected',
-      ContentType.custom: 'Custom content detected',
     };
 
     return Detection(
@@ -148,44 +123,6 @@ class Detection with _$Detection {
       confidence: confidence,
       description: description ?? defaultDescriptions[type] ?? 'Content detected',
       source: 'visual',
-    );
-  }
-
-  /// Creates a visual content category detection (nudity, kissing, etc.)
-  ///
-  /// Uses [ContentType.nsfw] as the base type and stores the specific
-  /// category ID in metadata to avoid extending the ContentType enum.
-  factory Detection.visualContent({
-    required String id,
-    required String mediaId,
-    required Duration startTime,
-    required Duration endTime,
-    required double confidence,
-    required String categoryId,
-    required String categoryName,
-    VisualContentAction? action,
-    Map<String, double>? boundingBox,
-  }) {
-    final meta = <String, dynamic>{
-      visualContentCategoryKey: categoryId,
-    };
-    if (boundingBox != null) {
-      meta[boundingBoxKey] = boundingBox;
-    }
-    if (action != null) {
-      meta['action'] = action.name;
-    }
-
-    return Detection(
-      id: id,
-      mediaId: mediaId,
-      type: ContentType.nsfw,
-      startTime: startTime,
-      endTime: endTime,
-      confidence: confidence,
-      description: '$categoryName detected',
-      source: 'visual',
-      metadata: meta,
     );
   }
 
@@ -300,24 +237,8 @@ class Detection with _$Detection {
     switch (type) {
       case ContentType.nsfw:
         return 'NSFW';
-      case ContentType.violence:
-        return 'Violence';
-      case ContentType.blood:
-        return 'Blood/Gore';
       case ContentType.profanity:
         return 'Profanity';
-      case ContentType.weapons:
-        return 'Weapons';
-      case ContentType.nudity:
-        return 'Nudity';
-      case ContentType.sexualContent:
-        return 'Sexual Content';
-      case ContentType.kissing:
-        return 'Kissing';
-      case ContentType.immodestDress:
-        return 'Immodest Dress';
-      case ContentType.custom:
-        return categoryId ?? 'Custom';
     }
   }
 
@@ -326,24 +247,8 @@ class Detection with _$Detection {
     switch (type) {
       case ContentType.nsfw:
         return 'visibility_off';
-      case ContentType.violence:
-        return 'sports_mma';
-      case ContentType.blood:
-        return 'water_drop';
       case ContentType.profanity:
         return 'volume_off';
-      case ContentType.weapons:
-        return 'warning';
-      case ContentType.nudity:
-        return 'visibility_off';
-      case ContentType.sexualContent:
-        return 'block';
-      case ContentType.kissing:
-        return 'favorite';
-      case ContentType.immodestDress:
-        return 'checkroom';
-      case ContentType.custom:
-        return 'category';
     }
   }
 
@@ -383,19 +288,6 @@ class Detection with _$Detection {
       case ContentType.profanity:
         return EditActionType.mute;
       case ContentType.nsfw:
-      case ContentType.blood:
-        return EditActionType.blur;
-      case ContentType.violence:
-      case ContentType.weapons:
-        return EditActionType.blur;
-      case ContentType.nudity:
-        return EditActionType.blur;
-      case ContentType.sexualContent:
-      case ContentType.kissing:
-        return EditActionType.skip;
-      case ContentType.immodestDress:
-        return EditActionType.blur;
-      case ContentType.custom:
         return EditActionType.blur;
     }
   }

@@ -1111,22 +1111,6 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
         return Colors.orange;
       case ContentType.nsfw:
         return Colors.red;
-      case ContentType.violence:
-        return Colors.deepOrange;
-      case ContentType.blood:
-        return Colors.red.shade900;
-      case ContentType.weapons:
-        return Colors.amber;
-      case ContentType.nudity:
-        return Colors.red;
-      case ContentType.sexualContent:
-        return Colors.red;
-      case ContentType.kissing:
-        return Colors.pink;
-      case ContentType.immodestDress:
-        return Colors.orange;
-      case ContentType.custom:
-        return Colors.grey;
     }
   }
 
@@ -1136,22 +1120,6 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
         return Icons.volume_off;
       case ContentType.nsfw:
         return Icons.visibility_off;
-      case ContentType.violence:
-        return Icons.sports_mma;
-      case ContentType.blood:
-        return Icons.water_drop;
-      case ContentType.weapons:
-        return Icons.warning;
-      case ContentType.nudity:
-        return Icons.visibility_off;
-      case ContentType.sexualContent:
-        return Icons.block;
-      case ContentType.kissing:
-        return Icons.favorite;
-      case ContentType.immodestDress:
-        return Icons.checkroom;
-      case ContentType.custom:
-        return Icons.category;
     }
   }
 
@@ -1682,22 +1650,6 @@ class _WaveformPainter extends CustomPainter {
         return Colors.orange;
       case ContentType.nsfw:
         return Colors.red;
-      case ContentType.violence:
-        return Colors.deepOrange;
-      case ContentType.blood:
-        return Colors.red.shade900;
-      case ContentType.weapons:
-        return Colors.amber;
-      case ContentType.nudity:
-        return Colors.red;
-      case ContentType.sexualContent:
-        return Colors.red;
-      case ContentType.kissing:
-        return Colors.pink;
-      case ContentType.immodestDress:
-        return Colors.orange;
-      case ContentType.custom:
-        return Colors.grey;
     }
   }
 

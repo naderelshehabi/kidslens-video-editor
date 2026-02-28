@@ -146,14 +146,12 @@ class SettingsNotifier extends _$SettingsNotifier {
           AnalysisSettingsMigration.migrateToLatest(analysisSettingsJson);
         }
         state = SettingsState.fromJson(json);
-        if (state.analysisSettings.contentDetectionConfig.categories.isEmpty) {
+        final normalizedAnalysisSettings =
+            _normalizeAnalysisSettings(state.analysisSettings);
+        if (jsonEncode(normalizedAnalysisSettings.toJson()) !=
+            jsonEncode(state.analysisSettings.toJson())) {
           state = state.copyWith(
-            analysisSettings: state.analysisSettings.copyWith(
-              contentDetectionConfig:
-                  state.analysisSettings.contentDetectionConfig.copyWith(
-                categories: ContentCategoryDefaults.allCategories,
-              ),
-            ),
+            analysisSettings: normalizedAnalysisSettings,
           );
           _debounceSave();
         }
@@ -174,7 +172,7 @@ class SettingsNotifier extends _$SettingsNotifier {
   }
 
   void updateAnalysisSettings(AnalysisSettings settings) {
-    state = state.copyWith(analysisSettings: settings);
+    state = state.copyWith(analysisSettings: _normalizeAnalysisSettings(settings));
     saveSettings();
   }
 
@@ -244,9 +242,10 @@ class SettingsNotifier extends _$SettingsNotifier {
   }
 
   void updateContentDetectionConfig(ContentDetectionConfig config) {
+    final normalizedConfig = _normalizeContentDetectionConfig(config);
     state = state.copyWith(
       analysisSettings: state.analysisSettings.copyWith(
-        contentDetectionConfig: config,
+        contentDetectionConfig: normalizedConfig,
       ),
     );
     _debounceSave();
@@ -301,27 +300,12 @@ class SettingsNotifier extends _$SettingsNotifier {
     );
   }
 
-  void addCustomContentCategory(ContentCategory category) {
-    final config = state.analysisSettings.contentDetectionConfig;
-    updateContentDetectionConfig(
-      config.copyWith(categories: [...config.categories, category]),
-    );
-  }
-
-  void removeCustomContentCategory(String categoryId) {
-    final config = state.analysisSettings.contentDetectionConfig;
-    updateContentDetectionConfig(
-      config.copyWith(
-        categories: config.categories.where((c) => c.id != categoryId).toList(),
-      ),
-    );
-  }
-
   void ensureContentDetectionDefaults() {
     final config = state.analysisSettings.contentDetectionConfig;
-    if (config.categories.isEmpty) {
+    final normalizedConfig = _normalizeContentDetectionConfig(config);
+    if (jsonEncode(normalizedConfig.toJson()) != jsonEncode(config.toJson())) {
       updateContentDetectionConfig(
-        config.copyWith(categories: ContentCategoryDefaults.allCategories),
+        normalizedConfig,
       );
     }
   }
@@ -337,4 +321,20 @@ class SettingsNotifier extends _$SettingsNotifier {
     _saveDebounceTimer?.cancel();
     _saveDebounceTimer = Timer(const Duration(milliseconds: 500), saveSettings);
   }
+
+  AnalysisSettings _normalizeAnalysisSettings(AnalysisSettings settings) =>
+      settings.copyWith(
+        contentDetectionConfig: _normalizeContentDetectionConfig(
+          settings.contentDetectionConfig,
+        ),
+      );
+
+  ContentDetectionConfig _normalizeContentDetectionConfig(
+    ContentDetectionConfig config,
+  ) =>
+      config.copyWith(
+        categories: ContentCategoryDefaults.normalizeCategories(
+          config.categories,
+        ),
+      );
 }

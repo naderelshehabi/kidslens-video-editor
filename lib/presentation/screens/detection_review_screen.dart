@@ -482,22 +482,6 @@ class _DetectionCard extends StatelessWidget {
         return const Color(0xFFFFB300);
       case ContentType.nsfw:
         return const Color(0xFFEC407A);
-      case ContentType.violence:
-        return const Color(0xFFFF8A65);
-      case ContentType.blood:
-        return const Color(0xFFEF5350);
-      case ContentType.weapons:
-        return const Color(0xFF90A4AE);
-      case ContentType.nudity:
-        return const Color(0xFFEC407A);
-      case ContentType.sexualContent:
-        return const Color(0xFFEC407A);
-      case ContentType.kissing:
-        return Colors.pink.shade300;
-      case ContentType.immodestDress:
-        return Colors.orange.shade300;
-      case ContentType.custom:
-        return Colors.grey;
     }
   }
 
@@ -507,22 +491,6 @@ class _DetectionCard extends StatelessWidget {
         return Icons.record_voice_over_rounded;
       case ContentType.nsfw:
         return Icons.visibility_off_rounded;
-      case ContentType.violence:
-        return Icons.warning_rounded;
-      case ContentType.blood:
-        return Icons.bloodtype_rounded;
-      case ContentType.weapons:
-        return Icons.gpp_bad_rounded;
-      case ContentType.nudity:
-        return Icons.visibility_off_rounded;
-      case ContentType.sexualContent:
-        return Icons.block_rounded;
-      case ContentType.kissing:
-        return Icons.favorite_rounded;
-      case ContentType.immodestDress:
-        return Icons.checkroom_rounded;
-      case ContentType.custom:
-        return Icons.category_rounded;
     }
   }
 

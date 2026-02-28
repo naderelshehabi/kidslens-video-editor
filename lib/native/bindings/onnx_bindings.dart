@@ -888,30 +888,6 @@ class ONNXBindings extends NativeResource {
       case _ModelType.nsfw:
         return _runOrtNsfwInference(session, rgbData, width, height);
 
-      case _ModelType.violence:
-        final variance = _computeImageVariance(rgbData, width, height);
-        final nonViolent = (0.92 - variance * 0.2).clamp(0.0, 1.0);
-        return {
-          'violent': 1.0 - nonViolent,
-          'non_violent': nonViolent,
-        };
-
-      case _ModelType.blood:
-        final variance = _computeImageVariance(rgbData, width, height);
-        final noBlood = (0.95 - variance * 0.15).clamp(0.0, 1.0);
-        return {
-          'blood': 1.0 - noBlood,
-          'no_blood': noBlood,
-        };
-
-      case _ModelType.weapons:
-        final variance = _computeImageVariance(rgbData, width, height);
-        final noWeapon = (0.94 - variance * 0.18).clamp(0.0, 1.0);
-        return {
-          'weapon': 1.0 - noWeapon,
-          'no_weapon': noWeapon,
-        };
-
       case _ModelType.detection:
       case _ModelType.embedding:
       case _ModelType.unknown:
@@ -1342,13 +1318,6 @@ class ONNXBindings extends NativeResource {
 
     if (lowerPath.contains('nsfw')) {
       return _ModelType.nsfw;
-    } else if (lowerPath.contains('violence') ||
-        lowerPath.contains('violent')) {
-      return _ModelType.violence;
-    } else if (lowerPath.contains('blood') || lowerPath.contains('gore')) {
-      return _ModelType.blood;
-    } else if (lowerPath.contains('weapon')) {
-      return _ModelType.weapons;
     } else if (lowerPath.contains('nudenet') || lowerPath.contains('yolo')) {
       return _ModelType.detection;
     } else if (lowerPath.contains('clip') || lowerPath.contains('vit')) {
@@ -1801,9 +1770,6 @@ class ONNXBindings extends NativeResource {
 
 enum _ModelType {
   nsfw,
-  violence,
-  blood,
-  weapons,
   detection,
   embedding,
   unknown,

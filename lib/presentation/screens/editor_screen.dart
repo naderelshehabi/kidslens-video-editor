@@ -1483,8 +1483,10 @@ class _SubtitleGenerationDialogState
 
       final asrService = ref.read(asrServiceProvider);
 
-      final transcript = await asrService.transcribeInBackground(
+      final subtitleTrack = await asrService.transcribeToSubtitleTrack(
         widget.mediaPath,
+        mediaId: widget.mediaId,
+        trackId: DateTime.now().microsecondsSinceEpoch.toString(),
         preferredModel: widget.asrModelId,
         mediaDuration: widget.mediaDuration,
         useGpu: widget.useGpu,
@@ -1492,12 +1494,6 @@ class _SubtitleGenerationDialogState
         nThreads: widget.nThreads,
         onProgress: _updatePhase,
         cancelToken: _cancelToken,
-      );
-
-      final subtitleTrack = SubtitleTrack.fromTranscript(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
-        transcript: transcript,
-        mediaId: widget.mediaId,
       );
 
       if (mounted && !_cancelled) {
@@ -2234,14 +2230,8 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
     switch (type) {
       case ContentType.profanity:
         return Icons.volume_off;
-      case ContentType.violence:
-        return Icons.warning;
       case ContentType.nsfw:
         return Icons.visibility_off;
-      case ContentType.blood:
-        return Icons.local_hospital;
-      case ContentType.weapons:
-        return Icons.gpp_maybe;
       default:
         return Icons.help_outline;
     }
@@ -2251,14 +2241,8 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
     switch (type) {
       case ContentType.profanity:
         return Colors.orange;
-      case ContentType.violence:
-        return Colors.red;
       case ContentType.nsfw:
         return Colors.pink;
-      case ContentType.blood:
-        return Colors.deepOrange;
-      case ContentType.weapons:
-        return Colors.blueGrey;
       default:
         return Colors.grey;
     }

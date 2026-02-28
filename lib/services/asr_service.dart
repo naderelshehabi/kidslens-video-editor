@@ -417,6 +417,48 @@ class AsrService {
     }
   }
 
+  /// Transcribe media in the same flow used by timeline subtitle generation
+  /// and return a subtitle track ready to be persisted in the project.
+  Future<SubtitleTrack> transcribeToSubtitleTrack(
+    String mediaPath, {
+    required String mediaId,
+    required String trackId,
+    String? language,
+    String? preferredModel,
+    Duration? mediaDuration,
+    bool? useGpu,
+    int? gpuDeviceIndex,
+    int? nThreads,
+    int? beamSize,
+    void Function(
+      TranscriptionPhase phase,
+      double progress,
+      String message,
+      Duration? currentTimestamp,
+    )? onProgress,
+    Completer<void>? cancelToken,
+  }) async {
+    final transcript = await transcribeInBackground(
+      mediaPath,
+      language: language,
+      preferredModel: preferredModel,
+      mediaDuration: mediaDuration,
+      useGpu: useGpu,
+      gpuDeviceIndex: gpuDeviceIndex,
+      nThreads: nThreads,
+      beamSize: beamSize,
+      onProgress: onProgress,
+      cancelToken: cancelToken,
+    );
+
+    return SubtitleTrack.fromTranscript(
+      id: trackId,
+      mediaId: mediaId,
+      transcript: transcript,
+      modelId: preferredModel ?? transcript.modelId,
+    );
+  }
+
   /// Spawn a background isolate that processes audio in overlapping chunks
   /// and streams progress updates back via [ReceivePort].
   static Future<Transcript> _runChunkedInIsolate(

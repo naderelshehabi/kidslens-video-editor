@@ -96,13 +96,5 @@ class DetectionOverlay extends StatelessWidget {
   IconData _getIcon(ContentType type) => switch (type) {
       ContentType.profanity => Icons.mic_off,
       ContentType.nsfw => Icons.visibility_off,
-      ContentType.violence => Icons.warning,
-      ContentType.blood => Icons.water_drop,
-      ContentType.weapons => Icons.gpp_bad,
-      ContentType.nudity => Icons.visibility_off,
-      ContentType.sexualContent => Icons.block,
-      ContentType.kissing => Icons.favorite,
-      ContentType.immodestDress => Icons.checkroom,
-      ContentType.custom => Icons.category,
     };
 }

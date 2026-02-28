@@ -124,12 +124,21 @@ class AnalysisNotifier extends _$AnalysisNotifier {
         mediaType: MediaType.video,
       );
 
+      final transcriptForAnalysis = await _resolveTranscriptForAnalysis(
+        mediaPath: mediaPath,
+        mediaId: mediaId,
+        mediaDuration: mediaDuration,
+        settings: settings,
+        projectNotifier: projectNotifier,
+        providedTranscript: existingTranscript,
+      );
+
       final job = AnalysisJob(
         id: 'analysis_${DateTime.now().millisecondsSinceEpoch}',
         media: media,
         settings: settings,
         analysisService: analysisService,
-        existingTranscript: existingTranscript,
+        existingTranscript: transcriptForAnalysis,
       );
       _activeJob = job;
 
@@ -209,6 +218,74 @@ class AnalysisNotifier extends _$AnalysisNotifier {
       _lastProgressUiValue = -1;
       _lastProgressMessage = null;
     }
+  }
+
+  bool _hasProfanityCategory(AnalysisSettings settings) =>
+      settings.contentDetectionConfig.enabledAudioCategories.any(
+        (c) => c.id == 'profanity',
+      );
+
+  Future<Transcript?> _resolveTranscriptForAnalysis({
+    required String mediaPath,
+    required String mediaId,
+    required Duration mediaDuration,
+    required AnalysisSettings settings,
+    required ProjectNotifier projectNotifier,
+    required Transcript? providedTranscript,
+  }) async {
+    if (!_hasProfanityCategory(settings)) {
+      return providedTranscript;
+    }
+
+    if (providedTranscript != null) {
+      state = state.copyWith(
+        currentStep: 'Using existing transcript for profanity detection...',
+      );
+      return providedTranscript;
+    }
+
+    final project = ref.read(projectNotifierProvider).currentProject;
+    final existingTrack = project?.subtitleTrackForMedia(mediaId);
+    if (existingTrack != null) {
+      state = state.copyWith(
+        currentStep: 'Using existing transcript for profanity detection...',
+      );
+      return existingTrack.toTranscript();
+    }
+
+    state = state.copyWith(
+      currentStep: 'No transcript found. Transcribing audio first...',
+    );
+
+    final asrService = ref.read(asrServiceProvider);
+    final subtitleTrack = await asrService.transcribeToSubtitleTrack(
+      mediaPath,
+      mediaId: mediaId,
+      trackId: DateTime.now().microsecondsSinceEpoch.toString(),
+      language: settings.modelConfig.asrLanguage == 'auto'
+          ? null
+          : settings.modelConfig.asrLanguage,
+      preferredModel: settings.modelConfig.asrModelId,
+      mediaDuration: mediaDuration,
+      useGpu: settings.modelConfig.useGpu,
+      gpuDeviceIndex: settings.modelConfig.gpuDeviceIndex,
+      nThreads: settings.modelConfig.cpuThreads,
+      beamSize: settings.modelConfig.beamSize,
+      onProgress: (_, progress, message, __) {
+        final warmupProgress = (progress * 0.15).clamp(0.0, 0.15);
+        state = state.copyWith(
+          progress: warmupProgress,
+          currentStep: message,
+        );
+        projectNotifier.updateAnalysisProgress(warmupProgress);
+      },
+    );
+
+    projectNotifier.addSubtitleTrack(subtitleTrack);
+    state = state.copyWith(
+      currentStep: 'Transcript saved. Continuing analysis...',
+    );
+    return subtitleTrack.toTranscript();
   }
 
   void updateProgress(AnalysisProgress progress) {
