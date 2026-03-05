@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:kidslens_video_editor/data/models/gpu_info.dart';
 
 /// Structured GPU information returned by getGpuInfo()
@@ -587,60 +589,133 @@ class GPUAccelerationManager {
   /// - CUDA GPU 0 = NVIDIA dGPU
   /// - DirectML GPU 0 = Intel iGPU, DirectML GPU 1 = NVIDIA dGPU
   ///
-  /// Returns the mapped DirectML device index, or the original index if mapping fails.
+  /// Returns the mapped DirectML device index. Falls back to searching for any
+  /// NVIDIA/discrete GPU in the DirectML list if name matching fails.
   Future<int> mapCudaToDirectMLDeviceIndex(int cudaIndex) async {
     final cudaDevices = await getCudaDevices();
     final directmlDevices = await getDirectMLDevices();
 
-    if (cudaDevices.isEmpty || directmlDevices.isEmpty) {
-      return cudaIndex; // No mapping possible
+    if (directmlDevices.isEmpty) {
+      return 0; // No DirectML devices; use default
+    }
+    if (directmlDevices.length == 1) {
+      return directmlDevices.first.deviceId; // Only one GPU, use it
+    }
+    if (cudaDevices.isEmpty) {
+      // No CUDA devices enumerated; find any NVIDIA GPU in DirectML list
+      return _findDiscreteGpuInDirectML(directmlDevices);
     }
 
     // Get the CUDA device at the specified index
-    final cudaDevice = cudaDevices.where((d) => d.index == cudaIndex).firstOrNull;
+    final cudaDevice =
+        cudaDevices.where((d) => d.index == cudaIndex).firstOrNull;
     if (cudaDevice == null) {
-      return cudaIndex; // Invalid index
+      // Invalid CUDA index; find any NVIDIA GPU in DirectML list
+      debugPrint(
+        'GPU mapping: CUDA device index $cudaIndex not found '
+        '(available: ${cudaDevices.map((d) => d.index).toList()}). '
+        'Searching DirectML devices by name.',
+      );
+      return _findDiscreteGpuInDirectML(directmlDevices);
     }
 
-    // Find matching DirectML device by name
+    // Find matching DirectML device by name (strict matching)
     for (final dmlDevice in directmlDevices) {
       if (_deviceNamesMatch(cudaDevice.name, dmlDevice.name)) {
         return dmlDevice.deviceId;
       }
     }
 
-    // Fallback: if we have multiple DirectML devices and cudaIndex is 0,
-    // assume the discrete GPU is the last device in the DirectML list
-    if (cudaIndex == 0 && directmlDevices.length > 1) {
-      return directmlDevices.last.deviceId;
-    }
-
-    return cudaIndex;
+    // Name matching failed; find any NVIDIA/discrete GPU in DirectML list
+    debugPrint(
+      'GPU mapping: Could not match CUDA device "${cudaDevice.name}" '
+      'to any DirectML device by name. '
+      'DirectML devices: ${directmlDevices.map((d) => '${d.deviceId}:${d.name}').toList()}. '
+      'Searching for discrete GPU.',
+    );
+    return _findDiscreteGpuInDirectML(directmlDevices);
   }
 
-  /// Check if two GPU names refer to the same device
-  bool _deviceNamesMatch(String name1, String name2) {
-    final n1 = name1.toLowerCase();
-    final n2 = name2.toLowerCase();
+  /// Find a discrete (non-integrated) GPU in the DirectML device list.
+  ///
+  /// Prefers NVIDIA GPUs, then any non-Intel/non-integrated GPU.
+  /// Falls back to device 0 if no discrete GPU found.
+  int _findDiscreteGpuInDirectML(List<DirectMLDevice> devices) {
+    // First pass: look for NVIDIA GPU
+    for (final device in devices) {
+      final nameLower = device.name.toLowerCase();
+      if (nameLower.contains('nvidia') || nameLower.contains('geforce') ||
+          nameLower.contains('quadro') || nameLower.contains('tesla')) {
+        return device.deviceId;
+      }
+    }
+    // Second pass: look for AMD discrete GPU (not integrated)
+    for (final device in devices) {
+      final nameLower = device.name.toLowerCase();
+      if ((nameLower.contains('amd') || nameLower.contains('radeon')) &&
+          !nameLower.contains('integrated') &&
+          !nameLower.contains('vega') &&  // Vega iGPUs
+          device.vramMB > 1024) {  // Discrete GPUs have >1GB VRAM
+        return device.deviceId;
+      }
+    }
+    // Final fallback: return first device
+    return devices.first.deviceId;
+  }
 
-    // Direct substring match
+  /// Check if two GPU names refer to the same device.
+  ///
+  /// Uses multiple matching strategies in order of reliability:
+  /// 1. Direct substring containment
+  /// 2. NVIDIA model number matching (e.g., "3060", "4090")
+  /// 3. GPU series + model number matching (e.g., "RTX 4090")
+  ///
+  /// Does NOT assume two arbitrary NVIDIA GPUs are the same device.
+  bool _deviceNamesMatch(String name1, String name2) {
+    final n1 = name1.toLowerCase().trim();
+    final n2 = name2.toLowerCase().trim();
+
+    // Direct substring match (handles cases like "NVIDIA GeForce RTX 4090"
+    // contained in the other string)
     if (n1.contains(n2) || n2.contains(n1)) return true;
 
-    // Common NVIDIA identifiers
-    final nvidiaKeywords = ['nvidia', 'geforce', 'rtx', 'gtx', 'quadro', 'tesla'];
-    final hasNvidia1 = nvidiaKeywords.any((k) => n1.contains(k));
-    final hasNvidia2 = nvidiaKeywords.any((k) => n2.contains(k));
+    // Normalize whitespace and common separators for comparison
+    final norm1 = n1.replaceAll(RegExp(r'[\s_-]+'), ' ');
+    final norm2 = n2.replaceAll(RegExp(r'[\s_-]+'), ' ');
+    if (norm1.contains(norm2) || norm2.contains(norm1)) return true;
 
-    if (hasNvidia1 && hasNvidia2) {
-      // Extract model numbers (e.g., "3060", "4090")
-      final modelMatch1 = RegExp(r'\b\d{4}\b').firstMatch(n1);
-      final modelMatch2 = RegExp(r'\b\d{4}\b').firstMatch(n2);
-      if (modelMatch1 != null && modelMatch2 != null) {
-        return modelMatch1.group(0) == modelMatch2.group(0);
+    // Extract GPU model identifiers for matching
+    // Match patterns like: RTX 4090, GTX 1080, RTX A6000, Quadro P5000, etc.
+    final modelPattern = RegExp(
+      r'(rtx|gtx|quadro|tesla|a)\s*(\d{3,5})',
+      caseSensitive: false,
+    );
+    final models1 = modelPattern.allMatches(norm1).toList();
+    final models2 = modelPattern.allMatches(norm2).toList();
+
+    if (models1.isNotEmpty && models2.isNotEmpty) {
+      // Compare extracted model identifiers
+      for (final m1 in models1) {
+        for (final m2 in models2) {
+          final series1 = m1.group(1)!.toLowerCase();
+          final number1 = m1.group(2)!;
+          final series2 = m2.group(1)!.toLowerCase();
+          final number2 = m2.group(2)!;
+          if (series1 == series2 && number1 == number2) return true;
+        }
       }
-      return true; // Both NVIDIA, assume same device if no model number
+      // Both have model identifiers but they differ → different devices
+      return false;
     }
 
+    // Fallback: extract any 4-digit model number
+    final digits1 = RegExp(r'\b(\d{4})\b').allMatches(norm1).map((m) => m.group(1)!).toSet();
+    final digits2 = RegExp(r'\b(\d{4})\b').allMatches(norm2).map((m) => m.group(1)!).toSet();
+    if (digits1.isNotEmpty && digits2.isNotEmpty) {
+      return digits1.intersection(digits2).isNotEmpty;
+    }
+
+    // Cannot determine — do not assume they match
     return false;
   }
 

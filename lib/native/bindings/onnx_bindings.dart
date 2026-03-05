@@ -636,7 +636,16 @@ class ONNXBindings extends NativeResource {
       }
 
       // 2. Update with key-value pairs
-      final fullConfig = {'device_id': deviceId.toString(), ...config};
+      // Apply CUDA performance optimizations by default, allowing caller override
+      final fullConfig = {
+        'device_id': deviceId.toString(),
+        // Use max workspace for cuDNN convolution algorithms (faster at cost of memory)
+        'cudnn_conv_use_max_workspace': '1',
+        // Enable TF32 for faster computation on Ampere+ GPUs (RTX 30xx, 40xx)
+        'use_tf32': '1',
+        // User-supplied options override defaults
+        ...config,
+      };
       final keys = fullConfig.keys.toList();
       final values = fullConfig.values.toList();
 
@@ -1628,8 +1637,15 @@ class ONNXBindings extends NativeResource {
       final shapeText = outputs
           .map((o) => '[${o.shape.join(', ')}]')
           .join(', ');
+      final valuesInfo = outputs
+          .map((o) => 'len=${o.values.length}')
+          .join(', ');
       throw ONNXInferenceException(
-        'Unsupported detection output layout. Received shapes: $shapeText',
+        'Unsupported detection output layout. '
+        'Received ${outputs.length} tensor(s) with shapes: $shapeText '
+        '($valuesInfo). '
+        'Expected YOLOv5 [1, N, 5+C] or YOLOv8 [1, 4+C, N] format '
+        'with C=${classNames.length} classes.',
       );
     }
 

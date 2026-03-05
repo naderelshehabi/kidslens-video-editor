@@ -8,6 +8,25 @@ import 'package:kidslens_video_editor/jobs/cancellation_token.dart';
 import 'package:kidslens_video_editor/native/bindings/onnx_bindings.dart';
 import 'package:kidslens_video_editor/native/gpu_manager.dart';
 
+/// Result of provider resolution, capturing what was requested vs actually used.
+class ProviderResolutionResult {
+  const ProviderResolutionResult({
+    required this.requestedProvider,
+    required this.actualProvider,
+    required this.deviceIndex,
+    this.fallbackOccurred = false,
+    this.failureReason,
+  });
+
+  final String requestedProvider;
+  final String actualProvider;
+  final int deviceIndex;
+  final bool fallbackOccurred;
+  final String? failureReason;
+
+  bool get isUsingRequestedProvider => requestedProvider == actualProvider;
+}
+
 /// Service for NSFW content detection using ONNX Runtime.
 ///
 /// This service replaces the legacy TensorFlow.js-based implementation,
@@ -25,6 +44,9 @@ class NsfwOnnxService {
 
   String? _resolvedExecutionProvider;
   int? _resolvedDeviceIndex;
+
+  /// The last provider resolution result, for UI visibility.
+  ProviderResolutionResult? lastProviderResolution;
 
   /// Run batch inference on multiple frames.
   ///
@@ -173,16 +195,31 @@ class NsfwOnnxService {
       );
       _resolvedExecutionProvider = 'CPUExecutionProvider';
       _resolvedDeviceIndex = 0;
+      lastProviderResolution = const ProviderResolutionResult(
+        requestedProvider: 'CPUExecutionProvider',
+        actualProvider: 'CPUExecutionProvider',
+        deviceIndex: 0,
+      );
       return ('CPUExecutionProvider', 0);
     }
 
+    final isExplicitProvider = gpuConfig.onnxExecutionProvider != 'auto';
     final candidateProviders = gpuConfig.onnxExecutionProviders;
+    final requestedProviderName = candidateProviders.first;
+    String? firstFailureReason;
 
     for (final provider in candidateProviders) {
       if (!_providerRuntimeLikelyAvailable(provider)) {
-        debugPrint(
-          'NSFW ONNX provider skipped (runtime prerequisites missing): $provider',
-        );
+        final reason =
+            'Runtime prerequisites missing for $provider';
+        debugPrint('NSFW ONNX provider skipped: $reason');
+        if (isExplicitProvider && provider == requestedProviderName) {
+          debugPrint(
+            'WARNING: Explicitly selected provider "$provider" is unavailable: $reason. '
+            'Will attempt fallback providers.',
+          );
+        }
+        firstFailureReason ??= reason;
         continue;
       }
 
@@ -197,11 +234,38 @@ class NsfwOnnxService {
 
         _resolvedExecutionProvider = provider;
         _resolvedDeviceIndex = deviceIndex;
+
+        final fallbackOccurred =
+            provider != requestedProviderName;
+        lastProviderResolution = ProviderResolutionResult(
+          requestedProvider: requestedProviderName,
+          actualProvider: provider,
+          deviceIndex: deviceIndex,
+          fallbackOccurred: fallbackOccurred,
+          failureReason: fallbackOccurred ? firstFailureReason : null,
+        );
+
+        if (fallbackOccurred) {
+          debugPrint(
+            'WARNING: Requested provider "$requestedProviderName" failed. '
+            'Fell back to "$provider" (deviceId=$deviceIndex). '
+            'Reason: $firstFailureReason',
+          );
+        }
+
         return (provider, deviceIndex);
       } catch (e) {
-        debugPrint(
-          'NSFW ONNX provider attempt failed: provider=$provider, deviceId=$deviceIndex, error=$e',
-        );
+        final reason =
+            'provider=$provider, deviceId=$deviceIndex, error=$e';
+        debugPrint('NSFW ONNX provider attempt failed: $reason');
+        firstFailureReason ??= reason;
+
+        if (isExplicitProvider && provider == requestedProviderName) {
+          debugPrint(
+            'WARNING: Explicitly selected provider "$provider" failed to initialize '
+            '(deviceId=$deviceIndex): $e. Will attempt fallback providers.',
+          );
+        }
       }
     }
 
@@ -257,23 +321,30 @@ class NsfwOnnxService {
             canLoadFromSearchPaths('onnxruntime_providers_shared.dll');
         final hasOrtCuda =
             canLoadFromSearchPaths('onnxruntime_providers_cuda.dll');
-        final hasCudaRuntime =
-            canLoadAny(const ['cudart64_12.dll', 'cudart64_11.dll']);
-        final hasCudnnRuntime = canLoadAny(const [
-          'cudnn64_9.dll',
+
+        // Check CUDA/cuDNN version compatibility:
+        // CUDA 12.x requires cuDNN 9.x; CUDA 11.x requires cuDNN 8.x
+        final hasCuda12 = canLoadFromSearchPaths('cudart64_12.dll');
+        final hasCuda11 = canLoadFromSearchPaths('cudart64_11.dll');
+        final hasCudnn9 = canLoadFromSearchPaths('cudnn64_9.dll');
+        final hasCudnn8 = canLoadAny(const [
           'cudnn64_8.dll',
           'cudnn_ops_infer64_8.dll',
         ]);
 
-        final available = hasOrtShared &&
-            hasOrtCuda &&
-            hasCudaRuntime &&
-            hasCudnnRuntime;
+        final hasCompatibleCudaPair =
+            (hasCuda12 && hasCudnn9) || (hasCuda11 && hasCudnn8);
+
+        final available = hasOrtShared && hasOrtCuda && hasCompatibleCudaPair;
         if (!available) {
+          final versionMismatch = (hasCuda12 && hasCudnn8 && !hasCudnn9) ||
+              (hasCuda11 && hasCudnn9 && !hasCudnn8);
           debugPrint(
             'NSFW ONNX CUDA runtime unavailable: '
             'ortShared=$hasOrtShared, ortCuda=$hasOrtCuda, '
-            'cudaRuntime=$hasCudaRuntime, cudnnRuntime=$hasCudnnRuntime',
+            'cuda12=$hasCuda12, cuda11=$hasCuda11, '
+            'cudnn9=$hasCudnn9, cudnn8=$hasCudnn8'
+            '${versionMismatch ? ' (VERSION MISMATCH: CUDA 12 requires cuDNN 9, CUDA 11 requires cuDNN 8)' : ''}',
           );
         }
         return available;
@@ -302,7 +373,10 @@ class NsfwOnnxService {
     try {
       final cudaDevices = await gpuManager.getCudaDevices();
       if (cudaDevices.isEmpty) {
-        return requestedIndex;
+        debugPrint(
+          'CUDA device resolution: No CUDA devices found, using index 0',
+        );
+        return 0;
       }
 
       final indexes = cudaDevices.map((d) => d.index).toSet();
@@ -310,9 +384,14 @@ class NsfwOnnxService {
         return requestedIndex;
       }
 
+      debugPrint(
+        'CUDA device resolution: Requested index $requestedIndex not found '
+        '(available: $indexes), using ${cudaDevices.first.index}',
+      );
       return cudaDevices.first.index;
-    } catch (_) {
-      return requestedIndex;
+    } catch (e) {
+      debugPrint('CUDA device resolution failed: $e, using index 0');
+      return 0;
     }
   }
 

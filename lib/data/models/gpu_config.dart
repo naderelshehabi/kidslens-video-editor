@@ -69,7 +69,17 @@ class GpuConfig with _$GpuConfig {
       }
     }
 
-    return [_mapProviderName(onnxExecutionProvider), 'CPUExecutionProvider'];
+    final primary = _mapProviderName(onnxExecutionProvider);
+    // Include platform-appropriate GPU fallbacks before CPU so that
+    // GPU acceleration is still used when the primary provider is unavailable.
+    if (Platform.isWindows) {
+      return [
+        primary,
+        if (primary != 'DmlExecutionProvider') 'DmlExecutionProvider',
+        'CPUExecutionProvider',
+      ];
+    }
+    return [primary, 'CPUExecutionProvider'];
   }
 
   /// Map user-friendly provider names to ONNX Runtime provider names

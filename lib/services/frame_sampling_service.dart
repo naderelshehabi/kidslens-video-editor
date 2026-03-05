@@ -144,59 +144,22 @@ class FrameSamplingService {
     }
 
     final duration = metadata.duration;
-    final sourceWidth = metadata.width;
-    final sourceHeight = metadata.height;
 
     // Calculate output dimensions
-    final outputWidth = samplingConfig.outputWidth ?? sourceWidth;
-    final outputHeight = samplingConfig.outputHeight ?? sourceHeight;
+    final outputWidth = samplingConfig.outputWidth ?? metadata.width;
+    final outputHeight = samplingConfig.outputHeight ?? metadata.height;
 
-    // Calculate frame extraction times
-    final frameTimes = _calculateFrameTimes(
+    // Use streaming extraction: single FFmpeg process for all frames
+    yield* _streamFrames(
+      videoPath,
+      fps: samplingConfig.baseFps,
+      width: outputWidth,
+      height: outputHeight,
+      format: samplingConfig.outputFormat,
       duration: duration,
-      baseFps: samplingConfig.baseFps,
-      includeKeyframes: samplingConfig.includeKeyframes,
+      detectSceneChanges: samplingConfig.boostOnSceneChange,
+      sceneChangeThreshold: samplingConfig.sceneChangeThreshold,
     );
-
-    var frameNumber = 0;
-    Duration? previousTimestamp;
-
-    for (final timestamp in frameTimes) {
-      try {
-        // Extract frame at timestamp
-        final frameData = await _extractFrame(
-          videoPath,
-          timestamp,
-          width: outputWidth,
-          height: outputHeight,
-          format: samplingConfig.outputFormat,
-        );
-
-        if (frameData != null) {
-          // Detect scene change if enabled
-          double? sceneChangeScore;
-          if (samplingConfig.boostOnSceneChange && previousTimestamp != null) {
-            sceneChangeScore = await _detectSceneChange(
-              videoPath,
-              previousTimestamp,
-              timestamp,
-            );
-          }
-
-          yield frameData.copyWith(
-            frameNumber: frameNumber,
-            sceneChangeScore: sceneChangeScore,
-            isKeyframe: await _isKeyframe(videoPath, timestamp),
-          );
-
-          frameNumber++;
-          previousTimestamp = timestamp;
-        }
-      } catch (e) {
-        debugPrint('Warning: Failed to extract frame at $timestamp: $e');
-        // Continue with next frame
-      }
-    }
   }
 
   /// Sample frames with explicit FPS control
@@ -354,6 +317,100 @@ class FrameSamplingService {
     } catch (e) {
       debugPrint('Failed to get video metadata: $e');
       return null;
+    }
+  }
+
+  /// Stream all frames from a video using a single FFmpeg process.
+  ///
+  /// This replaces the per-frame process spawning approach, which was the
+  /// primary speed bottleneck. A single FFmpeg invocation reads the video once
+  /// and outputs downsampled raw frames on stdout. Frames are yielded as soon
+  /// as enough bytes are buffered.
+  Stream<FrameData> _streamFrames(
+    String videoPath, {
+    required double fps,
+    required int width,
+    required int height,
+    required FrameFormat format,
+    required Duration duration,
+    bool detectSceneChanges = false,
+    double sceneChangeThreshold = 0.4,
+  }) async* {
+    final ffmpegPath = ffmpeg.ffmpegPath ?? 'ffmpeg';
+    final pixelFormat = _ffmpegPixelFormat(format);
+    final frameSize = _expectedDataSizeForFormat(width, height, format);
+
+    if (frameSize <= 0) {
+      throw FrameSamplingException(
+        'Invalid frame size: ${width}x$height format=$format',
+      );
+    }
+
+    // Build video filter chain
+    final filters = <String>[];
+    filters.add('fps=$fps');
+    filters.add('scale=$width:$height');
+    final vf = filters.join(',');
+
+    final process = await Process.start(
+      ffmpegPath,
+      [
+        '-hide_banner',
+        '-loglevel', 'error',
+        '-i', videoPath,
+        '-vf', vf,
+        '-pix_fmt', pixelFormat,
+        '-f', 'rawvideo',
+        'pipe:1',
+      ],
+      runInShell: Platform.isWindows,
+    );
+
+    var frameNumber = 0;
+    // Accumulate stdout bytes, yielding complete frames as they arrive
+    var buffer = Uint8List(0);
+
+    try {
+      await for (final chunk in process.stdout) {
+        // Append chunk to buffer
+        final newBuffer = Uint8List(buffer.length + chunk.length);
+        newBuffer.setRange(0, buffer.length, buffer);
+        newBuffer.setRange(buffer.length, newBuffer.length, chunk);
+        buffer = newBuffer;
+
+        // Yield complete frames as soon as we have enough data
+        while (buffer.length >= frameSize) {
+          final frameBytes = Uint8List.sublistView(buffer, 0, frameSize);
+
+          final timestamp = Duration(
+            milliseconds: (frameNumber * 1000 / fps).round(),
+          );
+
+          yield FrameData(
+            timestamp: timestamp,
+            width: width,
+            height: height,
+            data: Uint8List.fromList(frameBytes),
+            format: format,
+            frameNumber: frameNumber,
+          );
+
+          // Remove consumed bytes from buffer
+          buffer = Uint8List.sublistView(buffer, frameSize);
+          frameNumber++;
+        }
+      }
+
+      final exitCode = await process.exitCode;
+      if (exitCode != 0 && frameNumber == 0) {
+        throw FrameSamplingException(
+          'FFmpeg streaming extraction failed with exit code $exitCode',
+        );
+      }
+    } catch (e) {
+      process.kill();
+      if (e is FrameSamplingException) rethrow;
+      throw FrameSamplingException('Frame streaming failed: $e');
     }
   }
 

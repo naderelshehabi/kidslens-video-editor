@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/jobs/cancellation_token.dart';
 import 'package:kidslens_video_editor/native/bindings/ffmpeg_bindings.dart';
@@ -875,97 +876,75 @@ class AnalysisService {
         ? NsfwModelAdapter(context.classifierSpec!)
         : null;
 
-    final sampledFrames = <FrameData>[];
     final mediaDurationMs =
         mediaDuration.inMilliseconds <= 0 ? 1 : mediaDuration.inMilliseconds;
     var sampledCount = 0;
-    await for (final frame
-        in sampler.sampleFrames(mediaPath, config: sampleConfig)) {
-      await _checkState(cancellationToken);
-      sampledFrames.add(frame);
-      sampledCount++;
-      final processedDurationMs = frame.timestamp.inMilliseconds.clamp(
-        0,
-        mediaDurationMs,
-      );
-      yield _VisualProgressUpdate(
-        processedDurationMs: processedDurationMs,
-        itemsProcessed: sampledCount,
-        totalItems: sampledCount,
-      );
-    }
-    if (sampledFrames.isEmpty) {
-      yield const _VisualProgressUpdate(
-        processedDurationMs: 0,
-        itemsProcessed: 0,
-        totalItems: 0,
-        output: _VisualOutput(frameResults: [], visualDetections: []),
-      );
-      return;
-    }
 
+    // Stream-process frames: accumulate into batches and process as they arrive
+    // instead of loading all frames into memory first.
     final batchSize = settings.modelConfig.batchSize.clamp(1, 16);
-    final totalItems = sampledFrames.length;
     final frameResults = <FrameAnalysisResult>[];
     var detectorEnabled = runNudityDetector && context.hasDetector;
     var classifierEnabled = runNsfwClassifier && context.hasNsfwClassifier;
     String? warningMessage;
+    var pendingBatch = <FrameData>[];
 
-    for (var i = 0; i < sampledFrames.length; i += batchSize) {
+    await for (final frame
+        in sampler.sampleFrames(mediaPath, config: sampleConfig)) {
       await _checkState(cancellationToken);
-      final end = (i + batchSize).clamp(0, sampledFrames.length);
-      final chunk = sampledFrames.sublist(i, end);
+      pendingBatch.add(frame);
+      sampledCount++;
 
-      final rgbBatch =
-          chunk.map((f) => f.data.toList(growable: false)).toList();
+      // Process batch when full
+      if (pendingBatch.length >= batchSize) {
+        final chunk = pendingBatch;
+        pendingBatch = <FrameData>[];
 
-      List<Map<String, double>>? rawBatch;
-      if (classifierEnabled &&
-          adapter != null &&
-          context.classifierModelPath != null) {
-        rawBatch = await nsfwOnnx.runBatchInference(
-          modelPath: context.classifierModelPath!,
-          rgbDataBatch: rgbBatch,
-          width: sampleWidth,
-          height: sampleHeight,
-          cancellationToken: cancellationToken,
-        );
-      }
+        final rgbBatch =
+            chunk.map((f) => f.data.toList(growable: false)).toList();
 
-      final detectorBatch =
-          List<DetectionResult?>.filled(chunk.length, null, growable: false);
-      if (detectorEnabled &&
-          context.detectorModelPath != null &&
-          context.detectorSpec != null) {
-        try {
-          for (var j = 0; j < chunk.length; j++) {
-            await _checkState(cancellationToken);
-            final frame = chunk[j];
-            detectorBatch[j] = await nsfwOnnx.runDetectionInference(
-              modelPath: context.detectorModelPath!,
-              rgbData: frame.data.toList(growable: false),
-              width: sampleWidth,
-              height: sampleHeight,
-              classNames: context.detectorSpec!.classLabels,
-              confidenceThreshold: context.detectorSpec!.confidenceThreshold,
-              iouThreshold: context.detectorSpec!.iouThreshold,
-              inputSize: context.detectorSpec!.inputSize,
-              maxDetections: context.detectorSpec!.maxDetections,
-              cancellationToken: cancellationToken,
-            );
-          }
-        } on NsfwOnnxException {
-          detectorEnabled = false;
-          warningMessage =
-              'Nudity detector inference failed; continuing without nudity regions';
-          yield _VisualProgressUpdate(
-            processedDurationMs: chunk.first.timestamp.inMilliseconds
-                .clamp(0, mediaDurationMs),
-            itemsProcessed: frameResults.length,
-            totalItems: totalItems,
-            warningMessage: warningMessage,
+        List<Map<String, double>>? rawBatch;
+        if (classifierEnabled &&
+            adapter != null &&
+            context.classifierModelPath != null) {
+          rawBatch = await nsfwOnnx.runBatchInference(
+            modelPath: context.classifierModelPath!,
+            rgbDataBatch: rgbBatch,
+            width: sampleWidth,
+            height: sampleHeight,
+            cancellationToken: cancellationToken,
           );
         }
+
+        final detectorBatch =
+            List<DetectionResult?>.filled(chunk.length, null, growable: false);
+        if (detectorEnabled &&
+            context.detectorModelPath != null &&
+            context.detectorSpec != null) {
+          try {
+            for (var j = 0; j < chunk.length; j++) {
+              await _checkState(cancellationToken);
+              final f = chunk[j];
+              detectorBatch[j] = await nsfwOnnx.runDetectionInference(
+                modelPath: context.detectorModelPath!,
+                rgbData: f.data.toList(growable: false),
+                width: sampleWidth,
+                height: sampleHeight,
+                classNames: context.detectorSpec!.classLabels,
+                confidenceThreshold: context.detectorSpec!.confidenceThreshold,
+                iouThreshold: context.detectorSpec!.iouThreshold,
+                inputSize: context.detectorSpec!.inputSize,
+                maxDetections: context.detectorSpec!.maxDetections,
+                cancellationToken: cancellationToken,
+              );
+            }
+          } on NsfwOnnxException catch (e) {
+            detectorEnabled = false;
+            warningMessage =
+                'Nudity detector inference failed: ${e.message}; '
+                'continuing without nudity regions';
+            debugPrint('ANALYSIS: Detector disabled due to error: ${e.message}');
+          }
       }
 
       for (var j = 0; j < chunk.length; j++) {
@@ -1002,14 +981,110 @@ class AnalysisService {
         frameResults.add(result);
       }
 
-      final processedDurationMs = chunk.last.timestamp.inMilliseconds
-          .clamp(0, mediaDurationMs);
-      yield _VisualProgressUpdate(
-        processedDurationMs: processedDurationMs,
-        itemsProcessed: frameResults.length,
-        totalItems: totalItems,
-        warningMessage: warningMessage,
+        final processedDurationMs = chunk.last.timestamp.inMilliseconds
+            .clamp(0, mediaDurationMs);
+        yield _VisualProgressUpdate(
+          processedDurationMs: processedDurationMs,
+          itemsProcessed: frameResults.length,
+          totalItems: sampledCount,
+          warningMessage: warningMessage,
+        );
+      }
+    }
+
+    // Process any remaining frames in the last partial batch
+    if (pendingBatch.isNotEmpty) {
+      final chunk = pendingBatch;
+      final rgbBatch =
+          chunk.map((f) => f.data.toList(growable: false)).toList();
+
+      List<Map<String, double>>? rawBatch;
+      if (classifierEnabled &&
+          adapter != null &&
+          context.classifierModelPath != null) {
+        rawBatch = await nsfwOnnx.runBatchInference(
+          modelPath: context.classifierModelPath!,
+          rgbDataBatch: rgbBatch,
+          width: sampleWidth,
+          height: sampleHeight,
+          cancellationToken: cancellationToken,
+        );
+      }
+
+      final detectorBatch =
+          List<DetectionResult?>.filled(chunk.length, null, growable: false);
+      if (detectorEnabled &&
+          context.detectorModelPath != null &&
+          context.detectorSpec != null) {
+        try {
+          for (var j = 0; j < chunk.length; j++) {
+            await _checkState(cancellationToken);
+            final f = chunk[j];
+            detectorBatch[j] = await nsfwOnnx.runDetectionInference(
+              modelPath: context.detectorModelPath!,
+              rgbData: f.data.toList(growable: false),
+              width: sampleWidth,
+              height: sampleHeight,
+              classNames: context.detectorSpec!.classLabels,
+              confidenceThreshold: context.detectorSpec!.confidenceThreshold,
+              iouThreshold: context.detectorSpec!.iouThreshold,
+              inputSize: context.detectorSpec!.inputSize,
+              maxDetections: context.detectorSpec!.maxDetections,
+              cancellationToken: cancellationToken,
+            );
+          }
+        } on NsfwOnnxException catch (e) {
+          detectorEnabled = false;
+          warningMessage =
+              'Nudity detector inference failed: ${e.message}; '
+              'continuing without nudity regions';
+          debugPrint('ANALYSIS: Detector disabled due to error: ${e.message}');
+        }
+      }
+
+      for (var j = 0; j < chunk.length; j++) {
+        final frame = chunk[j];
+        final nsfw = rawBatch != null && adapter != null
+            ? adapter.adapt(rawBatch[j])
+            : NsfwResult.safe();
+        final regions = detectorBatch[j]?.boxes
+                .map(
+                  (box) => _toDetectedRegion(
+                    label: box.className,
+                    confidence: box.confidence,
+                    x: box.x,
+                    y: box.y,
+                    width: box.width,
+                    height: box.height,
+                  ),
+                )
+                .toList(growable: false) ??
+            const <DetectedRegion>[];
+
+        final result = FrameAnalysisResult(
+          frameNumber: frame.frameNumber ?? frameResults.length,
+          timestamp: frame.timestamp,
+          nsfw: nsfw,
+          violence: ViolenceResult.safe(),
+          isSceneChange: frame.isSceneChange,
+          blood: BloodResult.safe(),
+          weapons: WeaponsResult.safe(),
+          visualContent: regions.isEmpty
+              ? VisualContentResult.safe()
+              : VisualContentResult(detectedRegions: regions),
+        );
+        frameResults.add(result);
+      }
+    }
+
+    if (frameResults.isEmpty) {
+      yield const _VisualProgressUpdate(
+        processedDurationMs: 0,
+        itemsProcessed: 0,
+        totalItems: 0,
+        output: _VisualOutput(frameResults: [], visualDetections: []),
       );
+      return;
     }
 
     final visualDetections = _buildVisualDetectionsFromFrames(
@@ -1024,7 +1099,7 @@ class AnalysisService {
     yield _VisualProgressUpdate(
       processedDurationMs: mediaDuration.inMilliseconds,
       itemsProcessed: frameResults.length,
-      totalItems: totalItems,
+      totalItems: sampledCount,
       warningMessage: warningMessage,
       output: _VisualOutput(
         frameResults: frameResults,
