@@ -1871,10 +1871,18 @@ class _AnalysisDialog extends ConsumerStatefulWidget {
 
 class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
   bool _hasStarted = false;
+  DateTime? _analysisStartTime;
+  Timer? _elapsedTimer;
 
   /// Local copy of category enable states, keyed by category ID.
   /// Initialised from the persisted [ContentDetectionConfig] in [initState].
   late Map<String, bool> _categoryEnabled;
+
+  @override
+  void dispose() {
+    _elapsedTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -1940,6 +1948,13 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
         .analysisSettings
         .contentDetectionConfig
         .categories;
+
+    ref.listen(analysisNotifierProvider, (_, next) {
+      if (next.status != AnalysisStatus.running) {
+        _elapsedTimer?.cancel();
+        _elapsedTimer = null;
+      }
+    });
 
     return AlertDialog(
       title: Row(
@@ -2089,11 +2104,60 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
                     '${(displayedStepProgress * 100).toStringAsFixed(0)}% of video duration processed',
                     style: theme.textTheme.bodySmall,
                   ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.timer_outlined,
+                        size: 14,
+                        color: theme.colorScheme.outline,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Elapsed: ${_formatDurationHms(DateTime.now().difference(_analysisStartTime ?? DateTime.now()))}',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      if (analysisState.estimatedSecondsRemaining != null &&
+                          analysisState.estimatedSecondsRemaining! > 0) ...
+                        [
+                          const Spacer(),
+                          Icon(
+                            Icons.hourglass_bottom,
+                            size: 14,
+                            color: theme.colorScheme.outline,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Remaining: ${_formatDurationHms(Duration(seconds: analysisState.estimatedSecondsRemaining!))}',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                    ],
+                  ),
                 ] else if (isComplete) ...[
                   Text(
                     'Found ${analysisState.detections.length} detection(s)',
                     style: theme.textTheme.bodyMedium,
                   ),
+                  if (analysisState.result?.processingTime != null) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.timer_outlined,
+                          size: 14,
+                          color: theme.colorScheme.outline,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Total processing time: ${_formatDurationHms(analysisState.result!.processingTime!)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   if (analysisState.detections.isNotEmpty) ...[
                     Container(
@@ -2231,6 +2295,11 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
 
   void _startAnalysis() {
     setState(() => _hasStarted = true);
+    _analysisStartTime = DateTime.now();
+    _elapsedTimer?.cancel();
+    _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
 
     // Build settings from the persisted analysis settings, applying the
     // user's category enable/disable toggles from this dialog.
@@ -2294,5 +2363,14 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
     final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
+  }
+
+  String _formatDurationHms(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60);
+    final s = d.inSeconds.remainder(60);
+    if (h > 0) return '${h}h ${m}m ${s}s';
+    if (m > 0) return '${m}m ${s}s';
+    return '${s}s';
   }
 }
