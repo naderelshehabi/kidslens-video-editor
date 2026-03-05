@@ -17,8 +17,12 @@ class AnalysisState {
   const AnalysisState({
     this.status = AnalysisStatus.pending,
     this.progress = 0.0,
+    this.currentStepProgress = 0.0,
+    this.currentStepNumber = 0,
+    this.totalSteps = 0,
     this.currentStep,
     this.estimatedSecondsRemaining,
+    this.analysisProgress,
     this.result,
     this.errorMessage,
     this.isPaused = false,
@@ -28,8 +32,12 @@ class AnalysisState {
 
   final AnalysisStatus status;
   final double progress;
+  final double currentStepProgress;
+  final int currentStepNumber;
+  final int totalSteps;
   final String? currentStep;
   final int? estimatedSecondsRemaining;
+  final AnalysisProgress? analysisProgress;
   final AnalysisResult? result;
   final String? errorMessage;
   final bool isPaused;
@@ -39,8 +47,12 @@ class AnalysisState {
   AnalysisState copyWith({
     AnalysisStatus? status,
     double? progress,
+    double? currentStepProgress,
+    int? currentStepNumber,
+    int? totalSteps,
     String? currentStep,
     int? estimatedSecondsRemaining,
+    AnalysisProgress? analysisProgress,
     AnalysisResult? result,
     String? errorMessage,
     bool? isPaused,
@@ -51,9 +63,13 @@ class AnalysisState {
       AnalysisState(
         status: status ?? this.status,
         progress: progress ?? this.progress,
+        currentStepProgress: currentStepProgress ?? this.currentStepProgress,
+        currentStepNumber: currentStepNumber ?? this.currentStepNumber,
+        totalSteps: totalSteps ?? this.totalSteps,
         currentStep: currentStep ?? this.currentStep,
         estimatedSecondsRemaining:
             estimatedSecondsRemaining ?? this.estimatedSecondsRemaining,
+        analysisProgress: analysisProgress ?? this.analysisProgress,
         result: result ?? this.result,
         errorMessage: clearError ? null : errorMessage,
         isPaused: isPaused ?? this.isPaused,
@@ -67,6 +83,7 @@ class AnalysisState {
 class AnalysisNotifier extends _$AnalysisNotifier {
   AnalysisJob? _activeJob;
   StreamSubscription<JobProgress>? _jobProgressSubscription;
+  StreamSubscription<AnalysisProgress>? _analysisProgressSubscription;
   DateTime? _lastProgressUiUpdateAt;
   double _lastProgressUiValue = -1;
   String? _lastProgressMessage;
@@ -78,6 +95,7 @@ class AnalysisNotifier extends _$AnalysisNotifier {
     ref.onDispose(() {
       _activeJob?.cancel();
       _jobProgressSubscription?.cancel();
+      _analysisProgressSubscription?.cancel();
     });
     return const AnalysisState();
   }
@@ -91,6 +109,7 @@ class AnalysisNotifier extends _$AnalysisNotifier {
     bool clearExistingDetections = true,
   }) async {
     await _jobProgressSubscription?.cancel();
+    await _analysisProgressSubscription?.cancel();
     _activeJob?.cancel();
     _lastProgressUiUpdateAt = null;
     _lastProgressUiValue = -1;
@@ -98,7 +117,11 @@ class AnalysisNotifier extends _$AnalysisNotifier {
     state = state.copyWith(
       status: AnalysisStatus.running,
       progress: 0,
+      currentStepProgress: 0,
+      currentStepNumber: 0,
+      totalSteps: _selectedStepCount(settings),
       currentStep: 'Initializing analysis...',
+      analysisProgress: null,
       isCancelling: false,
       clearError: true,
     );
@@ -142,6 +165,21 @@ class AnalysisNotifier extends _$AnalysisNotifier {
       );
       _activeJob = job;
 
+      _analysisProgressSubscription = job.analysisProgress.listen((progress) {
+        final durationProgress =
+            progress.mediaDurationProgress ?? progress.stepProgress;
+        state = state.copyWith(
+          progress: progress.overallProgress,
+          currentStepProgress: durationProgress,
+          currentStepNumber: progress.currentStep,
+          totalSteps: progress.totalSteps,
+          currentStep: progress.stepName,
+          estimatedSecondsRemaining: progress.estimatedSecondsRemaining,
+          analysisProgress: progress,
+        );
+        projectNotifier.updateAnalysisProgress(progress.overallProgress);
+      });
+
       _jobProgressSubscription = job.progress.listen((jobProgress) {
         final progress = jobProgress.progress;
         final message = state.isCancelling
@@ -167,13 +205,17 @@ class AnalysisNotifier extends _$AnalysisNotifier {
         _lastProgressUiValue = progressValue;
         _lastProgressMessage = message;
 
-        if (progress != null) {
-          state = state.copyWith(
-            progress: progress,
-            currentStep: message,
-          );
-          projectNotifier.updateAnalysisProgress(progress);
-        } else {
+        if (state.isCancelling) {
+          if (progress != null) {
+            state = state.copyWith(
+              progress: progress,
+              currentStep: message,
+            );
+            projectNotifier.updateAnalysisProgress(progress);
+          } else {
+            state = state.copyWith(currentStep: message);
+          }
+        } else if (progress == null) {
           state = state.copyWith(currentStep: message);
         }
       });
@@ -188,7 +230,10 @@ class AnalysisNotifier extends _$AnalysisNotifier {
         state = state.copyWith(
           status: AnalysisStatus.completed,
           progress: 1,
+          currentStepProgress: 1,
           currentStep: 'Analysis complete',
+          currentStepNumber:
+              state.totalSteps > 0 ? state.totalSteps : state.currentStepNumber,
           detections: detections,
           result: result,
           isPaused: false,
@@ -200,6 +245,7 @@ class AnalysisNotifier extends _$AnalysisNotifier {
       state = state.copyWith(
         status: AnalysisStatus.cancelled,
         currentStep: 'Cancelled by user',
+        currentStepProgress: 0,
         isPaused: false,
         isCancelling: false,
       );
@@ -212,12 +258,31 @@ class AnalysisNotifier extends _$AnalysisNotifier {
       );
     } finally {
       await _jobProgressSubscription?.cancel();
+      await _analysisProgressSubscription?.cancel();
       _jobProgressSubscription = null;
+      _analysisProgressSubscription = null;
       _activeJob = null;
       _lastProgressUiUpdateAt = null;
       _lastProgressUiValue = -1;
       _lastProgressMessage = null;
     }
+  }
+
+  int _selectedStepCount(AnalysisSettings settings) {
+    var count = 0;
+    if (_hasProfanityCategory(settings)) {
+      count++;
+    }
+
+    final enabledVisual = settings.contentDetectionConfig.enabledVisualCategories;
+    if (enabledVisual.any((c) => c.id == 'nsfw')) {
+      count++;
+    }
+    if (enabledVisual.any((c) => c.id == 'nudity')) {
+      count++;
+    }
+
+    return count <= 0 ? 1 : count;
   }
 
   bool _hasProfanityCategory(AnalysisSettings settings) =>

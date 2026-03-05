@@ -10,7 +10,11 @@ class ContentCategoryDefaults {
   ContentCategoryDefaults._();
 
   /// Supported built-in category IDs.
-  static const Set<String> supportedCategoryIds = {'nsfw', 'profanity'};
+  static const Set<String> supportedCategoryIds = {
+    'nsfw',
+    'nudity',
+    'profanity',
+  };
 
   /// All built-in categories.
   static List<ContentCategory> get allCategories => [
@@ -21,6 +25,7 @@ class ContentCategoryDefaults {
   /// Visual detection categories.
   static final List<ContentCategory> visualCategories = [
     nsfw,
+    nudity,
   ];
 
   /// Audio detection categories.
@@ -55,9 +60,10 @@ class ContentCategoryDefaults {
         defaultCategory.type,
         existing.action,
       );
-      final normalizedModels = existing.modelContributions.isEmpty
-          ? defaultCategory.modelContributions
-          : existing.modelContributions;
+      final normalizedModels = _mergeModelContributions(
+        defaultContributions: defaultCategory.modelContributions,
+        existingContributions: existing.modelContributions,
+      );
 
       return defaultCategory.copyWith(
         enabled: existing.enabled,
@@ -66,6 +72,29 @@ class ContentCategoryDefaults {
         modelContributions: normalizedModels,
       );
     }).toList(growable: false);
+  }
+
+  static List<ModelContribution> _mergeModelContributions({
+    required List<ModelContribution> defaultContributions,
+    required List<ModelContribution> existingContributions,
+  }) {
+    if (existingContributions.isEmpty) {
+      return defaultContributions;
+    }
+
+    final merged = List<ModelContribution>.from(existingContributions);
+    final existingModelIds = existingContributions
+        .map((contribution) => contribution.modelId)
+        .toSet();
+
+    for (final contribution in defaultContributions) {
+      if (existingModelIds.contains(contribution.modelId)) {
+        continue;
+      }
+      merged.add(contribution);
+    }
+
+    return merged;
   }
 
   static RemediationAction _normalizeActionForType(
@@ -82,10 +111,76 @@ class ContentCategoryDefaults {
   static const nsfw = ContentCategory(
     id: 'nsfw',
     name: 'NSFW',
-    description: 'Sexual content classifier using porn/hentai/sexy signals',
+    description: 'Whole-frame sexual-content classifier (porn/hentai/sexy)',
     type: CategoryType.visual,
     action: RemediationAction.blurFullFrame,
     iconName: 'no_adult_content',
+    supportsRegions: false,
+    modelContributions: [
+      ModelContribution(
+        modelId: 'nsfw-onnx-community-vit-224',
+        displayName: 'ONNX Community NSFW ViT (FP16)',
+        modelType: HuggingFaceModelType.nsfw,
+      ),
+      ModelContribution(
+        modelId: 'nsfw-onnx-community-vit-224-int8',
+        displayName: 'ONNX Community NSFW ViT (INT8)',
+        modelType: HuggingFaceModelType.nsfw,
+        enabled: false,
+      ),
+    ],
+  );
+
+  /// Nudity region detection via NudeNet detector outputs.
+  static const nudity = ContentCategory(
+    id: 'nudity',
+    name: 'Nudity',
+    description: 'Region-level nudity detector for localized moderation',
+    type: CategoryType.visual,
+    threshold: 0.35,
+    action: RemediationAction.blurRegion,
+    iconName: 'visibility_off',
+    supportsRegions: true,
+    modelContributions: [
+      ModelContribution(
+        modelId: 'nsfw-nudenet-detector-640',
+        displayName: 'NudeNet Detector 640m',
+        modelType: HuggingFaceModelType.nsfw,
+        detectionLabels: [
+          'FEMALE_BREAST_EXPOSED',
+          'FEMALE_GENITALIA_EXPOSED',
+          'MALE_GENITALIA_EXPOSED',
+          'ANUS_EXPOSED',
+          'BUTTOCKS_EXPOSED',
+        ],
+      ),
+      ModelContribution(
+        modelId: 'nsfw-nudenet-detector-640-community',
+        displayName: 'NudeNet Detector 640m (Community)',
+        modelType: HuggingFaceModelType.nsfw,
+        enabled: false,
+        detectionLabels: [
+          'FEMALE_BREAST_EXPOSED',
+          'FEMALE_GENITALIA_EXPOSED',
+          'MALE_GENITALIA_EXPOSED',
+          'ANUS_EXPOSED',
+          'BUTTOCKS_EXPOSED',
+        ],
+      ),
+      ModelContribution(
+        modelId: 'nsfw-nudenet-detector-320',
+        displayName: 'NudeNet Detector 320n (Fast)',
+        modelType: HuggingFaceModelType.nsfw,
+        enabled: false,
+        detectionLabels: [
+          'FEMALE_BREAST_EXPOSED',
+          'FEMALE_GENITALIA_EXPOSED',
+          'MALE_GENITALIA_EXPOSED',
+          'ANUS_EXPOSED',
+          'BUTTOCKS_EXPOSED',
+        ],
+      ),
+    ],
   );
 
   /// Profanity — swear words and offensive language in the audio track.

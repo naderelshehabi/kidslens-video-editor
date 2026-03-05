@@ -196,13 +196,33 @@ class ModelManagerService {
       var downloadedBytes = 0;
       final totalBytes = model.sizeBytes <= 0 ? 1 : model.sizeBytes;
       for (final fileName in filesToDownload) {
-        final downloadUrl = _registry.getDownloadUrlForFile(model, fileName);
-        final request = http.Request('GET', Uri.parse(downloadUrl));
-        final response = await client.send(request);
-        if (response.statusCode != 200) {
+        final downloadUrls = _registry.getDownloadUrlsForFile(model, fileName);
+        http.StreamedResponse? response;
+        String? failureReason;
+
+        for (final downloadUrl in downloadUrls) {
+          try {
+            final request = http.Request('GET', Uri.parse(downloadUrl));
+            final candidate = await client.send(request);
+            if (candidate.statusCode == 200) {
+              response = candidate;
+              break;
+            }
+
+            failureReason =
+                'HTTP ${candidate.statusCode} from $downloadUrl while downloading $fileName';
+            await candidate.stream.drain<void>();
+          } catch (e) {
+            failureReason =
+                'Request failed for $downloadUrl while downloading $fileName: $e';
+          }
+        }
+
+        if (response == null) {
           throw ModelDownloadException(
             modelId,
-            'HTTP ${response.statusCode} while downloading $fileName',
+            failureReason ??
+                'Unable to download $fileName from any configured source',
           );
         }
 

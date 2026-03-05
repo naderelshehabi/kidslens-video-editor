@@ -110,6 +110,43 @@ class _LetterboxResult {
   final double scale;
 }
 
+/// Internal ONNX output tensor with flattened values and runtime shape.
+class _OrtOutputTensor {
+  const _OrtOutputTensor({
+    required this.values,
+    required this.shape,
+  });
+
+  final List<double> values;
+  final List<int> shape;
+}
+
+class _ParsedDetectionTensor {
+  const _ParsedDetectionTensor({
+    required this.parsed,
+    required this.boxes,
+  });
+
+  final bool parsed;
+  final List<DetectionBox> boxes;
+}
+
+class _DetectionTensorLayout {
+  const _DetectionTensorLayout({
+    required this.sourceRowCount,
+    required this.sourceRowWidth,
+    required this.transposed,
+  });
+
+  final int sourceRowCount;
+  final int sourceRowWidth;
+  final bool transposed;
+
+  int get rowCount => transposed ? sourceRowWidth : sourceRowCount;
+  int get rowWidth => transposed ? sourceRowCount : sourceRowWidth;
+  int get requiredValues => sourceRowCount * sourceRowWidth;
+}
+
 /// Simple mutex for serializing inference calls.
 class _InferenceMutex {
   Completer<void>? _completer;
@@ -618,7 +655,7 @@ class ONNXBindings extends NativeResource {
             .asFunction<UpdateCUDAProviderOptionsDart>();
 
         final status =
-            updateOptions(cudaOptions!, keysPtr, valuesPtr, keys.length);
+          updateOptions(cudaOptions, keysPtr, valuesPtr, keys.length);
         _checkStatus(status);
 
         // 3. Append to session options
@@ -1011,6 +1048,19 @@ class ONNXBindings extends NativeResource {
     Float32List inputData,
     List<int> inputShape,
   ) {
+    final outputs = _runSessionWithShape(session, inputData, inputShape);
+    if (outputs.isEmpty) {
+      return <double>[];
+    }
+    return outputs.first.values;
+  }
+
+  /// Run ONNX session inference and return flattened outputs with runtime shape.
+  List<_OrtOutputTensor> _runSessionWithShape(
+    _LoadedSession session,
+    Float32List inputData,
+    List<int> inputShape,
+  ) {
     // Create memory info for CPU
     final memInfoPtr = calloc<Pointer<OrtMemoryInfo>>();
     final createMemInfo = _api!
@@ -1072,22 +1122,32 @@ class ONNXBindings extends NativeResource {
     final inputName = session.inputNames.isNotEmpty
         ? session.inputNames.first
         : _getDefaultInputName(session.path);
-    final outputName = session.outputNames.isNotEmpty
-        ? session.outputNames.first
-        : _getDefaultOutputName(session.path);
-
     final inputNamePtr = inputName.toNativeUtf8();
-    final outputNamePtr = outputName.toNativeUtf8();
+
+    final outputCount =
+        session.outputNames.isNotEmpty ? session.outputNames.length : 1;
+    final outputNamePtrs = <Pointer<Utf8>>[];
+
     final inputNamesArray = calloc<Pointer<Utf8>>(1);
-    final outputNamesArray = calloc<Pointer<Utf8>>(1);
+    final outputNamesArray = calloc<Pointer<Utf8>>(outputCount);
     inputNamesArray[0] = inputNamePtr;
-    outputNamesArray[0] = outputNamePtr;
+
+    for (var i = 0; i < outputCount; i++) {
+      final name = i < session.outputNames.length
+          ? session.outputNames[i]
+          : _getDefaultOutputName(session.path);
+      final namePtr = name.toNativeUtf8();
+      outputNamePtrs.add(namePtr);
+      outputNamesArray[i] = namePtr;
+    }
 
     final inputsArray = calloc<Pointer<OrtValue>>(1);
     inputsArray[0] = inputTensor;
 
-    final outputsArray = calloc<Pointer<OrtValue>>(1);
-    outputsArray[0] = nullptr;
+    final outputsArray = calloc<Pointer<OrtValue>>(outputCount);
+    for (var i = 0; i < outputCount; i++) {
+      outputsArray[i] = nullptr;
+    }
 
     try {
       // Run inference
@@ -1101,74 +1161,94 @@ class ONNXBindings extends NativeResource {
         inputsArray,
         1,
         outputNamesArray,
-        1,
+        outputCount,
         outputsArray,
       );
       _checkStatus(status);
 
-      // Extract output data
-      final outputTensor = outputsArray[0];
-      final outputDataPtr = calloc<Pointer<Void>>();
       final getTensorData = _api!
           .getFunction<GetTensorMutableDataNative>(
               OrtApiIndex.GetTensorMutableData)
           .asFunction<GetTensorMutableDataDart>();
-      status = getTensorData(outputTensor, outputDataPtr);
-      _checkStatus(status);
-
-      // Get output shape to determine size
-      final shapeInfoPtr = calloc<Pointer<OrtTensorTypeAndShapeInfo>>();
       final getShapeInfo = _api!
           .getFunction<GetTensorTypeAndShapeNative>(
               OrtApiIndex.GetTensorTypeAndShape)
           .asFunction<GetTensorTypeAndShapeDart>();
-      status = getShapeInfo(outputTensor, shapeInfoPtr);
-      _checkStatus(status);
-
-      final dimCountPtr = calloc<Size>();
       final getDimCount = _api!
           .getFunction<GetDimensionsCountNative>(OrtApiIndex.GetDimensionsCount)
           .asFunction<GetDimensionsCountDart>();
-      status = getDimCount(shapeInfoPtr.value, dimCountPtr);
-      _checkStatus(status);
-
-      final dimCount = dimCountPtr.value;
-      final dimsPtr = calloc<Int64>(dimCount);
       final getDims = _api!
           .getFunction<GetDimensionsNative>(OrtApiIndex.GetDimensions)
           .asFunction<GetDimensionsDart>();
-      status = getDims(shapeInfoPtr.value, dimsPtr, dimCount);
-      _checkStatus(status);
-
-      var outputSize = 1;
-      for (var i = 0; i < dimCount; i++) {
-        outputSize *= dimsPtr[i];
-      }
-
-      // Copy output data
-      final outputFloats = outputDataPtr.value.cast<Float>();
-      final results = <double>[];
-      for (var i = 0; i < outputSize; i++) {
-        results.add(outputFloats[i]);
-      }
-
-      // Release shape info
       final releaseShapeInfo = _api!
           .getFunction<ReleaseTensorTypeAndShapeInfoNative>(
               OrtApiIndex.ReleaseTensorTypeAndShapeInfo)
           .asFunction<ReleaseTensorTypeAndShapeInfoDart>();
-      releaseShapeInfo(shapeInfoPtr.value);
 
-      calloc.free(shapeInfoPtr);
-      calloc.free(dimCountPtr);
-      calloc.free(dimsPtr);
-      calloc.free(outputDataPtr);
+      final results = <_OrtOutputTensor>[];
 
-      // Release output tensor
-      final releaseValue = _api!
-          .getFunction<ReleaseValueNative>(OrtApiIndex.ReleaseValue)
-          .asFunction<ReleaseValueDart>();
-      releaseValue(outputTensor);
+      for (var outputIndex = 0; outputIndex < outputCount; outputIndex++) {
+        final outputTensor = outputsArray[outputIndex];
+        if (outputTensor == nullptr) {
+          continue;
+        }
+
+        final outputDataPtr = calloc<Pointer<Void>>();
+        final shapeInfoPtr = calloc<Pointer<OrtTensorTypeAndShapeInfo>>();
+        final dimCountPtr = calloc<Size>();
+        Pointer<Int64>? dimsPtr;
+
+        try {
+          status = getTensorData(outputTensor, outputDataPtr);
+          _checkStatus(status);
+
+          status = getShapeInfo(outputTensor, shapeInfoPtr);
+          _checkStatus(status);
+
+          status = getDimCount(shapeInfoPtr.value, dimCountPtr);
+          _checkStatus(status);
+
+          final dimCount = dimCountPtr.value;
+          dimsPtr = calloc<Int64>(dimCount);
+          status = getDims(shapeInfoPtr.value, dimsPtr, dimCount);
+          _checkStatus(status);
+
+          final outputShape = <int>[];
+          var outputSize = 1;
+          for (var i = 0; i < dimCount; i++) {
+            final dim = dimsPtr[i];
+            outputShape.add(dim);
+            outputSize *= dim;
+          }
+
+          final outputFloats = outputDataPtr.value.cast<Float>();
+          final flattened = List<double>.filled(
+            outputSize,
+            0.0,
+            growable: false,
+          );
+          for (var i = 0; i < outputSize; i++) {
+            flattened[i] = outputFloats[i];
+          }
+
+          results.add(
+            _OrtOutputTensor(
+              values: flattened,
+              shape: outputShape,
+            ),
+          );
+        } finally {
+          if (shapeInfoPtr.value != nullptr) {
+            releaseShapeInfo(shapeInfoPtr.value);
+          }
+          if (dimsPtr != null) {
+            calloc.free(dimsPtr);
+          }
+          calloc.free(outputDataPtr);
+          calloc.free(shapeInfoPtr);
+          calloc.free(dimCountPtr);
+        }
+      }
 
       return results;
     } finally {
@@ -1184,13 +1264,21 @@ class ONNXBindings extends NativeResource {
           .asFunction<ReleaseMemoryInfoDart>();
 
       releaseValue(inputTensor);
+      for (var i = 0; i < outputCount; i++) {
+        final outputTensor = outputsArray[i];
+        if (outputTensor != nullptr) {
+          releaseValue(outputTensor);
+        }
+      }
       releaseRunOptions(runOptions);
       releaseMemInfo(memInfo);
 
       calloc.free(inputTensorPtr);
       calloc.free(runOptionsPtr);
       calloc.free(inputNamePtr);
-      calloc.free(outputNamePtr);
+      for (final ptr in outputNamePtrs) {
+        calloc.free(ptr);
+      }
       calloc.free(inputNamesArray);
       calloc.free(outputNamesArray);
       calloc.free(inputsArray);
@@ -1458,6 +1546,7 @@ class ONNXBindings extends NativeResource {
       await loadModel(modelPath);
     }
     final effectiveKey = _findSessionKey(modelPath)!;
+    final session = _loadedSessions[effectiveKey]!;
     _updateAccessOrder(effectiveKey);
 
     final stopwatch = Stopwatch()..start();
@@ -1465,21 +1554,29 @@ class ONNXBindings extends NativeResource {
     try {
       final result = await _withInferenceLock(() async {
         final letterboxed = _letterbox(rgbData, width, height, inputSize);
+        final outputs = _runSessionWithShape(
+          session,
+          letterboxed.data,
+          <int>[1, 3, inputSize, inputSize],
+        );
 
-        final boxes = _simulateDetectionOutput(
-          rgbData,
-          width,
-          height,
-          classNames,
-          confidenceThreshold,
-          letterboxed,
+        final boxes = _parseDetectionOutputs(
+          outputs: outputs,
+          classNames: classNames,
+          letterboxed: letterboxed,
+          inputSize: inputSize,
+          originalWidth: width,
+          originalHeight: height,
         );
 
         final nmsBoxes = _nonMaxSuppression(boxes, iouThreshold)
           ..sort((a, b) => b.confidence.compareTo(a.confidence));
-        final cappedBoxes = nmsBoxes.length > maxDetections
-            ? nmsBoxes.sublist(0, maxDetections)
-            : nmsBoxes;
+        final thresholdedBoxes = nmsBoxes
+            .where((box) => box.confidence >= confidenceThreshold)
+            .toList();
+        final cappedBoxes = thresholdedBoxes.length > maxDetections
+            ? thresholdedBoxes.sublist(0, maxDetections)
+          : thresholdedBoxes;
 
         return cappedBoxes;
       });
@@ -1496,49 +1593,477 @@ class ONNXBindings extends NativeResource {
     }
   }
 
-  List<DetectionBox> _simulateDetectionOutput(
-    List<int> rgbData,
-    int width,
-    int height,
-    List<String> classNames,
-    double confidenceThreshold,
-    _LetterboxResult letterboxed,
-  ) {
-    final variance = _computeImageVariance(rgbData, width, height);
-    final random = Random(variance.hashCode);
-
-    if (random.nextDouble() > 0.05) {
-      return [];
+  List<DetectionBox> _parseDetectionOutputs({
+    required List<_OrtOutputTensor> outputs,
+    required List<String> classNames,
+    required _LetterboxResult letterboxed,
+    required int inputSize,
+    required int originalWidth,
+    required int originalHeight,
+  }) {
+    if (outputs.isEmpty) {
+      throw ONNXInferenceException('Detection model produced no outputs');
     }
 
-    final numDetections = random.nextInt(2) + 1;
-    final boxes = <DetectionBox>[];
+    var parsedAny = false;
+    final allBoxes = <DetectionBox>[];
 
-    for (var i = 0; i < numDetections; i++) {
-      final classId = random.nextInt(classNames.length);
-      final confidence = (random.nextDouble() * 0.4 + 0.3).clamp(0.0, 1.0);
+    for (final output in outputs) {
+      final parsed = _tryParseDetectionTensor(
+        output: output,
+        classNames: classNames,
+        letterboxed: letterboxed,
+        inputSize: inputSize,
+        originalWidth: originalWidth,
+        originalHeight: originalHeight,
+      );
+      if (!parsed.parsed) {
+        continue;
+      }
+      parsedAny = true;
+      allBoxes.addAll(parsed.boxes);
+    }
 
-      if (confidence < confidenceThreshold) continue;
-
-      final x = random.nextDouble() * 0.6;
-      final y = random.nextDouble() * 0.6;
-      final w = (random.nextDouble() * 0.3 + 0.05).clamp(0.0, 1.0 - x);
-      final h = (random.nextDouble() * 0.3 + 0.05).clamp(0.0, 1.0 - y);
-
-      boxes.add(
-        DetectionBox(
-          classId: classId,
-          className: classNames[classId],
-          confidence: confidence,
-          x: x,
-          y: y,
-          width: w,
-          height: h,
-        ),
+    if (!parsedAny) {
+      final shapeText = outputs
+          .map((o) => '[${o.shape.join(', ')}]')
+          .join(', ');
+      throw ONNXInferenceException(
+        'Unsupported detection output layout. Received shapes: $shapeText',
       );
     }
 
-    return boxes;
+    return allBoxes;
+  }
+
+  _ParsedDetectionTensor _tryParseDetectionTensor({
+    required _OrtOutputTensor output,
+    required List<String> classNames,
+    required _LetterboxResult letterboxed,
+    required int inputSize,
+    required int originalWidth,
+    required int originalHeight,
+  }) {
+    final shape = output.shape;
+    if (shape.length != 2 && shape.length != 3) {
+      return const _ParsedDetectionTensor(parsed: false, boxes: []);
+    }
+
+    late final int sourceRowCount;
+    late final int sourceRowWidth;
+
+    if (shape.length == 2) {
+      sourceRowCount = shape[0];
+      sourceRowWidth = shape[1];
+    } else {
+      if (shape[0] != 1) {
+        return const _ParsedDetectionTensor(parsed: false, boxes: []);
+      }
+      sourceRowCount = shape[1];
+      sourceRowWidth = shape[2];
+    }
+
+    if (sourceRowCount <= 0 || sourceRowWidth <= 0) {
+      return const _ParsedDetectionTensor(parsed: false, boxes: []);
+    }
+
+    final requiredValues = sourceRowCount * sourceRowWidth;
+    if (requiredValues <= 0 || output.values.length < requiredValues) {
+      return const _ParsedDetectionTensor(parsed: false, boxes: []);
+    }
+
+    final layout = _selectDetectionTensorLayout(
+      sourceRowCount: sourceRowCount,
+      sourceRowWidth: sourceRowWidth,
+      classCount: classNames.length,
+      availableValues: output.values.length,
+    );
+    if (layout == null) {
+      return const _ParsedDetectionTensor(parsed: false, boxes: []);
+    }
+
+    final boxes = <DetectionBox>[];
+
+    for (var row = 0; row < layout.rowCount; row++) {
+      double readValue(int column) =>
+          _readDetectionValue(output.values, layout, row, column);
+
+      DetectionBox? box;
+
+      if (layout.rowWidth == 6) {
+        box = _parseXyxyRow(
+          readValue: readValue,
+          x1Index: 0,
+          y1Index: 1,
+          x2Index: 2,
+          y2Index: 3,
+          scoreIndex: 4,
+          classIdIndex: 5,
+          classNames: classNames,
+          letterboxed: letterboxed,
+          inputSize: inputSize,
+          originalWidth: originalWidth,
+          originalHeight: originalHeight,
+        );
+      } else if (layout.rowWidth == 7) {
+        box = _parseXyxyRow(
+          readValue: readValue,
+          x1Index: 1,
+          y1Index: 2,
+          x2Index: 3,
+          y2Index: 4,
+          scoreIndex: 6,
+          classIdIndex: 5,
+          classNames: classNames,
+          letterboxed: letterboxed,
+          inputSize: inputSize,
+          originalWidth: originalWidth,
+          originalHeight: originalHeight,
+        );
+      } else {
+        final preferWithObjectness =
+            layout.rowWidth == 5 + classNames.length && layout.rowWidth >= 6;
+        final preferWithoutObjectness =
+            layout.rowWidth == 4 + classNames.length;
+
+        if (preferWithObjectness) {
+          box = _parseCxCyWhScoresRow(
+            readValue: readValue,
+            rowWidth: layout.rowWidth,
+            classNames: classNames,
+            useObjectness: true,
+            letterboxed: letterboxed,
+            inputSize: inputSize,
+            originalWidth: originalWidth,
+            originalHeight: originalHeight,
+          );
+        } else if (preferWithoutObjectness) {
+          box = _parseCxCyWhScoresRow(
+            readValue: readValue,
+            rowWidth: layout.rowWidth,
+            classNames: classNames,
+            useObjectness: false,
+            letterboxed: letterboxed,
+            inputSize: inputSize,
+            originalWidth: originalWidth,
+            originalHeight: originalHeight,
+          );
+        } else {
+          final withObjectness = _parseCxCyWhScoresRow(
+            readValue: readValue,
+            rowWidth: layout.rowWidth,
+            classNames: classNames,
+            useObjectness: true,
+            letterboxed: letterboxed,
+            inputSize: inputSize,
+            originalWidth: originalWidth,
+            originalHeight: originalHeight,
+          );
+          final withoutObjectness = _parseCxCyWhScoresRow(
+            readValue: readValue,
+            rowWidth: layout.rowWidth,
+            classNames: classNames,
+            useObjectness: false,
+            letterboxed: letterboxed,
+            inputSize: inputSize,
+            originalWidth: originalWidth,
+            originalHeight: originalHeight,
+          );
+
+          if (withObjectness == null) {
+            box = withoutObjectness;
+          } else if (withoutObjectness == null) {
+            box = withObjectness;
+          } else {
+            box = withObjectness.confidence >= withoutObjectness.confidence
+                ? withObjectness
+                : withoutObjectness;
+          }
+        }
+      }
+
+      if (box != null) {
+        boxes.add(box);
+      }
+    }
+
+    return _ParsedDetectionTensor(parsed: true, boxes: boxes);
+  }
+
+  _DetectionTensorLayout? _selectDetectionTensorLayout({
+    required int sourceRowCount,
+    required int sourceRowWidth,
+    required int classCount,
+    required int availableValues,
+  }) {
+    final normal = _DetectionTensorLayout(
+      sourceRowCount: sourceRowCount,
+      sourceRowWidth: sourceRowWidth,
+      transposed: false,
+    );
+    final transposed = _DetectionTensorLayout(
+      sourceRowCount: sourceRowCount,
+      sourceRowWidth: sourceRowWidth,
+      transposed: true,
+    );
+
+    final normalScore = _scoreDetectionTensorLayout(
+      normal,
+      classCount,
+      availableValues,
+    );
+    final transposedScore = _scoreDetectionTensorLayout(
+      transposed,
+      classCount,
+      availableValues,
+    );
+
+    if (normalScore < 0 && transposedScore < 0) {
+      return null;
+    }
+
+    if (transposedScore > normalScore) {
+      return transposed;
+    }
+
+    return normal;
+  }
+
+  int _scoreDetectionTensorLayout(
+    _DetectionTensorLayout layout,
+    int classCount,
+    int availableValues,
+  ) {
+    if (layout.rowCount <= 0 ||
+        layout.rowWidth < 6 ||
+        layout.requiredValues <= 0 ||
+        availableValues < layout.requiredValues) {
+      return -1;
+    }
+
+    final withObjectnessWidth = 5 + classCount;
+    final withoutObjectnessWidth = 4 + classCount;
+    final maxReasonableRowWidth = max(
+      32,
+      max(withObjectnessWidth, withoutObjectnessWidth) + 64,
+    );
+
+    var score = 0;
+    if (layout.rowWidth == 6 || layout.rowWidth == 7) {
+      score += 6;
+    }
+    if (layout.rowWidth == withObjectnessWidth ||
+        layout.rowWidth == withoutObjectnessWidth) {
+      score += 5;
+    }
+    if (layout.rowWidth <= maxReasonableRowWidth) {
+      score += 3;
+    }
+    if (layout.rowCount > layout.rowWidth) {
+      score += 2;
+    }
+
+    if (layout.rowWidth > maxReasonableRowWidth * 4) {
+      score -= 8;
+    }
+
+    return score;
+  }
+
+  double _readDetectionValue(
+    List<double> values,
+    _DetectionTensorLayout layout,
+    int row,
+    int column,
+  ) {
+    if (layout.transposed) {
+      return values[column * layout.sourceRowWidth + row];
+    }
+    return values[row * layout.sourceRowWidth + column];
+  }
+
+  double _toProbability(double value) {
+    if (!value.isFinite) {
+      return double.nan;
+    }
+    if (value >= 0.0 && value <= 1.0) {
+      return value;
+    }
+    return 1.0 / (1.0 + exp(-value));
+  }
+
+  DetectionBox? _parseXyxyRow({
+    required double Function(int column) readValue,
+    required int x1Index,
+    required int y1Index,
+    required int x2Index,
+    required int y2Index,
+    required int scoreIndex,
+    required int classIdIndex,
+    required List<String> classNames,
+    required _LetterboxResult letterboxed,
+    required int inputSize,
+    required int originalWidth,
+    required int originalHeight,
+  }) {
+    final rawClass = readValue(classIdIndex);
+    if (!rawClass.isFinite) {
+      return null;
+    }
+    final classId = rawClass.round();
+    if (classId < 0 || classId >= classNames.length) {
+      return null;
+    }
+
+    final confidence = _toProbability(readValue(scoreIndex));
+    if (!confidence.isFinite) {
+      return null;
+    }
+
+    final x1Net = _toNetworkCoordinate(readValue(x1Index), inputSize);
+    final y1Net = _toNetworkCoordinate(readValue(y1Index), inputSize);
+    final x2Net = _toNetworkCoordinate(readValue(x2Index), inputSize);
+    final y2Net = _toNetworkCoordinate(readValue(y2Index), inputSize);
+
+    return _buildDetectionBoxFromNetCoords(
+      classId: classId,
+      className: classNames[classId],
+      confidence: confidence,
+      x1Net: x1Net,
+      y1Net: y1Net,
+      x2Net: x2Net,
+      y2Net: y2Net,
+      letterboxed: letterboxed,
+      originalWidth: originalWidth,
+      originalHeight: originalHeight,
+    );
+  }
+
+  DetectionBox? _parseCxCyWhScoresRow({
+    required double Function(int column) readValue,
+    required int rowWidth,
+    required List<String> classNames,
+    required bool useObjectness,
+    required _LetterboxResult letterboxed,
+    required int inputSize,
+    required int originalWidth,
+    required int originalHeight,
+  }) {
+    final classOffset = useObjectness ? 5 : 4;
+    if (classOffset >= rowWidth || classNames.isEmpty) {
+      return null;
+    }
+
+    final availableClasses = min(classNames.length, rowWidth - classOffset);
+    if (availableClasses <= 0) {
+      return null;
+    }
+
+    final objectness = useObjectness ? _toProbability(readValue(4)) : 1.0;
+    if (!objectness.isFinite) {
+      return null;
+    }
+
+    var bestClassId = -1;
+    var bestClassScore = double.negativeInfinity;
+    for (var classId = 0; classId < availableClasses; classId++) {
+      final score = _toProbability(readValue(classOffset + classId));
+      if (!score.isFinite) {
+        continue;
+      }
+      if (score > bestClassScore) {
+        bestClassScore = score;
+        bestClassId = classId;
+      }
+    }
+
+    if (bestClassId < 0 || !bestClassScore.isFinite) {
+      return null;
+    }
+
+    final confidence = (objectness * bestClassScore).clamp(0.0, 1.0).toDouble();
+
+    final cxNet = _toNetworkCoordinate(readValue(0), inputSize);
+    final cyNet = _toNetworkCoordinate(readValue(1), inputSize);
+    final widthNet = _toNetworkCoordinate(readValue(2), inputSize).abs();
+    final heightNet = _toNetworkCoordinate(readValue(3), inputSize).abs();
+
+    final x1Net = cxNet - widthNet / 2.0;
+    final y1Net = cyNet - heightNet / 2.0;
+    final x2Net = cxNet + widthNet / 2.0;
+    final y2Net = cyNet + heightNet / 2.0;
+
+    return _buildDetectionBoxFromNetCoords(
+      classId: bestClassId,
+      className: classNames[bestClassId],
+      confidence: confidence,
+      x1Net: x1Net,
+      y1Net: y1Net,
+      x2Net: x2Net,
+      y2Net: y2Net,
+      letterboxed: letterboxed,
+      originalWidth: originalWidth,
+      originalHeight: originalHeight,
+    );
+  }
+
+  DetectionBox? _buildDetectionBoxFromNetCoords({
+    required int classId,
+    required String className,
+    required double confidence,
+    required double x1Net,
+    required double y1Net,
+    required double x2Net,
+    required double y2Net,
+    required _LetterboxResult letterboxed,
+    required int originalWidth,
+    required int originalHeight,
+  }) {
+    if (originalWidth <= 0 || originalHeight <= 0 || letterboxed.scale <= 0) {
+      return null;
+    }
+    if (!x1Net.isFinite ||
+        !y1Net.isFinite ||
+        !x2Net.isFinite ||
+        !y2Net.isFinite) {
+      return null;
+    }
+
+    final x1Orig = (x1Net - letterboxed.padX) / letterboxed.scale;
+    final y1Orig = (y1Net - letterboxed.padY) / letterboxed.scale;
+    final x2Orig = (x2Net - letterboxed.padX) / letterboxed.scale;
+    final y2Orig = (y2Net - letterboxed.padY) / letterboxed.scale;
+
+    final left = (min(x1Orig, x2Orig) / originalWidth).clamp(0.0, 1.0);
+    final top = (min(y1Orig, y2Orig) / originalHeight).clamp(0.0, 1.0);
+    final right = (max(x1Orig, x2Orig) / originalWidth).clamp(0.0, 1.0);
+    final bottom = (max(y1Orig, y2Orig) / originalHeight).clamp(0.0, 1.0);
+
+    final boxWidth = (right - left).clamp(0.0, 1.0);
+    final boxHeight = (bottom - top).clamp(0.0, 1.0);
+    if (boxWidth <= 0 || boxHeight <= 0) {
+      return null;
+    }
+
+    return DetectionBox(
+      classId: classId,
+      className: className,
+      confidence: confidence.clamp(0.0, 1.0).toDouble(),
+      x: left.toDouble(),
+      y: top.toDouble(),
+      width: boxWidth.toDouble(),
+      height: boxHeight.toDouble(),
+    );
+  }
+
+  double _toNetworkCoordinate(double value, int inputSize) {
+    if (!value.isFinite) {
+      return double.nan;
+    }
+    if (value.abs() <= 1.5) {
+      return value * inputSize;
+    }
+    return value;
   }
 
   Future<List<double>> runEmbeddingInference(

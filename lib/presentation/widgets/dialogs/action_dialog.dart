@@ -24,7 +24,9 @@ class ActionDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = AppTheme.getDetectionColor(detection.type.name);
+    final color = AppTheme.getDetectionColor(
+      detection.visualContentCategoryId ?? detection.type.name,
+    );
 
     return SafeArea(
       child: Padding(
@@ -50,7 +52,7 @@ class ActionDialog extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${detection.type.name.toUpperCase()} Detection',
+                        '${detection.typeDisplayName} Detection',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       Text(
@@ -136,10 +138,15 @@ class ActionDialog extends StatelessWidget {
       onTap: () => Navigator.of(context).pop(modification),
     );
 
-  IconData _getIcon(ContentType type) => switch (type) {
+  IconData _getIcon(ContentType type) {
+    if (detection.visualContentCategoryId == 'nudity') {
+      return Icons.no_adult_content;
+    }
+    return switch (type) {
       ContentType.profanity => Icons.mic_off,
       ContentType.nsfw => Icons.visibility_off,
     };
+  }
 
   String _formatTime(Duration duration) {
     final minutes = duration.inMinutes;

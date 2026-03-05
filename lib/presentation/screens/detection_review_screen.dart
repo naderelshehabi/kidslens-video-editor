@@ -503,6 +503,28 @@ class _DetectionCard extends StatelessWidget {
         '${milliseconds.toString().padLeft(2, '0')}';
   }
 
+  String _getTypeLabel(Detection detection) {
+    final categoryId = detection.visualContentCategoryId;
+    if (categoryId != null && categoryId.trim().isNotEmpty) {
+      return categoryId
+          .replaceAll('_', ' ')
+          .split(' ')
+          .map(
+            (word) => word.isNotEmpty
+                ? '${word[0].toUpperCase()}${word.substring(1)}'
+                : '',
+          )
+          .join(' ');
+    }
+
+    switch (detection.type) {
+      case ContentType.profanity:
+        return 'Profanity';
+      case ContentType.nsfw:
+        return 'NSFW';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -631,7 +653,7 @@ class _DetectionCard extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  detection.type.name.toUpperCase(),
+                                  _getTypeLabel(detection),
                                   style: theme.textTheme.labelSmall?.copyWith(
                                     color: typeColor,
                                     fontWeight: FontWeight.bold,
@@ -901,7 +923,7 @@ class _FilterDialogState extends State<_FilterDialog> {
                 spacing: 8,
                 runSpacing: 8,
                 children: ContentType.values.map((type) => FilterChip(
-                    label: Text(type.name),
+                    label: Text(_typeFilterLabel(type)),
                     selected: _types.contains(type),
                     onSelected: (selected) {
                       setState(() {
@@ -976,6 +998,15 @@ class _FilterDialogState extends State<_FilterDialog> {
         ),
       ],
     );
+  }
+
+  String _typeFilterLabel(ContentType type) {
+    switch (type) {
+      case ContentType.nsfw:
+        return 'Visual (NSFW/Nudity)';
+      case ContentType.profanity:
+        return 'Profanity';
+    }
   }
 }
 

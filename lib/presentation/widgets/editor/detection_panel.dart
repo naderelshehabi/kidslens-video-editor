@@ -86,7 +86,7 @@ class _DetectionPanelState extends State<DetectionPanel>
   String _contentTypeName(ContentType type) {
     switch (type) {
       case ContentType.nsfw:
-        return 'NSFW';
+        return 'Visual (NSFW/Nudity)';
       case ContentType.profanity:
         return 'Profanity';
     }

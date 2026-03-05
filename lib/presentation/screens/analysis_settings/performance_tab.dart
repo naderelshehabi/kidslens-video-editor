@@ -943,12 +943,6 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
     return exists ? deviceIndex : _cudaDevices.first.index;
   }
 
-  int? _resolveSelectedDirectMLIndex(int deviceIndex) {
-    if (_directmlDevices.isEmpty) return null;
-    final exists = _directmlDevices.any((gpu) => gpu.deviceId == deviceIndex);
-    return exists ? deviceIndex : _directmlDevices.first.deviceId;
-  }
-
   Widget _buildGpuIndexInfo(ThemeData theme) {
     // Show info about which physical GPU the CUDA index maps to
     if (_cudaDevices.isEmpty || _directmlDevices.length <= 1) {

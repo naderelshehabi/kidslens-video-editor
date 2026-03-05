@@ -6,30 +6,14 @@ import 'package:kidslens_video_editor/data/models/detection.dart';
 void main() {
   group('ContentType enum', () {
     test('should have all expected values', () {
-      expect(ContentType.values, hasLength(10));
+      expect(ContentType.values, hasLength(2));
       expect(ContentType.values, contains(ContentType.nsfw));
-      expect(ContentType.values, contains(ContentType.violence));
-      expect(ContentType.values, contains(ContentType.blood));
       expect(ContentType.values, contains(ContentType.profanity));
-      expect(ContentType.values, contains(ContentType.weapons));
-      expect(ContentType.values, contains(ContentType.nudity));
-      expect(ContentType.values, contains(ContentType.sexualContent));
-      expect(ContentType.values, contains(ContentType.kissing));
-      expect(ContentType.values, contains(ContentType.immodestDress));
-      expect(ContentType.values, contains(ContentType.custom));
     });
 
     test('should have correct JSON values', () {
       expect(ContentType.nsfw.name, equals('nsfw'));
-      expect(ContentType.violence.name, equals('violence'));
-      expect(ContentType.blood.name, equals('blood'));
       expect(ContentType.profanity.name, equals('profanity'));
-      expect(ContentType.weapons.name, equals('weapons'));
-      expect(ContentType.nudity.name, equals('nudity'));
-      expect(ContentType.sexualContent.name, equals('sexualContent'));
-      expect(ContentType.kissing.name, equals('kissing'));
-      expect(ContentType.immodestDress.name, equals('immodestDress'));
-      expect(ContentType.custom.name, equals('custom'));
     });
   });
 
@@ -69,11 +53,11 @@ void main() {
         const detection = Detection(
           id: 'det-1',
           mediaId: 'media-1',
-          type: ContentType.violence,
+          type: ContentType.nsfw,
           startTime: Duration.zero,
           endTime: Duration(seconds: 5),
           confidence: 0.8,
-          description: 'Violence detected',
+          description: 'NSFW detected',
         );
 
         expect(detection.userStatus, equals(DetectionUserStatus.pending));
@@ -103,29 +87,29 @@ void main() {
         final detection = Detection.visual(
           id: 'vis-1',
           mediaId: 'media-1',
-          type: ContentType.violence,
+          type: ContentType.nsfw,
           startTime: const Duration(minutes: 1),
           endTime: const Duration(minutes: 1, seconds: 5),
           confidence: 0.85,
         );
 
-        expect(detection.type, equals(ContentType.violence));
+        expect(detection.type, equals(ContentType.nsfw));
         expect(detection.source, equals('visual'));
-        expect(detection.description, equals('Violent content detected'));
+        expect(detection.description, equals('NSFW content detected'));
       });
 
       test('should use provided description if given', () {
         final detection = Detection.visual(
           id: 'vis-2',
           mediaId: 'media-1',
-          type: ContentType.blood,
+          type: ContentType.nsfw,
           startTime: Duration.zero,
           endTime: const Duration(seconds: 10),
           confidence: 0.75,
-          description: 'Custom blood description',
+          description: 'Custom visual description',
         );
 
-        expect(detection.description, equals('Custom blood description'));
+        expect(detection.description, equals('Custom visual description'));
       });
     });
 
@@ -223,12 +207,7 @@ void main() {
         });
 
         test('isVisualDetection should return true for non-profanity types', () {
-          for (final type in [
-            ContentType.nsfw,
-            ContentType.violence,
-            ContentType.blood,
-            ContentType.weapons,
-          ]) {
+          for (final type in [ContentType.nsfw]) {
             final detection = Detection(
               id: 'det-1',
               mediaId: 'media-1',
@@ -294,32 +273,6 @@ void main() {
             const Detection(
               id: 'id',
               mediaId: 'media-1',
-              type: ContentType.violence,
-              startTime: Duration.zero,
-              endTime: Duration(seconds: 1),
-              confidence: 0.9,
-              description: 'Test',
-            ).typeDisplayName,
-            equals('Violence'),
-          );
-
-          expect(
-            const Detection(
-              id: 'id',
-              mediaId: 'media-1',
-              type: ContentType.blood,
-              startTime: Duration.zero,
-              endTime: Duration(seconds: 1),
-              confidence: 0.9,
-              description: 'Test',
-            ).typeDisplayName,
-            equals('Blood/Gore'),
-          );
-
-          expect(
-            const Detection(
-              id: 'id',
-              mediaId: 'media-1',
               type: ContentType.profanity,
               startTime: Duration.zero,
               endTime: Duration(seconds: 1),
@@ -328,18 +281,23 @@ void main() {
             ).typeDisplayName,
             equals('Profanity'),
           );
+        });
 
+        test('should prefer visual category display name when present', () {
           expect(
-            const Detection(
+            Detection(
               id: 'id',
               mediaId: 'media-1',
-              type: ContentType.weapons,
+              type: ContentType.nsfw,
               startTime: Duration.zero,
-              endTime: Duration(seconds: 1),
+              endTime: const Duration(seconds: 1),
               confidence: 0.9,
               description: 'Test',
+              metadata: {
+                Detection.visualContentCategoryKey: 'sexual_content',
+              },
             ).typeDisplayName,
-            equals('Weapons'),
+            equals('Sexual Content'),
           );
         });
       });
@@ -399,7 +357,7 @@ void main() {
         const det2 = Detection(
           id: 'det-2',
           mediaId: 'media-1',
-          type: ContentType.violence,
+          type: ContentType.nsfw,
           startTime: Duration(seconds: 15),
           endTime: Duration(seconds: 25),
           confidence: 0.8,
@@ -492,11 +450,11 @@ void main() {
         const detection = Detection(
           id: 'det-1',
           mediaId: 'media-1',
-          type: ContentType.violence,
+          type: ContentType.nsfw,
           startTime: Duration(seconds: 30),
           endTime: Duration(seconds: 45),
           confidence: 0.87,
-          description: 'Violence detected',
+          description: 'NSFW detected',
           userStatus: DetectionUserStatus.confirmed,
           source: 'visual',
         );
@@ -504,11 +462,11 @@ void main() {
         final json = detection.toJson();
 
         expect(json['id'], equals('det-1'));
-        expect(json['type'], equals('violence'));
+        expect(json['type'], equals('nsfw'));
         expect(json['startTime'], equals(30000000)); // microseconds
         expect(json['endTime'], equals(45000000));
         expect(json['confidence'], equals(0.87));
-        expect(json['description'], equals('Violence detected'));
+        expect(json['description'], equals('NSFW detected'));
         expect(json['userStatus'], equals('confirmed'));
         expect(json['source'], equals('visual'));
       });
@@ -517,18 +475,18 @@ void main() {
         final json = {
           'id': 'json-det',
           'mediaId': 'media-1',
-          'type': 'blood',
+          'type': 'nsfw',
           'startTime': 60000000,
           'endTime': 75000000,
           'confidence': 0.75,
-          'description': 'Blood detected',
+          'description': 'NSFW detected',
           'userStatus': 'pending',
         };
 
         final detection = Detection.fromJson(json);
 
         expect(detection.id, equals('json-det'));
-        expect(detection.type, equals(ContentType.blood));
+        expect(detection.type, equals(ContentType.nsfw));
         expect(detection.startTime, equals(const Duration(seconds: 60)));
         expect(detection.endTime, equals(const Duration(seconds: 75)));
         expect(detection.confidence, equals(0.75));
@@ -538,7 +496,7 @@ void main() {
         final original = Detection.visual(
           id: 'roundtrip-det',
           mediaId: 'media-1',
-          type: ContentType.weapons,
+          type: ContentType.nsfw,
           startTime: const Duration(minutes: 5),
           endTime: const Duration(minutes: 5, seconds: 10),
           confidence: 0.92,

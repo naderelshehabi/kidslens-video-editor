@@ -9,6 +9,7 @@ import 'package:kidslens_video_editor/data/models/edit_action.dart';
 import 'package:kidslens_video_editor/data/models/frame_analysis_result.dart';
 import 'package:kidslens_video_editor/data/models/media_file.dart';
 import 'package:kidslens_video_editor/data/models/subtitle_track.dart';
+import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/blur_region_overlay.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/subtitle_overlay.dart';
 import 'package:kidslens_video_editor/services/beep_audio_service.dart';
@@ -1106,15 +1107,15 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   }
 
   Color _getDetectionColor(Detection detection) {
-    switch (detection.type) {
-      case ContentType.profanity:
-        return Colors.orange;
-      case ContentType.nsfw:
-        return Colors.red;
-    }
+    return AppTheme.getDetectionColor(
+      detection.visualContentCategoryId ?? detection.type.name,
+    );
   }
 
   IconData _getDetectionIcon(Detection detection) {
+    if (detection.visualContentCategoryId == 'nudity') {
+      return Icons.no_adult_content;
+    }
     switch (detection.type) {
       case ContentType.profanity:
         return Icons.volume_off;
@@ -1605,7 +1606,7 @@ class _WaveformPainter extends CustomPainter {
               size.width;
 
       final detectionPaint = Paint()
-        ..color = _getDetectionColor(detection.type).withValues(alpha: 0.3);
+        ..color = _getDetectionColor(detection).withValues(alpha: 0.3);
 
       canvas.drawRect(
         Rect.fromLTRB(startX, 0, endX, size.height),
@@ -1644,14 +1645,9 @@ class _WaveformPainter extends CustomPainter {
     );
   }
 
-  Color _getDetectionColor(ContentType type) {
-    switch (type) {
-      case ContentType.profanity:
-        return Colors.orange;
-      case ContentType.nsfw:
-        return Colors.red;
-    }
-  }
+  Color _getDetectionColor(Detection detection) => AppTheme.getDetectionColor(
+    detection.visualContentCategoryId ?? detection.type.name,
+  );
 
   Color _getEditActionColor(EditActionType type) {
     switch (type) {

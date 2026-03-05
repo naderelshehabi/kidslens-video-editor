@@ -21,7 +21,9 @@ class DetectionOverlay extends StatelessWidget {
     if (currentDetection == null) return const SizedBox.shrink();
 
     final detection = currentDetection!;
-    final color = AppTheme.getDetectionColor(detection.type.name);
+    final color = AppTheme.getDetectionColor(
+      detection.visualContentCategoryId ?? detection.type.name,
+    );
 
     return Positioned(
       top: 16,
@@ -45,7 +47,7 @@ class DetectionOverlay extends StatelessWidget {
           child: Row(
             children: [
               Icon(
-                _getIcon(detection.type),
+                _getIcon(detection),
                 color: Colors.white,
               ),
               const SizedBox(width: 12),
@@ -55,7 +57,7 @@ class DetectionOverlay extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      detection.type.name.toUpperCase(),
+                      detection.typeDisplayName,
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -93,8 +95,13 @@ class DetectionOverlay extends StatelessWidget {
     );
   }
 
-  IconData _getIcon(ContentType type) => switch (type) {
+  IconData _getIcon(Detection detection) {
+    if (detection.visualContentCategoryId == 'nudity') {
+      return Icons.no_adult_content;
+    }
+    return switch (detection.type) {
       ContentType.profanity => Icons.mic_off,
       ContentType.nsfw => Icons.visibility_off,
     };
+  }
 }

@@ -22,7 +22,9 @@ class DetectionMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = AppTheme.getDetectionColor(detection.type.name);
+    final color = AppTheme.getDetectionColor(
+      detection.visualContentCategoryId ?? detection.type.name,
+    );
     final width = (detection.endTime - detection.startTime).inMilliseconds *
         zoom /
         10;
@@ -43,7 +45,7 @@ class DetectionMarker extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                _getIcon(detection.type),
+                _getIcon(detection),
                 size: 14,
                 color: color,
               ),
@@ -51,7 +53,7 @@ class DetectionMarker extends StatelessWidget {
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    detection.type.name,
+                    detection.typeDisplayName,
                     style: TextStyle(
                       fontSize: 10,
                       color: color,
@@ -79,8 +81,13 @@ class DetectionMarker extends StatelessWidget {
     );
   }
 
-  IconData _getIcon(ContentType type) => switch (type) {
+  IconData _getIcon(Detection detection) {
+    if (detection.visualContentCategoryId == 'nudity') {
+      return Icons.no_adult_content;
+    }
+    return switch (detection.type) {
       ContentType.profanity => Icons.mic_off,
       ContentType.nsfw => Icons.visibility_off,
     };
+  }
 }

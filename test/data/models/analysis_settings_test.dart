@@ -23,42 +23,40 @@ void main() {
       test('validates successfully with correct settings', () {
         const config = ModelConfig(
           asrModelId: 'whisper-base',
-          asrGpuEnabled: true,
-          asrGpuDevice: 0,
-          onnxGpuEnabled: true,
+          useGpu: true,
+          gpuDeviceIndex: 0,
           onnxExecutionProvider: 'cuda',
-          onnxGpuDevice: 1,
         );
         expect(config.validate(), isEmpty);
         expect(config.isValid, isTrue);
       });
 
-      test('rejects negative ASR GPU device', () {
+      test('rejects negative GPU device index', () {
         const config = ModelConfig(
           asrModelId: 'whisper-base',
-          asrGpuEnabled: true,
-          asrGpuDevice: -1,
+          useGpu: true,
+          gpuDeviceIndex: -1,
         );
         final issues = config.validate();
-        expect(issues, contains('ASR GPU device must be non-negative'));
+        expect(issues, contains('GPU device index must be non-negative'));
         expect(config.isValid, isFalse);
       });
 
-      test('rejects negative ONNX GPU device', () {
+      test('rejects negative GPU device index (alternate case)', () {
         const config = ModelConfig(
           asrModelId: 'whisper-base',
-          onnxGpuEnabled: true,
-          onnxGpuDevice: -2,
+          useGpu: true,
+          gpuDeviceIndex: -2,
         );
         final issues = config.validate();
-        expect(issues, contains('ONNX GPU device must be non-negative'));
+        expect(issues, contains('GPU device index must be non-negative'));
         expect(config.isValid, isFalse);
       });
 
       test('rejects GPU enabled with CPU execution provider', () {
         const config = ModelConfig(
           asrModelId: 'whisper-base',
-          onnxGpuEnabled: true,
+          useGpu: true,
           onnxExecutionProvider: 'cpu',
         );
         final issues = config.validate();
@@ -87,7 +85,7 @@ void main() {
         for (final provider in validProviders) {
           final config = ModelConfig(
             asrModelId: 'whisper-base',
-            onnxGpuEnabled: provider != 'cpu',
+            useGpu: provider != 'cpu',
             onnxExecutionProvider: provider,
           );
           expect(config.isValid, isTrue, reason: 'Failed for $provider');

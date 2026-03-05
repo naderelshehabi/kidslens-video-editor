@@ -26,4 +26,34 @@ void main() {
   test('recommended NSFW model exists', () {
     expect(registry.getRecommendedModel(HuggingFaceModelType.nsfw), isNotNull);
   });
+
+  test('nudenet model provides fallback download URLs', () {
+    final model = registry.getModelById('nsfw-nudenet-detector-640');
+    expect(model, isNotNull);
+
+    final urls = registry.getDownloadUrlsForFile(model!, model.fileName);
+    expect(urls.length, greaterThanOrEqualTo(2));
+    expect(urls.first, contains('notAI-tech/NudeNet-onnx'));
+    expect(urls.any((u) => u.contains('zhangsongbo365/nudenet_onnx')), isTrue);
+  });
+
+  test('nudenet 320 model exists and has fallback URLs', () {
+    final model = registry.getModelById('nsfw-nudenet-detector-320');
+    expect(model, isNotNull);
+    expect(model!.fileName, equals('320n.onnx'));
+
+    final urls = registry.getDownloadUrlsForFile(model, model.fileName);
+    expect(urls.length, greaterThanOrEqualTo(2));
+    expect(urls.first, contains('SimonJoz/nudenet'));
+  });
+
+  test('nudenet 640 community model exists and has fallback URLs', () {
+    final model = registry.getModelById('nsfw-nudenet-detector-640-community');
+    expect(model, isNotNull);
+    expect(model!.fileName, equals('640m.onnx'));
+
+    final urls = registry.getDownloadUrlsForFile(model, model.fileName);
+    expect(urls.length, greaterThanOrEqualTo(2));
+    expect(urls.first, contains('SimonJoz/nudenet'));
+  });
 }

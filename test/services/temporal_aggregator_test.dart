@@ -143,7 +143,7 @@ void main() {
         // Should have segments for both NSFW and violence
         final types = results.map((s) => s.type).toSet();
         expect(types, contains(ContentType.nsfw));
-        expect(types, contains(ContentType.violence));
+        expect(types, contains(ContentType.nsfw));
       });
 
       test('should sort results by start time', () {

@@ -204,7 +204,6 @@ Future<void> rocmDeviceSelection() async {
 /// Example: Fallback chain for robust deployment
 Future<void> providerFallbackChain() async {
   final onnx = ONNXBindings();
-  final gpuManager = GPUAccelerationManager();
 
   await onnx.initialize();
   

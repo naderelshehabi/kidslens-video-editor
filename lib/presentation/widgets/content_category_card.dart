@@ -162,6 +162,47 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
+            if (_cat.modelContributions.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Model Contributions',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ..._cat.modelContributions.map((contribution) {
+                final downloaded = widget.downloadedModelIds.contains(
+                  contribution.modelId,
+                );
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  leading: Icon(
+                    downloaded ? Icons.check_circle : Icons.download,
+                    color: downloaded
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                    size: 18,
+                  ),
+                  title: Text(
+                    contribution.displayName,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  subtitle: Text(
+                    downloaded ? 'Downloaded' : 'Not downloaded',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  trailing: Switch(
+                    value: contribution.enabled,
+                    onChanged: (enabled) =>
+                        widget.onToggleModel(contribution.modelId, enabled: enabled),
+                  ),
+                );
+              }),
+            ],
             const SizedBox(height: 16),
 
             // Threshold slider
@@ -225,10 +266,16 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
   /// Actions available based on category type.
   List<RemediationAction> get _availableActions {
     if (_cat.isVisual) {
+      if (_cat.supportsRegions) {
+        return [
+          RemediationAction.blurRegion,
+          RemediationAction.pixelateRegion,
+          RemediationAction.blackBoxRegion,
+          RemediationAction.blurFullFrame,
+          RemediationAction.cutScene,
+        ];
+      }
       return [
-        RemediationAction.blurRegion,
-        RemediationAction.pixelateRegion,
-        RemediationAction.blackBoxRegion,
         RemediationAction.blurFullFrame,
         RemediationAction.cutScene,
       ];
@@ -244,6 +291,8 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
     switch (categoryId) {
       case 'nsfw':
         return Icons.no_adult_content;
+      case 'nudity':
+        return Icons.visibility_off;
       case 'profanity':
         return Icons.volume_off;
       default:

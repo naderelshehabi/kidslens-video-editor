@@ -29,90 +29,101 @@ class AnalysisJob extends Job<AnalysisResult> {
   DateTime? _startTime;
   List<Detection> _detectedDetections = const [];
   int _lastCheckpointBucket = -1;
+  final StreamController<AnalysisProgress> _analysisProgressController =
+      StreamController<AnalysisProgress>.broadcast();
 
   List<Detection> get detectedDetections => _detectedDetections;
+  Stream<AnalysisProgress> get analysisProgress =>
+      _analysisProgressController.stream;
 
   @override
   Future<AnalysisResult> execute() async {
-    _startTime = DateTime.now();
+    try {
+      _startTime = DateTime.now();
 
-    // Load checkpoint if exists
-    _checkpoint = await _loadCheckpoint();
+      // Load checkpoint if exists
+      _checkpoint = await _loadCheckpoint();
 
-    final detections = <Detection>[];
-    final profanityMatches = <ProfanityMatch>[];
-    final frameResults = <FrameAnalysisResult>[];
-    AnalysisProgress? lastProgress;
+      final detections = <Detection>[];
+      final profanityMatches = <ProfanityMatch>[];
+      final frameResults = <FrameAnalysisResult>[];
+      AnalysisProgress? lastProgress;
 
-    // Run analysis with progress reporting
-    await for (final progress in analysisService.analyze(
-      media.path,
-      settings,
-      mediaId: media.id,
-      checkpoint: _checkpoint,
-      existingTranscript: existingTranscript,
-      cancellationToken: cancellationToken,
-      onDetectionsBuilt: (builtDetections) {
-        _detectedDetections = List<Detection>.unmodifiable(builtDetections);
-        detections
-          ..clear()
-          ..addAll(builtDetections);
-      },
-      onFrameResultsBuilt: (builtFrameResults) {
-        frameResults
-          ..clear()
-          ..addAll(builtFrameResults);
-      },
-    )) {
-      // Check for cancellation/pause
-      await cancellationToken.checkState();
+      // Run analysis with progress reporting
+      await for (final progress in analysisService.analyze(
+        media.path,
+        settings,
+        mediaId: media.id,
+        checkpoint: _checkpoint,
+        existingTranscript: existingTranscript,
+        cancellationToken: cancellationToken,
+        onDetectionsBuilt: (builtDetections) {
+          _detectedDetections = List<Detection>.unmodifiable(builtDetections);
+          detections
+            ..clear()
+            ..addAll(builtDetections);
+        },
+        onFrameResultsBuilt: (builtFrameResults) {
+          frameResults
+            ..clear()
+            ..addAll(builtFrameResults);
+        },
+      )) {
+        // Check for cancellation/pause
+        await cancellationToken.checkState();
 
-      lastProgress = progress;
-      reportProgress(progress.overallProgress, progress.stepName);
+        lastProgress = progress;
+        if (!_analysisProgressController.isClosed) {
+          _analysisProgressController.add(progress);
+        }
+        reportProgress(progress.overallProgress, progress.stepName);
 
-      // Save checkpoints once per 10% bucket (10..90) to avoid repeatedly
-      // serializing large frame result payloads near completion.
-      final percentage = (progress.overallProgress * 100).floor();
-      final bucket = percentage ~/ 10;
-      final shouldSaveCheckpoint =
-          bucket > _lastCheckpointBucket && bucket >= 1 && bucket <= 9;
-      if (shouldSaveCheckpoint) {
-        _lastCheckpointBucket = bucket;
-        await _saveCheckpoint(
-          AnalysisCheckpoint(
-            lastAnalyzedFrame: progress.itemsProcessed ?? 0,
-            frameResults: frameResults.isEmpty ? null : List.of(frameResults),
-            timestamp: DateTime.now(),
-          ),
-        );
+        // Save checkpoints once per 10% bucket (10..90) to avoid repeatedly
+        // serializing large frame result payloads near completion.
+        final percentage = (progress.overallProgress * 100).floor();
+        final bucket = percentage ~/ 10;
+        final shouldSaveCheckpoint =
+            bucket > _lastCheckpointBucket && bucket >= 1 && bucket <= 9;
+        if (shouldSaveCheckpoint) {
+          _lastCheckpointBucket = bucket;
+          await _saveCheckpoint(
+            AnalysisCheckpoint(
+              lastAnalyzedFrame: progress.itemsProcessed ?? 0,
+              frameResults: frameResults.isEmpty ? null : List.of(frameResults),
+              timestamp: DateTime.now(),
+            ),
+          );
+        }
       }
+
+      final endTime = DateTime.now();
+      final processingTime = endTime.difference(_startTime!);
+
+      // Build timeline from detections
+      final timeline = UnifiedTimeline.fromDetections(
+        mediaDuration: media.duration,
+        detections: detections,
+      );
+
+      // Build final result
+      final result = AnalysisResult(
+        id: id,
+        status: AnalysisStatus.completed,
+        mediaFileId: media.id,
+        timeline: timeline,
+        profanityMatches: profanityMatches,
+        frameResults: frameResults,
+        processingTime: processingTime,
+        startedAt: _startTime,
+        completedAt: endTime,
+        progress: lastProgress,
+        settings: settings.toJson(),
+      );
+      await clearCheckpoint();
+      return result;
+    } finally {
+      await _analysisProgressController.close();
     }
-
-    final endTime = DateTime.now();
-    final processingTime = endTime.difference(_startTime!);
-
-    // Build timeline from detections
-    final timeline = UnifiedTimeline.fromDetections(
-      mediaDuration: media.duration,
-      detections: detections,
-    );
-
-    // Build final result
-    final result = AnalysisResult(
-      id: id,
-      status: AnalysisStatus.completed,
-      mediaFileId: media.id,
-      timeline: timeline,
-      profanityMatches: profanityMatches,
-      frameResults: frameResults,
-      processingTime: processingTime,
-      startedAt: _startTime,
-      completedAt: endTime,
-      progress: lastProgress,
-      settings: settings.toJson(),
-    );
-    await clearCheckpoint();
-    return result;
   }
 
   Future<void> _saveCheckpoint(AnalysisCheckpoint checkpoint) async {

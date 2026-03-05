@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kidslens_video_editor/data/models/analysis_settings_migration.dart';
 
 void main() {
-  test('migration builds v3 contentDetectionConfig with nsfw + profanity categories', () {
+  test('migration builds v3 contentDetectionConfig with nsfw + nudity + profanity categories', () {
     final legacy = <String, dynamic>{
       'enableProfanity': true,
       'analysisSettings': <String, dynamic>{},
@@ -13,13 +13,18 @@ void main() {
 
     expect(config['schemaVersion'], 3);
     final categories = config['categories'] as List<dynamic>;
-    expect(categories.length, 2);
-    expect((categories.first as Map<String, dynamic>)['id'], 'nsfw');
-    expect((categories[1] as Map<String, dynamic>)['id'], 'profanity');
+    expect(categories.length, 3);
+    final ids = categories
+      .cast<Map<String, dynamic>>()
+      .map((c) => c['id'] as String)
+      .toSet();
+    expect(ids.contains('nsfw'), isTrue);
+    expect(ids.contains('nudity'), isTrue);
+    expect(ids.contains('profanity'), isTrue);
   });
 
   group('v4 GPU selection migration', () {
-    test('migrates useGpu to asrGpuEnabled and onnxGpuEnabled', () {
+    test('preserves consolidated GPU fields and sets provider default', () {
       final input = <String, dynamic>{
         'modelConfig': <String, dynamic>{
           'asrModelId': 'whisper-small',
@@ -28,7 +33,7 @@ void main() {
         },
         'contentDetectionConfig': <String, dynamic>{
           'schemaVersion': 3,
-          'categories': [],
+          'categories': <dynamic>[],
           'votingConfig': <String, dynamic>{},
         },
       };
@@ -36,10 +41,12 @@ void main() {
       final migrated = AnalysisSettingsMigration.migrateToV4(input);
       final modelConfig = migrated['modelConfig'] as Map<String, dynamic>;
 
-      expect(modelConfig['asrGpuEnabled'], true);
-      expect(modelConfig['onnxGpuEnabled'], true);
-      expect(modelConfig['asrGpuDevice'], 0);
+      expect(modelConfig['useGpu'], true);
+      expect(modelConfig['gpuDeviceIndex'], 0);
       expect(modelConfig['onnxExecutionProvider'], 'auto');
+      expect(modelConfig['asrGpuEnabled'], null);
+      expect(modelConfig['asrGpuDevice'], null);
+      expect(modelConfig['onnxGpuEnabled'], null);
       expect(modelConfig['onnxGpuDevice'], null);
     });
 
@@ -52,16 +59,15 @@ void main() {
         },
         'contentDetectionConfig': <String, dynamic>{
           'schemaVersion': 3,
-          'categories': [],
+          'categories': <dynamic>[],
         },
       };
 
       final migrated = AnalysisSettingsMigration.migrateToV4(input);
       final modelConfig = migrated['modelConfig'] as Map<String, dynamic>;
 
-      expect(modelConfig['asrGpuEnabled'], false);
-      expect(modelConfig['onnxGpuEnabled'], false);
-      expect(modelConfig['asrGpuDevice'], 1);
+      expect(modelConfig['useGpu'], false);
+      expect(modelConfig['gpuDeviceIndex'], 1);
     });
 
     test('updates schema version to 4', () {
@@ -72,7 +78,7 @@ void main() {
         },
         'contentDetectionConfig': <String, dynamic>{
           'schemaVersion': 3,
-          'categories': [],
+          'categories': <dynamic>[],
         },
       };
 
@@ -97,13 +103,12 @@ void main() {
       // Verify v3 migration (categories)
       final config = migrated['contentDetectionConfig'] as Map<String, dynamic>;
       final categories = config['categories'] as List<dynamic>;
-      expect(categories.length, greaterThanOrEqualTo(2));
+      expect(categories.length, greaterThanOrEqualTo(3));
       
-      // Verify v4 migration (GPU selection)
+      // Verify v4 migration (consolidated GPU selection)
       final modelConfig = migrated['modelConfig'] as Map<String, dynamic>;
-      expect(modelConfig['asrGpuEnabled'], true);
-      expect(modelConfig['onnxGpuEnabled'], true);
-      expect(modelConfig['asrGpuDevice'], 2);
+      expect(modelConfig['useGpu'], true);
+      expect(modelConfig['gpuDeviceIndex'], 2);
       expect(modelConfig['onnxExecutionProvider'], 'auto');
       
       // Verify final schema version

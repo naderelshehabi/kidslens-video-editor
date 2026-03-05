@@ -60,6 +60,17 @@ class NsfwModelManifest {
     'nsfw-onnx-community-vit-224': NsfwModelSpec(
       modelId: 'nsfw-onnx-community-vit-224',
       sourceUrl:
+          'https://huggingface.co/onnx-community/nsfw-image-detector-ONNX/resolve/main/onnx/model_fp16.onnx',
+      sha256: '',
+      license: 'MIT',
+      classOrder: kCanonicalNsfwLabels,
+      inputWidth: 224,
+      inputHeight: 224,
+      outputIsLogits: true,
+    ),
+    'nsfw-onnx-community-vit-224-fp32': NsfwModelSpec(
+      modelId: 'nsfw-onnx-community-vit-224-fp32',
+      sourceUrl:
           'https://huggingface.co/onnx-community/nsfw-image-detector-ONNX/resolve/main/onnx/model.onnx',
       sha256: '',
       license: 'MIT',
@@ -72,6 +83,30 @@ class NsfwModelManifest {
       modelId: 'nsfw-onnx-community-vit-224-int8',
       sourceUrl:
           'https://huggingface.co/onnx-community/nsfw-image-detector-ONNX/resolve/main/onnx/model_int8.onnx',
+      sha256: '',
+      license: 'MIT',
+      classOrder: kCanonicalNsfwLabels,
+      inputWidth: 224,
+      inputHeight: 224,
+      outputIsLogits: true,
+      isFallback: true,
+    ),
+    'nsfw-onnx-community-vit-224-q4': NsfwModelSpec(
+      modelId: 'nsfw-onnx-community-vit-224-q4',
+      sourceUrl:
+          'https://huggingface.co/onnx-community/nsfw-image-detector-ONNX/resolve/main/onnx/model_q4.onnx',
+      sha256: '',
+      license: 'MIT',
+      classOrder: kCanonicalNsfwLabels,
+      inputWidth: 224,
+      inputHeight: 224,
+      outputIsLogits: true,
+      isFallback: true,
+    ),
+    'nsfw-onnx-community-vit-224-bnb4': NsfwModelSpec(
+      modelId: 'nsfw-onnx-community-vit-224-bnb4',
+      sourceUrl:
+          'https://huggingface.co/onnx-community/nsfw-image-detector-ONNX/resolve/main/onnx/model_bnb4.onnx',
       sha256: '',
       license: 'MIT',
       classOrder: kCanonicalNsfwLabels,

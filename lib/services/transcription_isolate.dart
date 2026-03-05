@@ -251,7 +251,7 @@ void chunkedTranscriptionEntry(
     final initConfigPtr = calloc<WhisperConfigNative>();
     Pointer modelHandle;
     try {
-      final initConfig = initConfigPtr.ref
+      initConfigPtr.ref
         ..nThreads = params.nThreads > 0
             ? params.nThreads.clamp(1, 32)
             : Platform.numberOfProcessors.clamp(1, 16)
@@ -598,7 +598,7 @@ Transcript performTranscriptionInIsolate(TranscriptionIsolateParams params) {
   final initConfigPtr = calloc<WhisperConfigNative>();
   Pointer modelHandle;
   try {
-    final initConfig = initConfigPtr.ref
+    initConfigPtr.ref
       ..nThreads = params.nThreads > 0
           ? params.nThreads.clamp(1, 32)
           : Platform.numberOfProcessors.clamp(1, 16)

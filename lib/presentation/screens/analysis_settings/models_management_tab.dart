@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kidslens_video_editor/data/models/analysis_settings.dart';
+import 'package:kidslens_video_editor/data/models/content_category.dart';
+import 'package:kidslens_video_editor/data/models/content_category_defaults.dart';
 import 'package:kidslens_video_editor/data/models/huggingface_model.dart';
 import 'package:kidslens_video_editor/presentation/widgets/models/huggingface_model_card.dart';
 import 'package:kidslens_video_editor/services/huggingface_model_registry.dart';
@@ -53,7 +56,7 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
           Text('Models Management', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 8),
           Text(
-            'Manage ASR and NSFW models used by the analysis pipeline.',
+            'Manage ASR models, NSFW classifiers, and nudity detectors used by the analysis pipeline.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -132,14 +135,16 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
           _buildModelSectionHeader(
             context,
             icon: Icons.visibility_off,
-            title: 'NSFW',
-            subtitle: 'Visual NSFW classifier weight variants',
+            title: 'NSFW Classifier',
+            subtitle: 'Whole-frame NSFW classifier variants',
           ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 16,
             runSpacing: 16,
-            children: _applySort(_applyFilter(registry.getNsfwModels(), modelState))
+            children: _applySort(
+              _applyFilter(registry.getNsfwClassifierModels(), modelState),
+            )
                 .map((model) {
               final isDownloaded = modelState.downloadedModels.contains(model.id);
               final downloadProgress = modelState.activeDownloads[model.id];
@@ -158,6 +163,41 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
                   onSelect: isDownloaded
                       ? () => _selectModel(model.id, HuggingFaceModelType.nsfw)
                       : null,
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 24),
+          _buildModelSectionHeader(
+            context,
+            icon: Icons.grid_on,
+            title: 'Nudity Detector',
+            subtitle: 'Region-based nudity detector models',
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: _applySort(
+              _applyFilter(registry.getNudeNetModels(), modelState),
+            ).map((model) {
+              final isDownloaded = modelState.downloadedModels.contains(model.id);
+              final downloadProgress = modelState.activeDownloads[model.id];
+              final selected = _isNudityModelSelected(
+                settingsState.analysisSettings,
+                model.id,
+              );
+              return SizedBox(
+                width: 340,
+                child: HuggingFaceModelCard(
+                  model: model,
+                  isDownloaded: isDownloaded,
+                  isDownloading: downloadProgress != null,
+                  downloadProgress: downloadProgress?.percentage,
+                  isSelected: selected,
+                  onDownload: () => _download(model.id),
+                  onDelete: () => _delete(model.id),
+                  onSelect: isDownloaded ? () => _selectNudityModel(model.id) : null,
                 ),
               );
             }).toList(),
@@ -261,5 +301,63 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
           ),
         );
     }
+  }
+
+  bool _isNudityModelSelected(AnalysisSettings settings, String modelId) {
+    ContentCategory? nudityCategory;
+    for (final category in settings.contentDetectionConfig.categories) {
+      if (category.id == 'nudity') {
+        nudityCategory = category;
+        break;
+      }
+    }
+    if (nudityCategory == null) return false;
+    return nudityCategory.modelContributions
+        .where((model) => model.modelId == modelId)
+        .any((model) => model.enabled);
+  }
+
+  void _selectNudityModel(String modelId) {
+    final notifier = ref.read(settingsNotifierProvider.notifier);
+    final current = ref.read(settingsNotifierProvider).analysisSettings;
+    final categories = current.contentDetectionConfig.categories.map((category) {
+      if (category.id != 'nudity') return category;
+
+      var updatedContributions = category.modelContributions
+          .map(
+            (model) => model.copyWith(enabled: model.modelId == modelId),
+          )
+          .toList(growable: true);
+
+      final exists = updatedContributions.any(
+        (model) => model.modelId == modelId,
+      );
+      if (!exists) {
+        ModelContribution? defaultContribution;
+        for (final contribution
+            in ContentCategoryDefaults.nudity.modelContributions) {
+          if (contribution.modelId == modelId) {
+            defaultContribution = contribution;
+            break;
+          }
+        }
+
+        updatedContributions.add(
+          (defaultContribution ??
+                  ModelContribution(
+                    modelId: modelId,
+                    displayName: modelId,
+                    modelType: HuggingFaceModelType.nsfw,
+                  ))
+              .copyWith(enabled: true),
+        );
+      }
+
+      return category.copyWith(modelContributions: updatedContributions);
+    }).toList(growable: false);
+
+    notifier.updateContentDetectionConfig(
+      current.contentDetectionConfig.copyWith(categories: categories),
+    );
   }
 }

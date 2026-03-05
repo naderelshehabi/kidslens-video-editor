@@ -1045,11 +1045,33 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         actionType = EditActionType.cut;
     }
 
+    BoundingBox? boundingBox;
+    if (action.isRegionLevel && detection.hasBoundingBox) {
+      final box = detection.boundingBox;
+      if (box != null) {
+        final left = (box['x'] ?? 0).clamp(0.0, 1.0).toDouble();
+        final top = (box['y'] ?? 0).clamp(0.0, 1.0).toDouble();
+        final width = (box['width'] ?? 0)
+            .clamp(0.0, 1.0 - left)
+            .toDouble();
+        final height = (box['height'] ?? 0)
+            .clamp(0.0, 1.0 - top)
+            .toDouble();
+        boundingBox = BoundingBox(
+          left: left,
+          top: top,
+          width: width,
+          height: height,
+        );
+      }
+    }
+
     ref.read(projectNotifierProvider.notifier).addEditAction(
           ref.read(projectNotifierProvider).currentProject!.selectedMediaId!,
           detection.startTime,
           detection.endTime,
           actionType,
+          boundingBox: boundingBox,
           detectionId: detection.id,
         );
   }
@@ -1905,6 +1927,12 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
     final isCancelling = analysisState.isCancelling;
     final isComplete = analysisState.status == AnalysisStatus.completed;
     final isFailed = analysisState.status == AnalysisStatus.failed;
+    final displayedTotalSteps =
+      analysisState.totalSteps > 0 ? analysisState.totalSteps : 1;
+    final displayedStepNumber =
+      analysisState.currentStepNumber > 0 ? analysisState.currentStepNumber : 1;
+    final displayedStepProgress =
+      analysisState.currentStepProgress.clamp(0.0, 1.0).toDouble();
 
     // Read categories from content detection config
     final categories = ref
@@ -2031,6 +2059,14 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
               ] else ...[
                 if (isRunning) ...[
                   Text(
+                    'Step $displayedStepNumber / $displayedTotalSteps',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
                     analysisState.currentStep ?? 'Processing...',
                     style: theme.textTheme.bodyMedium,
                   ),
@@ -2045,12 +2081,12 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
                   ],
                   const SizedBox(height: 16),
                   LinearProgressIndicator(
-                    value: analysisState.progress,
+                    value: displayedStepProgress,
                     backgroundColor: theme.colorScheme.surfaceContainerHighest,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${(analysisState.progress * 100).toStringAsFixed(0)}%',
+                    '${(displayedStepProgress * 100).toStringAsFixed(0)}% of video duration processed',
                     style: theme.textTheme.bodySmall,
                   ),
                 ] else if (isComplete) ...[
@@ -2077,8 +2113,8 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
                           return ListTile(
                             dense: true,
                             leading: Icon(
-                              _getIconForType(detection.type),
-                              color: _getColorForType(detection.type),
+                              _getIconForDetection(detection),
+                              color: _getColorForDetection(detection),
                               size: 20,
                             ),
                             title: Text(
@@ -2226,25 +2262,31 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
         );
   }
 
-  IconData _getIconForType(ContentType type) {
-    switch (type) {
+  IconData _getIconForDetection(Detection detection) {
+    final categoryId = detection.visualContentCategoryId;
+    if (categoryId == 'nudity') {
+      return Icons.visibility_off;
+    }
+
+    switch (detection.type) {
       case ContentType.profanity:
         return Icons.volume_off;
       case ContentType.nsfw:
-        return Icons.visibility_off;
-      default:
-        return Icons.help_outline;
+        return Icons.no_adult_content;
     }
   }
 
-  Color _getColorForType(ContentType type) {
-    switch (type) {
+  Color _getColorForDetection(Detection detection) {
+    final categoryId = detection.visualContentCategoryId;
+    if (categoryId == 'nudity') {
+      return Colors.deepPurple;
+    }
+
+    switch (detection.type) {
       case ContentType.profanity:
         return Colors.orange;
       case ContentType.nsfw:
         return Colors.pink;
-      default:
-        return Colors.grey;
     }
   }
 

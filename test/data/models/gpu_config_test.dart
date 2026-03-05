@@ -7,20 +7,16 @@ void main() {
     test('fromModelConfig converts correctly', () {
       final modelConfig = ModelConfig(
         asrModelId: 'whisper-base',
-        asrGpuEnabled: true,
-        asrGpuDevice: 1,
-        onnxGpuEnabled: true,
+        useGpu: true,
+        gpuDeviceIndex: 1,
         onnxExecutionProvider: 'cuda',
-        onnxGpuDevice: 2,
       );
       
       final gpuConfig = GpuConfig.fromModelConfig(modelConfig);
       
-      expect(gpuConfig.asrGpuEnabled, true);
-      expect(gpuConfig.asrGpuDevice, 1);
-      expect(gpuConfig.onnxGpuEnabled, true);
+      expect(gpuConfig.useGpu, true);
+      expect(gpuConfig.gpuDeviceIndex, 1);
       expect(gpuConfig.onnxExecutionProvider, 'cuda');
-      expect(gpuConfig.onnxGpuDevice, 2);
     });
     
     test('onnxExecutionProviders returns correct providers for auto', () {
@@ -36,7 +32,7 @@ void main() {
     
     test('onnxExecutionProviders returns CPU when GPU disabled', () {
       final config = GpuConfig(
-        onnxGpuEnabled: false,
+        useGpu: false,
         onnxExecutionProvider: 'cuda',
       );
       
@@ -75,11 +71,9 @@ void main() {
     test('default values are correct', () {
       const config = GpuConfig();
       
-      expect(config.asrGpuEnabled, true);
-      expect(config.asrGpuDevice, 0);
-      expect(config.onnxGpuEnabled, true);
+      expect(config.useGpu, true);
+      expect(config.gpuDeviceIndex, 0);
       expect(config.onnxExecutionProvider, 'auto');
-      expect(config.onnxGpuDevice, null);
       expect(config.cpuThreads, 4);
       expect(config.batchSize, 8);
       expect(config.useFp16, false);
@@ -87,21 +81,17 @@ void main() {
     
     test('can create config with custom values', () {
       const config = GpuConfig(
-        asrGpuEnabled: false,
-        asrGpuDevice: 2,
-        onnxGpuEnabled: false,
+        useGpu: false,
+        gpuDeviceIndex: 2,
         onnxExecutionProvider: 'cpu',
-        onnxGpuDevice: 3,
         cpuThreads: 8,
         batchSize: 16,
         useFp16: true,
       );
       
-      expect(config.asrGpuEnabled, false);
-      expect(config.asrGpuDevice, 2);
-      expect(config.onnxGpuEnabled, false);
+      expect(config.useGpu, false);
+      expect(config.gpuDeviceIndex, 2);
       expect(config.onnxExecutionProvider, 'cpu');
-      expect(config.onnxGpuDevice, 3);
       expect(config.cpuThreads, 8);
       expect(config.batchSize, 16);
       expect(config.useFp16, true);
@@ -109,11 +99,9 @@ void main() {
     
     test('JSON serialization round-trip', () {
       const original = GpuConfig(
-        asrGpuEnabled: true,
-        asrGpuDevice: 1,
-        onnxGpuEnabled: true,
+        useGpu: true,
+        gpuDeviceIndex: 1,
         onnxExecutionProvider: 'cuda',
-        onnxGpuDevice: 2,
         cpuThreads: 6,
         batchSize: 12,
         useFp16: true,
@@ -122,11 +110,9 @@ void main() {
       final json = original.toJson();
       final restored = GpuConfig.fromJson(json);
       
-      expect(restored.asrGpuEnabled, original.asrGpuEnabled);
-      expect(restored.asrGpuDevice, original.asrGpuDevice);
-      expect(restored.onnxGpuEnabled, original.onnxGpuEnabled);
+      expect(restored.useGpu, original.useGpu);
+      expect(restored.gpuDeviceIndex, original.gpuDeviceIndex);
       expect(restored.onnxExecutionProvider, original.onnxExecutionProvider);
-      expect(restored.onnxGpuDevice, original.onnxGpuDevice);
       expect(restored.cpuThreads, original.cpuThreads);
       expect(restored.batchSize, original.batchSize);
       expect(restored.useFp16, original.useFp16);

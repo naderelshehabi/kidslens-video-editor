@@ -10,6 +10,7 @@ import 'package:kidslens_video_editor/data/models/edit_action.dart';
 import 'package:kidslens_video_editor/data/models/frame_analysis_result.dart';
 import 'package:kidslens_video_editor/data/models/media_file.dart';
 import 'package:kidslens_video_editor/data/models/subtitle_track.dart';
+import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 import 'package:kidslens_video_editor/state/providers/playback_provider.dart';
 import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
@@ -1157,17 +1158,17 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
           child: Container(
             width: math.max(width, 8),
             decoration: BoxDecoration(
-              color: _getDetectionColor(detection.type).withValues(alpha: 0.7),
+              color: _getDetectionColor(detection).withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(2),
               border: Border.all(
-                color: _getDetectionColor(detection.type),
+                color: _getDetectionColor(detection),
               ),
             ),
             child: Tooltip(
               message:
                   '${detection.typeDisplayName}\n${_formatDuration(detection.startTime)} - ${_formatDuration(detection.endTime)}',
               child: Icon(
-                _getDetectionIcon(detection.type),
+                _getDetectionIcon(detection),
                 size: 12,
                 color: Colors.white,
               ),
@@ -1304,17 +1305,15 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
     );
   }
 
-  Color _getDetectionColor(ContentType type) {
-    switch (type) {
-      case ContentType.profanity:
-        return Colors.orange;
-      case ContentType.nsfw:
-        return Colors.red;
-    }
-  }
+  Color _getDetectionColor(Detection detection) => AppTheme.getDetectionColor(
+    detection.visualContentCategoryId ?? detection.type.name,
+  );
 
-  IconData _getDetectionIcon(ContentType type) {
-    switch (type) {
+  IconData _getDetectionIcon(Detection detection) {
+    if (detection.visualContentCategoryId == 'nudity') {
+      return Icons.no_adult_content;
+    }
+    switch (detection.type) {
       case ContentType.profanity:
         return Icons.volume_off;
       case ContentType.nsfw:

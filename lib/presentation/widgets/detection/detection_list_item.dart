@@ -24,7 +24,9 @@ class DetectionListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = AppTheme.getDetectionColor(detection.type.name);
+    final color = AppTheme.getDetectionColor(
+      detection.visualContentCategoryId ?? detection.type.name,
+    );
 
     return Card(
       elevation: isSelected ? 4 : 1,
@@ -70,7 +72,7 @@ class DetectionListItem extends StatelessWidget {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              detection.type.name.toUpperCase(),
+                              detection.typeDisplayName,
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,

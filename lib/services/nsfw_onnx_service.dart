@@ -86,6 +86,55 @@ class NsfwOnnxService {
     return results;
   }
 
+  /// Run object detection inference on a single frame.
+  ///
+  /// Returns detector output boxes and optional timing metadata.
+  ///
+  /// [modelPath] - Path to the ONNX detection model file
+  /// [rgbData] - RGB byte array for one frame
+  /// [width] - Width of input frame in pixels
+  /// [height] - Height of input frame in pixels
+  /// [classNames] - Ordered class labels matching detector output classes
+  /// [confidenceThreshold] - Minimum confidence for detections
+  /// [iouThreshold] - IoU threshold used for NMS
+  /// [inputSize] - Detector square input size (e.g. 640)
+  /// [maxDetections] - Max detections to keep after filtering
+  /// [cancellationToken] - Optional token for cooperative cancellation
+  Future<DetectionResult> runDetectionInference({
+    required String modelPath,
+    required List<int> rgbData,
+    required int width,
+    required int height,
+    required List<String> classNames,
+    double confidenceThreshold = 0.25,
+    double iouThreshold = 0.45,
+    int inputSize = 640,
+    int maxDetections = 30,
+    CancellationToken? cancellationToken,
+  }) async {
+    cancellationToken?.throwIfCancelled();
+
+    await onnx.initialize();
+    await _loadModelWithBestProvider(modelPath);
+
+    try {
+      cancellationToken?.throwIfCancelled();
+      return await onnx.runDetectionInference(
+        modelPath,
+        rgbData,
+        width,
+        height,
+        classNames: classNames,
+        confidenceThreshold: confidenceThreshold,
+        iouThreshold: iouThreshold,
+        inputSize: inputSize,
+        maxDetections: maxDetections,
+      );
+    } on ONNXInferenceException catch (e) {
+      throw NsfwOnnxException('NSFW detection inference failed: ${e.message}');
+    }
+  }
+
   /// Warm up the model by running a dummy inference.
   ///
   /// This pre-compiles kernels and allocates memory, reducing

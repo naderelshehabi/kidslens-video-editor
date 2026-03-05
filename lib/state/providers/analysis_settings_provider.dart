@@ -207,17 +207,17 @@ class AnalysisSettingsNotifier extends _$AnalysisSettingsNotifier {
   }
 
   void setAsrGpuEnabled({required bool enabled}) {
-    state = state.copyWith(asrGpuEnabled: enabled);
+    state = state.copyWith(useGpuAcceleration: enabled);
     saveSettings();
   }
 
   void setAsrGpuDevice(int device) {
-    state = state.copyWith(asrGpuDevice: device < 0 ? 0 : device);
+    state = state.copyWith(gpuDeviceIndex: device < 0 ? 0 : device);
     saveSettings();
   }
 
   void setOnnxGpuEnabled({required bool enabled}) {
-    state = state.copyWith(onnxGpuEnabled: enabled);
+    state = state.copyWith(useGpuAcceleration: enabled);
     saveSettings();
   }
 
@@ -230,7 +230,10 @@ class AnalysisSettingsNotifier extends _$AnalysisSettingsNotifier {
   }
 
   void setOnnxGpuDevice(int? device) {
-    state = state.copyWith(onnxGpuDevice: device != null && device < 0 ? 0 : device);
+    final currentDevice = state.gpuDeviceIndex;
+    final resolvedDevice =
+        device == null ? currentDevice : (device < 0 ? 0 : device);
+    state = state.copyWith(gpuDeviceIndex: resolvedDevice);
     saveSettings();
   }
 

@@ -16,10 +16,11 @@ class AnalysisSettingsMigration {
     final enableProfanity = json['enableProfanity'] as bool? ?? true;
     final profanityJson = ContentCategoryDefaults.profanity.toJson();
     final nsfwJson = ContentCategoryDefaults.nsfw.toJson();
+    final nudityJson = ContentCategoryDefaults.nudity.toJson();
     profanityJson['enabled'] = enableProfanity;
 
     json['contentDetectionConfig'] = {
-      'categories': [nsfwJson, profanityJson],
+      'categories': [nsfwJson, nudityJson, profanityJson],
       'votingConfig': {
         'strategy': 'weightedAverage',
         'minVoters': 1,
