@@ -22,6 +22,8 @@ ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) {
 mixin _$ModelConfig {
   String get asrModelId => throw _privateConstructorUsedError;
   String get nsfwModelId => throw _privateConstructorUsedError;
+  String get parserModelId => throw _privateConstructorUsedError;
+  String get genderModelId => throw _privateConstructorUsedError;
   String get asrLanguage =>
       throw _privateConstructorUsedError; // Unified GPU selection fields
   bool get useGpu => throw _privateConstructorUsedError;
@@ -53,6 +55,8 @@ abstract class $ModelConfigCopyWith<$Res> {
   $Res call(
       {String asrModelId,
       String nsfwModelId,
+      String parserModelId,
+      String genderModelId,
       String asrLanguage,
       bool useGpu,
       int gpuDeviceIndex,
@@ -82,6 +86,8 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
   $Res call({
     Object? asrModelId = null,
     Object? nsfwModelId = null,
+    Object? parserModelId = null,
+    Object? genderModelId = null,
     Object? asrLanguage = null,
     Object? useGpu = null,
     Object? gpuDeviceIndex = null,
@@ -101,6 +107,14 @@ class _$ModelConfigCopyWithImpl<$Res, $Val extends ModelConfig>
       nsfwModelId: null == nsfwModelId
           ? _value.nsfwModelId
           : nsfwModelId // ignore: cast_nullable_to_non_nullable
+              as String,
+      parserModelId: null == parserModelId
+          ? _value.parserModelId
+          : parserModelId // ignore: cast_nullable_to_non_nullable
+              as String,
+      genderModelId: null == genderModelId
+          ? _value.genderModelId
+          : genderModelId // ignore: cast_nullable_to_non_nullable
               as String,
       asrLanguage: null == asrLanguage
           ? _value.asrLanguage
@@ -157,6 +171,8 @@ abstract class _$$ModelConfigImplCopyWith<$Res>
   $Res call(
       {String asrModelId,
       String nsfwModelId,
+      String parserModelId,
+      String genderModelId,
       String asrLanguage,
       bool useGpu,
       int gpuDeviceIndex,
@@ -184,6 +200,8 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
   $Res call({
     Object? asrModelId = null,
     Object? nsfwModelId = null,
+    Object? parserModelId = null,
+    Object? genderModelId = null,
     Object? asrLanguage = null,
     Object? useGpu = null,
     Object? gpuDeviceIndex = null,
@@ -203,6 +221,14 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
       nsfwModelId: null == nsfwModelId
           ? _value.nsfwModelId
           : nsfwModelId // ignore: cast_nullable_to_non_nullable
+              as String,
+      parserModelId: null == parserModelId
+          ? _value.parserModelId
+          : parserModelId // ignore: cast_nullable_to_non_nullable
+              as String,
+      genderModelId: null == genderModelId
+          ? _value.genderModelId
+          : genderModelId // ignore: cast_nullable_to_non_nullable
               as String,
       asrLanguage: null == asrLanguage
           ? _value.asrLanguage
@@ -253,7 +279,9 @@ class __$$ModelConfigImplCopyWithImpl<$Res>
 class _$ModelConfigImpl extends _ModelConfig {
   const _$ModelConfigImpl(
       {required this.asrModelId,
-      this.nsfwModelId = 'nsfw-gantman-mobilenet-v2-224',
+      this.nsfwModelId = 'nsfw-onnx-community-vit-224',
+      this.parserModelId = 'modesty-parser-birefnet-clothes',
+      this.genderModelId = 'gender-classification-onnx-community',
       this.asrLanguage = 'en',
       this.useGpu = true,
       this.gpuDeviceIndex = 0,
@@ -274,6 +302,12 @@ class _$ModelConfigImpl extends _ModelConfig {
   @override
   @JsonKey()
   final String nsfwModelId;
+  @override
+  @JsonKey()
+  final String parserModelId;
+  @override
+  @JsonKey()
+  final String genderModelId;
   @override
   @JsonKey()
   final String asrLanguage;
@@ -308,7 +342,7 @@ class _$ModelConfigImpl extends _ModelConfig {
 
   @override
   String toString() {
-    return 'ModelConfig(asrModelId: $asrModelId, nsfwModelId: $nsfwModelId, asrLanguage: $asrLanguage, useGpu: $useGpu, gpuDeviceIndex: $gpuDeviceIndex, onnxExecutionProvider: $onnxExecutionProvider, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16, translateToEnglish: $translateToEnglish, wordLevelTimestamps: $wordLevelTimestamps, beamSize: $beamSize)';
+    return 'ModelConfig(asrModelId: $asrModelId, nsfwModelId: $nsfwModelId, parserModelId: $parserModelId, genderModelId: $genderModelId, asrLanguage: $asrLanguage, useGpu: $useGpu, gpuDeviceIndex: $gpuDeviceIndex, onnxExecutionProvider: $onnxExecutionProvider, cpuThreads: $cpuThreads, batchSize: $batchSize, useFp16: $useFp16, translateToEnglish: $translateToEnglish, wordLevelTimestamps: $wordLevelTimestamps, beamSize: $beamSize)';
   }
 
   @override
@@ -320,6 +354,10 @@ class _$ModelConfigImpl extends _ModelConfig {
                 other.asrModelId == asrModelId) &&
             (identical(other.nsfwModelId, nsfwModelId) ||
                 other.nsfwModelId == nsfwModelId) &&
+            (identical(other.parserModelId, parserModelId) ||
+                other.parserModelId == parserModelId) &&
+            (identical(other.genderModelId, genderModelId) ||
+                other.genderModelId == genderModelId) &&
             (identical(other.asrLanguage, asrLanguage) ||
                 other.asrLanguage == asrLanguage) &&
             (identical(other.useGpu, useGpu) || other.useGpu == useGpu) &&
@@ -346,6 +384,8 @@ class _$ModelConfigImpl extends _ModelConfig {
       runtimeType,
       asrModelId,
       nsfwModelId,
+      parserModelId,
+      genderModelId,
       asrLanguage,
       useGpu,
       gpuDeviceIndex,
@@ -377,6 +417,8 @@ abstract class _ModelConfig extends ModelConfig {
   const factory _ModelConfig(
       {required final String asrModelId,
       final String nsfwModelId,
+      final String parserModelId,
+      final String genderModelId,
       final String asrLanguage,
       final bool useGpu,
       final int gpuDeviceIndex,
@@ -396,6 +438,10 @@ abstract class _ModelConfig extends ModelConfig {
   String get asrModelId;
   @override
   String get nsfwModelId;
+  @override
+  String get parserModelId;
+  @override
+  String get genderModelId;
   @override
   String get asrLanguage; // Unified GPU selection fields
   @override
@@ -955,7 +1001,7 @@ class _$ContentDetectionConfigImpl extends _ContentDetectionConfig {
   const _$ContentDetectionConfigImpl(
       {final List<ContentCategory> categories = const [],
       this.votingConfig = const VotingConfig(),
-      this.schemaVersion = 4})
+      this.schemaVersion = 5})
       : _categories = categories,
         super._();
 

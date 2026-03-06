@@ -307,6 +307,10 @@ class HuggingFaceModelCard extends StatelessWidget {
       HuggingFaceModelType.asr => 'Word Error Rate (WER) on LibriSpeech/CommonVoice benchmarks',
       HuggingFaceModelType.nsfw =>
         'NSFW classification agreement on labeled visual validation set',
+      HuggingFaceModelType.parser =>
+        'Body-part / clothing mask agreement on human parsing validation images',
+      HuggingFaceModelType.genderHelper =>
+        'Binary helper-classification agreement used only for conservative policy routing',
     };
     return 'Accuracy: ${model.accuracyPercent}%\n\nMeasured using: $accuracyType\n\nHigher is better. Scores ≥94% are excellent, ≥88% are good.';
   }

@@ -52,6 +52,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   // Debug mode state
   bool _nsfwDebugModeEnabled = false;
   bool _nudenetDebugModeEnabled = false;
+  bool _modestyDebugModeEnabled = false;
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +62,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final project = projectState.currentProject;
 
     final selectedMedia = project?.selectedMedia;
-    final analysisResult = (_nsfwDebugModeEnabled || _nudenetDebugModeEnabled)
+    final analysisResult =
+      (_nsfwDebugModeEnabled ||
+          _nudenetDebugModeEnabled ||
+          _modestyDebugModeEnabled)
         ? ref.watch(analysisNotifierProvider.select((state) => state.result))
         : null;
 
@@ -77,6 +81,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 (state) => _resolveNsfwThreshold(state.analysisSettings)),
           )
         : 0.5;
+    final modestyThresholds = _modestyDebugModeEnabled
+        ? ref.watch(
+            settingsNotifierProvider.select(
+              (state) => _resolveModestyThresholds(state.analysisSettings),
+            ),
+          )
+        : const <String, double>{};
 
     if (project == null) {
       // Navigate back to welcome screen when project is closed
@@ -166,6 +177,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                               nsfwFrameResults: nsfwFrameResults,
                               nsfwThreshold: nsfwThreshold,
                               nudenetDebugModeEnabled: _nudenetDebugModeEnabled,
+                              modestyDebugModeEnabled: _modestyDebugModeEnabled,
+                              modestyThresholds: modestyThresholds,
                             ),
                           ),
                         ],
@@ -244,6 +257,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   nsfwFrameResults: nsfwFrameResults,
                   nsfwThreshold: nsfwThreshold,
                   showNudenetTrack: _nudenetDebugModeEnabled,
+                  showModestyTrack: _modestyDebugModeEnabled,
                 ),
               ),
             ],
@@ -328,6 +342,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     ? Icons.grid_view
                     : Icons.grid_view_outlined,
                 _toggleNudenetDebugMode,
+              ),
+              _MenuItem(
+                _modestyDebugModeEnabled
+                    ? 'Disable Modesty Debug'
+                    : 'Enable Modesty Debug',
+                _modestyDebugModeEnabled
+                    ? Icons.shield
+                    : Icons.shield_outlined,
+                _toggleModestyDebugMode,
               ),
               const _MenuDivider(),
               _MenuItem(
@@ -907,6 +930,25 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     return 0.5;
   }
 
+  Map<String, double> _resolveModestyThresholds(AnalysisSettings settings) {
+    const modestyIds = <String>{
+      'female_chest_exposure',
+      'female_abdomen_exposure',
+      'female_arms_exposure',
+      'female_legs_exposure',
+      'male_buttocks_exposure',
+      'male_genitals_exposure',
+    };
+
+    final thresholds = <String, double>{};
+    for (final category in settings.contentDetectionConfig.categories) {
+      if (modestyIds.contains(category.id)) {
+        thresholds[category.id] = category.threshold;
+      }
+    }
+    return thresholds;
+  }
+
   void _toggleNsfwDebugMode() {
     setState(() => _nsfwDebugModeEnabled = !_nsfwDebugModeEnabled);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -929,6 +971,20 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           _nudenetDebugModeEnabled
               ? 'NudeNet debug mode enabled'
               : 'NudeNet debug mode disabled',
+        ),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _toggleModestyDebugMode() {
+    setState(() => _modestyDebugModeEnabled = !_modestyDebugModeEnabled);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _modestyDebugModeEnabled
+              ? 'Modesty debug mode enabled'
+              : 'Modesty debug mode disabled',
         ),
         duration: const Duration(seconds: 1),
       ),

@@ -55,9 +55,7 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
           // Color accent bar
           Container(
             height: 4,
-            color: _cat.enabled
-                ? _categoryColor
-                : colorScheme.outlineVariant,
+            color: _cat.enabled ? _categoryColor : colorScheme.outlineVariant,
           ),
           // Collapsed header
           _buildHeader(context),
@@ -197,8 +195,8 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
                   ),
                   trailing: Switch(
                     value: contribution.enabled,
-                    onChanged: (enabled) =>
-                        widget.onToggleModel(contribution.modelId, enabled: enabled),
+                    onChanged: (enabled) => widget
+                        .onToggleModel(contribution.modelId, enabled: enabled),
                   ),
                 );
               }),
@@ -293,6 +291,17 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
         return Icons.no_adult_content;
       case 'nudity':
         return Icons.visibility_off;
+      case 'female_chest_exposure':
+        return Icons.female;
+      case 'female_abdomen_exposure':
+        return Icons.self_improvement;
+      case 'female_arms_exposure':
+        return Icons.front_hand;
+      case 'female_legs_exposure':
+        return Icons.directions_walk;
+      case 'male_buttocks_exposure':
+      case 'male_genitals_exposure':
+        return Icons.man;
       case 'profanity':
         return Icons.volume_off;
       default:
@@ -317,7 +326,6 @@ class _ContentCategoryCardState extends State<ContentCategoryCard> {
         return Icons.music_note;
     }
   }
-
 }
 
 /// Small colored badge for category type (Visual / Audio).
@@ -329,18 +337,18 @@ class _TypeBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: color,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(4),
         ),
-      ),
-    );
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+      );
 }

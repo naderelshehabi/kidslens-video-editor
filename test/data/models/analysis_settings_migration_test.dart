@@ -2,7 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kidslens_video_editor/data/models/analysis_settings_migration.dart';
 
 void main() {
-  test('migration builds v3 contentDetectionConfig with nsfw + nudity + profanity categories', () {
+  test(
+      'migration builds v3 contentDetectionConfig with nsfw + nudity + profanity categories',
+      () {
     final legacy = <String, dynamic>{
       'enableProfanity': true,
       'analysisSettings': <String, dynamic>{},
@@ -15,9 +17,9 @@ void main() {
     final categories = config['categories'] as List<dynamic>;
     expect(categories.length, 3);
     final ids = categories
-      .cast<Map<String, dynamic>>()
-      .map((c) => c['id'] as String)
-      .toSet();
+        .cast<Map<String, dynamic>>()
+        .map((c) => c['id'] as String)
+        .toSet();
     expect(ids.contains('nsfw'), isTrue);
     expect(ids.contains('nudity'), isTrue);
     expect(ids.contains('profanity'), isTrue);
@@ -99,20 +101,20 @@ void main() {
       };
 
       final migrated = AnalysisSettingsMigration.migrateToLatest(v1Input);
-      
+
       // Verify v3 migration (categories)
       final config = migrated['contentDetectionConfig'] as Map<String, dynamic>;
       final categories = config['categories'] as List<dynamic>;
       expect(categories.length, greaterThanOrEqualTo(3));
-      
+
       // Verify v4 migration (consolidated GPU selection)
       final modelConfig = migrated['modelConfig'] as Map<String, dynamic>;
       expect(modelConfig['useGpu'], true);
       expect(modelConfig['gpuDeviceIndex'], 2);
       expect(modelConfig['onnxExecutionProvider'], 'auto');
-      
+
       // Verify final schema version
-      expect(config['schemaVersion'], 4);
+      expect(config['schemaVersion'], 5);
     });
 
     test('needsMigration returns true for v3 and older', () {
@@ -131,13 +133,13 @@ void main() {
       expect(AnalysisSettingsMigration.needsMigration(v2), true);
     });
 
-    test('needsMigration returns false for v4', () {
-      final v4 = <String, dynamic>{
+    test('needsMigration returns false for v5', () {
+      final v5 = <String, dynamic>{
         'contentDetectionConfig': <String, dynamic>{
-          'schemaVersion': 4,
+          'schemaVersion': 5,
         },
       };
-      expect(AnalysisSettingsMigration.needsMigration(v4), false);
+      expect(AnalysisSettingsMigration.needsMigration(v5), false);
     });
   });
 }

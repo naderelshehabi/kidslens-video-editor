@@ -185,6 +185,24 @@ class SettingsNotifier extends _$SettingsNotifier {
     );
   }
 
+  void setParserModel(String modelId) {
+    final current = state.analysisSettings;
+    updateAnalysisSettings(
+      current.copyWith(
+        modelConfig: current.modelConfig.copyWith(parserModelId: modelId),
+      ),
+    );
+  }
+
+  void setGenderModel(String modelId) {
+    final current = state.analysisSettings;
+    updateAnalysisSettings(
+      current.copyWith(
+        modelConfig: current.modelConfig.copyWith(genderModelId: modelId),
+      ),
+    );
+  }
+
   void setLanguage(String language) {
     state = state.copyWith(selectedLanguage: language);
     saveSettings();

@@ -58,6 +58,10 @@ class NsfwRegionModelSpec {
 class NsfwRegionModelManifest {
   NsfwRegionModelManifest._();
 
+  static const Map<String, String> _legacyModelAliases = <String, String>{
+    'nsfw-nudenet-detector-640-community': 'nsfw-nudenet-detector-640',
+  };
+
   static const Set<String> _allowedLicenses = <String>{
     'mit',
   };
@@ -70,18 +74,6 @@ class NsfwRegionModelManifest {
               'https://huggingface.co/notAI-tech/NudeNet-onnx/resolve/main/model.onnx',
           sha256: null,
           license: 'MIT',
-          classLabels: kCanonicalNudeNetLabels,
-          inputSize: 640,
-          confidenceThreshold: 0.35,
-          iouThreshold: 0.45,
-          maxDetections: 100,
-        ),
-        'nsfw-nudenet-detector-640-community': NsfwRegionModelSpec(
-          modelId: 'nsfw-nudenet-detector-640-community',
-          sourceUrl:
-              'https://huggingface.co/SimonJoz/nudenet/resolve/main/640m.onnx',
-          sha256: null,
-          license: null,
           classLabels: kCanonicalNudeNetLabels,
           inputSize: 640,
           confidenceThreshold: 0.35,
@@ -102,7 +94,8 @@ class NsfwRegionModelManifest {
         ),
       };
 
-  static NsfwRegionModelSpec? findById(String id) => byModelId[id];
+  static NsfwRegionModelSpec? findById(String id) =>
+      byModelId[_legacyModelAliases[id] ?? id];
 
   static bool isLicenseAllowed(String? license) {
     if (license == null || license.trim().isEmpty) {

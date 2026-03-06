@@ -9,6 +9,13 @@ class HuggingFaceModelRegistry {
 
   static const int _mb = 1024 * 1024;
   static const int _gb = 1024 * 1024 * 1024;
+  static const Map<String, String> _legacyModelAliases = {
+    'nsfw-gantman-mobilenet-v2-224': 'nsfw-onnx-community-vit-224',
+    'nsfw-gantman-inception-299': 'nsfw-onnx-community-vit-224',
+    'nsfw-gantman-mobilenet-v2': 'nsfw-onnx-community-vit-224',
+    'nsfw-inception-v3': 'nsfw-onnx-community-vit-224',
+    'nsfw-nudenet-detector-640-community': 'nsfw-nudenet-detector-640',
+  };
 
   static final List<HuggingFaceModel> _asrModels = [
     const HuggingFaceModel(
@@ -253,20 +260,6 @@ class HuggingFaceModelRegistry {
       description: 'NudeNet YOLO-style ONNX detector for region-level NSFW detections (640x640)',
     ),
     const HuggingFaceModel(
-      id: 'nsfw-nudenet-detector-640-community',
-      displayName: 'NudeNet Region Detector (640 Community)',
-      huggingFaceId: 'SimonJoz/nudenet',
-      fileName: '640m.onnx',
-      parameters: '44M',
-      parameterCount: 44000000,
-      sizeBytes: 129 * _mb,
-      ramRequired: 1 * _gb,
-      speedMultiplier: 6,
-      accuracyPercent: 91,
-      modelType: HuggingFaceModelType.nsfw,
-      description: 'Community-hosted NudeNet YOLO-style ONNX detector (640x640)',
-    ),
-    const HuggingFaceModel(
       id: 'nsfw-nudenet-detector-320',
       displayName: 'NudeNet Region Detector (320)',
       huggingFaceId: 'SimonJoz/nudenet',
@@ -279,6 +272,62 @@ class HuggingFaceModelRegistry {
       accuracyPercent: 88,
       modelType: HuggingFaceModelType.nsfw,
       description: 'NudeNet YOLO-style ONNX detector for region-level NSFW detections (320x320, faster)',
+    ),
+  ];
+
+  static final List<HuggingFaceModel> _parserModels = [
+    const HuggingFaceModel(
+      id: 'modesty-parser-birefnet-clothes',
+      displayName: 'BiRefNet Person Silhouette Parser',
+      huggingFaceId: 'onnx-community/BiRefNet_T',
+      fileName: 'onnx/model.onnx',
+      parameters: '56M',
+      parameterCount: 56000000,
+      sizeBytes: 224005088,
+      ramRequired: 2 * _gb,
+      speedMultiplier: 4,
+      accuracyPercent: 90,
+      modelType: HuggingFaceModelType.parser,
+      badge: 'Recommended',
+      description:
+          'Foreground/person silhouette segmentation helper used to approximate limb exposure zones for modesty rules.',
+      license: 'MIT',
+    ),
+  ];
+
+  static final List<HuggingFaceModel> _genderHelperModels = [
+    const HuggingFaceModel(
+      id: 'gender-classification-onnx-community',
+      displayName: 'ONNX Community Gender Helper FP16',
+      huggingFaceId: 'onnx-community/gender-classification-ONNX',
+      fileName: 'onnx/model_fp16.onnx',
+      parameters: '86M',
+      parameterCount: 86000000,
+      sizeBytes: 171801382,
+      ramRequired: 1 * _gb,
+      speedMultiplier: 7,
+      accuracyPercent: 89,
+      modelType: HuggingFaceModelType.genderHelper,
+      badge: 'Recommended',
+      description:
+          'Binary helper classifier used only when confidence is high enough to route conservative modesty rules.',
+      license: 'apache-2.0',
+    ),
+    const HuggingFaceModel(
+      id: 'gender-classification-onnx-community-fp32',
+      displayName: 'ONNX Community Gender Helper FP32',
+      huggingFaceId: 'onnx-community/gender-classification-ONNX',
+      fileName: 'onnx/model.onnx',
+      parameters: '86M',
+      parameterCount: 86000000,
+      sizeBytes: 343401688,
+      ramRequired: 2 * _gb,
+      speedMultiplier: 5,
+      accuracyPercent: 89,
+      modelType: HuggingFaceModelType.genderHelper,
+      description:
+          'Full precision variant of the conservative gender helper classifier.',
+      license: 'apache-2.0',
     ),
   ];
 
@@ -387,23 +436,34 @@ class HuggingFaceModelRegistry {
 
   List<HuggingFaceModel> getAsrModels() => List.unmodifiable(_asrModels);
 
-  List<HuggingFaceModel> getVisualModels() => List.unmodifiable(_nsfwModels);
+  List<HuggingFaceModel> getVisualModels() =>
+      List.unmodifiable([..._nsfwModels, ..._parserModels, ..._genderHelperModels]);
 
   List<HuggingFaceModel> getModelsByType(HuggingFaceModelType type) {
     switch (type) {
       case HuggingFaceModelType.asr:
         return getAsrModels();
       case HuggingFaceModelType.nsfw:
-        return getNsfwModels();
+        return getNsfwClassifierModels();
+      case HuggingFaceModelType.parser:
+        return getParserModels();
+      case HuggingFaceModelType.genderHelper:
+        return getGenderHelperModels();
     }
   }
 
   List<HuggingFaceModel> getAllModels() =>
-      List.unmodifiable([..._asrModels, ..._nsfwModels]);
+      List.unmodifiable([
+        ..._asrModels,
+        ..._nsfwModels,
+        ..._parserModels,
+        ..._genderHelperModels,
+      ]);
 
   HuggingFaceModel? getModelById(String id) {
-    for (final model in [..._asrModels, ..._nsfwModels]) {
-      if (model.id == id) return model;
+    final normalizedId = _normalizeLegacyModelId(id);
+    for (final model in [..._asrModels, ..._nsfwModels, ..._parserModels, ..._genderHelperModels]) {
+      if (model.id == normalizedId) return model;
     }
     return null;
   }
@@ -415,7 +475,7 @@ class HuggingFaceModelRegistry {
       getDownloadUrlsForFile(model, fileName).first;
 
   List<String> getDownloadUrlsForFile(HuggingFaceModel model, String fileName) {
-    switch (model.id) {
+    switch (_normalizeLegacyModelId(model.id)) {
       case 'nsfw-gantman-mobilenet-v2-224':
         return [
           'https://raw.githubusercontent.com/infinitered/nsfwjs/master/models/mobilenet_v2/$fileName',
@@ -431,12 +491,6 @@ class HuggingFaceModelRegistry {
           // Community mirror fallback (public) with equivalent NudeNet 640m weight.
           'https://huggingface.co/zhangsongbo365/nudenet_onnx/resolve/main/640m.onnx',
           'https://huggingface.co/SimonJoz/nudenet/resolve/main/640m.onnx',
-          'https://huggingface.co/Kalashnikov/NudeNet/resolve/main/640m.onnx',
-        ];
-      case 'nsfw-nudenet-detector-640-community':
-        return [
-          'https://huggingface.co/SimonJoz/nudenet/resolve/main/640m.onnx',
-          'https://huggingface.co/zhangsongbo365/nudenet_onnx/resolve/main/640m.onnx',
           'https://huggingface.co/Kalashnikov/NudeNet/resolve/main/640m.onnx',
         ];
       case 'nsfw-nudenet-detector-320':
@@ -482,6 +536,9 @@ class HuggingFaceModelRegistry {
         .where((model) => !model.id.contains('nudenet'))
         .toList(growable: false),
   );
+  List<HuggingFaceModel> getParserModels() => List.unmodifiable(_parserModels);
+  List<HuggingFaceModel> getGenderHelperModels() =>
+      List.unmodifiable(_genderHelperModels);
   List<HuggingFaceModel> getViolenceModels() => const [];
   List<HuggingFaceModel> getBloodModels() => const [];
   List<HuggingFaceModel> getWeaponsModels() => const [];
@@ -515,4 +572,6 @@ class HuggingFaceModelRegistry {
 
   List<HuggingFaceModel> getMultilingualAsrModels() =>
       _asrModels.where((model) => model.isMultilingual).toList(growable: false);
+
+  String _normalizeLegacyModelId(String id) => _legacyModelAliases[id] ?? id;
 }

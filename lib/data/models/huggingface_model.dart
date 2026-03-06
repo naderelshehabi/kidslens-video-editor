@@ -13,6 +13,14 @@ enum HuggingFaceModelType {
   /// Visual NSFW classification model
   @JsonValue('nsfw')
   nsfw,
+
+  /// Human parsing / clothing segmentation helper model
+  @JsonValue('parser')
+  parser,
+
+  /// Lightweight helper model used for conservative gender routing
+  @JsonValue('gender_helper')
+  genderHelper,
 }
 
 /// A HuggingFace model with download and hardware information
@@ -106,6 +114,11 @@ class HuggingFaceModel with _$HuggingFaceModel {
 
   /// Whether this is a visual detection model
   bool get isVisualModel => modelType != HuggingFaceModelType.asr;
+
+  /// Whether this model supports the modesty pipeline.
+  bool get isModestySupportModel =>
+      modelType == HuggingFaceModelType.parser ||
+      modelType == HuggingFaceModelType.genderHelper;
 
   /// Whether this model has a badge
   bool get hasBadge => badge != null && badge!.isNotEmpty;

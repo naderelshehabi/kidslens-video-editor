@@ -87,6 +87,9 @@ class ModelManagerService {
 
   static const String _modelsSubdir = 'kidslens_models';
   static const String _metadataFileName = 'model_metadata.json';
+  static const Map<String, List<String>> _legacyModelDirectoryAliases = {
+    'nsfw-nudenet-detector-640': <String>['nsfw-nudenet-detector-640-community'],
+  };
 
   final HuggingFaceModelRegistry _registry;
   final String? _customModelsPath;
@@ -161,7 +164,7 @@ class ModelManagerService {
       if (entity is Directory) {
         final modelId = p.basename(entity.path);
         if (await _isModelValid(entity.path)) {
-          downloaded.add(modelId);
+          downloaded.add(_canonicalizeModelId(modelId));
         }
       }
     }
@@ -321,18 +324,18 @@ class ModelManagerService {
   /// Delete a downloaded model
   Future<void> deleteModel(String modelId) async {
     final dir = await modelsDirectory;
-    final modelDir = Directory(p.join(dir, modelId));
-    if (modelDir.existsSync()) {
-      await modelDir.delete(recursive: true);
+    for (final candidateId in _candidateModelIds(modelId)) {
+      final modelDir = Directory(p.join(dir, candidateId));
+      if (modelDir.existsSync()) {
+        await modelDir.delete(recursive: true);
+      }
     }
   }
 
   /// Get the path to a downloaded model file
   Future<String?> getModelPath(String modelId) async {
-    final dir = await modelsDirectory;
-    final modelDir = Directory(p.join(dir, modelId));
-
-    if (!modelDir.existsSync()) {
+    final modelDir = await _findExistingModelDirectory(modelId);
+    if (modelDir == null) {
       return null;
     }
 
@@ -362,12 +365,11 @@ class ModelManagerService {
 
   /// Validate model integrity
   Future<bool> validateModel(String modelId) async {
-    final dir = await modelsDirectory;
-    final modelDirPath = p.join(dir, modelId);
-
-    if (!Directory(modelDirPath).existsSync()) {
+    final modelDir = await _findExistingModelDirectory(modelId);
+    if (modelDir == null) {
       return false;
     }
+    final modelDirPath = modelDir.path;
 
     // Basic validation: check if model file exists
     if (!await _isModelValid(modelDirPath)) {
@@ -377,12 +379,13 @@ class ModelManagerService {
     // Advanced validation: check file size matches expected
     final model = _registry.getModelById(modelId);
     if (model != null) {
-      final modelFiles = <String>[
-        model.fileName,
-        ..._registry.getAdditionalModelFiles(model),
-      ];
-      var actualSize = 0;
-      for (final fileName in modelFiles) {
+      final primaryModelPath = await getModelPath(modelId);
+      if (primaryModelPath == null) {
+        return false;
+      }
+
+      var actualSize = await File(primaryModelPath).length();
+      for (final fileName in _registry.getAdditionalModelFiles(model)) {
         final file = File(p.join(modelDirPath, fileName));
         if (!file.existsSync()) {
           return false;
@@ -504,6 +507,28 @@ class ModelManagerService {
       await modelsDir.delete(recursive: true);
       await modelsDir.create(recursive: true);
     }
+  }
+
+  String _canonicalizeModelId(String modelId) =>
+      _registry.getModelById(modelId)?.id ?? modelId;
+
+  Iterable<String> _candidateModelIds(String modelId) sync* {
+    final canonicalId = _canonicalizeModelId(modelId);
+    yield canonicalId;
+    for (final alias in _legacyModelDirectoryAliases[canonicalId] ?? const <String>[]) {
+      yield alias;
+    }
+  }
+
+  Future<Directory?> _findExistingModelDirectory(String modelId) async {
+    final dir = await modelsDirectory;
+    for (final candidateId in _candidateModelIds(modelId)) {
+      final candidateDir = Directory(p.join(dir, candidateId));
+      if (candidateDir.existsSync()) {
+        return candidateDir;
+      }
+    }
+    return null;
   }
 }
 

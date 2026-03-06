@@ -11,6 +11,8 @@ class ModelConfig with _$ModelConfig {
   const factory ModelConfig({
     required String asrModelId,
     @Default('nsfw-onnx-community-vit-224') String nsfwModelId,
+    @Default('modesty-parser-birefnet-clothes') String parserModelId,
+    @Default('gender-classification-onnx-community') String genderModelId,
     @Default('en') String asrLanguage,
     // Unified GPU selection fields
     @Default(true) bool useGpu,
@@ -98,7 +100,7 @@ class ContentDetectionConfig with _$ContentDetectionConfig {
   const factory ContentDetectionConfig({
     @Default([]) List<ContentCategory> categories,
     @Default(VotingConfig()) VotingConfig votingConfig,
-    @Default(4) int schemaVersion,
+    @Default(5) int schemaVersion,
   }) = _ContentDetectionConfig;
 
   const ContentDetectionConfig._();

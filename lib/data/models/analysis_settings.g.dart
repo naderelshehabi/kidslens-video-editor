@@ -11,6 +11,10 @@ _$ModelConfigImpl _$$ModelConfigImplFromJson(Map<String, dynamic> json) =>
       asrModelId: json['asrModelId'] as String,
       nsfwModelId:
           json['nsfwModelId'] as String? ?? 'nsfw-onnx-community-vit-224',
+      parserModelId:
+          json['parserModelId'] as String? ?? 'modesty-parser-birefnet-clothes',
+      genderModelId: json['genderModelId'] as String? ??
+          'gender-classification-onnx-community',
       asrLanguage: json['asrLanguage'] as String? ?? 'en',
       useGpu: json['useGpu'] as bool? ?? true,
       gpuDeviceIndex: (json['gpuDeviceIndex'] as num?)?.toInt() ?? 0,
@@ -27,6 +31,8 @@ Map<String, dynamic> _$$ModelConfigImplToJson(_$ModelConfigImpl instance) =>
     <String, dynamic>{
       'asrModelId': instance.asrModelId,
       'nsfwModelId': instance.nsfwModelId,
+      'parserModelId': instance.parserModelId,
+      'genderModelId': instance.genderModelId,
       'asrLanguage': instance.asrLanguage,
       'useGpu': instance.useGpu,
       'gpuDeviceIndex': instance.gpuDeviceIndex,
@@ -88,7 +94,7 @@ _$ContentDetectionConfigImpl _$$ContentDetectionConfigImplFromJson(
       votingConfig: json['votingConfig'] == null
           ? const VotingConfig()
           : VotingConfig.fromJson(json['votingConfig'] as Map<String, dynamic>),
-      schemaVersion: (json['schemaVersion'] as num?)?.toInt() ?? 4,
+      schemaVersion: (json['schemaVersion'] as num?)?.toInt() ?? 5,
     );
 
 Map<String, dynamic> _$$ContentDetectionConfigImplToJson(

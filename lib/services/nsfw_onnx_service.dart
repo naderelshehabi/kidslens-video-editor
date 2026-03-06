@@ -157,6 +157,64 @@ class NsfwOnnxService {
     }
   }
 
+  /// Run a generic labeled image classifier through the same provider pipeline.
+  Future<Map<String, double>> runLabeledClassificationInference({
+    required String modelPath,
+    required List<int> rgbData,
+    required int width,
+    required int height,
+    required List<String> labels,
+    CancellationToken? cancellationToken,
+  }) async {
+    cancellationToken?.throwIfCancelled();
+
+    await onnx.initialize();
+    await _loadModelWithBestProvider(modelPath);
+
+    try {
+      cancellationToken?.throwIfCancelled();
+      return await onnx.runLabeledClassificationInference(
+        modelPath,
+        rgbData,
+        width,
+        height,
+        labels: labels,
+      );
+    } on ONNXInferenceException catch (e) {
+      throw NsfwOnnxException(
+        'Helper classification inference failed: ${e.message}',
+      );
+    }
+  }
+
+  /// Run a binary segmentation helper model through the same provider pipeline.
+  Future<BinarySegmentationMask> runBinarySegmentationInference({
+    required String modelPath,
+    required List<int> rgbData,
+    required int width,
+    required int height,
+    double threshold = 0.5,
+    CancellationToken? cancellationToken,
+  }) async {
+    cancellationToken?.throwIfCancelled();
+
+    await onnx.initialize();
+    await _loadModelWithBestProvider(modelPath);
+
+    try {
+      cancellationToken?.throwIfCancelled();
+      return await onnx.runBinarySegmentationInference(
+        modelPath,
+        rgbData,
+        width,
+        height,
+        threshold: threshold,
+      );
+    } on ONNXInferenceException catch (e) {
+      throw NsfwOnnxException('Segmentation inference failed: ${e.message}');
+    }
+  }
+
   /// Warm up the model by running a dummy inference.
   ///
   /// This pre-compiles kernels and allocates memory, reducing

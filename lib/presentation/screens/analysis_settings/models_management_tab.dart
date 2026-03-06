@@ -37,6 +37,30 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
   ModelsFilter _filter = ModelsFilter.all;
   ModelsSort _sort = ModelsSort.accuracy;
 
+  static const Map<HuggingFaceModelType, ({IconData icon, String title, String subtitle})>
+      _sectionMetadata = {
+    HuggingFaceModelType.asr: (
+      icon: Icons.mic,
+      title: 'ASR',
+      subtitle: 'Speech recognition models',
+    ),
+    HuggingFaceModelType.nsfw: (
+      icon: Icons.visibility_off,
+      title: 'NSFW Classifier',
+      subtitle: 'Whole-frame NSFW classifier variants',
+    ),
+    HuggingFaceModelType.parser: (
+      icon: Icons.accessibility_new,
+      title: 'Human Parser',
+      subtitle: 'Body-part and clothing segmentation helpers for modesty rules',
+    ),
+    HuggingFaceModelType.genderHelper: (
+      icon: Icons.diversity_3,
+      title: 'Gender Helper',
+      subtitle: 'Conservative helper models for routing modesty rules when confidence is high',
+    ),
+  };
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -44,9 +68,10 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
     final settingsState = ref.watch(settingsNotifierProvider);
     final registry = HuggingFaceModelRegistry.instance;
 
-    final asrModels = _applySort(
-      _applyFilter(registry.getAsrModels(), modelState),
-    );
+    final modelsByType = <HuggingFaceModelType, List<HuggingFaceModel>>{
+      for (final type in _sectionMetadata.keys)
+        type: _applySort(_applyFilter(registry.getModelsByType(type), modelState)),
+    };
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -56,7 +81,7 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
           Text('Models Management', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 8),
           Text(
-            'Manage ASR models, NSFW classifiers, and nudity detectors used by the analysis pipeline.',
+            'Manage speech, moderation, parsing, and helper models used by the analysis pipeline.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -99,75 +124,54 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
             ],
           ),
           const SizedBox(height: 16),
-          _buildModelSectionHeader(
-            context,
-            icon: Icons.mic,
-            title: 'ASR',
-            subtitle: 'Speech recognition models',
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: asrModels.map((model) {
-              final isDownloaded = modelState.downloadedModels.contains(model.id);
-              final downloadProgress = modelState.activeDownloads[model.id];
-              final selectedAsrModelId =
-                  settingsState.analysisSettings.modelConfig.asrModelId;
-              return SizedBox(
-                width: 340,
-                child: HuggingFaceModelCard(
-                  model: model,
-                  isDownloaded: isDownloaded,
-                  isDownloading: downloadProgress != null,
-                  downloadProgress: downloadProgress?.percentage,
-                  isSelected: selectedAsrModelId == model.id,
-                  onDownload: () => _download(model.id),
-                  onDelete: () => _delete(model.id),
-                  onSelect: isDownloaded
-                      ? () => _selectModel(model.id, HuggingFaceModelType.asr)
-                      : null,
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 24),
-          _buildModelSectionHeader(
-            context,
-            icon: Icons.visibility_off,
-            title: 'NSFW Classifier',
-            subtitle: 'Whole-frame NSFW classifier variants',
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: _applySort(
-              _applyFilter(registry.getNsfwClassifierModels(), modelState),
-            )
-                .map((model) {
-              final isDownloaded = modelState.downloadedModels.contains(model.id);
-              final downloadProgress = modelState.activeDownloads[model.id];
-              final selectedNsfwModelId =
-                  settingsState.analysisSettings.modelConfig.nsfwModelId;
-              return SizedBox(
-                width: 340,
-                child: HuggingFaceModelCard(
-                  model: model,
-                  isDownloaded: isDownloaded,
-                  isDownloading: downloadProgress != null,
-                  downloadProgress: downloadProgress?.percentage,
-                  isSelected: selectedNsfwModelId == model.id,
-                  onDownload: () => _download(model.id),
-                  onDelete: () => _delete(model.id),
-                  onSelect: isDownloaded
-                      ? () => _selectModel(model.id, HuggingFaceModelType.nsfw)
-                      : null,
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 24),
+          ..._sectionMetadata.entries.expand((entry) {
+            final type = entry.key;
+            final data = entry.value;
+            final models = modelsByType[type] ?? const <HuggingFaceModel>[];
+            if (models.isEmpty) {
+              return const <Widget>[];
+            }
+
+            return <Widget>[
+              _buildModelSectionHeader(
+                context,
+                icon: data.icon,
+                title: data.title,
+                subtitle: data.subtitle,
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: models.map((model) {
+                  final isDownloaded =
+                      modelState.downloadedModels.contains(model.id);
+                  final downloadProgress = modelState.activeDownloads[model.id];
+                  final selectedModelId = _selectedModelIdForType(
+                    settingsState.analysisSettings,
+                    type,
+                  );
+
+                  return SizedBox(
+                    width: 340,
+                    child: HuggingFaceModelCard(
+                      model: model,
+                      isDownloaded: isDownloaded,
+                      isDownloading: downloadProgress != null,
+                      downloadProgress: downloadProgress?.percentage,
+                      isSelected: selectedModelId == model.id,
+                      onDownload: () => _download(model.id),
+                      onDelete: () => _delete(model.id),
+                      onSelect: isDownloaded
+                          ? () => _selectModel(model.id, type)
+                          : null,
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 24),
+            ];
+          }),
           _buildModelSectionHeader(
             context,
             icon: Icons.grid_on,
@@ -300,6 +304,34 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
             modelConfig: current.modelConfig.copyWith(nsfwModelId: modelId),
           ),
         );
+      case HuggingFaceModelType.parser:
+        settingsNotifier.updateAnalysisSettings(
+          current.copyWith(
+            modelConfig: current.modelConfig.copyWith(parserModelId: modelId),
+          ),
+        );
+      case HuggingFaceModelType.genderHelper:
+        settingsNotifier.updateAnalysisSettings(
+          current.copyWith(
+            modelConfig: current.modelConfig.copyWith(genderModelId: modelId),
+          ),
+        );
+    }
+  }
+
+  String _selectedModelIdForType(
+    AnalysisSettings settings,
+    HuggingFaceModelType type,
+  ) {
+    switch (type) {
+      case HuggingFaceModelType.asr:
+        return settings.modelConfig.asrModelId;
+      case HuggingFaceModelType.nsfw:
+        return settings.modelConfig.nsfwModelId;
+      case HuggingFaceModelType.parser:
+        return settings.modelConfig.parserModelId;
+      case HuggingFaceModelType.genderHelper:
+        return settings.modelConfig.genderModelId;
     }
   }
 

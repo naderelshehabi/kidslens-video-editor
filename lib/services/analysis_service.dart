@@ -13,6 +13,7 @@ import 'package:kidslens_video_editor/services/asr_service.dart';
 import 'package:kidslens_video_editor/services/frame_sampling_service.dart';
 import 'package:kidslens_video_editor/services/huggingface_model_registry.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
+import 'package:kidslens_video_editor/services/modesty_analysis_service.dart';
 import 'package:kidslens_video_editor/services/nsfw_model_adapter.dart';
 import 'package:kidslens_video_editor/services/nsfw_onnx_service.dart';
 import 'package:kidslens_video_editor/services/nsfw_region_model_manifest.dart';
@@ -91,9 +92,9 @@ class AnalysisCheckpoint {
 class _VisualContext {
   const _VisualContext({
     required this.nsfwCategory,
-    required this.nudityCategory,
+    required this.regionCategories,
+    required this.parserCategories,
     required this.visualCategories,
-    required this.nudityDetectionLabels,
     required this.samplingConfigHash,
     required this.thresholdConfigHash,
     this.classifierModelId,
@@ -102,12 +103,16 @@ class _VisualContext {
     this.detectorModelId,
     this.detectorModelPath,
     this.detectorSpec,
+    this.parserModelId,
+    this.parserModelPath,
+    this.genderModelId,
+    this.genderModelPath,
   });
 
   final ContentCategory? nsfwCategory;
-  final ContentCategory? nudityCategory;
+  final List<ContentCategory> regionCategories;
+  final List<ContentCategory> parserCategories;
   final List<VisualContentCategory> visualCategories;
-  final List<String> nudityDetectionLabels;
   final String samplingConfigHash;
   final String thresholdConfigHash;
   final String? classifierModelId;
@@ -116,11 +121,20 @@ class _VisualContext {
   final String? detectorModelId;
   final String? detectorModelPath;
   final NsfwRegionModelSpec? detectorSpec;
+  final String? parserModelId;
+  final String? parserModelPath;
+  final String? genderModelId;
+  final String? genderModelPath;
 
   bool get hasNsfwClassifier =>
-      classifierModelPath != null && classifierSpec != null && nsfwCategory != null;
+      classifierModelPath != null &&
+      classifierSpec != null &&
+      nsfwCategory != null;
 
   bool get hasDetector => detectorModelPath != null && detectorSpec != null;
+
+  bool get hasParser =>
+      parserModelPath != null && parserModelId != null && parserCategories.isNotEmpty;
 }
 
 class _VisualOutput {
@@ -197,13 +211,16 @@ class AnalysisService {
         settings.contentDetectionConfig.enabledVisualCategories;
     final includeNsfw =
         enabledVisualCategories.any((category) => category.id == 'nsfw');
-    final includeNudity =
-        enabledVisualCategories.any((category) => category.id == 'nudity');
+    final includeRegionDetection = enabledVisualCategories.any(
+      (category) =>
+          _supportsRegionDetectorCategory(category) ||
+          _supportsParserCategory(category),
+    );
 
     final selectedSteps = <String>[
       if (includeProfanity) 'profanity',
       if (includeNsfw) 'nsfw',
-      if (includeNudity) 'nudity',
+      if (includeRegionDetection) 'body_exposure',
     ];
     final totalSelectedSteps = selectedSteps.isEmpty ? 1 : selectedSteps.length;
 
@@ -318,7 +335,7 @@ class AnalysisService {
     final allDetections = <Detection>[];
     final frameResults = <FrameAnalysisResult>[];
 
-    if (includeNsfw || includeNudity) {
+    if (includeNsfw || includeRegionDetection) {
       final visualContext = await _resolveVisualContext(settings);
       final compatibleCheckpoint = _isVisualCheckpointCompatible(
         checkpoint,
@@ -336,8 +353,6 @@ class AnalysisService {
               mediaId: effectiveMediaId,
               frameResults: frameResults,
               nsfwCategory: visualContext.nsfwCategory,
-              nudityCategory: null,
-              nudityDetectionLabels: const <String>[],
               visualCategories: const <VisualContentCategory>[],
             ),
           );
@@ -351,20 +366,18 @@ class AnalysisService {
           );
         }
 
-        if (includeNudity) {
+        if (includeRegionDetection) {
           allDetections.addAll(
             _buildVisualDetectionsFromFrames(
               mediaId: effectiveMediaId,
               frameResults: frameResults,
               nsfwCategory: null,
-              nudityCategory: visualContext.nudityCategory,
-              nudityDetectionLabels: visualContext.nudityDetectionLabels,
               visualCategories: visualContext.visualCategories,
             ),
           );
           yield _durationProgress(
-            stepName: 'Nudity complete (restored from checkpoint)',
-            currentStep: stepNumberFor('nudity'),
+            stepName: 'Body exposure complete (restored from checkpoint)',
+            currentStep: stepNumberFor('body_exposure'),
             totalSteps: totalSelectedSteps,
             processedDurationMs: mediaDurationMs,
             totalDurationMs: mediaDurationMs,
@@ -382,13 +395,13 @@ class AnalysisService {
             runNsfwClassifier: true,
             runNudityDetector: false,
             nsfwCategoryForDetections: visualContext.nsfwCategory,
-            nudityCategoryForDetections: null,
             visualCategoriesForDetections: const <VisualContentCategory>[],
             cancellationToken: cancellationToken,
           )) {
             final stepProgress = mediaDurationMs <= 0
                 ? 0.0
-                : (update.processedDurationMs / mediaDurationMs).clamp(0.0, 1.0);
+                : (update.processedDurationMs / mediaDurationMs)
+                    .clamp(0.0, 1.0);
 
             yield _durationProgress(
               stepName: 'Detecting NSFW',
@@ -417,8 +430,8 @@ class AnalysisService {
           );
         }
 
-        if (includeNudity) {
-          var nudityWarningMessage = '';
+        if (includeRegionDetection) {
+          var regionWarningMessage = '';
           await for (final update in _runVisualAnalysis(
             mediaPath,
             effectiveMediaId,
@@ -428,22 +441,23 @@ class AnalysisService {
             runNsfwClassifier: false,
             runNudityDetector: true,
             nsfwCategoryForDetections: null,
-            nudityCategoryForDetections: visualContext.nudityCategory,
             visualCategoriesForDetections: visualContext.visualCategories,
             cancellationToken: cancellationToken,
           )) {
             final stepProgress = mediaDurationMs <= 0
                 ? 0.0
-                : (update.processedDurationMs / mediaDurationMs).clamp(0.0, 1.0);
-            if (update.warningMessage != null && update.warningMessage!.isNotEmpty) {
-              nudityWarningMessage = update.warningMessage!;
+                : (update.processedDurationMs / mediaDurationMs)
+                    .clamp(0.0, 1.0);
+            if (update.warningMessage != null &&
+                update.warningMessage!.isNotEmpty) {
+              regionWarningMessage = update.warningMessage!;
             }
 
             yield _durationProgress(
-              stepName: nudityWarningMessage.isEmpty
-                  ? 'Detecting Nudity'
-                  : nudityWarningMessage,
-              currentStep: stepNumberFor('nudity'),
+              stepName: regionWarningMessage.isEmpty
+                  ? 'Detecting Body Exposure'
+                  : regionWarningMessage,
+              currentStep: stepNumberFor('body_exposure'),
               totalSteps: totalSelectedSteps,
               processedDurationMs: update.processedDurationMs,
               totalDurationMs: mediaDurationMs,
@@ -459,10 +473,10 @@ class AnalysisService {
           }
 
           yield _durationProgress(
-            stepName: nudityWarningMessage.isEmpty
-                ? 'Nudity complete'
-                : 'Nudity complete (fallback mode)',
-            currentStep: stepNumberFor('nudity'),
+            stepName: regionWarningMessage.isEmpty
+                ? 'Body exposure complete'
+                : 'Body exposure complete (fallback mode)',
+            currentStep: stepNumberFor('body_exposure'),
             totalSteps: totalSelectedSteps,
             processedDurationMs: mediaDurationMs,
             totalDurationMs: mediaDurationMs,
@@ -518,26 +532,25 @@ class AnalysisService {
         continue;
       }
 
-      final existingVisual = existingFrame.visualContent ??
-          VisualContentResult.safe();
+      final existingVisual =
+          existingFrame.visualContent ?? VisualContentResult.safe();
       final nextVisual = nextFrame.visualContent ?? VisualContentResult.safe();
 
-      final mergedVisual =
-          existingVisual.detectedRegions.isEmpty &&
-                  nextVisual.detectedRegions.isEmpty &&
-                  existingVisual.clipScores.isEmpty &&
-                  nextVisual.clipScores.isEmpty
-              ? VisualContentResult.safe()
-              : VisualContentResult(
-                  detectedRegions: [
-                    ...existingVisual.detectedRegions,
-                    ...nextVisual.detectedRegions,
-                  ],
-                  clipScores: {
-                    ...existingVisual.clipScores,
-                    ...nextVisual.clipScores,
-                  },
-                );
+      final mergedVisual = existingVisual.detectedRegions.isEmpty &&
+              nextVisual.detectedRegions.isEmpty &&
+              existingVisual.clipScores.isEmpty &&
+              nextVisual.clipScores.isEmpty
+          ? VisualContentResult.safe()
+          : VisualContentResult(
+              detectedRegions: [
+                ...existingVisual.detectedRegions,
+                ...nextVisual.detectedRegions,
+              ],
+              clipScores: {
+                ...existingVisual.clipScores,
+                ...nextVisual.clipScores,
+              },
+            );
 
       byTimestampMicros[key] = existingFrame.copyWith(
         nsfw: nextFrame.nsfw.maxNsfwScore > existingFrame.nsfw.maxNsfwScore
@@ -545,7 +558,8 @@ class AnalysisService {
             : existingFrame.nsfw,
         isSceneChange: existingFrame.isSceneChange || nextFrame.isSceneChange,
         visualContent: mergedVisual,
-        processingTimeMs: nextFrame.processingTimeMs ?? existingFrame.processingTimeMs,
+        processingTimeMs:
+            nextFrame.processingTimeMs ?? existingFrame.processingTimeMs,
         frameHash: existingFrame.frameHash ?? nextFrame.frameHash,
       );
     }
@@ -649,11 +663,16 @@ class AnalysisService {
     final nsfwCategory = enabledVisualCategories
         .where((category) => category.id == 'nsfw')
         .firstOrNull;
-    final nudityCategory = enabledVisualCategories
-        .where((category) => category.id == 'nudity')
-        .firstOrNull;
+    final regionCategories = enabledVisualCategories
+        .where(_supportsRegionDetectorCategory)
+        .toList(growable: false);
+    final parserCategories = enabledVisualCategories
+      .where(_supportsParserCategory)
+      .toList(growable: false);
 
-    if (nsfwCategory == null && nudityCategory == null) {
+    if (nsfwCategory == null &&
+      regionCategories.isEmpty &&
+      parserCategories.isEmpty) {
       throw AnalysisException('No supported visual category is enabled');
     }
 
@@ -662,7 +681,7 @@ class AnalysisService {
     NsfwModelSpec? classifierSpec;
 
     if (nsfwCategory != null) {
-      final preferredModelId = _normalizeLegacyNsfwModelId(
+      final preferredModelId = _normalizeLegacyModelId(
         settings.modelConfig.nsfwModelId,
       );
       final preferredCategoryModelId = _resolveClassifierModelId(nsfwCategory);
@@ -677,7 +696,7 @@ class AnalysisService {
       final seen = <String>{};
 
       for (final rawCandidateId in candidateIds) {
-        final candidateId = _normalizeLegacyNsfwModelId(rawCandidateId);
+        final candidateId = _normalizeLegacyModelId(rawCandidateId);
         if (candidateId.isEmpty || !seen.add(candidateId)) {
           continue;
         }
@@ -718,19 +737,29 @@ class AnalysisService {
     String? detectorModelId;
     String? detectorModelPath;
     NsfwRegionModelSpec? detectorSpec;
-    var nudityDetectionLabels = const <String>[];
+    String? parserModelId;
+    String? parserModelPath;
+    String? genderModelId;
+    String? genderModelPath;
 
-    if (nudityCategory != null) {
-      final preferredCategoryDetectorId = _resolveDetectorModelId(nudityCategory);
+    if (regionCategories.isNotEmpty) {
+      final preferredCategoryDetectorIds =
+          regionCategories.map(_resolveDetectorModelId).whereType<String>();
       final candidateIds = <String>[
-        if (preferredCategoryDetectorId != null) preferredCategoryDetectorId,
+        ...preferredCategoryDetectorIds,
         preferredDetectorModelId,
-        ...nudityCategory.enabledModels.map((m) => m.modelId),
-        ...HuggingFaceModelRegistry.instance.getNudeNetModels().map((m) => m.id),
+        ...regionCategories
+            .expand((category) => category.enabledModels.map((m) => m.modelId)),
+        ...regionCategories.expand(
+            (category) => category.modelContributions.map((m) => m.modelId)),
+        ...HuggingFaceModelRegistry.instance
+            .getNudeNetModels()
+            .map((m) => m.id),
       ];
       final seen = <String>{};
 
-      for (final candidateId in candidateIds) {
+      for (final rawCandidateId in candidateIds) {
+        final candidateId = _normalizeLegacyModelId(rawCandidateId);
         if (candidateId.isEmpty || !seen.add(candidateId)) {
           continue;
         }
@@ -758,24 +787,90 @@ class AnalysisService {
         break;
       }
 
-      if (detectorModelId == null || detectorModelPath == null || detectorSpec == null) {
+      if (detectorModelId == null ||
+          detectorModelPath == null ||
+          detectorSpec == null) {
         throw AnalysisException(
-          'No downloaded approved nudity detector model is available',
+          'No downloaded approved body-exposure detector model is available',
+        );
+      }
+    }
+
+    if (parserCategories.isNotEmpty) {
+      final parserCandidateIds = <String>[
+        settings.modelConfig.parserModelId,
+        ...parserCategories.map(_resolveParserModelId).whereType<String>(),
+        ...HuggingFaceModelRegistry.instance.getParserModels().map((m) => m.id),
+      ];
+      final parserSeen = <String>{};
+
+      for (final candidateId in parserCandidateIds) {
+        if (candidateId.isEmpty || !parserSeen.add(candidateId)) {
+          continue;
+        }
+
+        final candidateModel =
+            HuggingFaceModelRegistry.instance.getModelById(candidateId);
+        if (candidateModel == null ||
+            candidateModel.modelType != HuggingFaceModelType.parser) {
+          continue;
+        }
+
+        final candidatePath = await modelManager.getModelPath(candidateId);
+        if (candidatePath == null) {
+          continue;
+        }
+
+        parserModelId = candidateId;
+        parserModelPath = candidatePath;
+        break;
+      }
+
+      if (parserModelId == null || parserModelPath == null) {
+        throw AnalysisException(
+          'No downloaded parser model is available for modesty categories',
         );
       }
 
-      nudityDetectionLabels = _resolveNudityDetectionLabels(
-        nudityCategory,
-        detectorModelId,
-        detectorSpec,
-      );
+      final genderCandidateIds = <String>[
+        settings.modelConfig.genderModelId,
+        ...HuggingFaceModelRegistry.instance
+            .getGenderHelperModels()
+            .map((m) => m.id),
+      ];
+      final genderSeen = <String>{};
+
+      for (final candidateId in genderCandidateIds) {
+        if (candidateId.isEmpty || !genderSeen.add(candidateId)) {
+          continue;
+        }
+
+        final candidateModel =
+            HuggingFaceModelRegistry.instance.getModelById(candidateId);
+        if (candidateModel == null ||
+            candidateModel.modelType != HuggingFaceModelType.genderHelper) {
+          continue;
+        }
+
+        final candidatePath = await modelManager.getModelPath(candidateId);
+        if (candidatePath == null) {
+          continue;
+        }
+
+        genderModelId = candidateId;
+        genderModelPath = candidatePath;
+        break;
+      }
     }
 
-    final visualCategories = _buildVisualAggregatorCategories(
-      nudityCategory,
-      detectorSpec,
-      nudityDetectionLabels,
-    );
+    final visualCategories = <VisualContentCategory>[
+      ..._buildVisualAggregatorCategories(
+        regionCategories,
+        detectorModelId,
+        detectorSpec,
+      ),
+      ..._buildParserVisualAggregatorCategories(parserCategories),
+    ];
     final visualCategorySignature = visualCategories
         .map(
           (c) =>
@@ -794,23 +889,29 @@ class AnalysisService {
       'classifierInputHeight': classifierSpec?.inputHeight,
       'detectorModelId': detectorModelId,
       'detectorInputSize': detectorSpec?.inputSize,
+      'parserModelId': parserModelId,
+      'genderModelId': genderModelId,
       'regionCategories': visualCategorySignature,
     });
     final thresholdConfigHash = _hashJson(<String, dynamic>{
       'nsfwThreshold': nsfwCategory?.threshold,
-      'nudityThreshold': nudityCategory?.threshold,
       'detectorConfidenceThreshold': detectorSpec?.confidenceThreshold,
       'detectorIouThreshold': detectorSpec?.iouThreshold,
       'detectorMaxDetections': detectorSpec?.maxDetections,
-      'nudityDetectionLabels': nudityDetectionLabels,
+      'parserModelId': parserModelId,
+      'genderModelId': genderModelId,
+      'regionCategoryIds':
+          [...regionCategories, ...parserCategories]
+              .map((c) => c.id)
+              .toList(growable: false),
       'regionCategories': visualCategorySignature,
     });
 
     return _VisualContext(
       nsfwCategory: nsfwCategory,
-      nudityCategory: nudityCategory,
+      regionCategories: regionCategories,
+      parserCategories: parserCategories,
       visualCategories: visualCategories,
-      nudityDetectionLabels: nudityDetectionLabels,
       samplingConfigHash: samplingConfigHash,
       thresholdConfigHash: thresholdConfigHash,
       classifierModelId: classifierModelId,
@@ -819,6 +920,10 @@ class AnalysisService {
       detectorModelId: detectorModelId,
       detectorModelPath: detectorModelPath,
       detectorSpec: detectorSpec,
+      parserModelId: parserModelId,
+      parserModelPath: parserModelPath,
+      genderModelId: genderModelId,
+      genderModelPath: genderModelPath,
     );
   }
 
@@ -841,27 +946,31 @@ class AnalysisService {
     required bool runNsfwClassifier,
     required bool runNudityDetector,
     required ContentCategory? nsfwCategoryForDetections,
-    required ContentCategory? nudityCategoryForDetections,
     required List<VisualContentCategory> visualCategoriesForDetections,
     CancellationToken? cancellationToken,
   }) async* {
     await _checkState(cancellationToken);
 
     final classifierInputWidth =
-      runNsfwClassifier ? (context.classifierSpec?.inputWidth ?? 0) : 0;
+        runNsfwClassifier ? (context.classifierSpec?.inputWidth ?? 0) : 0;
     final classifierInputHeight =
-      runNsfwClassifier ? (context.classifierSpec?.inputHeight ?? 0) : 0;
+        runNsfwClassifier ? (context.classifierSpec?.inputHeight ?? 0) : 0;
     final detectorInputSize =
-      runNudityDetector ? (context.detectorSpec?.inputSize ?? 0) : 0;
-    final sampleWidth = classifierInputWidth >= detectorInputSize
+        runNudityDetector ? (context.detectorSpec?.inputSize ?? 0) : 0;
+    final parserInputSize = context.hasParser ? 640 : 0;
+    final largestSquareInput = detectorInputSize > parserInputSize
+      ? detectorInputSize
+      : parserInputSize;
+    final sampleWidth = classifierInputWidth >= largestSquareInput
         ? classifierInputWidth
-        : detectorInputSize;
-    final sampleHeight = classifierInputHeight >= detectorInputSize
+      : largestSquareInput;
+    final sampleHeight = classifierInputHeight >= largestSquareInput
         ? classifierInputHeight
-        : detectorInputSize;
+      : largestSquareInput;
 
     if (sampleWidth <= 0 || sampleHeight <= 0) {
-      throw AnalysisException('No visual model available for enabled categories');
+      throw AnalysisException(
+          'No visual model available for enabled categories');
     }
 
     final sampler = FrameSamplingService(ffmpeg: ffmpeg);
@@ -886,8 +995,12 @@ class AnalysisService {
     final frameResults = <FrameAnalysisResult>[];
     var detectorEnabled = runNudityDetector && context.hasDetector;
     var classifierEnabled = runNsfwClassifier && context.hasNsfwClassifier;
+    final parserEnabled = context.hasParser;
     String? warningMessage;
     var pendingBatch = <FrameData>[];
+    final modestyService = parserEnabled
+      ? ModestyAnalysisService(nsfwOnnx: nsfwOnnx)
+      : null;
 
     await for (final frame
         in sampler.sampleFrames(mediaPath, config: sampleConfig)) {
@@ -940,49 +1053,56 @@ class AnalysisService {
             }
           } on NsfwOnnxException catch (e) {
             detectorEnabled = false;
-            warningMessage =
-                'Nudity detector inference failed: ${e.message}; '
+            warningMessage = 'Nudity detector inference failed: ${e.message}; '
                 'continuing without nudity regions';
-            debugPrint('ANALYSIS: Detector disabled due to error: ${e.message}');
+            debugPrint(
+                'ANALYSIS: Detector disabled due to error: ${e.message}');
           }
-      }
+        }
 
-      for (var j = 0; j < chunk.length; j++) {
-        final frame = chunk[j];
-        final nsfw = rawBatch != null && adapter != null
-            ? adapter.adapt(rawBatch[j])
-            : NsfwResult.safe();
-        final regions = detectorBatch[j]?.boxes
-                .map(
-                  (box) => _toDetectedRegion(
-                    label: box.className,
-                    confidence: box.confidence,
-                    x: box.x,
-                    y: box.y,
-                    width: box.width,
-                    height: box.height,
-                  ),
-                )
-                .toList(growable: false) ??
-            const <DetectedRegion>[];
+        final detectorRegionsBatch = _buildDetectorRegionsBatch(detectorBatch);
+        ModestyAnalysisBatchResult? modestyResult;
+        if (parserEnabled && modestyService != null) {
+          modestyResult = await modestyService.analyzeBatch(
+            frames: chunk,
+            parserCategories: context.parserCategories,
+            parserModelPath: context.parserModelPath!,
+            genderModelPath: context.genderModelPath,
+            explicitRegionsByFrame: detectorRegionsBatch,
+            cancellationToken: cancellationToken,
+          );
+          if (modestyResult.warningMessage?.isNotEmpty ?? false) {
+            warningMessage = modestyResult.warningMessage;
+          }
+        }
 
-        final result = FrameAnalysisResult(
-          frameNumber: frame.frameNumber ?? frameResults.length,
-          timestamp: frame.timestamp,
-          nsfw: nsfw,
-          violence: ViolenceResult.safe(),
-          isSceneChange: frame.isSceneChange,
-          blood: BloodResult.safe(),
-          weapons: WeaponsResult.safe(),
-          visualContent: regions.isEmpty
-              ? VisualContentResult.safe()
-              : VisualContentResult(detectedRegions: regions),
-        );
-        frameResults.add(result);
-      }
+        for (var j = 0; j < chunk.length; j++) {
+          final frame = chunk[j];
+          final nsfw = rawBatch != null && adapter != null
+              ? adapter.adapt(rawBatch[j])
+              : NsfwResult.safe();
+          final regions = <DetectedRegion>[
+            ...detectorRegionsBatch[j],
+            ..._buildModestyRegionsForFrame(modestyResult, j),
+          ];
 
-        final processedDurationMs = chunk.last.timestamp.inMilliseconds
-            .clamp(0, mediaDurationMs);
+          final result = FrameAnalysisResult(
+            frameNumber: frame.frameNumber ?? frameResults.length,
+            timestamp: frame.timestamp,
+            nsfw: nsfw,
+            violence: ViolenceResult.safe(),
+            isSceneChange: frame.isSceneChange,
+            blood: BloodResult.safe(),
+            weapons: WeaponsResult.safe(),
+            visualContent: regions.isEmpty
+                ? VisualContentResult.safe()
+                : VisualContentResult(detectedRegions: regions),
+          );
+          frameResults.add(result);
+        }
+
+        final processedDurationMs =
+            chunk.last.timestamp.inMilliseconds.clamp(0, mediaDurationMs);
         yield _VisualProgressUpdate(
           processedDurationMs: processedDurationMs,
           itemsProcessed: frameResults.length,
@@ -1035,10 +1155,25 @@ class AnalysisService {
           }
         } on NsfwOnnxException catch (e) {
           detectorEnabled = false;
-          warningMessage =
-              'Nudity detector inference failed: ${e.message}; '
+          warningMessage = 'Nudity detector inference failed: ${e.message}; '
               'continuing without nudity regions';
           debugPrint('ANALYSIS: Detector disabled due to error: ${e.message}');
+        }
+      }
+
+      final detectorRegionsBatch = _buildDetectorRegionsBatch(detectorBatch);
+      ModestyAnalysisBatchResult? modestyResult;
+      if (parserEnabled && modestyService != null) {
+        modestyResult = await modestyService.analyzeBatch(
+          frames: chunk,
+          parserCategories: context.parserCategories,
+          parserModelPath: context.parserModelPath!,
+          genderModelPath: context.genderModelPath,
+          explicitRegionsByFrame: detectorRegionsBatch,
+          cancellationToken: cancellationToken,
+        );
+        if (modestyResult.warningMessage?.isNotEmpty ?? false) {
+          warningMessage = modestyResult.warningMessage;
         }
       }
 
@@ -1047,19 +1182,10 @@ class AnalysisService {
         final nsfw = rawBatch != null && adapter != null
             ? adapter.adapt(rawBatch[j])
             : NsfwResult.safe();
-        final regions = detectorBatch[j]?.boxes
-                .map(
-                  (box) => _toDetectedRegion(
-                    label: box.className,
-                    confidence: box.confidence,
-                    x: box.x,
-                    y: box.y,
-                    width: box.width,
-                    height: box.height,
-                  ),
-                )
-                .toList(growable: false) ??
-            const <DetectedRegion>[];
+        final regions = <DetectedRegion>[
+          ...detectorRegionsBatch[j],
+          ..._buildModestyRegionsForFrame(modestyResult, j),
+        ];
 
         final result = FrameAnalysisResult(
           frameNumber: frame.frameNumber ?? frameResults.length,
@@ -1091,8 +1217,6 @@ class AnalysisService {
       mediaId: mediaId,
       frameResults: frameResults,
       nsfwCategory: nsfwCategoryForDetections,
-      nudityCategory: nudityCategoryForDetections,
-      nudityDetectionLabels: context.nudityDetectionLabels,
       visualCategories: visualCategoriesForDetections,
     );
 
@@ -1112,8 +1236,6 @@ class AnalysisService {
     required String mediaId,
     required List<FrameAnalysisResult> frameResults,
     required ContentCategory? nsfwCategory,
-    required ContentCategory? nudityCategory,
-    required List<String> nudityDetectionLabels,
     required List<VisualContentCategory> visualCategories,
   }) {
     if (frameResults.isEmpty) return const <Detection>[];
@@ -1126,11 +1248,9 @@ class AnalysisService {
     final enabledVisualCategories = visualCategories
         .where((category) => category.enabled)
         .toList(growable: false);
-    final nudityVisualCategory = enabledVisualCategories
-        .where((category) => category.id == 'nudity' && category.usesNudeNet)
-        .firstOrNull;
 
-    if (hasRegionData && nudityVisualCategory != null && nudityCategory != null) {
+    if (hasRegionData &&
+        enabledVisualCategories.any((category) => category.usesNudeNet)) {
       final aggregator = RegionTemporalAggregator();
       final aggregated = aggregator.aggregate(
         frameResults,
@@ -1153,13 +1273,13 @@ class AnalysisService {
         );
 
         final detection = Detection.visual(
-          id: 'visual_nudity_region_${index++}',
+          id: 'visual_region_${index++}',
           mediaId: mediaId,
           type: ContentType.nsfw,
           startTime: tracked.startTime,
           endTime: tracked.endTime,
           confidence: tracked.averageConfidence,
-          description: 'Nudity content detected',
+          description: _describeVisualCategory(category),
         ).copyWith(
           metadata: {
             Detection.visualContentCategoryKey: tracked.categoryId,
@@ -1180,18 +1300,18 @@ class AnalysisService {
           frameResults,
           sceneAction.startTime,
           sceneAction.endTime,
-          fallback: nudityCategory.threshold,
-          labels: nudityDetectionLabels,
+          fallback: category.threshold,
+          labels: category.detectionLabels,
         );
 
         final detection = Detection.visual(
-          id: 'visual_nudity_scene_${index++}',
+          id: 'visual_scene_${index++}',
           mediaId: mediaId,
           type: ContentType.nsfw,
           startTime: sceneAction.startTime,
           endTime: sceneAction.endTime,
           confidence: confidence,
-          description: 'Nudity content detected',
+          description: _describeVisualCategory(category),
         ).copyWith(
           metadata: {
             Detection.visualContentCategoryKey: sceneAction.categoryId,
@@ -1272,14 +1392,14 @@ class AnalysisService {
 
   String? _resolveClassifierModelId(ContentCategory category) {
     for (final contribution in category.enabledModels) {
-      final modelId = _normalizeLegacyNsfwModelId(contribution.modelId);
+      final modelId = _normalizeLegacyModelId(contribution.modelId);
       if (NsfwModelManifest.findById(modelId) != null) {
         return modelId;
       }
     }
 
     for (final contribution in category.modelContributions) {
-      final modelId = _normalizeLegacyNsfwModelId(contribution.modelId);
+      final modelId = _normalizeLegacyModelId(contribution.modelId);
       if (NsfwModelManifest.findById(modelId) != null) {
         return modelId;
       }
@@ -1290,30 +1410,32 @@ class AnalysisService {
 
   String? _resolveDetectorModelId(ContentCategory category) {
     for (final contribution in category.enabledModels) {
-      if (NsfwRegionModelManifest.findById(contribution.modelId) != null) {
-        return contribution.modelId;
+      final modelId = _normalizeLegacyModelId(contribution.modelId);
+      if (NsfwRegionModelManifest.findById(modelId) != null) {
+        return modelId;
       }
     }
 
     for (final contribution in category.modelContributions) {
-      if (NsfwRegionModelManifest.findById(contribution.modelId) != null) {
-        return contribution.modelId;
+      final modelId = _normalizeLegacyModelId(contribution.modelId);
+      if (NsfwRegionModelManifest.findById(modelId) != null) {
+        return modelId;
       }
     }
 
     return null;
   }
 
-  List<String> _resolveNudityDetectionLabels(
-    ContentCategory nudityCategory,
+  List<String> _resolveDetectorLabelsForCategory(
+    ContentCategory category,
     String detectorModelId,
     NsfwRegionModelSpec detectorSpec,
   ) {
-    final selectedContribution = nudityCategory.enabledModels
-            .where((m) => m.modelId == detectorModelId)
+    final selectedContribution = category.enabledModels
+            .where((m) => _normalizeLegacyModelId(m.modelId) == detectorModelId)
             .firstOrNull ??
-        nudityCategory.modelContributions
-            .where((m) => m.modelId == detectorModelId)
+        category.modelContributions
+            .where((m) => _normalizeLegacyModelId(m.modelId) == detectorModelId)
             .firstOrNull;
 
     final allowedLabels = detectorSpec.classLabels.toSet();
@@ -1321,52 +1443,146 @@ class AnalysisService {
             .where(allowedLabels.contains)
             .toList(growable: false) ??
         const <String>[];
-    final defaultLabels = kDefaultNudityDetectionLabels
-        .where(allowedLabels.contains)
-        .toList(growable: false);
-
-    final merged = <String>{
-      ...contributionLabels,
-      ...defaultLabels,
-    }.toList(growable: false);
-    if (merged.isNotEmpty) {
-      return merged;
+    if (contributionLabels.isNotEmpty) {
+      return contributionLabels;
     }
 
-    return detectorSpec.classLabels;
+    if (category.id == 'nudity') {
+      return kDefaultNudityDetectionLabels
+          .where(allowedLabels.contains)
+          .toList(growable: false);
+    }
+
+    return const <String>[];
   }
 
   List<VisualContentCategory> _buildVisualAggregatorCategories(
-    ContentCategory? nudityCategory,
+    List<ContentCategory> regionCategories,
+    String? detectorModelId,
     NsfwRegionModelSpec? detectorSpec,
-    List<String> nudityDetectionLabels,
   ) {
-    if (nudityCategory == null || detectorSpec == null || !nudityCategory.enabled) {
+    if (regionCategories.isEmpty ||
+        detectorSpec == null ||
+        detectorModelId == null) {
       return const <VisualContentCategory>[];
     }
 
-    if (!nudityCategory.isVisual || !nudityCategory.supportsRegions) {
-      return const <VisualContentCategory>[];
+    final visualCategories = <VisualContentCategory>[];
+    for (final category in regionCategories) {
+      if (!category.enabled ||
+          !category.isVisual ||
+          !category.supportsRegions) {
+        continue;
+      }
+
+      final visualAction = _mapRemediationToVisualAction(category.action);
+      if (visualAction == null) {
+        continue;
+      }
+
+      final detectionLabels = _resolveDetectorLabelsForCategory(
+        category,
+        detectorModelId,
+        detectorSpec,
+      );
+      if (detectionLabels.isEmpty) {
+        continue;
+      }
+
+      visualCategories.add(
+        VisualContentCategory(
+          id: category.id,
+          name: category.name,
+          description: category.description,
+          detectionSource: CategoryDetectionSource.nudeNet,
+          detectionLabels: detectionLabels,
+          enabled: category.enabled,
+          threshold: category.threshold,
+          action: visualAction,
+          iconName: category.iconName,
+        ),
+      );
     }
 
-    final visualAction = _mapRemediationToVisualAction(nudityCategory.action);
-    if (visualAction == null) {
-      return const <VisualContentCategory>[];
+    return visualCategories;
+  }
+
+  bool _supportsRegionDetectorCategory(ContentCategory category) =>
+      category.isVisual &&
+      category.supportsRegions &&
+      _resolveDetectorModelId(category) != null;
+
+  bool _supportsParserCategory(ContentCategory category) =>
+      category.isVisual &&
+      category.supportsRegions &&
+      _resolveParserModelId(category) != null;
+
+  List<VisualContentCategory> _buildParserVisualAggregatorCategories(
+    List<ContentCategory> parserCategories,
+  ) {
+    final visualCategories = <VisualContentCategory>[];
+    for (final category in parserCategories) {
+      final visualAction = _mapRemediationToVisualAction(category.action);
+      if (visualAction == null) {
+        continue;
+      }
+
+      final detectionLabels = switch (category.id) {
+        'female_arms_exposure' =>
+          const <String>['MODESTY_FEMALE_ARMS_EXPOSED'],
+        'female_legs_exposure' =>
+          const <String>['MODESTY_FEMALE_LEGS_EXPOSED'],
+        _ => const <String>[],
+      };
+      if (detectionLabels.isEmpty) {
+        continue;
+      }
+
+      visualCategories.add(
+        VisualContentCategory(
+          id: category.id,
+          name: category.name,
+          description: category.description,
+          detectionSource: CategoryDetectionSource.nudeNet,
+          detectionLabels: detectionLabels,
+          enabled: category.enabled,
+          threshold: category.threshold,
+          action: visualAction,
+          iconName: category.iconName,
+        ),
+      );
+    }
+    return visualCategories;
+  }
+
+  String? _resolveParserModelId(ContentCategory category) {
+    for (final contribution in category.enabledModels) {
+      final model = HuggingFaceModelRegistry.instance.getModelById(
+        contribution.modelId,
+      );
+      if (model?.modelType == HuggingFaceModelType.parser) {
+        return contribution.modelId;
+      }
     }
 
-    return [
-      VisualContentCategory(
-        id: nudityCategory.id,
-        name: nudityCategory.name,
-        description: nudityCategory.description,
-        detectionSource: CategoryDetectionSource.nudeNet,
-        detectionLabels: nudityDetectionLabels,
-        enabled: nudityCategory.enabled,
-        threshold: nudityCategory.threshold,
-        action: visualAction,
-        iconName: nudityCategory.iconName,
-      ),
-    ];
+    for (final contribution in category.modelContributions) {
+      final model = HuggingFaceModelRegistry.instance.getModelById(
+        contribution.modelId,
+      );
+      if (model?.modelType == HuggingFaceModelType.parser) {
+        return contribution.modelId;
+      }
+    }
+
+    return null;
+  }
+
+  String _describeVisualCategory(VisualContentCategory category) {
+    final normalizedName = category.name.trim();
+    if (normalizedName.isEmpty) {
+      return 'Visual policy violation detected';
+    }
+    return '$normalizedName detected';
   }
 
   VisualContentAction? _mapRemediationToVisualAction(RemediationAction action) {
@@ -1410,6 +1626,62 @@ class AnalysisService {
     );
   }
 
+  List<List<DetectedRegion>> _buildDetectorRegionsBatch(
+    List<DetectionResult?> detectorBatch,
+  ) =>
+      List<List<DetectedRegion>>.generate(
+        detectorBatch.length,
+        (index) => detectorBatch[index]
+                ?.boxes
+                .map(
+                  (box) => _toDetectedRegion(
+                    label: box.className,
+                    confidence: box.confidence,
+                    x: box.x,
+                    y: box.y,
+                    width: box.width,
+                    height: box.height,
+                  ),
+                )
+                .toList(growable: false) ??
+            const <DetectedRegion>[],
+        growable: false,
+      );
+
+  List<DetectedRegion> _buildModestyRegionsForFrame(
+    ModestyAnalysisBatchResult? result,
+    int frameIndex,
+  ) {
+    if (result == null || frameIndex >= result.signalsByFrame.length) {
+      return const <DetectedRegion>[];
+    }
+
+    return result.signalsByFrame[frameIndex]
+        .map(_toDetectedRegionFromModestySignal)
+        .whereType<DetectedRegion>()
+        .toList(growable: false);
+  }
+
+  DetectedRegion? _toDetectedRegionFromModestySignal(ModestyRuleSignal signal) {
+    final region = signal.region;
+    if (region == null) {
+      return null;
+    }
+
+    final metadataLabel = signal.metadata['label'];
+    final label = metadataLabel is String && metadataLabel.isNotEmpty
+        ? metadataLabel
+        : signal.categoryId.toUpperCase();
+    return _toDetectedRegion(
+      label: label,
+      confidence: signal.confidence,
+      x: region.x,
+      y: region.y,
+      width: region.width,
+      height: region.height,
+    );
+  }
+
   Map<String, double> _clampNormalizedBoundingBox({
     required double x,
     required double y,
@@ -1446,7 +1718,8 @@ class AnalysisService {
       if (frame.timestamp < start || frame.timestamp > end) {
         continue;
       }
-      final regions = frame.visualContent?.detectedRegions ?? const <DetectedRegion>[];
+      final regions =
+          frame.visualContent?.detectedRegions ?? const <DetectedRegion>[];
       for (final region in regions) {
         if (labelSet.isNotEmpty && !labelSet.contains(region.label)) {
           continue;
@@ -1526,13 +1799,15 @@ class AnalysisService {
   String _hashJson(Map<String, dynamic> payload) =>
       sha256.convert(utf8.encode(jsonEncode(payload))).toString();
 
-  String _normalizeLegacyNsfwModelId(String id) {
+  String _normalizeLegacyModelId(String id) {
     switch (id) {
       case 'nsfw-mobilenet-v2':
       case 'nsfw-inception-v3':
       case 'nsfw-gantman-mobilenet-v2-224':
       case 'nsfw-gantman-inception-299':
         return 'nsfw-onnx-community-vit-224';
+      case 'nsfw-nudenet-detector-640-community':
+        return 'nsfw-nudenet-detector-640';
       default:
         return id;
     }

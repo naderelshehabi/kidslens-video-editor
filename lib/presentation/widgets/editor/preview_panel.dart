@@ -20,6 +20,83 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 const double _kNsfwDebugPanelWidth = 340;
 const double _kNudenetDebugPanelWidth = 340;
+const double _kModestyDebugPanelWidth = 360;
+
+const Set<String> _kModestyCategoryIds = {
+  'female_chest_exposure',
+  'female_abdomen_exposure',
+  'female_arms_exposure',
+  'female_legs_exposure',
+  'male_buttocks_exposure',
+  'male_genitals_exposure',
+};
+
+String? _modestyCategoryIdForLabel(String label) {
+  switch (label) {
+    case 'FEMALE_BREAST_EXPOSED':
+      return 'female_chest_exposure';
+    case 'BELLY_EXPOSED':
+      return 'female_abdomen_exposure';
+    case 'MODESTY_FEMALE_ARMS_EXPOSED':
+      return 'female_arms_exposure';
+    case 'MODESTY_FEMALE_LEGS_EXPOSED':
+      return 'female_legs_exposure';
+    case 'BUTTOCKS_EXPOSED':
+    case 'ANUS_EXPOSED':
+      return 'male_buttocks_exposure';
+    case 'MALE_GENITALIA_EXPOSED':
+      return 'male_genitals_exposure';
+    default:
+      return null;
+  }
+}
+
+List<DetectedRegion> _modestyRegionsForFrame(FrameAnalysisResult? frame) {
+  final regions = frame?.visualContent?.detectedRegions ?? const <DetectedRegion>[];
+  return regions
+      .where((region) => _modestyCategoryIdForLabel(region.label) != null)
+      .toList(growable: false);
+}
+
+String _modestyCategoryDisplayName(String categoryId) {
+  switch (categoryId) {
+    case 'female_chest_exposure':
+      return 'Female Chest';
+    case 'female_abdomen_exposure':
+      return 'Female Abdomen';
+    case 'female_arms_exposure':
+      return 'Female Arms';
+    case 'female_legs_exposure':
+      return 'Female Legs';
+    case 'male_buttocks_exposure':
+      return 'Male Buttocks';
+    case 'male_genitals_exposure':
+      return 'Male Genitals';
+    default:
+      return categoryId;
+  }
+}
+
+String _modestyShortLabel(String label) {
+  switch (label) {
+    case 'FEMALE_BREAST_EXPOSED':
+      return 'Chest';
+    case 'BELLY_EXPOSED':
+      return 'Abdomen';
+    case 'MODESTY_FEMALE_ARMS_EXPOSED':
+      return 'Arms';
+    case 'MODESTY_FEMALE_LEGS_EXPOSED':
+      return 'Legs';
+    case 'BUTTOCKS_EXPOSED':
+      return 'Buttocks';
+    case 'ANUS_EXPOSED':
+      return 'Anus';
+    case 'MALE_GENITALIA_EXPOSED':
+      return 'Genitals';
+    default:
+      return label;
+  }
+}
 
 FrameAnalysisResult? _findNearestFrameResult(
   List<FrameAnalysisResult> frameResults,
@@ -86,6 +163,8 @@ class PreviewPanel extends ConsumerStatefulWidget {
     this.nsfwFrameResults = const <FrameAnalysisResult>[],
     this.nsfwThreshold = 0.5,
     this.nudenetDebugModeEnabled = false,
+    this.modestyDebugModeEnabled = false,
+    this.modestyThresholds = const <String, double>{},
   });
 
   final MediaFile? media;
@@ -99,6 +178,8 @@ class PreviewPanel extends ConsumerStatefulWidget {
   final List<FrameAnalysisResult> nsfwFrameResults;
   final double nsfwThreshold;
   final bool nudenetDebugModeEnabled;
+  final bool modestyDebugModeEnabled;
+  final Map<String, double> modestyThresholds;
 
   @override
   ConsumerState<PreviewPanel> createState() => _PreviewPanelState();
@@ -608,6 +689,15 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                         displaySize,
                       ),
 
+                    if (widget.modestyDebugModeEnabled)
+                      ..._buildModestyBboxOverlays(
+                        _findNearestFrameResult(
+                          widget.nsfwFrameResults,
+                          position,
+                        ),
+                        displaySize,
+                      ),
+
                     // Subtitle overlay
                     SubtitleOverlay(
                       subtitleTrack: widget.subtitleTrack,
@@ -735,6 +825,16 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                 left: 8,
                 bottom: 8,
                 child: _buildNudenetDebugPanel(context, position),
+              ),
+
+            if (widget.modestyDebugModeEnabled)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 8,
+                child: Center(
+                  child: _buildModestyDebugPanel(context, position),
+                ),
               ),
           ],
         );
@@ -928,6 +1028,126 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     );
   }
 
+  Widget _buildModestyDebugPanel(BuildContext context, Duration position) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final frame = _findNearestFrameResult(widget.nsfwFrameResults, position);
+
+    if (frame == null) {
+      return SizedBox(
+        width: _kModestyDebugPanelWidth,
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: colorScheme.surface.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: colorScheme.outlineVariant),
+          ),
+          child: Text(
+            'Modesty Debug\nNo sampled frame near ${_formatDuration(position)}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+      );
+    }
+
+    final modestyRegions = _modestyRegionsForFrame(frame);
+    final grouped = <String, List<DetectedRegion>>{};
+    for (final region in modestyRegions) {
+      final categoryId = _modestyCategoryIdForLabel(region.label);
+      if (categoryId == null) {
+        continue;
+      }
+      grouped.putIfAbsent(categoryId, () => <DetectedRegion>[]).add(region);
+    }
+    final deltaMs =
+        (frame.timestamp.inMilliseconds - position.inMilliseconds).abs();
+    final deltaLabel = '${deltaMs.toString().padLeft(4, '0')}ms';
+
+    return SizedBox(
+      width: _kModestyDebugPanelWidth,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: colorScheme.surface.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: modestyRegions.isNotEmpty
+                ? AppTheme.femaleExposureColor
+                : colorScheme.outlineVariant,
+          ),
+        ),
+        child: DefaultTextStyle(
+          style: Theme.of(context).textTheme.bodySmall ??
+              const TextStyle(fontSize: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Modesty Debug',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Playback ${_formatDuration(position)} | Frame ${_formatDuration(frame.timestamp)} (Δ $deltaLabel)',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Policy regions: ${modestyRegions.length}',
+                style: TextStyle(
+                  color: modestyRegions.isNotEmpty
+                      ? AppTheme.femaleExposureColor
+                      : colorScheme.outline,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (grouped.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                ...grouped.entries.map((entry) {
+                  final maxConfidence = entry.value
+                      .map((region) => region.confidence)
+                      .fold<double>(0.0, math.max);
+                  final threshold = widget.modestyThresholds[entry.key];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text(
+                      '${_modestyCategoryDisplayName(entry.key)}: '
+                      '${entry.value.length} region(s), '
+                      'max ${maxConfidence.toStringAsFixed(3)}'
+                      '${threshold != null ? ' | threshold ${threshold.toStringAsFixed(3)}' : ''}',
+                    ),
+                  );
+                }),
+                const SizedBox(height: 6),
+                ...modestyRegions.map(
+                  (region) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 1),
+                    child: Text(
+                      '${_modestyShortLabel(region.label)}: '
+                      '${region.confidence.toStringAsFixed(3)} '
+                      '(${(region.x * 100).toStringAsFixed(0)},${(region.y * 100).toStringAsFixed(0)} '
+                      '${(region.width * 100).toStringAsFixed(0)}x${(region.height * 100).toStringAsFixed(0)}%)',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ] else ...[
+                const SizedBox(height: 6),
+                Text(
+                  'No modesty-policy regions in this sampled frame',
+                  style: TextStyle(color: colorScheme.outline),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   List<Widget> _buildNudenetBboxOverlays(
     FrameAnalysisResult? frame,
     Size displaySize,
@@ -964,6 +1184,56 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                   color: Colors.white,
                   fontSize: 9,
                   height: 1.2,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  List<Widget> _buildModestyBboxOverlays(
+    FrameAnalysisResult? frame,
+    Size displaySize,
+  ) {
+    final regions = _modestyRegionsForFrame(frame);
+    if (regions.isEmpty) {
+      return const [];
+    }
+
+    return regions.map((region) {
+      final left = (region.x.clamp(0.0, 1.0)) * displaySize.width;
+      final top = (region.y.clamp(0.0, 1.0)) * displaySize.height;
+      final width = (region.width.clamp(0.0, 1.0)) * displaySize.width;
+      final height = (region.height.clamp(0.0, 1.0)) * displaySize.height;
+      final categoryId = _modestyCategoryIdForLabel(region.label);
+      final color = categoryId == null
+          ? AppTheme.warningColor
+          : AppTheme.getDetectionColor(categoryId);
+
+      return Positioned(
+        left: left,
+        top: top,
+        width: width,
+        height: height,
+        child: IgnorePointer(
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: color, width: 2),
+            ),
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Container(
+                color: color.withValues(alpha: 0.82),
+                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                child: Text(
+                  '${_modestyShortLabel(region.label)} ${(region.confidence * 100).toStringAsFixed(0)}%',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    height: 1.2,
+                  ),
                 ),
               ),
             ),
@@ -1343,6 +1613,8 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
             nsfwFrameResults: widget.nsfwFrameResults,
             nsfwThreshold: widget.nsfwThreshold,
             nudenetDebugModeEnabled: widget.nudenetDebugModeEnabled,
+            modestyDebugModeEnabled: widget.modestyDebugModeEnabled,
+            modestyThresholds: widget.modestyThresholds,
             playbackNotifier: ref.read(playbackNotifierProvider.notifier),
             onExitFullScreen: () {
               setState(() => _isFullScreen = false);
@@ -1366,6 +1638,8 @@ class _FullScreenPreview extends StatefulWidget {
     required this.nsfwFrameResults,
     required this.nsfwThreshold,
     required this.nudenetDebugModeEnabled,
+    required this.modestyDebugModeEnabled,
+    required this.modestyThresholds,
     required this.playbackNotifier,
     required this.onExitFullScreen,
   });
@@ -1379,6 +1653,8 @@ class _FullScreenPreview extends StatefulWidget {
   final List<FrameAnalysisResult> nsfwFrameResults;
   final double nsfwThreshold;
   final bool nudenetDebugModeEnabled;
+  final bool modestyDebugModeEnabled;
+  final Map<String, double> modestyThresholds;
   final PlaybackNotifier playbackNotifier;
   final VoidCallback onExitFullScreen;
 
@@ -1458,6 +1734,22 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                       final position = snapshot.data ?? Duration.zero;
                       return _buildNudenetDebugPanel(context, position);
                     },
+                  ),
+                ),
+
+              if (widget.modestyDebugModeEnabled)
+                Positioned(
+                  top: 16,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: StreamBuilder<Duration>(
+                      stream: widget.player?.stream.position,
+                      builder: (context, snapshot) {
+                        final position = snapshot.data ?? Duration.zero;
+                        return _buildModestyDebugPanel(context, position);
+                      },
+                    ),
                   ),
                 ),
 
@@ -1804,6 +2096,103 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                     padding: const EdgeInsets.symmetric(vertical: 1),
                     child: Text('${e.key}: ${e.value.toStringAsFixed(3)}'),
                   ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModestyDebugPanel(BuildContext context, Duration position) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final frame = _findNearestFrameResult(widget.nsfwFrameResults, position);
+
+    if (frame == null) {
+      return SizedBox(
+        width: _kModestyDebugPanelWidth,
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.black87,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: colorScheme.outline),
+          ),
+          child: const Text(
+            'Modesty Debug\nNo sampled frame nearby',
+            style: TextStyle(color: Colors.white, fontSize: 11),
+          ),
+        ),
+      );
+    }
+
+    final modestyRegions = _modestyRegionsForFrame(frame);
+    final grouped = <String, List<DetectedRegion>>{};
+    for (final region in modestyRegions) {
+      final categoryId = _modestyCategoryIdForLabel(region.label);
+      if (categoryId == null) {
+        continue;
+      }
+      grouped.putIfAbsent(categoryId, () => <DetectedRegion>[]).add(region);
+    }
+
+    return SizedBox(
+      width: _kModestyDebugPanelWidth,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.black87,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: modestyRegions.isNotEmpty
+                ? AppTheme.femaleExposureColor
+                : colorScheme.outline,
+          ),
+        ),
+        child: DefaultTextStyle(
+          style: const TextStyle(color: Colors.white, fontSize: 11),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Modesty Debug • ${modestyRegions.isNotEmpty ? 'MATCHES' : 'CLEAR'}',
+                style: TextStyle(
+                  color: modestyRegions.isNotEmpty
+                      ? AppTheme.femaleExposureColor
+                      : colorScheme.outline,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text('Frame ${_formatDuration(frame.timestamp)}'),
+              Text('policy regions ${modestyRegions.length}'),
+              if (grouped.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                ...grouped.entries.map((entry) {
+                  final maxConfidence = entry.value
+                      .map((region) => region.confidence)
+                      .fold<double>(0.0, math.max);
+                  final threshold = widget.modestyThresholds[entry.key];
+                  return Text(
+                    '${_modestyCategoryDisplayName(entry.key)}: '
+                    '${entry.value.length} region(s), '
+                    'max ${maxConfidence.toStringAsFixed(3)}'
+                    '${threshold != null ? ' | threshold ${threshold.toStringAsFixed(3)}' : ''}',
+                  );
+                }),
+                const SizedBox(height: 6),
+                ...modestyRegions.map(
+                  (region) => Text(
+                    '${_modestyShortLabel(region.label)}: ${region.confidence.toStringAsFixed(3)}',
+                  ),
+                ),
+              ] else ...[
+                const SizedBox(height: 6),
+                Text(
+                  'No modesty-policy regions in this sampled frame',
+                  style: TextStyle(color: colorScheme.outline),
                 ),
               ],
             ],

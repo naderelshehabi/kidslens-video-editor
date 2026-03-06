@@ -16,6 +16,26 @@ import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 import 'package:uuid/uuid.dart';
 
+String? _modestyTrackCategoryIdForLabel(String label) {
+  switch (label) {
+    case 'FEMALE_BREAST_EXPOSED':
+      return 'female_chest_exposure';
+    case 'BELLY_EXPOSED':
+      return 'female_abdomen_exposure';
+    case 'MODESTY_FEMALE_ARMS_EXPOSED':
+      return 'female_arms_exposure';
+    case 'MODESTY_FEMALE_LEGS_EXPOSED':
+      return 'female_legs_exposure';
+    case 'BUTTOCKS_EXPOSED':
+    case 'ANUS_EXPOSED':
+      return 'male_buttocks_exposure';
+    case 'MALE_GENITALIA_EXPOSED':
+      return 'male_genitals_exposure';
+    default:
+      return null;
+  }
+}
+
 /// Timeline panel with tracks and detection indicators
 class TimelinePanel extends ConsumerStatefulWidget {
   const TimelinePanel({
@@ -37,6 +57,7 @@ class TimelinePanel extends ConsumerStatefulWidget {
     this.nsfwFrameResults = const <FrameAnalysisResult>[],
     this.nsfwThreshold = 0.5,
     this.showNudenetTrack = false,
+    this.showModestyTrack = false,
   });
 
   final MediaFile? media;
@@ -56,6 +77,7 @@ class TimelinePanel extends ConsumerStatefulWidget {
   final List<FrameAnalysisResult> nsfwFrameResults;
   final double nsfwThreshold;
   final bool showNudenetTrack;
+  final bool showModestyTrack;
 
   @override
   ConsumerState<TimelinePanel> createState() => _TimelinePanelState();
@@ -417,6 +439,12 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                       label: 'NudeNet',
                       color: Colors.deepPurple,
                     ),
+                  if (widget.showModestyTrack)
+                    const _TrackLabel(
+                      icon: Icons.shield_outlined,
+                      label: 'Modesty',
+                      color: AppTheme.femaleExposureColor,
+                    ),
                   // Detections track label
                   const _TrackLabel(
                     icon: Icons.warning_amber,
@@ -609,6 +637,13 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
 
                           if (widget.showNudenetTrack)
                             _buildNudenetTrack(
+                              context,
+                              timelineWidth,
+                              playbackState,
+                            ),
+
+                          if (widget.showModestyTrack)
+                            _buildModestyTrack(
                               context,
                               timelineWidth,
                               playbackState,
@@ -975,6 +1010,41 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                 duration: duration,
                 frameResults: widget.nsfwFrameResults,
                 lineColor: Colors.deepPurple,
+              ),
+              size: Size(timelineWidth, 30),
+            ),
+    );
+  }
+
+  Widget _buildModestyTrack(
+    BuildContext context,
+    double timelineWidth,
+    PlaybackState playbackState,
+  ) {
+    final duration = widget.media?.duration ?? Duration.zero;
+
+    return _buildTrack(
+      context,
+      height: 30,
+      color: AppTheme.femaleExposureColor.withValues(alpha: 0.08),
+      playbackState: playbackState,
+      timelineWidth: timelineWidth,
+      child: widget.nsfwFrameResults.isEmpty || duration.inMilliseconds == 0
+          ? Center(
+              child: Text(
+                'No modesty frame data available',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: Theme.of(context).colorScheme.outline,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            )
+          : CustomPaint(
+              painter: _ModestyConfidencePainter(
+                duration: duration,
+                frameResults: widget.nsfwFrameResults,
+                lineColor: AppTheme.femaleExposureColor,
               ),
               size: Size(timelineWidth, 30),
             ),
@@ -2412,6 +2482,90 @@ class _NudenetConfidencePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _NudenetConfidencePainter oldDelegate) =>
+      oldDelegate.duration != duration ||
+      oldDelegate.frameResults != frameResults ||
+      oldDelegate.lineColor != lineColor;
+}
+
+class _ModestyConfidencePainter extends CustomPainter {
+  _ModestyConfidencePainter({
+    required this.duration,
+    required this.frameResults,
+    required this.lineColor,
+  });
+
+  final Duration duration;
+  final List<FrameAnalysisResult> frameResults;
+  final Color lineColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (duration.inMilliseconds <= 0 || frameResults.isEmpty) {
+      return;
+    }
+
+    final stride =
+        math.max(1, (frameResults.length / math.max(1.0, size.width)).ceil());
+
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+    final fillPaint = Paint()
+      ..color = lineColor.withValues(alpha: 0.15)
+      ..style = PaintingStyle.fill;
+
+    final linePath = Path();
+    final fillPath = Path();
+    var hasPoint = false;
+
+    void addPoint(FrameAnalysisResult frame) {
+      final x = (frame.timestamp.inMilliseconds / duration.inMilliseconds) *
+          size.width;
+      final regions = frame.visualContent?.detectedRegions ?? const [];
+      final modestyRegions = regions
+          .where((region) => _modestyTrackCategoryIdForLabel(region.label) != null)
+          .toList(growable: false);
+      final maxConfidence = modestyRegions.isEmpty
+          ? 0.0
+          : modestyRegions
+              .map((region) => region.confidence)
+              .reduce((a, b) => a > b ? a : b)
+              .clamp(0.0, 1.0);
+      final y = (1 - maxConfidence) * size.height;
+      if (!hasPoint) {
+        linePath.moveTo(x, y);
+        fillPath
+          ..moveTo(x, size.height)
+          ..lineTo(x, y);
+        hasPoint = true;
+      } else {
+        linePath.lineTo(x, y);
+        fillPath.lineTo(x, y);
+      }
+    }
+
+    for (var i = 0; i < frameResults.length; i += stride) {
+      addPoint(frameResults[i]);
+    }
+    if (frameResults.length > 1) {
+      addPoint(frameResults.last);
+    }
+
+    if (!hasPoint) {
+      return;
+    }
+
+    fillPath
+      ..lineTo(size.width, size.height)
+      ..close();
+
+    canvas.drawPath(fillPath, fillPaint);
+    canvas.drawPath(linePath, linePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ModestyConfidencePainter oldDelegate) =>
       oldDelegate.duration != duration ||
       oldDelegate.frameResults != frameResults ||
       oldDelegate.lineColor != lineColor;

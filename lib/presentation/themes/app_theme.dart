@@ -39,7 +39,8 @@ class AppTheme {
 
   // Background colors
   static const Color surfaceLight = Color(0xFFFFFFFF);
-  static const Color backgroundLight = Color(0xFFF5F7FA); // Very light cool grey/blue
+  static const Color backgroundLight =
+      Color(0xFFF5F7FA); // Very light cool grey/blue
   static const Color surfaceDark = Color(0xFF1E1E1E);
   static const Color backgroundDark = Color(0xFF121212);
 
@@ -47,6 +48,8 @@ class AppTheme {
   static const Color profanityColor = Color(0xFFFFCA28); // Amber 400
   static const Color nsfwColor = Color(0xFFAB47BC); // Purple 400
   static const Color nudityColor = Color(0xFF6A1B9A); // Deep Purple 800
+  static const Color femaleExposureColor = Color(0xFFE65100); // Orange 900
+  static const Color maleExposureColor = Color(0xFF00695C); // Teal 800
   static const Color violenceColor = Color(0xFFFF7043); // Deep Orange 400
   static const Color bloodColor = Color(0xFFE53935); // Red 600
   static const Color weaponsColor = Color(0xFF78909C); // Blue Grey 400
@@ -59,128 +62,128 @@ class AppTheme {
 
   /// Light theme - Cheerful Blue/Amber palette for family-friendly editing
   static ThemeData get lightTheme => ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.light,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryColor,
-        primary: primaryColor,
-        secondary: secondaryColor,
-        tertiary: tertiaryColor,
-        error: errorColor,
-        surface: surfaceLight,
-      ),
-      scaffoldBackgroundColor: backgroundLight,
-      appBarTheme: const AppBarTheme(
-        elevation: 0,
-        centerTitle: true,
-        backgroundColor: backgroundLight,
-        surfaceTintColor: Colors.transparent,
-      ),
-      cardTheme: CardThemeData(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+        useMaterial3: true,
+        brightness: Brightness.light,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: primaryColor,
+          primary: primaryColor,
+          secondary: secondaryColor,
+          tertiary: tertiaryColor,
+          error: errorColor,
+          surface: surfaceLight,
         ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+        scaffoldBackgroundColor: backgroundLight,
+        appBarTheme: const AppBarTheme(
+          elevation: 0,
+          centerTitle: true,
+          backgroundColor: backgroundLight,
+          surfaceTintColor: Colors.transparent,
         ),
-        filled: true,
-        fillColor: surfaceLight,
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        cardTheme: CardThemeData(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          filled: true,
+          fillColor: surfaceLight,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: primaryColor,
+            side: const BorderSide(color: primaryColor),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        chipTheme: ChipThemeData(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
         ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: primaryColor,
-          side: const BorderSide(color: primaryColor),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+        sliderTheme: const SliderThemeData(
+          showValueIndicator: ShowValueIndicator.onDrag,
         ),
-      ),
-      chipTheme: ChipThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-      sliderTheme: const SliderThemeData(
-        showValueIndicator: ShowValueIndicator.onDrag,
-      ),
-    );
+      );
 
   /// Dark theme - Cheerful Blue/Amber palette adapted for dark mode
   static ThemeData get darkTheme => ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.dark,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryColor,
+        useMaterial3: true,
         brightness: Brightness.dark,
-        primary: primaryLight, // Lighter for dark theme visibility
-        secondary: secondaryLight, // Lighter amber for dark theme visibility
-        tertiary: tertiaryLight,
-        error: errorColor,
-        surface: surfaceDark,
-      ),
-      scaffoldBackgroundColor: backgroundDark,
-      appBarTheme: const AppBarTheme(
-        elevation: 0,
-        centerTitle: true,
-        backgroundColor: backgroundDark,
-        surfaceTintColor: Colors.transparent,
-      ),
-      cardTheme: CardThemeData(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: primaryColor,
+          brightness: Brightness.dark,
+          primary: primaryLight, // Lighter for dark theme visibility
+          secondary: secondaryLight, // Lighter amber for dark theme visibility
+          tertiary: tertiaryLight,
+          error: errorColor,
+          surface: surfaceDark,
         ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+        scaffoldBackgroundColor: backgroundDark,
+        appBarTheme: const AppBarTheme(
+          elevation: 0,
+          centerTitle: true,
+          backgroundColor: backgroundDark,
+          surfaceTintColor: Colors.transparent,
         ),
-        filled: true,
-        fillColor: const Color(0xFF2C2C2C),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        cardTheme: CardThemeData(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          filled: true,
+          fillColor: const Color(0xFF2C2C2C),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: primaryLight,
+            side: const BorderSide(color: primaryLight),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        chipTheme: ChipThemeData(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
         ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: primaryLight,
-          side: const BorderSide(color: primaryLight),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+        sliderTheme: const SliderThemeData(
+          showValueIndicator: ShowValueIndicator.onDrag,
         ),
-      ),
-      chipTheme: ChipThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-      sliderTheme: const SliderThemeData(
-        showValueIndicator: ShowValueIndicator.onDrag,
-      ),
-    );
+      );
 
   /// Get color for detection type
   /// Returns child-friendly colors that are distinct but not scary
@@ -192,6 +195,14 @@ class AppTheme {
         return nsfwColor;
       case 'nudity':
         return nudityColor;
+      case 'female_chest_exposure':
+      case 'female_abdomen_exposure':
+      case 'female_arms_exposure':
+      case 'female_legs_exposure':
+        return femaleExposureColor;
+      case 'male_buttocks_exposure':
+      case 'male_genitals_exposure':
+        return maleExposureColor;
       case 'sexual_content':
       case 'sexualcontent':
         return sexualContentColor;
@@ -214,7 +225,8 @@ class AppTheme {
   }
 
   /// Get a lighter variant of detection color for backgrounds
-  static Color getDetectionColorLight(String type) => getDetectionColor(type).withValues(alpha: 0.2);
+  static Color getDetectionColorLight(String type) =>
+      getDetectionColor(type).withValues(alpha: 0.2);
 
   /// Get text color for detection badges (ensures accessibility)
   static Color getDetectionTextColor(String type) {
@@ -223,6 +235,12 @@ class AppTheme {
       case 'violence':
       case 'nsfw':
       case 'nudity':
+      case 'female_chest_exposure':
+      case 'female_abdomen_exposure':
+      case 'female_arms_exposure':
+      case 'female_legs_exposure':
+      case 'male_buttocks_exposure':
+      case 'male_genitals_exposure':
       case 'sexual_content':
       case 'sexualcontent':
       case 'kissing':

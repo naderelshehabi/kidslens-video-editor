@@ -110,6 +110,10 @@ class ModelNotifier extends _$ModelNotifier {
           settings.analysisSettings.modelConfig.asrModelId;
       final persistedNsfwModelId =
           settings.analysisSettings.modelConfig.nsfwModelId;
+        final persistedParserModelId =
+          settings.analysisSettings.modelConfig.parserModelId;
+        final persistedGenderModelId =
+          settings.analysisSettings.modelConfig.genderModelId;
 
       // Set selected models: prefer persisted settings, fall back to recommended
       final selectedModels = <HuggingFaceModelType, String>{};
@@ -126,6 +130,13 @@ class ModelNotifier extends _$ModelNotifier {
       }
       if (persistedNsfwModelId.isNotEmpty) {
         selectedModels[HuggingFaceModelType.nsfw] = persistedNsfwModelId;
+      }
+      if (persistedParserModelId.isNotEmpty) {
+        selectedModels[HuggingFaceModelType.parser] = persistedParserModelId;
+      }
+      if (persistedGenderModelId.isNotEmpty) {
+        selectedModels[HuggingFaceModelType.genderHelper] =
+            persistedGenderModelId;
       }
 
       state = state.copyWith(
@@ -334,11 +345,19 @@ class ModelNotifier extends _$ModelNotifier {
     final asrModelId =
         state.selectedModels[HuggingFaceModelType.asr] ?? 'whisper-small';
     final nsfwModelId = state.selectedModels[HuggingFaceModelType.nsfw] ??
-        'nsfw-gantman-mobilenet-v2-224';
+      'nsfw-onnx-community-vit-224';
+    final parserModelId =
+      state.selectedModels[HuggingFaceModelType.parser] ??
+        'modesty-parser-birefnet-clothes';
+    final genderModelId =
+      state.selectedModels[HuggingFaceModelType.genderHelper] ??
+        'gender-classification-onnx-community';
 
     final config = ModelConfig(
       asrModelId: asrModelId,
       nsfwModelId: nsfwModelId,
+      parserModelId: parserModelId,
+      genderModelId: genderModelId,
     );
     state = state.copyWith(selectedConfig: config);
   }

@@ -2,10 +2,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kidslens_video_editor/data/models/huggingface_model.dart';
 
 void main() {
-  test('model type supports asr + nsfw', () {
+  test('model type supports ASR, NSFW, parser, and gender helper', () {
     expect(
       HuggingFaceModelType.values,
-      [HuggingFaceModelType.asr, HuggingFaceModelType.nsfw],
+      [
+        HuggingFaceModelType.asr,
+        HuggingFaceModelType.nsfw,
+        HuggingFaceModelType.parser,
+        HuggingFaceModelType.genderHelper,
+      ],
     );
   });
 
@@ -49,5 +54,24 @@ void main() {
 
     expect(model.isAsrModel, isFalse);
     expect(model.isVisualModel, isTrue);
+  });
+
+  test('parser helper model is treated as visual support model', () {
+    const model = HuggingFaceModel(
+      id: 'modesty-parser-birefnet-clothes',
+      displayName: 'Parser',
+      huggingFaceId: 'onnx-community/BiRefNet_T',
+      fileName: 'onnx/model.onnx',
+      parameters: '56M',
+      parameterCount: 56000000,
+      sizeBytes: 224005088,
+      ramRequired: 2 * 1024 * 1024 * 1024,
+      speedMultiplier: 4,
+      accuracyPercent: 90,
+      modelType: HuggingFaceModelType.parser,
+    );
+
+    expect(model.isVisualModel, isTrue);
+    expect(model.isModestySupportModel, isTrue);
   });
 }

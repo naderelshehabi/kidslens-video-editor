@@ -6,7 +6,7 @@ part of 'model_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$modelNotifierHash() => r'59b92cd18ac6a13700dace9458dd357e43d09762';
+String _$modelNotifierHash() => r'bc1e0f7d2f124019a858ce41961ffc8321b10cd6';
 
 /// Provider for managing AI models
 ///

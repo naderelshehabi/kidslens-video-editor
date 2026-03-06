@@ -95,6 +95,40 @@ class DetectionResult {
   Set<String> get detectedClasses => boxes.map((b) => b.className).toSet();
 }
 
+/// Simple binary segmentation mask returned by helper models.
+class BinarySegmentationMask {
+  const BinarySegmentationMask({
+    required this.width,
+    required this.height,
+    required this.foreground,
+    required this.threshold,
+  });
+
+  final int width;
+  final int height;
+  final Uint8List foreground;
+  final double threshold;
+
+  bool get isEmpty => foreground.every((value) => value == 0);
+
+  int get foregroundPixelCount {
+    var count = 0;
+    for (final value in foreground) {
+      if (value != 0) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  bool isForegroundAt(int x, int y) {
+    if (x < 0 || y < 0 || x >= width || y >= height) {
+      return false;
+    }
+    return foreground[(y * width) + x] != 0;
+  }
+}
+
 /// Internal result of letterbox preprocessing
 class _LetterboxResult {
   const _LetterboxResult({
@@ -917,6 +951,70 @@ class ONNXBindings extends NativeResource {
     }
   }
 
+  Future<Map<String, double>> runLabeledClassificationInference(
+    String modelPath,
+    List<int> rgbData,
+    int width,
+    int height, {
+    required List<String> labels,
+  }) async {
+    _ensureInitialized();
+
+    final key = _findSessionKey(modelPath);
+    if (key == null) {
+      await loadModel(modelPath);
+    }
+    final effectiveKey = _findSessionKey(modelPath)!;
+    _updateAccessOrder(effectiveKey);
+
+    try {
+      return await _withInferenceLock(
+        () async => _runLabeledClassificationInternal(
+          modelPath,
+          rgbData,
+          width,
+          height,
+          labels,
+        ),
+      );
+    } catch (e) {
+      if (e is ONNXInferenceException) rethrow;
+      throw ONNXInferenceException('Labeled classification inference failed: $e');
+    }
+  }
+
+  Future<BinarySegmentationMask> runBinarySegmentationInference(
+    String modelPath,
+    List<int> rgbData,
+    int width,
+    int height, {
+    double threshold = 0.5,
+  }) async {
+    _ensureInitialized();
+
+    final key = _findSessionKey(modelPath);
+    if (key == null) {
+      await loadModel(modelPath);
+    }
+    final effectiveKey = _findSessionKey(modelPath)!;
+    _updateAccessOrder(effectiveKey);
+
+    try {
+      return await _withInferenceLock(
+        () async => _runBinarySegmentationInternal(
+          modelPath,
+          rgbData,
+          width,
+          height,
+          threshold: threshold,
+        ),
+      );
+    } catch (e) {
+      if (e is ONNXInferenceException) rethrow;
+      throw ONNXInferenceException('Segmentation inference failed: $e');
+    }
+  }
+
   Map<String, double> _runModelInference(
     String modelPath,
     List<int> rgbData,
@@ -943,6 +1041,93 @@ class ONNXBindings extends NativeResource {
           'unsafe': (0.10 + variance * 0.2).clamp(0.0, 1.0),
         };
     }
+  }
+
+  Map<String, double> _runLabeledClassificationInternal(
+    String modelPath,
+    List<int> rgbData,
+    int width,
+    int height,
+    List<String> labels,
+  ) {
+    if (labels.isEmpty) {
+      throw ONNXInferenceException('At least one label is required');
+    }
+
+    final key = _findSessionKey(modelPath);
+    if (key == null) {
+      throw ONNXInferenceException('Model is not loaded: $modelPath');
+    }
+    final session = _loadedSessions[key]!;
+    final prepared = _prepareImageInput(
+      session: session,
+      rgbData: rgbData,
+      width: width,
+      height: height,
+    );
+    final outputs = _runSessionWithShape(
+      session,
+      prepared.inputData,
+      prepared.inputShape,
+    );
+    if (outputs.isEmpty) {
+      throw ONNXInferenceException('Classification model produced no outputs');
+    }
+
+    final probabilities = _normalizeClassificationOutput(
+      outputs.first.values,
+      labels.length,
+    );
+    final mapped = <String, double>{};
+    for (var i = 0; i < labels.length; i++) {
+      mapped[labels[i]] = probabilities[i];
+    }
+    return mapped;
+  }
+
+  BinarySegmentationMask _runBinarySegmentationInternal(
+    String modelPath,
+    List<int> rgbData,
+    int width,
+    int height, {
+    required double threshold,
+  }) {
+    final key = _findSessionKey(modelPath);
+    if (key == null) {
+      throw ONNXInferenceException('Model is not loaded: $modelPath');
+    }
+    final session = _loadedSessions[key]!;
+    final prepared = _prepareImageInput(
+      session: session,
+      rgbData: rgbData,
+      width: width,
+      height: height,
+    );
+    final outputs = _runSessionWithShape(
+      session,
+      prepared.inputData,
+      prepared.inputShape,
+    );
+    if (outputs.isEmpty) {
+      throw ONNXInferenceException('Segmentation model produced no outputs');
+    }
+
+    final output = outputs.first;
+    final parsed = _extractSegmentationPlane(output);
+    final normalized = parsed.$1;
+    final maskWidth = parsed.$2;
+    final maskHeight = parsed.$3;
+    final mask = Uint8List(maskWidth * maskHeight);
+    for (var i = 0; i < normalized.length; i++) {
+      mask[i] = normalized[i] >= threshold ? 1 : 0;
+    }
+
+    return BinarySegmentationMask(
+      width: maskWidth,
+      height: maskHeight,
+      foreground: mask,
+      threshold: threshold,
+    );
   }
 
   Map<String, double> _runOrtNsfwInference(
@@ -1004,6 +1189,164 @@ class ONNXBindings extends NativeResource {
       );
     }
   }
+
+  ({Float32List inputData, List<int> inputShape, int width, int height})
+      _prepareImageInput({
+    required _LoadedSession session,
+    required List<int> rgbData,
+    required int width,
+    required int height,
+  }) {
+    if (rgbData.length != width * height * 3 || width <= 0 || height <= 0) {
+      throw ONNXInferenceException(
+        'Invalid RGB input for image inference (w=$width h=$height bytes=${rgbData.length})',
+      );
+    }
+
+    final configuredLayout = session.inputLayout;
+    final targetWidth = session.inputWidth ??
+        (session.inputInfo.first.shape.length >= 4
+            ? session.inputInfo.first.shape[3]
+            : width);
+    final targetHeight = session.inputHeight ??
+        (session.inputInfo.first.shape.length >= 4
+            ? session.inputInfo.first.shape[2]
+            : height);
+
+    final resized = (targetWidth == width && targetHeight == height)
+        ? rgbData
+        : _resizeRgbNearest(
+            rgbData: rgbData,
+            srcWidth: width,
+            srcHeight: height,
+            dstWidth: targetWidth,
+            dstHeight: targetHeight,
+          );
+    final input = configuredLayout == _InputLayout.nchw
+        ? _preprocessToNchwFloat(resized, targetWidth, targetHeight)
+        : _preprocessToNhwcFloat(resized);
+    final inputShape = configuredLayout == _InputLayout.nchw
+        ? <int>[1, 3, targetHeight, targetWidth]
+        : <int>[1, targetHeight, targetWidth, 3];
+    return (
+      inputData: input,
+      inputShape: inputShape,
+      width: targetWidth,
+      height: targetHeight,
+    );
+  }
+
+  List<double> _normalizeClassificationOutput(
+    List<double> rawValues,
+    int expectedLabelCount,
+  ) {
+    if (rawValues.isEmpty) {
+      throw ONNXInferenceException('Empty classification output');
+    }
+
+    if (rawValues.length == 1 && expectedLabelCount == 2) {
+      final positive = _looksNormalizedProbability(rawValues)
+          ? rawValues.first.clamp(0.0, 1.0).toDouble()
+          : _sigmoid(rawValues.first);
+      return <double>[1.0 - positive, positive];
+    }
+
+    final usable = rawValues.length >= expectedLabelCount
+        ? rawValues.take(expectedLabelCount).toList(growable: false)
+        : rawValues;
+
+    if (_looksNormalizedProbability(usable) &&
+        usable.length == expectedLabelCount) {
+      return usable.map((value) => value.clamp(0.0, 1.0).toDouble()).toList(
+            growable: false,
+          );
+    }
+
+    final maxValue = usable.reduce(max);
+    final exps = usable
+        .map((value) => exp(value - maxValue))
+        .toList(growable: false);
+    final sum = exps.fold<double>(0.0, (total, value) => total + value);
+    if (sum <= 0) {
+      throw ONNXInferenceException('Invalid classification output distribution');
+    }
+    final probabilities = exps
+        .map((value) => (value / sum).clamp(0.0, 1.0).toDouble())
+        .toList(growable: false);
+    if (probabilities.length == expectedLabelCount) {
+      return probabilities;
+    }
+
+    final padded = List<double>.filled(expectedLabelCount, 0.0, growable: false);
+    for (var i = 0; i < probabilities.length && i < expectedLabelCount; i++) {
+      padded[i] = probabilities[i];
+    }
+    return padded;
+  }
+
+  (List<double>, int, int) _extractSegmentationPlane(_OrtOutputTensor output) {
+    final shape = output.shape;
+    if (shape.isEmpty) {
+      throw ONNXInferenceException('Segmentation output has no shape metadata');
+    }
+
+    late final int maskWidth;
+    late final int maskHeight;
+    late final List<double> planeValues;
+
+    if (shape.length >= 4) {
+      final channels = shape[shape.length - 3];
+      maskHeight = shape[shape.length - 2];
+      maskWidth = shape[shape.length - 1];
+      final planeSize = maskWidth * maskHeight;
+      if (output.values.length < planeSize) {
+        throw ONNXInferenceException('Segmentation output is smaller than expected plane size');
+      }
+      final planeIndex = channels > 1 ? channels - 1 : 0;
+      final offset = planeIndex * planeSize;
+      planeValues = output.values
+          .skip(offset)
+          .take(planeSize)
+          .toList(growable: false);
+    } else if (shape.length == 3) {
+      maskHeight = shape[shape.length - 2];
+      maskWidth = shape[shape.length - 1];
+      final planeSize = maskWidth * maskHeight;
+      planeValues = output.values.take(planeSize).toList(growable: false);
+    } else if (shape.length == 2) {
+      maskHeight = shape[0];
+      maskWidth = shape[1];
+      planeValues = output.values.take(maskWidth * maskHeight).toList(growable: false);
+    } else {
+      final side = sqrt(output.values.length).floor();
+      if (side <= 0 || side * side != output.values.length) {
+        throw ONNXInferenceException('Unable to infer segmentation plane dimensions');
+      }
+      maskWidth = side;
+      maskHeight = side;
+      planeValues = output.values;
+    }
+
+    final requiresSigmoid = planeValues.any((value) => value < 0 || value > 1);
+    final normalized = planeValues
+        .map((value) => requiresSigmoid ? _sigmoid(value) : value.clamp(0.0, 1.0).toDouble())
+        .toList(growable: false);
+    return (normalized, maskWidth, maskHeight);
+  }
+
+  bool _looksNormalizedProbability(List<double> values) {
+    if (values.isEmpty) {
+      return false;
+    }
+    final inRange = values.every((value) => value >= 0.0 && value <= 1.0);
+    if (!inRange) {
+      return false;
+    }
+    final sum = values.fold<double>(0.0, (total, value) => total + value);
+    return (sum - 1.0).abs() < 0.05;
+  }
+
+  double _sigmoid(double value) => 1.0 / (1.0 + exp(-value));
 
   Map<String, double> _runOrtNsfwInferenceWithConfig({
     required _LoadedSession session,
