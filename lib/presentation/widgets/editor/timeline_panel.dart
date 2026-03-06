@@ -36,6 +36,7 @@ class TimelinePanel extends ConsumerStatefulWidget {
     this.showNsfwGraph = false,
     this.nsfwFrameResults = const <FrameAnalysisResult>[],
     this.nsfwThreshold = 0.5,
+    this.showNudenetTrack = false,
   });
 
   final MediaFile? media;
@@ -54,6 +55,7 @@ class TimelinePanel extends ConsumerStatefulWidget {
   final bool showNsfwGraph;
   final List<FrameAnalysisResult> nsfwFrameResults;
   final double nsfwThreshold;
+  final bool showNudenetTrack;
 
   @override
   ConsumerState<TimelinePanel> createState() => _TimelinePanelState();
@@ -409,6 +411,12 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                       label: 'NSFW Score',
                       color: Colors.pink,
                     ),
+                  if (widget.showNudenetTrack)
+                    const _TrackLabel(
+                      icon: Icons.grid_view_outlined,
+                      label: 'NudeNet',
+                      color: Colors.deepPurple,
+                    ),
                   // Detections track label
                   const _TrackLabel(
                     icon: Icons.warning_amber,
@@ -594,6 +602,13 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
 
                           if (widget.showNsfwGraph)
                             _buildNsfwScoreTrack(
+                              context,
+                              timelineWidth,
+                              playbackState,
+                            ),
+
+                          if (widget.showNudenetTrack)
+                            _buildNudenetTrack(
                               context,
                               timelineWidth,
                               playbackState,
@@ -925,6 +940,41 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
                 frameResults: widget.nsfwFrameResults,
                 threshold: widget.nsfwThreshold,
                 lineColor: Colors.pink,
+              ),
+              size: Size(timelineWidth, 30),
+            ),
+    );
+  }
+
+  Widget _buildNudenetTrack(
+    BuildContext context,
+    double timelineWidth,
+    PlaybackState playbackState,
+  ) {
+    final duration = widget.media?.duration ?? Duration.zero;
+
+    return _buildTrack(
+      context,
+      height: 30,
+      color: Colors.deepPurple.withValues(alpha: 0.08),
+      playbackState: playbackState,
+      timelineWidth: timelineWidth,
+      child: widget.nsfwFrameResults.isEmpty || duration.inMilliseconds == 0
+          ? Center(
+              child: Text(
+                'No NudeNet frame data available',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: Theme.of(context).colorScheme.outline,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            )
+          : CustomPaint(
+              painter: _NudenetConfidencePainter(
+                duration: duration,
+                frameResults: widget.nsfwFrameResults,
+                lineColor: Colors.deepPurple,
               ),
               size: Size(timelineWidth, 30),
             ),
@@ -2283,5 +2333,86 @@ class _NsfwScorePainter extends CustomPainter {
       oldDelegate.duration != duration ||
       oldDelegate.frameResults != frameResults ||
       oldDelegate.threshold != threshold ||
+      oldDelegate.lineColor != lineColor;
+}
+
+class _NudenetConfidencePainter extends CustomPainter {
+  _NudenetConfidencePainter({
+    required this.duration,
+    required this.frameResults,
+    required this.lineColor,
+  });
+
+  final Duration duration;
+  final List<FrameAnalysisResult> frameResults;
+  final Color lineColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (duration.inMilliseconds <= 0 || frameResults.isEmpty) {
+      return;
+    }
+
+    final stride =
+        math.max(1, (frameResults.length / math.max(1.0, size.width)).ceil());
+
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+    final fillPaint = Paint()
+      ..color = lineColor.withValues(alpha: 0.15)
+      ..style = PaintingStyle.fill;
+
+    final linePath = Path();
+    final fillPath = Path();
+    var hasPoint = false;
+
+    void addPoint(FrameAnalysisResult frame) {
+      final x = (frame.timestamp.inMilliseconds / duration.inMilliseconds) *
+          size.width;
+      final regions = frame.visualContent?.detectedRegions ?? const [];
+      final maxConfidence = regions.isEmpty
+          ? 0.0
+          : regions
+              .map((r) => r.confidence)
+              .reduce((a, b) => a > b ? a : b)
+              .clamp(0.0, 1.0);
+      final y = (1 - maxConfidence) * size.height;
+      if (!hasPoint) {
+        linePath.moveTo(x, y);
+        fillPath
+          ..moveTo(x, size.height)
+          ..lineTo(x, y);
+        hasPoint = true;
+      } else {
+        linePath.lineTo(x, y);
+        fillPath.lineTo(x, y);
+      }
+    }
+
+    for (var i = 0; i < frameResults.length; i += stride) {
+      addPoint(frameResults[i]);
+    }
+    if (frameResults.length > 1) {
+      addPoint(frameResults.last);
+    }
+
+    if (!hasPoint) {
+      return;
+    }
+
+    fillPath
+      ..lineTo(size.width, size.height)
+      ..close();
+
+    canvas.drawPath(fillPath, fillPaint);
+    canvas.drawPath(linePath, linePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _NudenetConfidencePainter oldDelegate) =>
+      oldDelegate.duration != duration ||
+      oldDelegate.frameResults != frameResults ||
       oldDelegate.lineColor != lineColor;
 }

@@ -19,6 +19,7 @@ import 'package:media_kit/media_kit.dart' hide SubtitleTrack;
 import 'package:media_kit_video/media_kit_video.dart';
 
 const double _kNsfwDebugPanelWidth = 340;
+const double _kNudenetDebugPanelWidth = 340;
 
 FrameAnalysisResult? _findNearestFrameResult(
   List<FrameAnalysisResult> frameResults,
@@ -84,6 +85,7 @@ class PreviewPanel extends ConsumerStatefulWidget {
     this.debugModeEnabled = false,
     this.nsfwFrameResults = const <FrameAnalysisResult>[],
     this.nsfwThreshold = 0.5,
+    this.nudenetDebugModeEnabled = false,
   });
 
   final MediaFile? media;
@@ -96,6 +98,7 @@ class PreviewPanel extends ConsumerStatefulWidget {
   final bool debugModeEnabled;
   final List<FrameAnalysisResult> nsfwFrameResults;
   final double nsfwThreshold;
+  final bool nudenetDebugModeEnabled;
 
   @override
   ConsumerState<PreviewPanel> createState() => _PreviewPanelState();
@@ -597,6 +600,14 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                         .where((d) => d.isVisualDetection)
                         .map(_buildDetectionOverlay),
 
+                    // NudeNet bounding box debug overlays
+                    if (widget.nudenetDebugModeEnabled)
+                      ..._buildNudenetBboxOverlays(
+                        _findNearestFrameResult(
+                            widget.nsfwFrameResults, position),
+                        displaySize,
+                      ),
+
                     // Subtitle overlay
                     SubtitleOverlay(
                       subtitleTrack: widget.subtitleTrack,
@@ -718,6 +729,13 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                 bottom: 8,
                 child: _buildNsfwDebugPanel(context, position),
               ),
+
+            if (widget.nudenetDebugModeEnabled)
+              Positioned(
+                left: 8,
+                bottom: 8,
+                child: _buildNudenetDebugPanel(context, position),
+              ),
           ],
         );
       },
@@ -807,6 +825,177 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
         padding: const EdgeInsets.symmetric(vertical: 1),
         child: Text('$label: ${score.toStringAsFixed(3)}'),
       );
+
+  Widget _buildNudenetDebugPanel(BuildContext context, Duration position) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final frame = _findNearestFrameResult(widget.nsfwFrameResults, position);
+
+    if (frame == null) {
+      return SizedBox(
+        width: _kNudenetDebugPanelWidth,
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: colorScheme.surface.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: colorScheme.outlineVariant),
+          ),
+          child: Text(
+            'NudeNet Debug\nNo sampled frame near ${_formatDuration(position)}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+      );
+    }
+
+    final regions = frame.visualContent?.detectedRegions ?? const [];
+    final clipScores = frame.visualContent?.clipScores ?? const {};
+    final deltaMs =
+        (frame.timestamp.inMilliseconds - position.inMilliseconds).abs();
+    final deltaLabel = '${deltaMs.toString().padLeft(4, '0')}ms';
+
+    return SizedBox(
+      width: _kNudenetDebugPanelWidth,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: colorScheme.surface.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: regions.isNotEmpty ? Colors.deepPurple : colorScheme.outline,
+          ),
+        ),
+        child: DefaultTextStyle(
+          style: Theme.of(context).textTheme.bodySmall ??
+              const TextStyle(fontSize: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'NudeNet Debug',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Playback ${_formatDuration(position)} | Frame ${_formatDuration(frame.timestamp)} (Δ $deltaLabel)',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Regions detected: ${regions.length}',
+                style: TextStyle(
+                  color: regions.isNotEmpty
+                      ? Colors.deepPurple
+                      : colorScheme.outline,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (regions.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                ...regions.map(
+                  (r) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 1),
+                    child: Text(
+                      '${r.label}: ${r.confidence.toStringAsFixed(3)}'                          ' (${(r.x * 100).toStringAsFixed(0)},${(r.y * 100).toStringAsFixed(0)}'                          ' ${(r.width * 100).toStringAsFixed(0)}×${(r.height * 100).toStringAsFixed(0)}%)',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ] else ...[
+                const SizedBox(height: 6),
+                Text(
+                  'No regions above model confidence threshold',
+                  style: TextStyle(color: colorScheme.outline),
+                ),
+              ],
+              if (clipScores.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                const Text('CLIP scores:', style: TextStyle(fontWeight: FontWeight.w600)),
+                ...clipScores.entries.map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 1),
+                    child: Text('${e.key}: ${e.value.toStringAsFixed(3)}'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildNudenetBboxOverlays(
+    FrameAnalysisResult? frame,
+    Size displaySize,
+  ) {
+    final regions = frame?.visualContent?.detectedRegions;
+    if (regions == null || regions.isEmpty) return const [];
+
+    return regions.map((region) {
+      // Clamp to [0, 1] in case of any floating-point edge cases
+      final left = (region.x.clamp(0.0, 1.0)) * displaySize.width;
+      final top = (region.y.clamp(0.0, 1.0)) * displaySize.height;
+      final width = (region.width.clamp(0.0, 1.0)) * displaySize.width;
+      final height = (region.height.clamp(0.0, 1.0)) * displaySize.height;
+
+      final color = _nudenetRegionColor(region.label);
+
+      return Positioned(
+        left: left,
+        top: top,
+        width: width,
+        height: height,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: color, width: 2),
+          ),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Container(
+              color: color.withValues(alpha: 0.78),
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+              child: Text(
+                '${_nudenetShortLabel(region.label)} ${(region.confidence * 100).toStringAsFixed(0)}%',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  height: 1.2,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  Color _nudenetRegionColor(String label) {
+    if (label.contains('GENITALIA') || label.contains('ANUS')) {
+      return Colors.red;
+    }
+    if (label.contains('BREAST') || label.contains('CHEST')) {
+      return Colors.orange;
+    }
+    if (label.contains('BUTTOCKS')) {
+      return Colors.amber;
+    }
+    return Colors.deepPurple;
+  }
+
+  String _nudenetShortLabel(String label) {
+    // Shorten verbose NudeNet labels for compact display
+    return label
+        .replaceAll('FEMALE_', 'F_')
+        .replaceAll('MALE_', 'M_')
+        .replaceAll('_EXPOSED', '_EXP')
+        .replaceAll('_COVERED', '_COV')
+        .replaceAll('GENITALIA', 'GENT')
+        .replaceAll('BUTTOCKS', 'BUTT');
+  }
 
   Widget _buildDetectionOverlay(Detection detection) {
     // For visual detections, we would show bounding boxes here
@@ -1153,6 +1342,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
             debugModeEnabled: widget.debugModeEnabled,
             nsfwFrameResults: widget.nsfwFrameResults,
             nsfwThreshold: widget.nsfwThreshold,
+            nudenetDebugModeEnabled: widget.nudenetDebugModeEnabled,
             playbackNotifier: ref.read(playbackNotifierProvider.notifier),
             onExitFullScreen: () {
               setState(() => _isFullScreen = false);
@@ -1175,6 +1365,7 @@ class _FullScreenPreview extends StatefulWidget {
     required this.debugModeEnabled,
     required this.nsfwFrameResults,
     required this.nsfwThreshold,
+    required this.nudenetDebugModeEnabled,
     required this.playbackNotifier,
     required this.onExitFullScreen,
   });
@@ -1187,6 +1378,7 @@ class _FullScreenPreview extends StatefulWidget {
   final bool debugModeEnabled;
   final List<FrameAnalysisResult> nsfwFrameResults;
   final double nsfwThreshold;
+  final bool nudenetDebugModeEnabled;
   final PlaybackNotifier playbackNotifier;
   final VoidCallback onExitFullScreen;
 
@@ -1252,6 +1444,19 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                     builder: (context, snapshot) {
                       final position = snapshot.data ?? Duration.zero;
                       return _buildNsfwDebugPanel(context, position);
+                    },
+                  ),
+                ),
+
+              if (widget.nudenetDebugModeEnabled)
+                Positioned(
+                  top: 16,
+                  left: 16,
+                  child: StreamBuilder<Duration>(
+                    stream: widget.player?.stream.position,
+                    builder: (context, snapshot) {
+                      final position = snapshot.data ?? Duration.zero;
+                      return _buildNudenetDebugPanel(context, position);
                     },
                   ),
                 ),
@@ -1510,6 +1715,97 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
               Text('hentai: ${frame.nsfw.hentai.toStringAsFixed(3)}'),
               Text('drawings: ${frame.nsfw.drawings.toStringAsFixed(3)}'),
               Text('neutral: ${frame.nsfw.neutral.toStringAsFixed(3)}'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNudenetDebugPanel(BuildContext context, Duration position) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final frame = _findNearestFrameResult(widget.nsfwFrameResults, position);
+
+    if (frame == null) {
+      return SizedBox(
+        width: _kNudenetDebugPanelWidth,
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.black87,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: colorScheme.outline),
+          ),
+          child: const Text(
+            'NudeNet Debug\nNo sampled frame nearby',
+            style: TextStyle(color: Colors.white, fontSize: 11),
+          ),
+        ),
+      );
+    }
+
+    final regions = frame.visualContent?.detectedRegions ?? const [];
+    final clipScores = frame.visualContent?.clipScores ?? const {};
+
+    return SizedBox(
+      width: _kNudenetDebugPanelWidth,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.black87,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color:
+                regions.isNotEmpty ? Colors.deepPurple : colorScheme.outline,
+          ),
+        ),
+        child: DefaultTextStyle(
+          style: const TextStyle(color: Colors.white, fontSize: 11),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'NudeNet Debug \u2022 ${regions.isNotEmpty ? '${regions.length} region(s)' : 'no regions'}',
+                style: TextStyle(
+                  color: regions.isNotEmpty
+                      ? Colors.deepPurple.shade200
+                      : Colors.white70,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text('Frame ${_formatDuration(frame.timestamp)}'),
+              const SizedBox(height: 4),
+              if (regions.isNotEmpty) ...[
+                ...regions.map(
+                  (r) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 1),
+                    child: Text(
+                      '${r.label}: ${r.confidence.toStringAsFixed(3)}'
+                          ' (${(r.x * 100).toStringAsFixed(0)},${(r.y * 100).toStringAsFixed(0)}'
+                          ' ${(r.width * 100).toStringAsFixed(0)}\u00d7${(r.height * 100).toStringAsFixed(0)}%)',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ] else
+                const Text(
+                  'No regions above model confidence threshold',
+                  style: TextStyle(color: Colors.white54),
+                ),
+              if (clipScores.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                const Text('CLIP:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                ...clipScores.entries.map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 1),
+                    child: Text('${e.key}: ${e.value.toStringAsFixed(3)}'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

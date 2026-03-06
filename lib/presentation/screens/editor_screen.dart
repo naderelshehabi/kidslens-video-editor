@@ -51,6 +51,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   // Debug mode state
   bool _nsfwDebugModeEnabled = false;
+  bool _nudenetDebugModeEnabled = false;
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +61,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final project = projectState.currentProject;
 
     final selectedMedia = project?.selectedMedia;
-    final analysisResult = _nsfwDebugModeEnabled
+    final analysisResult = (_nsfwDebugModeEnabled || _nudenetDebugModeEnabled)
         ? ref.watch(analysisNotifierProvider.select((state) => state.result))
         : null;
 
@@ -164,6 +165,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                               debugModeEnabled: _nsfwDebugModeEnabled,
                               nsfwFrameResults: nsfwFrameResults,
                               nsfwThreshold: nsfwThreshold,
+                              nudenetDebugModeEnabled: _nudenetDebugModeEnabled,
                             ),
                           ),
                         ],
@@ -241,6 +243,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   showNsfwGraph: _nsfwDebugModeEnabled,
                   nsfwFrameResults: nsfwFrameResults,
                   nsfwThreshold: nsfwThreshold,
+                  showNudenetTrack: _nudenetDebugModeEnabled,
                 ),
               ),
             ],
@@ -316,6 +319,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     ? Icons.bug_report
                     : Icons.bug_report_outlined,
                 _toggleNsfwDebugMode,
+              ),
+              _MenuItem(
+                _nudenetDebugModeEnabled
+                    ? 'Disable NudeNet Debug'
+                    : 'Enable NudeNet Debug',
+                _nudenetDebugModeEnabled
+                    ? Icons.grid_view
+                    : Icons.grid_view_outlined,
+                _toggleNudenetDebugMode,
               ),
               const _MenuDivider(),
               _MenuItem(
@@ -903,6 +915,20 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           _nsfwDebugModeEnabled
               ? 'NSFW debug mode enabled'
               : 'NSFW debug mode disabled',
+        ),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _toggleNudenetDebugMode() {
+    setState(() => _nudenetDebugModeEnabled = !_nudenetDebugModeEnabled);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _nudenetDebugModeEnabled
+              ? 'NudeNet debug mode enabled'
+              : 'NudeNet debug mode disabled',
         ),
         duration: const Duration(seconds: 1),
       ),
