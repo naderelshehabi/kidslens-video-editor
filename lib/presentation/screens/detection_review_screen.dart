@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/data/models/detection.dart';
 import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
+import 'package:kidslens_video_editor/presentation/widgets/detection/detection_explanation_panel.dart';
 import 'package:kidslens_video_editor/presentation/widgets/detection_region_overlay.dart';
 import 'package:kidslens_video_editor/state/providers/project_provider.dart';
 
@@ -20,7 +21,9 @@ enum DetectionSortOption {
 /// Detection review screen for reviewing and managing AI detections
 class DetectionReviewScreen extends ConsumerStatefulWidget {
   const DetectionReviewScreen({
-    required this.mediaId, required this.detections, super.key,
+    required this.mediaId,
+    required this.detections,
+    super.key,
     this.onSeekToDetection,
   });
 
@@ -123,20 +126,27 @@ class _DetectionReviewScreenState extends ConsumerState<DetectionReviewScreen> {
               icon: const Icon(Icons.sort_rounded),
               tooltip: 'Sort',
               onSelected: (option) => setState(() => _sortOption = option),
-              itemBuilder: (context) =>
-                  DetectionSortOption.values.map((option) => PopupMenuItem(
-                  value: option,
-                  child: Row(
-                    children: [
-                      if (_sortOption == option)
-                        Icon(Icons.check, size: 18, color: colorScheme.primary)
-                      else
-                        const SizedBox(width: 18),
-                      const SizedBox(width: 8),
-                      Text(option.label),
-                    ],
-                  ),
-                ),).toList(),
+              itemBuilder: (context) => DetectionSortOption.values
+                  .map(
+                    (option) => PopupMenuItem(
+                      value: option,
+                      child: Row(
+                        children: [
+                          if (_sortOption == option)
+                            Icon(
+                              Icons.check,
+                              size: 18,
+                              color: colorScheme.primary,
+                            )
+                          else
+                            const SizedBox(width: 18),
+                          const SizedBox(width: 8),
+                          Text(option.label),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
           ],
         ],
@@ -255,19 +265,22 @@ class _DetectionReviewScreenState extends ConsumerState<DetectionReviewScreen> {
   }
 
   void _acceptDetection(Detection detection) {
-    final updated = detection.copyWith(userStatus: DetectionUserStatus.confirmed);
+    final updated =
+        detection.copyWith(userStatus: DetectionUserStatus.confirmed);
     ref.read(projectNotifierProvider.notifier).updateDetection(updated);
   }
 
   void _rejectDetection(Detection detection) {
-    final updated = detection.copyWith(userStatus: DetectionUserStatus.rejected);
+    final updated =
+        detection.copyWith(userStatus: DetectionUserStatus.rejected);
     ref.read(projectNotifierProvider.notifier).updateDetection(updated);
   }
 
   void _acceptSelected() {
     for (final id in _selectedDetectionIds) {
       final detection = widget.detections.firstWhere((d) => d.id == id);
-      final updated = detection.copyWith(userStatus: DetectionUserStatus.confirmed);
+      final updated =
+          detection.copyWith(userStatus: DetectionUserStatus.confirmed);
       ref.read(projectNotifierProvider.notifier).updateDetection(updated);
     }
     setState(() {
@@ -279,7 +292,8 @@ class _DetectionReviewScreenState extends ConsumerState<DetectionReviewScreen> {
   void _rejectSelected() {
     for (final id in _selectedDetectionIds) {
       final detection = widget.detections.firstWhere((d) => d.id == id);
-      final updated = detection.copyWith(userStatus: DetectionUserStatus.rejected);
+      final updated =
+          detection.copyWith(userStatus: DetectionUserStatus.rejected);
       ref.read(projectNotifierProvider.notifier).updateDetection(updated);
     }
     setState(() {
@@ -297,7 +311,8 @@ class _DetectionReviewScreenState extends ConsumerState<DetectionReviewScreen> {
           final updated = detection.copyWith(
             startTime: newStart,
             endTime: newEnd,
-            originalStartTime: detection.originalStartTime ?? detection.startTime,
+            originalStartTime:
+                detection.originalStartTime ?? detection.startTime,
             originalEndTime: detection.originalEndTime ?? detection.endTime,
             userStatus: DetectionUserStatus.adjusted,
           );
@@ -683,6 +698,13 @@ class _DetectionCard extends StatelessWidget {
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
+                      if (detection.hasExplainabilityMetadata) ...[
+                        const SizedBox(height: 10),
+                        DetectionExplanationPanel(
+                          detection: detection,
+                          showFramePreview: false,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -922,19 +944,23 @@ class _FilterDialogState extends State<_FilterDialog> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: ContentType.values.map((type) => FilterChip(
-                    label: Text(_typeFilterLabel(type)),
-                    selected: _types.contains(type),
-                    onSelected: (selected) {
-                      setState(() {
-                        if (selected) {
-                          _types.add(type);
-                        } else {
-                          _types.remove(type);
-                        }
-                      });
-                    },
-                  ),).toList(),
+                children: ContentType.values
+                    .map(
+                      (type) => FilterChip(
+                        label: Text(_typeFilterLabel(type)),
+                        selected: _types.contains(type),
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _types.add(type);
+                            } else {
+                              _types.remove(type);
+                            }
+                          });
+                        },
+                      ),
+                    )
+                    .toList(),
               ),
               const SizedBox(height: 16),
               Text(
@@ -945,19 +971,23 @@ class _FilterDialogState extends State<_FilterDialog> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: DetectionUserStatus.values.map((status) => FilterChip(
-                    label: Text(status.name),
-                    selected: _statuses.contains(status),
-                    onSelected: (selected) {
-                      setState(() {
-                        if (selected) {
-                          _statuses.add(status);
-                        } else {
-                          _statuses.remove(status);
-                        }
-                      });
-                    },
-                  ),).toList(),
+                children: DetectionUserStatus.values
+                    .map(
+                      (status) => FilterChip(
+                        label: Text(status.name),
+                        selected: _statuses.contains(status),
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _statuses.add(status);
+                            } else {
+                              _statuses.remove(status);
+                            }
+                          });
+                        },
+                      ),
+                    )
+                    .toList(),
               ),
               const SizedBox(height: 16),
               Text(
@@ -1045,83 +1075,86 @@ class _AdjustDetectionDialogState extends State<_AdjustDetectionDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-      title: const Text('Adjust Detection'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            title: const Text('Start Time'),
-            subtitle: Text(_formatDuration(_startTime)),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.remove),
-                  onPressed: () {
-                    final newStart =
-                        _startTime - const Duration(milliseconds: 100);
-                    if (newStart >= Duration.zero) {
-                      setState(() => _startTime = newStart);
-                    }
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () {
-                    final newStart =
-                        _startTime + const Duration(milliseconds: 100);
-                    if (newStart < _endTime) {
-                      setState(() => _startTime = newStart);
-                    }
-                  },
-                ),
-              ],
+        title: const Text('Adjust Detection'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('Start Time'),
+              subtitle: Text(_formatDuration(_startTime)),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: () {
+                      final newStart =
+                          _startTime - const Duration(milliseconds: 100);
+                      if (newStart >= Duration.zero) {
+                        setState(() => _startTime = newStart);
+                      }
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () {
+                      final newStart =
+                          _startTime + const Duration(milliseconds: 100);
+                      if (newStart < _endTime) {
+                        setState(() => _startTime = newStart);
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-          ListTile(
-            title: const Text('End Time'),
-            subtitle: Text(_formatDuration(_endTime)),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.remove),
-                  onPressed: () {
-                    final newEnd = _endTime - const Duration(milliseconds: 100);
-                    if (newEnd > _startTime) {
-                      setState(() => _endTime = newEnd);
-                    }
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () {
-                    setState(() => _endTime =
-                        _endTime + const Duration(milliseconds: 100),);
-                  },
-                ),
-              ],
+            ListTile(
+              title: const Text('End Time'),
+              subtitle: Text(_formatDuration(_endTime)),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: () {
+                      final newEnd =
+                          _endTime - const Duration(milliseconds: 100);
+                      if (newEnd > _startTime) {
+                        setState(() => _endTime = newEnd);
+                      }
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () {
+                      setState(
+                        () => _endTime =
+                            _endTime + const Duration(milliseconds: 100),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Duration: ${(_endTime - _startTime).inMilliseconds}ms',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Duration: ${(_endTime - _startTime).inMilliseconds}ms',
-            style: Theme.of(context).textTheme.bodySmall,
+          FilledButton(
+            onPressed: () {
+              widget.onSave(_startTime, _endTime);
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
           ),
         ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () {
-            widget.onSave(_startTime, _endTime);
-            Navigator.pop(context);
-          },
-          child: const Text('Save'),
-        ),
-      ],
-    );
+      );
 }

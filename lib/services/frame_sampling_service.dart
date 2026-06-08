@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:kidslens_video_editor/data/models/frame_data.dart';
+import 'package:kidslens_video_editor/data/models/sampled_frame_ref.dart';
+import 'package:kidslens_video_editor/data/models/video_chunk.dart';
 import 'package:kidslens_video_editor/native/bindings/ffmpeg_bindings.dart';
 
 /// Configuration for frame sampling
@@ -113,6 +115,34 @@ class FrameSamplingProgress {
   double get percentage => progress * 100;
 }
 
+/// Configuration for chunk-aware frame-reference selection.
+class ChunkFrameSelectionConfig {
+  const ChunkFrameSelectionConfig({
+    this.maxFramesPerChunk = 12,
+    this.includeStart = true,
+    this.includeMiddle = true,
+    this.includeEnd = true,
+    this.includeSceneChanges = true,
+    this.includeMotionTimestamps = true,
+  });
+
+  final int maxFramesPerChunk;
+  final bool includeStart;
+  final bool includeMiddle;
+  final bool includeEnd;
+  final bool includeSceneChanges;
+  final bool includeMotionTimestamps;
+
+  Map<String, dynamic> toJson() => {
+        'maxFramesPerChunk': maxFramesPerChunk,
+        'includeStart': includeStart,
+        'includeMiddle': includeMiddle,
+        'includeEnd': includeEnd,
+        'includeSceneChanges': includeSceneChanges,
+        'includeMotionTimestamps': includeMotionTimestamps,
+      };
+}
+
 /// Service for intelligent frame extraction from video files
 ///
 /// Extracts frames at configurable rates with support for keyframe detection
@@ -181,6 +211,131 @@ class FrameSamplingService {
         outputHeight: height,
       ),
     );
+  }
+
+  /// Build deterministic frame references for VLM-style chunk analysis.
+  List<SampledFrameRef> selectFrameRefsForChunks(
+    List<VideoChunk> chunks, {
+    ChunkFrameSelectionConfig config = const ChunkFrameSelectionConfig(),
+    Map<String, List<Duration>> motionTimestampsByChunkId = const {},
+  }) {
+    if (config.maxFramesPerChunk < 1) {
+      throw ArgumentError.value(
+        config.maxFramesPerChunk,
+        'maxFramesPerChunk',
+        'Must select at least one frame per non-empty chunk',
+      );
+    }
+
+    final refs = <SampledFrameRef>[];
+    for (final chunk in chunks) {
+      final candidates = <int, Set<String>>{};
+
+      void addCandidate(Duration timestamp, String reason) {
+        if (timestamp < chunk.startTime || timestamp >= chunk.endTime) {
+          return;
+        }
+        candidates
+            .putIfAbsent(timestamp.inMilliseconds, () => <String>{})
+            .add(reason);
+      }
+
+      if (config.includeStart) {
+        addCandidate(chunk.startTime, 'chunk_start');
+      }
+      if (config.includeMiddle) {
+        addCandidate(
+          chunk.startTime +
+              Duration(milliseconds: chunk.duration.inMilliseconds ~/ 2),
+          'chunk_middle',
+        );
+      }
+      if (config.includeEnd) {
+        addCandidate(
+          chunk.endTime - const Duration(milliseconds: 1),
+          'chunk_end',
+        );
+      }
+      if (config.includeSceneChanges) {
+        for (final timestamp in chunk.sceneChangeTimestamps) {
+          addCandidate(timestamp, 'scene_change');
+        }
+      }
+      if (config.includeMotionTimestamps) {
+        for (final timestamp
+            in motionTimestampsByChunkId[chunk.id] ?? const <Duration>[]) {
+          addCandidate(timestamp, 'motion');
+        }
+      }
+
+      final selectedTimestamps = _selectRepresentativeTimestamps(
+        candidates.keys.toList(growable: false)..sort(),
+        config.maxFramesPerChunk,
+      );
+
+      for (var frameIndex = 0;
+          frameIndex < selectedTimestamps.length;
+          frameIndex++) {
+        final timestamp =
+            Duration(milliseconds: selectedTimestamps[frameIndex]);
+        refs.add(
+          SampledFrameRef(
+            id: SampledFrameRef.deterministicId(
+              mediaId: chunk.mediaId,
+              chunkId: chunk.id,
+              frameIndex: frameIndex,
+              timestamp: timestamp,
+            ),
+            mediaId: chunk.mediaId,
+            chunkId: chunk.id,
+            frameIndex: frameIndex,
+            timestamp: timestamp,
+            selectionReasons:
+                candidates[selectedTimestamps[frameIndex]]!.toList()..sort(),
+          ),
+        );
+      }
+    }
+
+    return refs;
+  }
+
+  /// Build deterministic fixed-FPS frame references for legacy providers.
+  List<SampledFrameRef> selectLegacyFixedFpsFrameRefs(
+    List<VideoChunk> chunks, {
+    double fps = 1.0,
+  }) {
+    if (fps <= 0) {
+      throw ArgumentError.value(fps, 'fps', 'FPS must be positive');
+    }
+
+    final refs = <SampledFrameRef>[];
+    final intervalMs = (1000 / fps).round();
+    for (final chunk in chunks) {
+      var timestampMs = chunk.startTime.inMilliseconds;
+      var frameIndex = 0;
+      while (timestampMs < chunk.endTime.inMilliseconds) {
+        final timestamp = Duration(milliseconds: timestampMs);
+        refs.add(
+          SampledFrameRef(
+            id: SampledFrameRef.deterministicId(
+              mediaId: chunk.mediaId,
+              chunkId: chunk.id,
+              frameIndex: frameIndex,
+              timestamp: timestamp,
+            ),
+            mediaId: chunk.mediaId,
+            chunkId: chunk.id,
+            frameIndex: frameIndex,
+            timestamp: timestamp,
+            selectionReasons: const ['legacy_fixed_fps'],
+          ),
+        );
+        timestampMs += intervalMs;
+        frameIndex++;
+      }
+    }
+    return refs;
   }
 
   /// Extract a single frame at a specific timestamp
@@ -347,20 +502,26 @@ class FrameSamplingService {
     }
 
     // Build video filter chain
-    final filters = <String>[];
-    filters.add('fps=$fps');
-    filters.add('scale=$width:$height');
+    final filters = <String>[
+      'fps=$fps',
+      'scale=$width:$height',
+    ];
     final vf = filters.join(',');
 
     final process = await Process.start(
       ffmpegPath,
       [
         '-hide_banner',
-        '-loglevel', 'error',
-        '-i', videoPath,
-        '-vf', vf,
-        '-pix_fmt', pixelFormat,
-        '-f', 'rawvideo',
+        '-loglevel',
+        'error',
+        '-i',
+        videoPath,
+        '-vf',
+        vf,
+        '-pix_fmt',
+        pixelFormat,
+        '-f',
+        'rawvideo',
         'pipe:1',
       ],
       runInShell: Platform.isWindows,
@@ -373,9 +534,9 @@ class FrameSamplingService {
     try {
       await for (final chunk in process.stdout) {
         // Append chunk to buffer
-        final newBuffer = Uint8List(buffer.length + chunk.length);
-        newBuffer.setRange(0, buffer.length, buffer);
-        newBuffer.setRange(buffer.length, newBuffer.length, chunk);
+        final newBuffer = Uint8List(buffer.length + chunk.length)
+          ..setRange(0, buffer.length, buffer)
+          ..setRange(buffer.length, buffer.length + chunk.length, chunk);
         buffer = newBuffer;
 
         // Yield complete frames as soon as we have enough data
@@ -606,6 +767,24 @@ class FrameSamplingService {
       case FrameFormat.nv12:
         return (width * height * 3) ~/ 2;
     }
+  }
+
+  List<int> _selectRepresentativeTimestamps(
+    List<int> sortedTimestamps,
+    int maxCount,
+  ) {
+    if (sortedTimestamps.length <= maxCount) {
+      return sortedTimestamps;
+    }
+
+    final selected = <int>{};
+    final lastIndex = sortedTimestamps.length - 1;
+    for (var i = 0; i < maxCount; i++) {
+      final index =
+          maxCount == 1 ? 0 : (i * lastIndex / (maxCount - 1)).round();
+      selected.add(sortedTimestamps[index]);
+    }
+    return selected.toList(growable: false)..sort();
   }
 
   String _ffmpegPixelFormat(FrameFormat format) {

@@ -33,7 +33,7 @@ Primary references reviewed:
 - NVIDIA Nemotron Nano VL official weights: https://huggingface.co/nvidia/NVIDIA-Nemotron-Nano-12B-v2-VL-FP8
 - NVIDIA RTX 5070 official specs: https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5070-family/
 - Alibaba Qwen3.5 4B official weights: https://huggingface.co/Qwen/Qwen3.5-4B
-- Google Gemma 4 official weights: https://huggingface.co/google/gemma-4-E4B
+- Google Gemma 4 official weights: https://huggingface.co/google/gemma-4-E4B-it
 - Google Gemma 4 12B official weights: https://huggingface.co/google/gemma-4-12B-it
 - Microsoft Phi-4 multimodal official weights: https://huggingface.co/microsoft/Phi-4-multimodal-instruct
 - Microsoft Phi-4 multimodal ONNX official weights: https://huggingface.co/microsoft/Phi-4-multimodal-instruct-onnx
@@ -434,7 +434,7 @@ This is the current model approval table for the local-only RTX 5070 target. "Ap
 | NVIDIA | `nvidia/LocateAnything-3B` | Optional grounding/bounding-box evaluation | NVIDIA License, non-commercial research terms on current model card | No for production/commercial app under current terms | Optional evaluation only; disabled by default |
 | Alibaba/Qwen | `Qwen/Qwen3.5-4B` | Main Qwen VLM candidate | Apache 2.0 | Yes | Approved candidate; needs RTX 5070 validation |
 | Alibaba/Qwen | `Qwen/Qwen3.5-2B` | Lightweight Qwen fallback | Apache 2.0 | Yes | Optional candidate if validation quality is acceptable |
-| Google | `google/gemma-4-E4B-it` / `google/gemma-4-E4B` | Main VLM candidate | Apache 2.0 | Yes | Approved candidate; E4B is preferred for RTX 5070 evaluation |
+| Google | `google/gemma-4-E4B-it` | Main VLM candidate | Apache 2.0 | Yes | Approved candidate; E4B is preferred for RTX 5070 evaluation |
 | Google | `google/gemma-4-12B-it` | Higher-capability VLM candidate | Apache 2.0 | Yes | Approved candidate only as tight 4-bit/quantized RTX 5070 profile |
 | Microsoft | `microsoft/Phi-4-multimodal-instruct` | Lightweight multimodal VLM candidate | MIT | Yes | Approved candidate |
 | Microsoft | `microsoft/Phi-4-multimodal-instruct-onnx` | Preferred Windows ONNX deployment candidate | MIT | Yes | Approved candidate; validate CUDA/DirectML locally |
@@ -717,25 +717,56 @@ Deliver:
 - Define the JSON schema for VLM outputs.
 - Define provider privacy rules.
 - Define evaluation dataset requirements and owners.
+- Implement the Phase 0 policy/governance source of truth in `lib/data/models/family_safety_policy.dart`.
+- Use `docs/implement/model-approval-record-template.md` for model approval.
+- Use `docs/implement/policy-review-record-template.md` for policy changes.
 
 Exit gate:
 
 - Policy schema, provider contracts, and evaluation metrics are documented and reviewed.
 
-### Phase 1: Pipeline Plugin Shell
+### Phase 1: Model Bundle Manifest
 
 Deliver:
 
+- Implement `ModelBundleManifest` in `lib/data/models/model_bundle_manifest.dart`.
+- Add RTX 5070 12 GB target-fit metadata, official source metadata, license/commercial-use status, local artifact URI, checksum, runtime, quantization, capability flags, and failure modes.
+- Add the initial major-provider catalog for NVIDIA, Alibaba/Qwen, Google, Microsoft, Meta, and an optional Mistral watchlist.
+- Keep `nvidia/LocateAnything-3B` optional/evaluation-only and production-blocked until license and commercial-use review permits production use.
+- Add source-review documentation in `docs/implement/model-bundle-manifest-source-review.md`.
+- Add manifest validation for official source, local-only artifacts, production checksum requirements, commercial-use status, and RTX 5070 validation.
+- Add scorecard fields for family-safety quality, grounding quality, explainability, GPU throughput, VRAM fit, Windows runtime readiness, and license fit.
+
+Exit gate:
+
+- Invalid/community/cloud manifest entries fail tests.
+- No model is production-selectable until it has a checksum, local artifact provenance, required terms acceptance, and measured RTX 5070 12 GB validation.
+
+Status:
+
+- Complete as of 2026-06-07. `ModelBundleCatalog.productionSelectable` is intentionally empty until runtime validation evidence is recorded.
+
+### Phase 2: Pipeline Registry and Legacy Wrapping
+
+Deliver:
+
+- Add `lib/services/detection/`.
 - Add `DetectionPipeline` interface.
 - Add pipeline registry/factory.
+- Add pipeline profiles for `vss_family_safety_v1`, `legacy_nsfw_region_v8`, `audio_only`, and `fast_preview`.
 - Wrap current `AnalysisService` visual logic as `legacy_nsfw_region_v8`.
-- Route `AnalysisService.analyze()` through selected pipeline without changing UI output.
+- Route `AnalysisService.analyze()` through the selected pipeline without changing UI output.
+- Add `AnalysisSettings.analysisPipelineId`.
 
 Exit gate:
 
 - Existing tests pass and current detection behavior is unchanged when legacy profile is selected.
 
-### Phase 2: Chunked Ingestion
+Status:
+
+- Complete as of 2026-06-07. `AnalysisService.analyze()` now dispatches through `DetectionPipelineRegistry`; the registered VSS, audio-only, and fast-preview profiles fall back to the legacy pipeline until later provider phases are implemented.
+
+### Phase 3: Chunked Ingestion
 
 Deliver:
 
@@ -749,7 +780,11 @@ Exit gate:
 - Deterministic chunk plans for fixed media fixtures.
 - Long videos can resume from checkpoints by chunk ID.
 
-### Phase 3: Evidence Store
+Status:
+
+- Complete as of 2026-06-07. Chunked ingestion now has `VideoChunk`, `SampledFrameRef`, `AnalysisRunManifest`, deterministic chunk IDs, deterministic frame IDs, scene-aware boundary planning, overlap handling, VLM-style frame reference selection, legacy fixed-FPS frame references, and checkpoint metadata fields. Provider execution remains in later evidence/runtime phases.
+
+### Phase 4: Evidence Store
 
 Deliver:
 
@@ -761,7 +796,29 @@ Exit gate:
 
 - A completed analysis run can be replayed from evidence without re-running models.
 
-### Phase 4: VLM Provider Abstraction
+Status:
+
+- Complete as of 2026-06-07. Evidence persistence now has `EvidenceRecord`, `EvidenceProvenance`, all planned evidence types, JSON-backed `JsonEvidenceStore`, deterministic ID deduplication, and `EvidenceReplayService` replay into `AnalysisResult`, frame results, transcript spans, profanity matches, region detections, and UI-compatible timelines. SQLite is intentionally deferred until measured project persistence/query speed requires it.
+
+### Phase 5: Local Runtime Management
+
+Deliver:
+
+- Add `LocalRuntimeProfile`.
+- Add GPU discovery and VRAM-fit checks.
+- Add local runtime selection for CUDA/TensorRT, CUDA vLLM, CUDA Transformers helper, DirectML/ONNX, and CPU-lightweight.
+- Reject hosted endpoints and non-loopback runtime URLs.
+- Surface runtime, model, GPU device, VRAM estimate, and fallback reason.
+
+Exit gate:
+
+- GPU is selected when available and non-local endpoints are rejected.
+
+Status:
+
+- Complete as of 2026-06-07. Local runtime management now has `LocalRuntimeProfile`, runtime IDs for CUDA/TensorRT, CUDA vLLM, CUDA Transformers helper, DirectML/ONNX, and CPU lightweight, GPU discovery through `GPUAccelerationManager`, loopback-only endpoint validation, hosted endpoint/model-reference rejection, workload-based VRAM estimates, RTX 5070 validation records, structured provider-resolution logs, fallback selection, and UI-visible `LocalRuntimeStatus`.
+
+### Phase 6: VLM Provider Abstraction
 
 Deliver:
 
@@ -771,16 +828,54 @@ Deliver:
   - local NVIDIA NIM/TensorRT-LLM where supported
   - local Transformers/PyTorch helper for validation
   - ONNX/TensorRT converted model bundles where feasible
-- Add NVIDIA Cosmos Reason, NVIDIA Nemotron VL, optional NVIDIA LocateAnything, Alibaba Qwen3.5, Google Gemma 4, Microsoft Phi-4 multimodal, and Meta Llama 4 model-bundle manifests.
+- Resolve model limits from the Phase 1 model-bundle manifest.
 - Add strict output schema validation and retry/repair rules.
 - Add local-only enforcement that rejects non-loopback endpoints and hosted model URLs.
-- Add official-source provenance enforcement.
+- Add official-source provenance enforcement at provider startup.
 
 Exit gate:
 
 - A small video fixture produces valid structured VLM chunk analysis using a local runtime and official or internally converted model bundle.
 
-### Phase 5: Family-Safety Policy Engine
+Status:
+
+- Complete as of 2026-06-07 for the provider abstraction and local-runtime adapter contract. `lib/services/detection/vlm_provider.dart` now defines `VlmProvider`, `VideoSegmentRequest`, `VlmSegmentResponse`, strict JSON parsing and deterministic repair, a deterministic mock provider, and local loopback HTTP adapters for Transformers helper, vLLM, and NVIDIA runtime paths. The provider layer enforces model-bundle frame, context, image/video mode, resolution, prompt, timeout, and cancellation limits before inference, rejects non-loopback hosted endpoints through `LocalRuntimeEndpointPolicy`, and writes raw and parsed VLM responses to `EvidenceStore` as provenance-linked evidence. The exit gate is covered by deterministic tests that exercise the mock provider plus the loopback HTTP adapter with a local fake client; real model-server validation remains a later hardware/runtime validation task before any model becomes production selectable.
+
+### Phase 7: Grounding and Boundary Detection
+
+Deliver:
+
+- Add `GroundingProvider` and `GroundedRegion`.
+- Parse VLM-native boxes when supported.
+- Add optional `LocateAnythingGroundingProvider` spike behind evaluation-only gating.
+- Normalize boxes/points/masks, reject invalid regions, and link every region to evidence.
+- Fall back to NudeNet and modesty-parser regions where useful.
+
+Exit gate:
+
+- Detections can carry region boxes when evidence supports them and scene-level status when they do not.
+
+Status:
+
+- Complete as of 2026-06-07 for the grounding abstraction, evidence model, and local/evaluation adapters. `lib/data/models/grounded_region.dart` now defines `GroundedRegion`, normalized box validation, mask references, region confidence/rationale/provenance, and `groundingStatus` values. `lib/services/detection/grounding_provider.dart` adds VLM-native grounded-region parsing, official grounding model gating, legacy NudeNet and modesty-parser fallbacks, and an evaluation-only `LocateAnythingGroundingProvider` that parses `<box>` and `<point>` tokens while remaining production-blocked unless an explicit evaluation run records license, local runtime, decoding benchmark, prompt coverage, IoU, and failure-mode validation. Grounded evidence persists as `grounded_region` records and replays into frame-level detected regions through the existing evidence replay path.
+
+### Phase 8: Prompt and Schema Design
+
+Deliver:
+
+- Add caption, policy, and grounding prompt templates.
+- Require JSON-only policy output, short rationales, uncertainty records, and region IDs for localizable findings.
+- Add examples for safe swimwear, revealing clothing, exposed limbs, nudity, violence, blood/gore, and weapon ambiguity.
+
+Exit gate:
+
+- Prompts and schemas produce stable, parseable, explainable findings in fixtures.
+
+Status:
+
+- Complete as of 2026-06-07. `lib/services/detection/family_safety_prompt_templates.dart` defines the default local VLM caption, policy, and grounding prompts plus `FamilySafetyVlmOutputSchema`. The policy prompt requires JSON-only output, category-specific findings, short factual rationales, uncertainty records, grounding status, review flags, and region IDs whenever a finding is grounded. The prompt examples cover safe swimwear, revealing clothing, exposed limbs, explicit nudity, romantic kissing, sexualized behavior, sports contact, medical blood, Halloween makeup, and weapon/toy ambiguity. `VlmJsonParser` now validates parsed provider JSON against the same schema before evidence records are created.
+
+### Phase 9: Family-Safety Policy Engine
 
 Deliver:
 
@@ -793,7 +888,11 @@ Exit gate:
 
 - Golden tests convert representative evidence records into expected policy findings.
 
-### Phase 6: Temporal Fusion and Detection Builder
+Status:
+
+- Complete as of 2026-06-07. `PolicyCategory` wraps the Phase 0 family-safety taxonomy with default action, enforcement mode, boundary requirement, review-first, and high-recall metadata; `PolicyFinding` stores deterministic policy findings with category, severity, confidence, evidence IDs, source model IDs, user rationale, grounding status, region IDs, agreement state, and developer trace payload. `PolicyEngine` maps parsed VLM JSON, legacy NSFW scores, legacy NudeNet regions, modesty-parser signals, grounded-region evidence, transcript classifier metadata, and profanity matches into findings. The engine applies review-first handling for immodest female clothing, high-recall handling for explicit nudity/gore/blood/weapons, and provider-disagreement states for VLM-unsafe/legacy-safe, legacy-unsafe/VLM-omitted, both-agree-unsafe, and provider failure warnings.
+
+### Phase 10: Temporal Fusion and Detection Builder
 
 Deliver:
 
@@ -805,7 +904,11 @@ Exit gate:
 
 - Fixture evidence produces stable timeline segments with no duplicate/fragmented detections.
 
-### Phase 7: Search and Retrieval
+Status:
+
+- Complete as of 2026-06-07. `lib/services/detection/temporal_fusion.dart` adds `TemporalFusion`, `FusedPolicySegment`, and `PolicyDetectionBuilder`. The fusion layer merges overlapping and adjacent same-category policy findings, smooths chunk overlap, preserves short critical events, aggregates confidence and severity, and carries review flags, source models, supporting evidence IDs, rationales, agreement states, grounding status, region IDs, and bounding boxes. The detection builder emits current `Detection` and `UnifiedTimeline` objects for UI compatibility while keeping richer category migration metadata in each detection through `policyCategoryId`, `policyContentType`, `migrationContentType`, `visualContentCategory`, `boundingBoxes`, and remediation `action`.
+
+### Phase 11: Search and Retrieval
 
 Deliver:
 
@@ -818,7 +921,54 @@ Exit gate:
 
 - Searches such as "blood", "fight", "revealing clothes", and "weapon" return timestamped results from analyzed videos.
 
-### Phase 8: Evaluation and Calibration
+Status:
+
+- Complete as of 2026-06-08. `lib/services/detection/local_search_index.dart` adds the local retrieval layer: searchable document records, `LocalSearchIndex`, `InMemoryLocalSearchIndex`, JSON vector/document persistence, a local embedding provider interface, deterministic hash embeddings for tests and offline fallback behavior, family-safety lexical synonym expansion, and `FamilySafetySearchIndexer` for evidence, policy findings, transcript spans, region labels, and user review corrections. The model catalog now includes official `Qwen/Qwen3-Embedding-0.6B` as the initial Apache-2.0 local embedding candidate, with validation adjusted for text-only embedding roles. Fixture tests verify searches for "blood", "fight", "weapon", "revealing clothes", "exposed legs", and "nudity" return timestamped results without reanalysis.
+
+### Phase 12: User-Facing Explainability
+
+Deliver:
+
+- Update review UI to show policy category, severity, confidence, rationale, source model names, reviewed status, suggested action, and region/scene-level status.
+- Show thumbnails and bounding boxes when available.
+- Keep raw model dumps out of release UI.
+
+Exit gate:
+
+- A user can understand what was flagged and why without opening debug tools.
+
+Complete as of 2026-06-08. `Detection` now has typed accessors for Phase 10 policy metadata, including policy category, severity, rationale, source models, supporting evidence IDs, grounding status, region IDs, multiple bounding boxes, suggested remediation, review state, and supporting frame references. `DetectionExplanationPanel` renders sanitized user-facing explanations in the editor detection panel and detection review screen with selectable rationale text, region/scene-level labels, source models, suggested action, reviewed status, frame reference support, and optional thumbnail/bounding-box previews. Raw provider JSON remains excluded from release UI. Focused widget tests verify metadata rendering, raw dump suppression, scene-level fallback messaging, and editor-panel integration.
+
+### Phase 13: Debug-Only Detection Overlay
+
+Deliver:
+
+- Add a `kDebugMode`-gated detection overlay.
+- Draw chunks, sampled frames, boxes, masks, points, scene-level bands, category/severity colors, and runtime/fallback status.
+- Show provider disagreement, schema repair warnings, first-pass vs second-pass differences, and raw parsed provider JSON.
+- Export a local redacted debug bundle.
+
+Exit gate:
+
+- Debug overlay works in debug builds and is absent in release builds.
+
+Complete as of 2026-06-08. `DebugDetectionOverlay` and `DebugDetectionTimelineOverlay` add a `kDebugMode`-gated troubleshooting view for active preview detections and timeline diagnostics. The editor exposes a debug-only Analysis menu toggle, preview/timeline integrations render chunk boundaries, sampled frame markers, bounding boxes, masks, point localization, scene-level bands, category/severity color coding, rationale, evidence IDs, provider disagreement, schema repair warnings, first-pass/second-pass changes, raw parsed provider JSON, and runtime/GPU/fallback status. `DebugDetectionBundleExporter` creates local redacted JSON bundles with analysis manifests, official model manifests, chunk plans, evidence records, parsed VLM JSON, timing metrics, and redacted prompts while filtering secrets, media paths, URLs, and unrelated files. Focused widget and service tests verify release gating, diagnostics rendering, timeline drawing hooks, bundle export, and redaction.
+
+### Phase 14: Settings and Model Management UI
+
+Deliver:
+
+- Add pipeline, runtime, and model-bundle selectors.
+- Show model source, license, official-source badge, checksum status, terms acceptance, GPU compatibility, VRAM estimate, and capability flags.
+- Block community model selection in production.
+
+Exit gate:
+
+- Users can select only approved local model bundles.
+
+Complete as of 2026-06-08. Analysis Settings now exposes a `Local Model Bundles` tab with selectors for pipeline, local runtime, and role-specific VLM/grounding/embedding bundles. The selection state is persisted in `SettingsState` without generated-code changes, while `ModelBundleSelectionPolicy` enforces production gating against the official manifest catalog: only official-source, commercially usable, terms-satisfied, checksum-validated, RTX-validated, runtime-compatible, production-approved bundles can be selected. Candidate rows show source, license, official-source badge, commercial status, checksum status, terms state, GPU/VRAM fit, runtime, and video/image/bounding-box/mask/point capability flags. Install controls distinguish official artifacts from internal converted artifacts and remain disabled until the manifest passes production checks, which keeps evaluation-only, watchlist, blocked, non-commercial, and community-derived entries from becoming production selections. Focused tests cover settings persistence, selector state, policy blockers, terms acceptance, and the local bundle UI.
+
+### Phase 15: Evaluation and Calibration
 
 Deliver:
 
@@ -847,7 +997,9 @@ Suggested gates before making the VLM pipeline enforce-default:
 - P95 chunk analysis latency and cost are within the configured user profile limits.
 - Region grounding quality is measured for all boundary-capable categories using temporal IoU and box/mask IoU.
 
-### Phase 9: Default Rollout
+Complete as of 2026-06-08. `EvaluationDataset.familySafetyV1Smoke` defines the local labeled validation manifest with safe controls, category positives, ambiguous/boundary examples, low-light and motion-blur clips, short unsafe flashes, long-context clips, immodest female clothing examples, gore/blood/violence/weapons positives, and bounding-box ground truth. `EvaluationRunner` evaluates deterministic profile predictions against that manifest with category-aware greedy matching, temporal IoU, optional box IoU, and mask IoU hints. It reports recall, precision, false negative rate, safe-control false positive rate, temporal IoU, box IoU, mask IoU, review burden per hour, explanation completeness, chunk latency p50/p95, peak memory, and peak VRAM. Comparison reports cover legacy-only, VLM-only, VLM-plus-legacy-evidence, VLM-plus-grounding, and runtime-specific profiles, with configurable default-vs-legacy exit gates. `docs/implement/family-safety-evaluation-dataset.md` documents the fixture contract, and focused tests cover dataset coverage, JSON compatibility, IoU math, metrics, profile comparison, and exit-gate failures.
+
+### Phase 16: Default Rollout
 
 Deliver:
 
@@ -866,7 +1018,9 @@ Exit gate:
 
 - New projects default to `vss_family_safety_v1`; existing projects retain their configured profile unless migrated by the user.
 
-### Phase 10: Legacy Deprecation Plan
+Complete as of 2026-06-08. `DetectionPipelineRolloutState` persists the rollout flags as `off`, `shadow`, `preview`, `default`, and `enforce`, while `DetectionPipelineRolloutConfig` and `DetectionPipelineRolloutDecision` make the active pipeline, fallback status, shadow pipeline, checkpoint compatibility, and rationale explainable. `DetectionPipelineRegistry.resolveRollout()` applies rollout policy at the registry boundary: off and shadow keep legacy active, shadow only runs a candidate when VSS is directly runnable, preview uses the requested preview profile with fallback, default mode preserves existing checkpoint pipelines while new analyses target `vss_family_safety_v1`, and enforce mode selects VSS with legacy fallback only for runtime failure handling. `AnalysisService.analyze()` dispatches through this rollout decision and records local telemetry for incompatible checkpoints and pipeline failures. Local telemetry can be stored in memory or JSONL, and fixture shadow comparison reports can be stored in memory or JSON using the Phase 15 evaluation runner. Tests cover rollout resolution, fallback, service integration, failure handling, local telemetry, and report persistence.
+
+### Phase 17: Legacy Deprecation Plan
 
 Do not remove legacy pipelines immediately.
 
@@ -881,8 +1035,51 @@ Then:
 
 - Mark legacy NSFW classifier as auxiliary-only.
 - Mark NudeNet as region-localization helper.
+
+Complete as of 2026-06-08. The policy engine now supports
+`LegacyEvidencePolicy.directDetection` for existing legacy projects and
+`PolicyEngineOptions.vssDefault()` with auxiliary-only legacy evidence for the
+new default VSS path. `PolicyEngine.forPipeline()` selects that behavior for
+`vss_family_safety_v1` and keeps direct legacy behavior for
+`legacy_nsfw_region_v8`. Auxiliary-only mode retains legacy NSFW safe-window
+evidence for VSS/legacy disagreement checks, while preventing raw legacy NSFW
+scores, raw NudeNet regions, and raw modesty-parser signals from becoming direct
+policy findings. NudeNet and the modesty parser remain available as auxiliary
+grounding providers, and grounded-region records can still support user-visible
+findings with item boundaries. `LegacyDeprecationReadinessChecker` defines the
+explicit deprecation gate: legacy NSFW auxiliary evidence, NudeNet grounding,
+parser grounding, old-result readability, export/remediation compatibility, VSS
+evaluation success, and the measured stability window must all pass before the
+legacy direct-detection path can be deprecated. The criteria are documented in
+`docs/implement/legacy-direct-detection-deprecation-readiness.md`.
 - Keep parser-backed modesty only if it improves measured performance.
 - Remove direct legacy-to-detection pathways after a stable compatibility window.
+
+### Phase 18: Default Migration
+
+Deliver:
+
+- Make `vss_family_safety_v1` the default settings, registry, and rollout
+  profile for new analyses.
+- Keep `legacy_nsfw_region_v8` visible as an explicit legacy option.
+- Preserve existing checkpoint compatibility and legacy-result readability.
+- Show default/legacy status in the settings UI.
+
+Exit gate:
+
+- New analyses route through `vss_family_safety_v1` by default.
+- Explicit legacy selection still routes through `legacy_nsfw_region_v8`.
+- Routing, settings, registry, and settings-UI tests pass.
+
+Complete as of 2026-06-08. `AnalysisSettings.defaults()`,
+`SettingsState`, generated JSON migration defaults,
+`DetectionPipelineRegistry`, and `AnalysisService` now use
+`vss_family_safety_v1` as the default. `AnalysisService` registers a runnable
+`VssFamilySafetyPipelineAdapter` plus the `LegacyNsfwPipelineAdapter`; the
+legacy adapter remains selectable from the settings UI and is labeled as a
+legacy option. The default VSS path keeps all inference local and continues to
+reuse the current local analysis runner while model bundle/runtime selection is
+validated, with legacy evidence treated as auxiliary in the policy engine.
 
 ## 11. Prompting Strategy For Family Safety
 
@@ -999,16 +1196,25 @@ RTX 5070 fit gate:
 Model bundle manifest must include:
 
 - `modelId`
+- `displayName`
+- `vendor`
 - `officialSourceRepo`
 - `officialRevision`
 - `license`
 - `acceptedTermsRequired`
 - `artifactType`
+- `artifactUri`
 - `conversionRecipeId`
 - `sha256`
 - `runtime`
 - `minVramGb`
+- `recommendedVramGb`
+- `targetGpuClass`
+- `maxValidatedVramGb`
+- `quantization`
+- `fitsRtx5070Validated`
 - `supportsVideoInput`
+- `supportsImageInput`
 - `supportsBoundingBoxes`
 - `supportsMasks`
 - `supportsPointLocalization`
@@ -1048,18 +1254,21 @@ Privacy rule:
 Recommended first PR sequence:
 
 1. Add planning and contract docs.
-2. Add `DetectionPipeline` and registry without changing behavior.
-3. Wrap the current visual path as `legacy_nsfw_region_v8`.
-4. Add `VideoChunk`, `EvidenceRecord`, and `PolicyFinding` models.
-5. Add chunk planner tests.
-6. Add evidence-store replay tests.
-7. Add local-only `VlmProvider` interface and a mock provider for deterministic tests.
-8. Add official model-bundle manifest validation.
-9. Add policy engine with golden fixtures.
-10. Add local runtime adapters behind a feature flag.
+2. Add policy/governance source of truth and approval templates.
+3. Add official model-bundle manifest validation and source-review documentation.
+4. Add `DetectionPipeline` and registry without changing behavior.
+5. Wrap the current visual path as `legacy_nsfw_region_v8`.
+6. Add `VideoChunk`, `EvidenceRecord`, and `PolicyFinding` models.
+7. Add chunk planner tests.
+8. Add evidence-store replay tests.
+9. Add local runtime profiles and loopback-only validation.
+10. Add local-only `VlmProvider` interface and a mock provider for deterministic tests.
 11. Add grounding provider and boundary metadata.
-12. Add debug-only detection overlay.
-13. Add search index after evidence records are stable.
+12. Add prompt/schema golden tests.
+13. Add policy engine with golden fixtures.
+14. Add local runtime adapters behind a feature flag.
+15. Add debug-only detection overlay.
+16. Add search index after evidence records are stable.
 
 ## 18. Main Design Decisions
 

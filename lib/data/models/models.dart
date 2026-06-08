@@ -1,7 +1,9 @@
 /// Core data models for KidsLens video editor
 library models;
 
+export 'analysis_checkpoint.dart';
 export 'analysis_result.dart';
+export 'analysis_run_manifest.dart';
 export 'analysis_settings.dart';
 export 'artifact.dart';
 export 'content_category.dart';
@@ -9,19 +11,27 @@ export 'content_category_defaults.dart';
 export 'converters.dart';
 export 'detection.dart';
 export 'edit_action.dart';
+export 'evidence_record.dart';
+export 'family_safety_policy.dart';
 export 'frame_analysis_result.dart';
 export 'frame_data.dart';
 export 'gpu_config.dart';
+export 'grounded_region.dart';
 export 'huggingface_model.dart';
+export 'local_runtime_profile.dart';
 export 'media_file.dart';
+export 'model_bundle_manifest.dart';
 export 'model_info.dart';
 export 'modification.dart';
+export 'policy_finding.dart';
 export 'profanity_match.dart';
 export 'project.dart';
+export 'sampled_frame_ref.dart';
 export 'subtitle_track.dart';
 export 'timeline.dart';
 export 'transcript.dart';
 export 'transcription_progress.dart';
+export 'video_chunk.dart';
 export 'visual_content_category.dart';
 export 'visual_content_defaults.dart';
 export 'voting_config.dart';

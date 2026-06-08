@@ -4,8 +4,9 @@ import 'package:kidslens_video_editor/presentation/screens/about_screen.dart';
 
 void main() {
   group('AboutScreen', () {
-    Widget createAboutScreen() => const MaterialApp(
-          home: AboutScreen(),
+    Widget createAboutScreen() => MaterialApp(
+          theme: ThemeData(splashFactory: NoSplash.splashFactory),
+          home: const AboutScreen(),
         );
 
     group('app header', () {
@@ -52,8 +53,7 @@ void main() {
         expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
       });
 
-      testWidgets('renders content detection limitations text',
-          (tester) async {
+      testWidgets('renders content detection limitations text', (tester) async {
         await tester.pumpWidget(createAboutScreen());
 
         expect(find.text('Content Detection Limitations'), findsOneWidget);
@@ -203,8 +203,7 @@ void main() {
         expect(find.byIcon(Icons.description_rounded), findsOneWidget);
       });
 
-      testWidgets('tapping licenses button shows license page',
-          (tester) async {
+      testWidgets('tapping licenses button shows license page', (tester) async {
         await tester.pumpWidget(createAboutScreen());
 
         // Scroll to make the licenses button visible

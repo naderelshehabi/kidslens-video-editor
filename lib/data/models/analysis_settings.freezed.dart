@@ -1107,6 +1107,7 @@ mixin _$AnalysisSettings {
   bool get mergeAdjacentDetections => throw _privateConstructorUsedError;
   int get detectionBufferMs => throw _privateConstructorUsedError;
   int get maxConcurrentAnalyses => throw _privateConstructorUsedError;
+  String get analysisPipelineId => throw _privateConstructorUsedError;
   ContentDetectionConfig get contentDetectionConfig =>
       throw _privateConstructorUsedError;
 
@@ -1136,6 +1137,7 @@ abstract class $AnalysisSettingsCopyWith<$Res> {
       bool mergeAdjacentDetections,
       int detectionBufferMs,
       int maxConcurrentAnalyses,
+      String analysisPipelineId,
       ContentDetectionConfig contentDetectionConfig});
 
   $ModelConfigCopyWith<$Res> get modelConfig;
@@ -1167,6 +1169,7 @@ class _$AnalysisSettingsCopyWithImpl<$Res, $Val extends AnalysisSettings>
     Object? mergeAdjacentDetections = null,
     Object? detectionBufferMs = null,
     Object? maxConcurrentAnalyses = null,
+    Object? analysisPipelineId = null,
     Object? contentDetectionConfig = null,
   }) {
     return _then(_value.copyWith(
@@ -1206,6 +1209,10 @@ class _$AnalysisSettingsCopyWithImpl<$Res, $Val extends AnalysisSettings>
           ? _value.maxConcurrentAnalyses
           : maxConcurrentAnalyses // ignore: cast_nullable_to_non_nullable
               as int,
+      analysisPipelineId: null == analysisPipelineId
+          ? _value.analysisPipelineId
+          : analysisPipelineId // ignore: cast_nullable_to_non_nullable
+              as String,
       contentDetectionConfig: null == contentDetectionConfig
           ? _value.contentDetectionConfig
           : contentDetectionConfig // ignore: cast_nullable_to_non_nullable
@@ -1263,6 +1270,7 @@ abstract class _$$AnalysisSettingsImplCopyWith<$Res>
       bool mergeAdjacentDetections,
       int detectionBufferMs,
       int maxConcurrentAnalyses,
+      String analysisPipelineId,
       ContentDetectionConfig contentDetectionConfig});
 
   @override
@@ -1295,6 +1303,7 @@ class __$$AnalysisSettingsImplCopyWithImpl<$Res>
     Object? mergeAdjacentDetections = null,
     Object? detectionBufferMs = null,
     Object? maxConcurrentAnalyses = null,
+    Object? analysisPipelineId = null,
     Object? contentDetectionConfig = null,
   }) {
     return _then(_$AnalysisSettingsImpl(
@@ -1334,6 +1343,10 @@ class __$$AnalysisSettingsImplCopyWithImpl<$Res>
           ? _value.maxConcurrentAnalyses
           : maxConcurrentAnalyses // ignore: cast_nullable_to_non_nullable
               as int,
+      analysisPipelineId: null == analysisPipelineId
+          ? _value.analysisPipelineId
+          : analysisPipelineId // ignore: cast_nullable_to_non_nullable
+              as String,
       contentDetectionConfig: null == contentDetectionConfig
           ? _value.contentDetectionConfig
           : contentDetectionConfig // ignore: cast_nullable_to_non_nullable
@@ -1355,6 +1368,7 @@ class _$AnalysisSettingsImpl extends _AnalysisSettings {
       this.mergeAdjacentDetections = true,
       this.detectionBufferMs = 100,
       this.maxConcurrentAnalyses = 4,
+      this.analysisPipelineId = 'vss_family_safety_v1',
       this.contentDetectionConfig = const ContentDetectionConfig()})
       : super._();
 
@@ -1388,11 +1402,14 @@ class _$AnalysisSettingsImpl extends _AnalysisSettings {
   final int maxConcurrentAnalyses;
   @override
   @JsonKey()
+  final String analysisPipelineId;
+  @override
+  @JsonKey()
   final ContentDetectionConfig contentDetectionConfig;
 
   @override
   String toString() {
-    return 'AnalysisSettings(modelConfig: $modelConfig, profanityConfig: $profanityConfig, enableProfanity: $enableProfanity, frameSamplingRate: $frameSamplingRate, useSceneDetection: $useSceneDetection, minSegmentDurationMs: $minSegmentDurationMs, mergeAdjacentDetections: $mergeAdjacentDetections, detectionBufferMs: $detectionBufferMs, maxConcurrentAnalyses: $maxConcurrentAnalyses, contentDetectionConfig: $contentDetectionConfig)';
+    return 'AnalysisSettings(modelConfig: $modelConfig, profanityConfig: $profanityConfig, enableProfanity: $enableProfanity, frameSamplingRate: $frameSamplingRate, useSceneDetection: $useSceneDetection, minSegmentDurationMs: $minSegmentDurationMs, mergeAdjacentDetections: $mergeAdjacentDetections, detectionBufferMs: $detectionBufferMs, maxConcurrentAnalyses: $maxConcurrentAnalyses, analysisPipelineId: $analysisPipelineId, contentDetectionConfig: $contentDetectionConfig)';
   }
 
   @override
@@ -1419,6 +1436,8 @@ class _$AnalysisSettingsImpl extends _AnalysisSettings {
                 other.detectionBufferMs == detectionBufferMs) &&
             (identical(other.maxConcurrentAnalyses, maxConcurrentAnalyses) ||
                 other.maxConcurrentAnalyses == maxConcurrentAnalyses) &&
+            (identical(other.analysisPipelineId, analysisPipelineId) ||
+                other.analysisPipelineId == analysisPipelineId) &&
             (identical(other.contentDetectionConfig, contentDetectionConfig) ||
                 other.contentDetectionConfig == contentDetectionConfig));
   }
@@ -1436,6 +1455,7 @@ class _$AnalysisSettingsImpl extends _AnalysisSettings {
       mergeAdjacentDetections,
       detectionBufferMs,
       maxConcurrentAnalyses,
+      analysisPipelineId,
       contentDetectionConfig);
 
   /// Create a copy of AnalysisSettings
@@ -1466,6 +1486,7 @@ abstract class _AnalysisSettings extends AnalysisSettings {
           final bool mergeAdjacentDetections,
           final int detectionBufferMs,
           final int maxConcurrentAnalyses,
+          final String analysisPipelineId,
           final ContentDetectionConfig contentDetectionConfig}) =
       _$AnalysisSettingsImpl;
   const _AnalysisSettings._() : super._();
@@ -1491,6 +1512,8 @@ abstract class _AnalysisSettings extends AnalysisSettings {
   int get detectionBufferMs;
   @override
   int get maxConcurrentAnalyses;
+  @override
+  String get analysisPipelineId;
   @override
   ContentDetectionConfig get contentDetectionConfig;
 

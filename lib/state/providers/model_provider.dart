@@ -110,9 +110,9 @@ class ModelNotifier extends _$ModelNotifier {
           settings.analysisSettings.modelConfig.asrModelId;
       final persistedNsfwModelId =
           settings.analysisSettings.modelConfig.nsfwModelId;
-        final persistedParserModelId =
+      final persistedParserModelId =
           settings.analysisSettings.modelConfig.parserModelId;
-        final persistedGenderModelId =
+      final persistedGenderModelId =
           settings.analysisSettings.modelConfig.genderModelId;
 
       // Set selected models: prefer persisted settings, fall back to recommended
@@ -204,6 +204,55 @@ class ModelNotifier extends _$ModelNotifier {
       state = state.copyWith(
         activeDownloads: downloads,
         errorMessage: 'Failed to download model: $e',
+      );
+    }
+  }
+
+  /// Download an official model bundle from its manifest source repository.
+  Future<void> downloadModelBundle(
+    ModelBundleManifest manifest, {
+    Set<String> acceptedTerms = const <String>{},
+  }) async {
+    final modelId = manifest.modelId;
+    try {
+      state = state.copyWith(
+        activeDownloads: {
+          ...state.activeDownloads,
+          modelId: ModelDownloadProgress(
+            modelId: modelId,
+            percentage: 0,
+            downloadedBytes: 0,
+            totalBytes: 1,
+          ),
+        },
+      );
+
+      await for (final progress in _modelManager.downloadModelBundle(
+        manifest,
+        acceptedTerms: acceptedTerms,
+      )) {
+        state = state.copyWith(
+          activeDownloads: {
+            ...state.activeDownloads,
+            modelId: progress,
+          },
+        );
+      }
+
+      final downloads =
+          Map<String, ModelDownloadProgress>.from(state.activeDownloads)
+            ..remove(modelId);
+      state = state.copyWith(
+        activeDownloads: downloads,
+        downloadedModels: {...state.downloadedModels, modelId},
+      );
+    } catch (e) {
+      final downloads =
+          Map<String, ModelDownloadProgress>.from(state.activeDownloads)
+            ..remove(modelId);
+      state = state.copyWith(
+        activeDownloads: downloads,
+        errorMessage: 'Failed to download model bundle: $e',
       );
     }
   }
@@ -345,13 +394,12 @@ class ModelNotifier extends _$ModelNotifier {
     final asrModelId =
         state.selectedModels[HuggingFaceModelType.asr] ?? 'whisper-small';
     final nsfwModelId = state.selectedModels[HuggingFaceModelType.nsfw] ??
-      'nsfw-onnx-community-vit-224';
-    final parserModelId =
-      state.selectedModels[HuggingFaceModelType.parser] ??
+        'nsfw-onnx-community-vit-224';
+    final parserModelId = state.selectedModels[HuggingFaceModelType.parser] ??
         'modesty-parser-birefnet-clothes';
     final genderModelId =
-      state.selectedModels[HuggingFaceModelType.genderHelper] ??
-        'gender-classification-onnx-community';
+        state.selectedModels[HuggingFaceModelType.genderHelper] ??
+            'gender-classification-onnx-community';
 
     final config = ModelConfig(
       asrModelId: asrModelId,

@@ -1,0 +1,76 @@
+# Model Bundle Manifest Source Review
+
+Date: 2026-06-07
+
+This review backs the Phase 1 model bundle catalog in
+`lib/data/models/model_bundle_manifest.dart`.
+
+## Rules Applied
+
+- Inference must be local-only.
+- Production selection requires an official source repo, a local/downloadable
+  artifact URI, a 64-character SHA-256 checksum, commercial-use approval, and
+  RTX 5070 12 GB validation.
+- Catalog/evaluation entries may exist before checksum and RTX validation, but
+  they must not be production-selectable.
+- Community ports, unofficial quantizations, hosted inference endpoints, and
+  non-commercial-only models are blocked from production.
+
+## Source And License Review
+
+| Manifest ID | Official source | License review | Commercial status | Manifest status |
+| --- | --- | --- | --- | --- |
+| `nvidia_cosmos_reason1_7b` | `nvidia/Cosmos-Reason1-7B` | NVIDIA Open Model License; model card states commercial use is allowed. | Allowed after checksum and RTX 5070 validation. | Evaluation only |
+| `nvidia_nemotron_nano_12b_v2_vl_fp8` | `nvidia/NVIDIA-Nemotron-Nano-12B-v2-VL-FP8` | NVIDIA Open Model License. | Allowed after checksum and RTX 5070 validation. | Evaluation only |
+| `kidslens_nemotron_nano_12b_v2_vl_int4` | Derived from `nvidia/NVIDIA-Nemotron-Nano-12B-v2-VL-FP8` | Must inherit NVIDIA Open Model License obligations and use a committed conversion recipe. | Allowed only after reproducible KidsLens artifact, checksum, and RTX 5070 validation. | Evaluation only |
+| `qwen_3_5_4b` | `Qwen/Qwen3.5-4B` | Apache 2.0. | Allowed after checksum and RTX 5070 validation. | Evaluation only |
+| `qwen_3_5_2b` | `Qwen/Qwen3.5-2B` | Apache 2.0. | Allowed after checksum, quality review, and RTX 5070 validation. | Evaluation only |
+| `google_gemma_4_e4b_it` | `google/gemma-4-E4B-it` | Apache 2.0. | Allowed after checksum and RTX 5070 validation. | Evaluation only |
+| `google_gemma_4_12b_it_int4` | Derived from `google/gemma-4-12B-it` | Apache 2.0. | Allowed only after reproducible KidsLens 4-bit artifact, checksum, and RTX 5070 validation. | Evaluation only |
+| `microsoft_phi_4_multimodal_instruct` | `microsoft/Phi-4-multimodal-instruct` | MIT. | Allowed after checksum and runtime validation. | Evaluation only |
+| `microsoft_phi_4_multimodal_instruct_onnx` | `microsoft/Phi-4-multimodal-instruct-onnx` | MIT. | Allowed after checksum and DirectML/ONNX validation. | Evaluation only |
+| `meta_llama_4_scout_17b_16e_instruct` | `meta-llama/Llama-4-Scout-17B-16E-Instruct` | Llama 4 Community License. | Allowed with terms, 700M MAU review, acceptable-use review, checksum, and RTX 5070 validation. | Evaluation only |
+| `nvidia_llama_4_scout_17b_16e_instruct_fp8` | `nvidia/Llama-4-Scout-17B-16E-Instruct-FP8` | NVIDIA Open Model License plus upstream Llama 4 obligation review. | Review required before any commercial use. | Watchlist |
+| `nvidia_locateanything_3b` | `nvidia/LocateAnything-3B` | NVIDIA non-commercial license. | Commercial production blocked. | Blocked |
+| `mistral_pixtral_12b_watchlist` | `mistralai/Pixtral-12B` | Requires separate license and RTX 5070 review. | Review required. | Watchlist |
+
+## Leaderboards Reviewed
+
+These sources are recorded as reviewed in the manifest catalog:
+
+- Open VLM Leaderboard
+- Vision Arena
+- MMBench Leaderboard
+- SEED-Bench Leaderboard
+- Retrieval/document leaderboards for future embedding/OCR-heavy models
+
+## Production Selection Status
+
+No model is production-selectable in Phase 1. This is intentional: production
+selection is blocked until a bundle has a verified checksum, a committed
+conversion recipe when applicable, and RTX 5070 validation evidence.
+
+## Sources
+
+- NVIDIA Cosmos Reason1 7B Hugging Face model card:
+  https://huggingface.co/nvidia/Cosmos-Reason1-7B
+- NVIDIA Nemotron Nano 12B v2 VL FP8 Hugging Face model card:
+  https://huggingface.co/nvidia/NVIDIA-Nemotron-Nano-12B-v2-VL-FP8
+- Qwen 3.5 4B license:
+  https://huggingface.co/Qwen/Qwen3.5-4B/blame/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/LICENSE
+- Qwen 3.5 2B license:
+  https://huggingface.co/Qwen/Qwen3.5-2B/blob/main/LICENSE
+- Google Gemma 4 E4B IT Hugging Face model card:
+  https://huggingface.co/google/gemma-4-E4B-it
+- Google Gemma 4 12B IT Hugging Face model card:
+  https://huggingface.co/google/gemma-4-12B-it
+- Microsoft Phi-4 multimodal instruct Hugging Face model card:
+  https://huggingface.co/microsoft/Phi-4-multimodal-instruct
+- Microsoft Phi-4 multimodal instruct ONNX Hugging Face model card:
+  https://huggingface.co/microsoft/Phi-4-multimodal-instruct-onnx
+- Meta Llama 4 Scout Hugging Face model card:
+  https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct
+- NVIDIA Llama 4 Scout FP8 Hugging Face model card:
+  https://huggingface.co/nvidia/Llama-4-Scout-17B-16E-Instruct-FP8
+- NVIDIA LocateAnything 3B Hugging Face model card:
+  https://huggingface.co/nvidia/LocateAnything-3B

@@ -10,6 +10,12 @@ import 'package:kidslens_video_editor/native/bindings/mms_bindings.dart';
 import 'package:kidslens_video_editor/native/bindings/onnx_bindings.dart';
 import 'package:kidslens_video_editor/native/bindings/whisper_bindings.dart';
 import 'package:kidslens_video_editor/services/asr_service.dart';
+import 'package:kidslens_video_editor/services/detection/detection_pipeline.dart';
+import 'package:kidslens_video_editor/services/detection/detection_pipeline_profile.dart';
+import 'package:kidslens_video_editor/services/detection/detection_pipeline_registry.dart';
+import 'package:kidslens_video_editor/services/detection/detection_pipeline_rollout.dart';
+import 'package:kidslens_video_editor/services/detection/legacy_nsfw_pipeline_adapter.dart';
+import 'package:kidslens_video_editor/services/detection/vss_family_safety_pipeline_adapter.dart';
 import 'package:kidslens_video_editor/services/frame_sampling_service.dart';
 import 'package:kidslens_video_editor/services/huggingface_model_registry.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
@@ -19,75 +25,6 @@ import 'package:kidslens_video_editor/services/nsfw_onnx_service.dart';
 import 'package:kidslens_video_editor/services/nsfw_region_model_manifest.dart';
 import 'package:kidslens_video_editor/services/profanity_service.dart';
 import 'package:kidslens_video_editor/services/region_temporal_aggregator.dart';
-import 'package:kidslens_video_editor/data/models/visual_content_category.dart';
-
-/// Checkpoint for resuming analysis
-class AnalysisCheckpoint {
-  AnalysisCheckpoint({
-    required this.timestamp,
-    this.transcript,
-    this.profanityMatches,
-    this.lastAnalyzedFrame = 0,
-    this.frameResults,
-    this.pipelineVersion = AnalysisService.pipelineVersion,
-    this.modelId,
-    this.modelSha256,
-    this.samplingConfigHash,
-    this.thresholdConfigHash,
-  });
-
-  factory AnalysisCheckpoint.fromJson(Map<String, dynamic> json) =>
-      AnalysisCheckpoint(
-        transcript: json['transcript'] != null
-            ? Transcript.fromJson(json['transcript'] as Map<String, dynamic>)
-            : null,
-        profanityMatches: json['profanityMatches'] != null
-            ? (json['profanityMatches'] as List)
-                .map((e) => ProfanityMatch.fromJson(e as Map<String, dynamic>))
-                .toList()
-            : null,
-        lastAnalyzedFrame: json['lastAnalyzedFrame'] as int? ?? 0,
-        frameResults: json['frameResults'] != null
-            ? (json['frameResults'] as List)
-                .map(
-                  (e) =>
-                      FrameAnalysisResult.fromJson(e as Map<String, dynamic>),
-                )
-                .toList()
-            : null,
-        pipelineVersion:
-            json['pipelineVersion'] as int? ?? AnalysisService.pipelineVersion,
-        modelId: json['modelId'] as String?,
-        modelSha256: json['modelSha256'] as String?,
-        samplingConfigHash: json['samplingConfigHash'] as String?,
-        thresholdConfigHash: json['thresholdConfigHash'] as String?,
-        timestamp: DateTime.parse(json['timestamp'] as String),
-      );
-
-  final Transcript? transcript;
-  final List<ProfanityMatch>? profanityMatches;
-  final int lastAnalyzedFrame;
-  final List<FrameAnalysisResult>? frameResults;
-  final DateTime timestamp;
-  final int pipelineVersion;
-  final String? modelId;
-  final String? modelSha256;
-  final String? samplingConfigHash;
-  final String? thresholdConfigHash;
-
-  Map<String, dynamic> toJson() => {
-        'transcript': transcript?.toJson(),
-        'profanityMatches': profanityMatches?.map((e) => e.toJson()).toList(),
-        'lastAnalyzedFrame': lastAnalyzedFrame,
-        'frameResults': frameResults?.map((e) => e.toJson()).toList(),
-        'timestamp': timestamp.toIso8601String(),
-        'pipelineVersion': pipelineVersion,
-        'modelId': modelId,
-        'modelSha256': modelSha256,
-        'samplingConfigHash': samplingConfigHash,
-        'thresholdConfigHash': thresholdConfigHash,
-      };
-}
 
 class _VisualContext {
   const _VisualContext({
@@ -134,7 +71,9 @@ class _VisualContext {
   bool get hasDetector => detectorModelPath != null && detectorSpec != null;
 
   bool get hasParser =>
-      parserModelPath != null && parserModelId != null && parserCategories.isNotEmpty;
+      parserModelPath != null &&
+      parserModelId != null &&
+      parserCategories.isNotEmpty;
 }
 
 class _VisualOutput {
@@ -173,7 +112,21 @@ class AnalysisService {
     required this.modelManager,
     required this.profanity,
     this.asrService,
-  });
+    DetectionPipelineRegistry? detectionPipelineRegistry,
+    this.rolloutConfig = const DetectionPipelineRolloutConfig(),
+    this.detectionTelemetryStore,
+    DetectionPipelineFailureHandler? detectionFailureHandler,
+  }) : detectionFailureHandler =
+            detectionFailureHandler ?? const DetectionPipelineFailureHandler() {
+    this.detectionPipelineRegistry = detectionPipelineRegistry ??
+        DetectionPipelineRegistry(
+          pipelines: [
+            VssFamilySafetyPipelineAdapter(runAnalysis: _runLegacyAnalysis),
+            LegacyNsfwPipelineAdapter(runLegacyAnalysis: _runLegacyAnalysis),
+          ],
+          defaultPipelineId: DetectionPipelineIds.vssFamilySafetyV1,
+        );
+  }
 
   /// Pipeline version - increment when checkpoints become incompatible.
   /// Bumped to 8 for split NSFW classifier + Nudity detector pipelines.
@@ -186,6 +139,10 @@ class AnalysisService {
   final ModelManagerService modelManager;
   final ProfanityService profanity;
   final AsrService? asrService;
+  late final DetectionPipelineRegistry detectionPipelineRegistry;
+  final DetectionPipelineRolloutConfig rolloutConfig;
+  final DetectionPipelineTelemetryStore? detectionTelemetryStore;
+  final DetectionPipelineFailureHandler detectionFailureHandler;
 
   /// Run complete analysis on a media file
   Stream<AnalysisProgress> analyze(
@@ -198,7 +155,109 @@ class AnalysisService {
     void Function(UnifiedTimeline timeline)? onTimelineBuilt,
     void Function(List<Detection> detections)? onDetectionsBuilt,
     void Function(List<FrameAnalysisResult> frameResults)? onFrameResultsBuilt,
+  }) {
+    final decision = detectionPipelineRegistry.resolveRollout(
+      settings.analysisPipelineId,
+      checkpoint: checkpoint,
+      config: rolloutConfig,
+    );
+    if (!decision.checkpointCompatible) {
+      unawaited(
+        _recordFailure(
+          detectionFailureHandler.checkpointCompatibility(
+            activePipelineId: decision.activePipelineId,
+            requestedPipelineId: decision.requestedPipelineId,
+          ),
+        ),
+      );
+    }
+    final effectiveSettings = settings.copyWith(
+      analysisPipelineId: decision.activePipelineId,
+    );
+    final request = DetectionPipelineRequest(
+      mediaPath: mediaPath,
+      settings: effectiveSettings,
+      mediaId: mediaId,
+      checkpoint: checkpoint,
+      existingTranscript: existingTranscript,
+      cancellationToken: cancellationToken,
+      onTimelineBuilt: onTimelineBuilt,
+      onDetectionsBuilt: onDetectionsBuilt,
+      onFrameResultsBuilt: onFrameResultsBuilt,
+    );
+    final pipeline =
+        detectionPipelineRegistry.resolve(decision.activePipelineId);
+    return _analyzeWithTelemetry(
+      pipeline: pipeline,
+      request: request,
+      decision: decision,
+    );
+  }
+
+  Stream<AnalysisProgress> _analyzeWithTelemetry({
+    required DetectionPipeline pipeline,
+    required DetectionPipelineRequest request,
+    required DetectionPipelineRolloutDecision decision,
   }) async* {
+    try {
+      yield* pipeline.analyze(request);
+    } catch (error) {
+      unawaited(
+        _recordFailure(
+          detectionFailureHandler.resolve(
+            kind: _classifyPipelineFailure(error),
+            activePipelineId: decision.activePipelineId,
+            requestedPipelineId: decision.requestedPipelineId,
+            rolloutState: decision.state,
+            error: error,
+            details: decision.toJson(),
+          ),
+        ),
+      );
+      rethrow;
+    }
+  }
+
+  Future<void> _recordFailure(
+    DetectionPipelineFailureResolution resolution,
+  ) async {
+    await detectionTelemetryStore?.record(resolution.telemetryEvent);
+  }
+
+  DetectionPipelineFailureKind _classifyPipelineFailure(Object error) {
+    final message = error.toString().toLowerCase();
+    if (message.contains('schema') ||
+        message.contains('json') ||
+        message.contains('parse')) {
+      return DetectionPipelineFailureKind.schema;
+    }
+    if (message.contains('gpu') ||
+        message.contains('cuda') ||
+        message.contains('vram')) {
+      return DetectionPipelineFailureKind.gpuFallback;
+    }
+    if (message.contains('model') &&
+        (message.contains('load') ||
+            message.contains('init') ||
+            message.contains('checkpoint'))) {
+      return DetectionPipelineFailureKind.modelLoad;
+    }
+    return DetectionPipelineFailureKind.pipelineCrash;
+  }
+
+  Stream<AnalysisProgress> _runLegacyAnalysis(
+    DetectionPipelineRequest request,
+  ) async* {
+    final mediaPath = request.mediaPath;
+    final settings = request.settings;
+    final mediaId = request.mediaId;
+    final checkpoint = request.checkpoint;
+    final existingTranscript = request.existingTranscript;
+    final cancellationToken = request.cancellationToken;
+    final onTimelineBuilt = request.onTimelineBuilt;
+    final onDetectionsBuilt = request.onDetectionsBuilt;
+    final onFrameResultsBuilt = request.onFrameResultsBuilt;
+
     final effectiveMediaId = mediaId ?? mediaPath;
     await _checkState(cancellationToken);
     final mediaMetadata = await ffmpeg.probeMedia(mediaPath);
@@ -667,12 +726,12 @@ class AnalysisService {
         .where(_supportsRegionDetectorCategory)
         .toList(growable: false);
     final parserCategories = enabledVisualCategories
-      .where(_supportsParserCategory)
-      .toList(growable: false);
+        .where(_supportsParserCategory)
+        .toList(growable: false);
 
     if (nsfwCategory == null &&
-      regionCategories.isEmpty &&
-      parserCategories.isEmpty) {
+        regionCategories.isEmpty &&
+        parserCategories.isEmpty) {
       throw AnalysisException('No supported visual category is enabled');
     }
 
@@ -900,10 +959,9 @@ class AnalysisService {
       'detectorMaxDetections': detectorSpec?.maxDetections,
       'parserModelId': parserModelId,
       'genderModelId': genderModelId,
-      'regionCategoryIds':
-          [...regionCategories, ...parserCategories]
-              .map((c) => c.id)
-              .toList(growable: false),
+      'regionCategoryIds': [...regionCategories, ...parserCategories]
+          .map((c) => c.id)
+          .toList(growable: false),
       'regionCategories': visualCategorySignature,
     });
 
@@ -959,14 +1017,14 @@ class AnalysisService {
         runNudityDetector ? (context.detectorSpec?.inputSize ?? 0) : 0;
     final parserInputSize = context.hasParser ? 640 : 0;
     final largestSquareInput = detectorInputSize > parserInputSize
-      ? detectorInputSize
-      : parserInputSize;
+        ? detectorInputSize
+        : parserInputSize;
     final sampleWidth = classifierInputWidth >= largestSquareInput
         ? classifierInputWidth
-      : largestSquareInput;
+        : largestSquareInput;
     final sampleHeight = classifierInputHeight >= largestSquareInput
         ? classifierInputHeight
-      : largestSquareInput;
+        : largestSquareInput;
 
     if (sampleWidth <= 0 || sampleHeight <= 0) {
       throw AnalysisException(
@@ -998,9 +1056,8 @@ class AnalysisService {
     final parserEnabled = context.hasParser;
     String? warningMessage;
     var pendingBatch = <FrameData>[];
-    final modestyService = parserEnabled
-      ? ModestyAnalysisService(nsfwOnnx: nsfwOnnx)
-      : null;
+    final modestyService =
+        parserEnabled ? ModestyAnalysisService(nsfwOnnx: nsfwOnnx) : null;
 
     await for (final frame
         in sampler.sampleFrames(mediaPath, config: sampleConfig)) {
@@ -1528,10 +1585,8 @@ class AnalysisService {
       }
 
       final detectionLabels = switch (category.id) {
-        'female_arms_exposure' =>
-          const <String>['MODESTY_FEMALE_ARMS_EXPOSED'],
-        'female_legs_exposure' =>
-          const <String>['MODESTY_FEMALE_LEGS_EXPOSED'],
+        'female_arms_exposure' => const <String>['MODESTY_FEMALE_ARMS_EXPOSED'],
+        'female_legs_exposure' => const <String>['MODESTY_FEMALE_LEGS_EXPOSED'],
         _ => const <String>[],
       };
       if (detectionLabels.isEmpty) {
@@ -1631,7 +1686,8 @@ class AnalysisService {
   ) =>
       List<List<DetectedRegion>>.generate(
         detectorBatch.length,
-        (index) => detectorBatch[index]
+        (index) =>
+            detectorBatch[index]
                 ?.boxes
                 .map(
                   (box) => _toDetectedRegion(

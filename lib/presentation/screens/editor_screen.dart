@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,6 +54,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   bool _nsfwDebugModeEnabled = false;
   bool _nudenetDebugModeEnabled = false;
   bool _modestyDebugModeEnabled = false;
+  bool _familySafetyDebugOverlayEnabled = false;
 
   @override
   Widget build(BuildContext context) {
@@ -62,10 +64,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final project = projectState.currentProject;
 
     final selectedMedia = project?.selectedMedia;
-    final analysisResult =
-      (_nsfwDebugModeEnabled ||
-          _nudenetDebugModeEnabled ||
-          _modestyDebugModeEnabled)
+    final analysisResult = (_nsfwDebugModeEnabled ||
+            _nudenetDebugModeEnabled ||
+            _modestyDebugModeEnabled ||
+            _familySafetyDebugOverlayEnabled)
         ? ref.watch(analysisNotifierProvider.select((state) => state.result))
         : null;
 
@@ -179,6 +181,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                               nudenetDebugModeEnabled: _nudenetDebugModeEnabled,
                               modestyDebugModeEnabled: _modestyDebugModeEnabled,
                               modestyThresholds: modestyThresholds,
+                              familySafetyDebugOverlayEnabled:
+                                  _familySafetyDebugOverlayEnabled,
                             ),
                           ),
                         ],
@@ -258,6 +262,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   nsfwThreshold: nsfwThreshold,
                   showNudenetTrack: _nudenetDebugModeEnabled,
                   showModestyTrack: _modestyDebugModeEnabled,
+                  showFamilySafetyDebugOverlay:
+                      _familySafetyDebugOverlayEnabled,
                 ),
               ),
             ],
@@ -347,11 +353,19 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 _modestyDebugModeEnabled
                     ? 'Disable Modesty Debug'
                     : 'Enable Modesty Debug',
-                _modestyDebugModeEnabled
-                    ? Icons.shield
-                    : Icons.shield_outlined,
+                _modestyDebugModeEnabled ? Icons.shield : Icons.shield_outlined,
                 _toggleModestyDebugMode,
               ),
+              if (kDebugMode)
+                _MenuItem(
+                  _familySafetyDebugOverlayEnabled
+                      ? 'Disable Family Safety Debug Overlay'
+                      : 'Enable Family Safety Debug Overlay',
+                  _familySafetyDebugOverlayEnabled
+                      ? Icons.radar
+                      : Icons.radar_outlined,
+                  _toggleFamilySafetyDebugOverlay,
+                ),
               const _MenuDivider(),
               _MenuItem(
                 'Analysis Settings',
@@ -991,6 +1005,24 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
+  void _toggleFamilySafetyDebugOverlay() {
+    if (!kDebugMode) return;
+    setState(
+      () =>
+          _familySafetyDebugOverlayEnabled = !_familySafetyDebugOverlayEnabled,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _familySafetyDebugOverlayEnabled
+              ? 'Family safety debug overlay enabled'
+              : 'Family safety debug overlay disabled',
+        ),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
   void _cutSelection() {
     final playbackState = ref.read(playbackNotifierProvider);
     final project = ref.read(projectNotifierProvider).currentProject;
@@ -1133,12 +1165,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       if (box != null) {
         final left = (box['x'] ?? 0).clamp(0.0, 1.0).toDouble();
         final top = (box['y'] ?? 0).clamp(0.0, 1.0).toDouble();
-        final width = (box['width'] ?? 0)
-            .clamp(0.0, 1.0 - left)
-            .toDouble();
-        final height = (box['height'] ?? 0)
-            .clamp(0.0, 1.0 - top)
-            .toDouble();
+        final width = (box['width'] ?? 0).clamp(0.0, 1.0 - left).toDouble();
+        final height = (box['height'] ?? 0).clamp(0.0, 1.0 - top).toDouble();
         boundingBox = BoundingBox(
           left: left,
           top: top,
@@ -2018,11 +2046,12 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
     final isComplete = analysisState.status == AnalysisStatus.completed;
     final isFailed = analysisState.status == AnalysisStatus.failed;
     final displayedTotalSteps =
-      analysisState.totalSteps > 0 ? analysisState.totalSteps : 1;
-    final displayedStepNumber =
-      analysisState.currentStepNumber > 0 ? analysisState.currentStepNumber : 1;
+        analysisState.totalSteps > 0 ? analysisState.totalSteps : 1;
+    final displayedStepNumber = analysisState.currentStepNumber > 0
+        ? analysisState.currentStepNumber
+        : 1;
     final displayedStepProgress =
-      analysisState.currentStepProgress.clamp(0.0, 1.0).toDouble();
+        analysisState.currentStepProgress.clamp(0.0, 1.0).toDouble();
 
     // Read categories from content detection config
     final categories = ref
@@ -2200,20 +2229,19 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
                         style: theme.textTheme.bodySmall,
                       ),
                       if (analysisState.estimatedSecondsRemaining != null &&
-                          analysisState.estimatedSecondsRemaining! > 0) ...
-                        [
-                          const Spacer(),
-                          Icon(
-                            Icons.hourglass_bottom,
-                            size: 14,
-                            color: theme.colorScheme.outline,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Remaining: ${_formatDurationHms(Duration(seconds: analysisState.estimatedSecondsRemaining!))}',
-                            style: theme.textTheme.bodySmall,
-                          ),
-                        ],
+                          analysisState.estimatedSecondsRemaining! > 0) ...[
+                        const Spacer(),
+                        Icon(
+                          Icons.hourglass_bottom,
+                          size: 14,
+                          color: theme.colorScheme.outline,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Remaining: ${_formatDurationHms(Duration(seconds: analysisState.estimatedSecondsRemaining!))}',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
                     ],
                   ),
                 ] else if (isComplete) ...[

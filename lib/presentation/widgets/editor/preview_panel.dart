@@ -10,6 +10,7 @@ import 'package:kidslens_video_editor/data/models/frame_analysis_result.dart';
 import 'package:kidslens_video_editor/data/models/media_file.dart';
 import 'package:kidslens_video_editor/data/models/subtitle_track.dart';
 import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
+import 'package:kidslens_video_editor/presentation/widgets/detection/debug_detection_overlay.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/blur_region_overlay.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/subtitle_overlay.dart';
 import 'package:kidslens_video_editor/services/beep_audio_service.dart';
@@ -21,15 +22,6 @@ import 'package:media_kit_video/media_kit_video.dart';
 const double _kNsfwDebugPanelWidth = 340;
 const double _kNudenetDebugPanelWidth = 340;
 const double _kModestyDebugPanelWidth = 360;
-
-const Set<String> _kModestyCategoryIds = {
-  'female_chest_exposure',
-  'female_abdomen_exposure',
-  'female_arms_exposure',
-  'female_legs_exposure',
-  'male_buttocks_exposure',
-  'male_genitals_exposure',
-};
 
 String? _modestyCategoryIdForLabel(String label) {
   switch (label) {
@@ -52,7 +44,8 @@ String? _modestyCategoryIdForLabel(String label) {
 }
 
 List<DetectedRegion> _modestyRegionsForFrame(FrameAnalysisResult? frame) {
-  final regions = frame?.visualContent?.detectedRegions ?? const <DetectedRegion>[];
+  final regions =
+      frame?.visualContent?.detectedRegions ?? const <DetectedRegion>[];
   return regions
       .where((region) => _modestyCategoryIdForLabel(region.label) != null)
       .toList(growable: false);
@@ -165,6 +158,7 @@ class PreviewPanel extends ConsumerStatefulWidget {
     this.nudenetDebugModeEnabled = false,
     this.modestyDebugModeEnabled = false,
     this.modestyThresholds = const <String, double>{},
+    this.familySafetyDebugOverlayEnabled = false,
   });
 
   final MediaFile? media;
@@ -180,6 +174,7 @@ class PreviewPanel extends ConsumerStatefulWidget {
   final bool nudenetDebugModeEnabled;
   final bool modestyDebugModeEnabled;
   final Map<String, double> modestyThresholds;
+  final bool familySafetyDebugOverlayEnabled;
 
   @override
   ConsumerState<PreviewPanel> createState() => _PreviewPanelState();
@@ -681,6 +676,13 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                         .where((d) => d.isVisualDetection)
                         .map(_buildDetectionOverlay),
 
+                    DebugDetectionOverlay(
+                      enabled: widget.familySafetyDebugOverlayEnabled,
+                      detections: activeDetections,
+                      currentPosition: position,
+                      mediaDuration: widget.media?.duration ?? Duration.zero,
+                    ),
+
                     // NudeNet bounding box debug overlays
                     if (widget.nudenetDebugModeEnabled)
                       ..._buildNudenetBboxOverlays(
@@ -998,7 +1000,9 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                   (r) => Padding(
                     padding: const EdgeInsets.symmetric(vertical: 1),
                     child: Text(
-                      '${r.label}: ${r.confidence.toStringAsFixed(3)}'                          ' (${(r.x * 100).toStringAsFixed(0)},${(r.y * 100).toStringAsFixed(0)}'                          ' ${(r.width * 100).toStringAsFixed(0)}×${(r.height * 100).toStringAsFixed(0)}%)',
+                      '${r.label}: ${r.confidence.toStringAsFixed(3)}'
+                      ' (${(r.x * 100).toStringAsFixed(0)},${(r.y * 100).toStringAsFixed(0)}'
+                      ' ${(r.width * 100).toStringAsFixed(0)}×${(r.height * 100).toStringAsFixed(0)}%)',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1013,7 +1017,8 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
               ],
               if (clipScores.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                const Text('CLIP scores:', style: TextStyle(fontWeight: FontWeight.w600)),
+                const Text('CLIP scores:',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
                 ...clipScores.entries.map(
                   (e) => Padding(
                     padding: const EdgeInsets.symmetric(vertical: 1),
@@ -2047,8 +2052,7 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
           color: Colors.black87,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color:
-                regions.isNotEmpty ? Colors.deepPurple : colorScheme.outline,
+            color: regions.isNotEmpty ? Colors.deepPurple : colorScheme.outline,
           ),
         ),
         child: DefaultTextStyle(
@@ -2075,8 +2079,8 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                     padding: const EdgeInsets.symmetric(vertical: 1),
                     child: Text(
                       '${r.label}: ${r.confidence.toStringAsFixed(3)}'
-                          ' (${(r.x * 100).toStringAsFixed(0)},${(r.y * 100).toStringAsFixed(0)}'
-                          ' ${(r.width * 100).toStringAsFixed(0)}\u00d7${(r.height * 100).toStringAsFixed(0)}%)',
+                      ' (${(r.x * 100).toStringAsFixed(0)},${(r.y * 100).toStringAsFixed(0)}'
+                      ' ${(r.width * 100).toStringAsFixed(0)}\u00d7${(r.height * 100).toStringAsFixed(0)}%)',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -2331,8 +2335,8 @@ class _WaveformPainter extends CustomPainter {
   }
 
   Color _getDetectionColor(Detection detection) => AppTheme.getDetectionColor(
-    detection.visualContentCategoryId ?? detection.type.name,
-  );
+        detection.visualContentCategoryId ?? detection.type.name,
+      );
 
   Color _getEditActionColor(EditActionType type) {
     switch (type) {

@@ -145,6 +145,7 @@ class AnalysisSettings with _$AnalysisSettings {
     @Default(true) bool mergeAdjacentDetections,
     @Default(100) int detectionBufferMs,
     @Default(4) int maxConcurrentAnalyses,
+    @Default('vss_family_safety_v1') String analysisPipelineId,
     @Default(ContentDetectionConfig())
     ContentDetectionConfig contentDetectionConfig,
   }) = _AnalysisSettings;
@@ -228,6 +229,15 @@ class AnalysisSettings with _$AnalysisSettings {
     }
     if (maxConcurrentAnalyses < 1) {
       issues.add('Max concurrent analyses must be at least 1');
+    }
+    const supportedPipelineIds = {
+      'vss_family_safety_v1',
+      'legacy_nsfw_region_v8',
+      'audio_only',
+      'fast_preview',
+    };
+    if (!supportedPipelineIds.contains(analysisPipelineId)) {
+      issues.add('Unsupported analysis pipeline: $analysisPipelineId');
     }
 
     return issues;

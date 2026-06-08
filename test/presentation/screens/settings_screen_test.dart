@@ -11,9 +11,10 @@ void main() {
       SharedPreferences.setMockInitialValues({});
     });
 
-    Widget createSettingsScreen() => const ProviderScope(
+    Widget createSettingsScreen() => ProviderScope(
           child: MaterialApp(
-            home: SettingsScreen(),
+            theme: ThemeData(splashFactory: NoSplash.splashFactory),
+            home: const SettingsScreen(),
           ),
         );
 

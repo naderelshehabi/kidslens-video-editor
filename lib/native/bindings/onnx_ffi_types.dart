@@ -59,8 +59,11 @@ final class OrtApiBase extends Struct {
 // Enums
 // ============================================================================
 
-/// ORT_API_VERSION - API version to request (use 18 for wide compatibility)
-const int ORT_API_VERSION = 18;
+/// ORT_API_VERSION - API version to request.
+///
+/// The bundled Windows ONNX Runtime in this repo currently exposes API 17.
+/// Requesting a newer API returns null from OrtGetApiBase.GetApi.
+const int ORT_API_VERSION = 17;
 
 /// OrtLoggingLevel
 abstract class OrtLoggingLevel {
@@ -581,11 +584,13 @@ typedef UpdateCUDAProviderOptionsDart = Pointer<OrtStatus> Function(
   int numKeys,
 );
 
-typedef SessionOptionsAppendExecutionProvider_CUDA_V2Native = Pointer<OrtStatus> Function(
+typedef SessionOptionsAppendExecutionProvider_CUDA_V2Native = Pointer<OrtStatus>
+    Function(
   Pointer<OrtSessionOptions> options,
   Pointer<OrtCUDAProviderOptionsV2> cudaOptions,
 );
-typedef SessionOptionsAppendExecutionProvider_CUDA_V2Dart = Pointer<OrtStatus> Function(
+typedef SessionOptionsAppendExecutionProvider_CUDA_V2Dart = Pointer<OrtStatus>
+    Function(
   Pointer<OrtSessionOptions> options,
   Pointer<OrtCUDAProviderOptionsV2> cudaOptions,
 );
@@ -601,7 +606,8 @@ typedef ReleaseCUDAProviderOptionsDart = void Function(
 // Generic execution provider API function types
 // ============================================================================
 
-typedef SessionOptionsAppendExecutionProviderNative = Pointer<OrtStatus> Function(
+typedef SessionOptionsAppendExecutionProviderNative = Pointer<OrtStatus>
+    Function(
   Pointer<OrtSessionOptions> options,
   Pointer<Utf8> providerName,
   Pointer<Pointer<Utf8>> providerOptionsKeys,

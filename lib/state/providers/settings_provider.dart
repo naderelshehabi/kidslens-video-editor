@@ -43,6 +43,9 @@ class SettingsState {
     this.defaultExportFormat = ExportFormat.mp4,
     this.autoSaveInterval = const Duration(minutes: 5),
     this.thumbnailInterval = const Duration(minutes: 1),
+    this.localRuntimeId = 'cuda_vllm',
+    this.modelBundleIdsByRole = const <String, String>{},
+    this.acceptedModelBundleTerms = const <String>[],
   }) : analysisSettings = analysisSettings ?? AnalysisSettings.defaults();
 
   factory SettingsState.fromJson(Map<String, dynamic> json) => SettingsState(
@@ -65,6 +68,11 @@ class SettingsState {
             Duration(minutes: json['autoSaveIntervalMinutes'] as int? ?? 5),
         thumbnailInterval:
             Duration(seconds: json['thumbnailIntervalSeconds'] as int? ?? 60),
+        localRuntimeId: json['localRuntimeId'] as String? ?? 'cuda_vllm',
+        modelBundleIdsByRole: _readStringMap(json['modelBundleIdsByRole']),
+        acceptedModelBundleTerms: _readStringList(
+          json['acceptedModelBundleTerms'],
+        ),
       );
 
   final AnalysisSettings analysisSettings;
@@ -78,6 +86,9 @@ class SettingsState {
   final ExportFormat defaultExportFormat;
   final Duration autoSaveInterval;
   final Duration thumbnailInterval;
+  final String localRuntimeId;
+  final Map<String, String> modelBundleIdsByRole;
+  final List<String> acceptedModelBundleTerms;
 
   SettingsState copyWith({
     AnalysisSettings? analysisSettings,
@@ -91,6 +102,9 @@ class SettingsState {
     ExportFormat? defaultExportFormat,
     Duration? autoSaveInterval,
     Duration? thumbnailInterval,
+    String? localRuntimeId,
+    Map<String, String>? modelBundleIdsByRole,
+    List<String>? acceptedModelBundleTerms,
   }) =>
       SettingsState(
         analysisSettings: analysisSettings ?? this.analysisSettings,
@@ -104,6 +118,10 @@ class SettingsState {
         defaultExportFormat: defaultExportFormat ?? this.defaultExportFormat,
         autoSaveInterval: autoSaveInterval ?? this.autoSaveInterval,
         thumbnailInterval: thumbnailInterval ?? this.thumbnailInterval,
+        localRuntimeId: localRuntimeId ?? this.localRuntimeId,
+        modelBundleIdsByRole: modelBundleIdsByRole ?? this.modelBundleIdsByRole,
+        acceptedModelBundleTerms:
+            acceptedModelBundleTerms ?? this.acceptedModelBundleTerms,
       );
 
   Map<String, dynamic> toJson() {
@@ -123,8 +141,25 @@ class SettingsState {
       'defaultExportFormat': defaultExportFormat.index,
       'autoSaveIntervalMinutes': autoSaveInterval.inMinutes,
       'thumbnailIntervalSeconds': thumbnailInterval.inSeconds,
+      'localRuntimeId': localRuntimeId,
+      'modelBundleIdsByRole': modelBundleIdsByRole,
+      'acceptedModelBundleTerms': acceptedModelBundleTerms,
     };
   }
+}
+
+Map<String, String> _readStringMap(Object? value) {
+  if (value is! Map) return const <String, String>{};
+  return {
+    for (final entry in value.entries)
+      if (entry.key is String && entry.value is String)
+        entry.key as String: entry.value as String,
+  };
+}
+
+List<String> _readStringList(Object? value) {
+  if (value is! List) return const <String>[];
+  return value.whereType<String>().toList(growable: false);
 }
 
 @Riverpod(keepAlive: true)
@@ -145,14 +180,9 @@ class SettingsNotifier extends _$SettingsNotifier {
             AnalysisSettingsMigration.needsMigration(analysisSettingsJson)) {
           AnalysisSettingsMigration.migrateToLatest(analysisSettingsJson);
         }
-        state = SettingsState.fromJson(json);
-        final normalizedAnalysisSettings =
-            _normalizeAnalysisSettings(state.analysisSettings);
-        if (jsonEncode(normalizedAnalysisSettings.toJson()) !=
-            jsonEncode(state.analysisSettings.toJson())) {
-          state = state.copyWith(
-            analysisSettings: normalizedAnalysisSettings,
-          );
+        final loadedState = SettingsState.fromJson(json);
+        state = _normalizeState(loadedState);
+        if (jsonEncode(state.toJson()) != jsonEncode(loadedState.toJson())) {
           _debounceSave();
         }
       }
@@ -172,7 +202,55 @@ class SettingsNotifier extends _$SettingsNotifier {
   }
 
   void updateAnalysisSettings(AnalysisSettings settings) {
-    state = state.copyWith(analysisSettings: _normalizeAnalysisSettings(settings));
+    state = _normalizeState(
+      state.copyWith(analysisSettings: _normalizeAnalysisSettings(settings)),
+    );
+    saveSettings();
+  }
+
+  void setAnalysisPipeline(String pipelineId) {
+    final current = state.analysisSettings;
+    updateAnalysisSettings(current.copyWith(analysisPipelineId: pipelineId));
+  }
+
+  void setLocalRuntime(String runtimeId) {
+    state = _normalizeState(state.copyWith(localRuntimeId: runtimeId));
+    saveSettings();
+  }
+
+  void selectModelBundleForRole({
+    required String role,
+    required String? modelBundleId,
+  }) {
+    final nextBundleIds = Map<String, String>.from(
+      state.modelBundleIdsByRole,
+    );
+    if (modelBundleId == null || modelBundleId.trim().isEmpty) {
+      nextBundleIds.remove(role);
+    } else {
+      nextBundleIds[role] = modelBundleId;
+    }
+
+    state =
+        _normalizeState(state.copyWith(modelBundleIdsByRole: nextBundleIds));
+    saveSettings();
+  }
+
+  void setModelBundleTermsAccepted({
+    required String modelBundleId,
+    required bool accepted,
+  }) {
+    final acceptedTerms = state.acceptedModelBundleTerms.toSet();
+    if (accepted) {
+      acceptedTerms.add(modelBundleId);
+    } else {
+      acceptedTerms.remove(modelBundleId);
+    }
+    state = _normalizeState(
+      state.copyWith(
+        acceptedModelBundleTerms: acceptedTerms.toList(growable: false),
+      ),
+    );
     saveSettings();
   }
 
@@ -306,8 +384,9 @@ class SettingsNotifier extends _$SettingsNotifier {
 
   void setCategoryAction(String categoryId, RemediationAction action) {
     final config = state.analysisSettings.contentDetectionConfig;
-    final categories =
-        config.categories.map((c) => c.id == categoryId ? c.copyWith(action: action) : c).toList();
+    final categories = config.categories
+        .map((c) => c.id == categoryId ? c.copyWith(action: action) : c)
+        .toList();
     updateContentDetectionConfig(config.copyWith(categories: categories));
   }
 
@@ -338,6 +417,55 @@ class SettingsNotifier extends _$SettingsNotifier {
   void _debounceSave() {
     _saveDebounceTimer?.cancel();
     _saveDebounceTimer = Timer(const Duration(milliseconds: 500), saveSettings);
+  }
+
+  SettingsState _normalizeState(SettingsState input) {
+    final runtimeIds =
+        LocalRuntimeId.values.map((runtime) => runtime.jsonValue).toSet();
+    final runtimeId = runtimeIds.contains(input.localRuntimeId)
+        ? input.localRuntimeId
+        : LocalRuntimeId.cudaVllm.jsonValue;
+    final acceptedTerms = input.acceptedModelBundleTerms.toSet();
+    final normalizedBundleIds = <String, String>{};
+    for (final entry in input.modelBundleIdsByRole.entries) {
+      ModelBundleRole? role;
+      for (final candidate in ModelBundleRole.values) {
+        if (candidate.name == entry.key) {
+          role = candidate;
+          break;
+        }
+      }
+      if (role == null) continue;
+
+      ModelBundleManifest? manifest;
+      for (final candidate in ModelBundleCatalog.initialCandidates) {
+        if (candidate.modelId == entry.value) {
+          manifest = candidate;
+          break;
+        }
+      }
+      if (manifest == null) continue;
+      if (!manifest.roles.contains(role)) continue;
+      if (manifest.validateForProductionSelection().isNotEmpty) continue;
+      if (manifest.acceptedTermsRequired &&
+          !acceptedTerms.contains(manifest.modelId)) {
+        continue;
+      }
+      final runtimeProfile = LocalRuntimeProfile.byModelRuntime(
+        manifest.runtime,
+      );
+      if (runtimeProfile != null && runtimeProfile.id.jsonValue != runtimeId) {
+        continue;
+      }
+      normalizedBundleIds[entry.key] = entry.value;
+    }
+
+    return input.copyWith(
+      analysisSettings: _normalizeAnalysisSettings(input.analysisSettings),
+      localRuntimeId: runtimeId,
+      modelBundleIdsByRole: normalizedBundleIds,
+      acceptedModelBundleTerms: acceptedTerms.toList(growable: false)..sort(),
+    );
   }
 
   AnalysisSettings _normalizeAnalysisSettings(AnalysisSettings settings) =>

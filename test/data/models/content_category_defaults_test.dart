@@ -5,7 +5,7 @@ import 'package:kidslens_video_editor/data/models/content_category_defaults.dart
 void main() {
   test('normalizeCategories appends missing default model contributions', () {
     final legacyNudity = ContentCategoryDefaults.nudity.copyWith(
-      modelContributions: const [
+      modelContributions: [
         ContentCategoryDefaults.nudity.modelContributions.first,
       ],
     );
@@ -54,7 +54,8 @@ void main() {
       ],
     );
 
-    final normalized = ContentCategoryDefaults.normalizeCategories([legacyNudity]);
+    final normalized =
+        ContentCategoryDefaults.normalizeCategories([legacyNudity]);
     final nudity = normalized.firstWhere((category) => category.id == 'nudity');
     final detector640 = nudity.modelContributions.firstWhere(
       (model) => model.modelId == 'nsfw-nudenet-detector-640',

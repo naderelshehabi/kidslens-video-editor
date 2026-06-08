@@ -121,6 +121,8 @@ _$AnalysisSettingsImpl _$$AnalysisSettingsImplFromJson(
       detectionBufferMs: (json['detectionBufferMs'] as num?)?.toInt() ?? 100,
       maxConcurrentAnalyses:
           (json['maxConcurrentAnalyses'] as num?)?.toInt() ?? 4,
+      analysisPipelineId:
+          json['analysisPipelineId'] as String? ?? 'vss_family_safety_v1',
       contentDetectionConfig: json['contentDetectionConfig'] == null
           ? const ContentDetectionConfig()
           : ContentDetectionConfig.fromJson(
@@ -139,5 +141,6 @@ Map<String, dynamic> _$$AnalysisSettingsImplToJson(
       'mergeAdjacentDetections': instance.mergeAdjacentDetections,
       'detectionBufferMs': instance.detectionBufferMs,
       'maxConcurrentAnalyses': instance.maxConcurrentAnalyses,
+      'analysisPipelineId': instance.analysisPipelineId,
       'contentDetectionConfig': instance.contentDetectionConfig,
     };

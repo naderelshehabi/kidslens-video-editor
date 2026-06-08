@@ -21,9 +21,18 @@ void main() {
     test('should have all expected values', () {
       expect(DetectionUserStatus.values, hasLength(4));
       expect(DetectionUserStatus.values, contains(DetectionUserStatus.pending));
-      expect(DetectionUserStatus.values, contains(DetectionUserStatus.confirmed));
-      expect(DetectionUserStatus.values, contains(DetectionUserStatus.rejected));
-      expect(DetectionUserStatus.values, contains(DetectionUserStatus.adjusted));
+      expect(
+        DetectionUserStatus.values,
+        contains(DetectionUserStatus.confirmed),
+      );
+      expect(
+        DetectionUserStatus.values,
+        contains(DetectionUserStatus.rejected),
+      );
+      expect(
+        DetectionUserStatus.values,
+        contains(DetectionUserStatus.adjusted),
+      );
     });
   });
 
@@ -206,7 +215,8 @@ void main() {
           expect(detection.isVisualDetection, isFalse);
         });
 
-        test('isVisualDetection should return true for non-profanity types', () {
+        test('isVisualDetection should return true for non-profanity types',
+            () {
           for (final type in [ContentType.nsfw]) {
             final detection = Detection(
               id: 'det-1',
@@ -285,12 +295,12 @@ void main() {
 
         test('should prefer visual category display name when present', () {
           expect(
-            Detection(
+            const Detection(
               id: 'id',
               mediaId: 'media-1',
               type: ContentType.nsfw,
               startTime: Duration.zero,
-              endTime: const Duration(seconds: 1),
+              endTime: Duration(seconds: 1),
               confidence: 0.9,
               description: 'Test',
               metadata: {
@@ -299,6 +309,73 @@ void main() {
             ).typeDisplayName,
             equals('Sexual Content'),
           );
+        });
+      });
+
+      group('explainability metadata', () {
+        test('reads policy metadata from temporal fusion output', () {
+          const detection = Detection(
+            id: 'det-policy',
+            mediaId: 'media-1',
+            type: ContentType.nsfw,
+            startTime: Duration(seconds: 5),
+            endTime: Duration(seconds: 8),
+            confidence: 0.92,
+            description: 'Policy detection',
+            metadata: {
+              'policyCategoryId': 'female_legs_exposure',
+              'policySeverity': 'high',
+              'rationale': 'Exposed legs were localized in the frame.',
+              'sourceModels': ['qwen3.5-vl-local', 'qwen3.5-vl-local'],
+              'supportingEvidenceIds': ['ev_1', 'ev_2'],
+              'groundingStatus': 'grounded',
+              'regionIds': ['region_legs'],
+              'action': 'blurRegion',
+              'frameId': 'frame_001',
+              'boundingBoxes': [
+                {'x': 0.25, 'y': 0.4, 'width': 0.3, 'height': 0.5},
+              ],
+            },
+          );
+
+          expect(detection.policyCategoryId, 'female_legs_exposure');
+          expect(detection.explainableCategoryLabel, 'Female Legs Exposure');
+          expect(detection.policySeverity, 'high');
+          expect(detection.policySeverityLabel, 'High');
+          expect(detection.rationale, contains('Exposed legs'));
+          expect(detection.sourceModels, ['qwen3.5-vl-local']);
+          expect(detection.supportingEvidenceIds, ['ev_1', 'ev_2']);
+          expect(detection.groundingStatus, 'grounded');
+          expect(detection.regionIds, ['region_legs']);
+          expect(detection.hasBoundary, isTrue);
+          expect(detection.localizationLabel, 'Region-level');
+          expect(detection.suggestedRemediationAction?.name, 'blurRegion');
+          expect(detection.suggestedActionLabel, 'Blur Region');
+          expect(detection.supportingFrameLabel, 'Frame frame_001');
+          expect(detection.hasExplainabilityMetadata, isTrue);
+          expect(detection.boundingBoxes, hasLength(1));
+          expect(detection.boundingBox?['x'], 0.25);
+        });
+
+        test('falls back to scene-level labels when no boundary exists', () {
+          const detection = Detection(
+            id: 'det-scene',
+            mediaId: 'media-1',
+            type: ContentType.nsfw,
+            startTime: Duration(seconds: 12),
+            endTime: Duration(seconds: 14),
+            confidence: 0.81,
+            description: 'Scene-level violence',
+            metadata: {
+              'policyCategoryId': 'violence',
+              'groundingStatus': 'scene_level_only',
+              'action': 'cutScene',
+            },
+          );
+
+          expect(detection.hasBoundary, isFalse);
+          expect(detection.localizationLabel, 'Scene-level');
+          expect(detection.suggestedActionLabel, 'Cut Scene');
         });
       });
     });

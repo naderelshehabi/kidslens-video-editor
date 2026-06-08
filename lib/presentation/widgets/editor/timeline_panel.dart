@@ -9,8 +9,11 @@ import 'package:kidslens_video_editor/data/models/detection.dart';
 import 'package:kidslens_video_editor/data/models/edit_action.dart';
 import 'package:kidslens_video_editor/data/models/frame_analysis_result.dart';
 import 'package:kidslens_video_editor/data/models/media_file.dart';
+import 'package:kidslens_video_editor/data/models/sampled_frame_ref.dart';
 import 'package:kidslens_video_editor/data/models/subtitle_track.dart';
+import 'package:kidslens_video_editor/data/models/video_chunk.dart';
 import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
+import 'package:kidslens_video_editor/presentation/widgets/detection/debug_detection_overlay.dart';
 import 'package:kidslens_video_editor/state/providers/playback_provider.dart';
 import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
@@ -58,6 +61,9 @@ class TimelinePanel extends ConsumerStatefulWidget {
     this.nsfwThreshold = 0.5,
     this.showNudenetTrack = false,
     this.showModestyTrack = false,
+    this.showFamilySafetyDebugOverlay = false,
+    this.debugChunks = const <VideoChunk>[],
+    this.debugSampledFrames = const <SampledFrameRef>[],
   });
 
   final MediaFile? media;
@@ -78,6 +84,9 @@ class TimelinePanel extends ConsumerStatefulWidget {
   final double nsfwThreshold;
   final bool showNudenetTrack;
   final bool showModestyTrack;
+  final bool showFamilySafetyDebugOverlay;
+  final List<VideoChunk> debugChunks;
+  final List<SampledFrameRef> debugSampledFrames;
 
   @override
   ConsumerState<TimelinePanel> createState() => _TimelinePanelState();
@@ -770,6 +779,18 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
             ),
           // Media clip overlay
           _buildMediaClipOverlay(context, timelineWidth),
+          DebugDetectionTimelineOverlay(
+            enabled: widget.showFamilySafetyDebugOverlay,
+            duration: duration,
+            timelineWidth: timelineWidth,
+            height: trackHeight,
+            detections: widget.detections,
+            chunks: widget.debugChunks,
+            sampledFrames: widget.debugSampledFrames,
+            sampledFrameTimestamps: widget.nsfwFrameResults
+                .map((frame) => frame.timestamp)
+                .toList(growable: false),
+          ),
           // Selection overlay
           if (_isDraggingSelection)
             _buildDragSelectionOverlay(trackHeight, timelineWidth, duration),
@@ -1426,8 +1447,8 @@ class _TimelinePanelState extends ConsumerState<TimelinePanel>
   }
 
   Color _getDetectionColor(Detection detection) => AppTheme.getDetectionColor(
-    detection.visualContentCategoryId ?? detection.type.name,
-  );
+        detection.visualContentCategoryId ?? detection.type.name,
+      );
 
   IconData _getDetectionIcon(Detection detection) {
     if (detection.visualContentCategoryId == 'nudity') {
@@ -2524,7 +2545,8 @@ class _ModestyConfidencePainter extends CustomPainter {
           size.width;
       final regions = frame.visualContent?.detectedRegions ?? const [];
       final modestyRegions = regions
-          .where((region) => _modestyTrackCategoryIdForLabel(region.label) != null)
+          .where(
+              (region) => _modestyTrackCategoryIdForLabel(region.label) != null)
           .toList(growable: false);
       final maxConfidence = modestyRegions.isEmpty
           ? 0.0

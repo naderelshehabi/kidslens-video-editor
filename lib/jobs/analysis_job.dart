@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/jobs/job_system.dart';
 import 'package:kidslens_video_editor/services/analysis_service.dart';
@@ -90,6 +91,8 @@ class AnalysisJob extends Job<AnalysisResult> {
             AnalysisCheckpoint(
               lastAnalyzedFrame: progress.itemsProcessed ?? 0,
               frameResults: frameResults.isEmpty ? null : List.of(frameResults),
+              pipelineId: settings.analysisPipelineId,
+              samplingConfigHash: _samplingConfigHash(settings),
               timestamp: DateTime.now(),
             ),
           );
@@ -154,6 +157,15 @@ class AnalysisJob extends Job<AnalysisResult> {
   Future<String> _getCheckpointPath() async {
     final cacheDir = await getTemporaryDirectory();
     return p.join(cacheDir.path, 'kidslens', '${id}_checkpoint.json');
+  }
+
+  String _samplingConfigHash(AnalysisSettings settings) {
+    final payload = jsonEncode({
+      'frameSamplingRate': settings.frameSamplingRate,
+      'useSceneDetection': settings.useSceneDetection,
+      'minSegmentDurationMs': settings.minSegmentDurationMs,
+    });
+    return sha256.convert(utf8.encode(payload)).toString();
   }
 
   /// Delete checkpoint after successful completion

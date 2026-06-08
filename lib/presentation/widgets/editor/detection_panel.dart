@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:kidslens_video_editor/data/models/content_category.dart';
 import 'package:kidslens_video_editor/data/models/detection.dart';
 import 'package:kidslens_video_editor/data/models/edit_action.dart';
+import 'package:kidslens_video_editor/presentation/widgets/detection/detection_explanation_panel.dart';
 
 /// Filter mode for detection list
 enum DetectionFilterMode {
   active, // Show only non-rejected
-  all,    // Show all
+  all, // Show all
   rejected, // Show only rejected
 }
 
@@ -91,6 +92,7 @@ class _DetectionPanelState extends State<DetectionPanel>
         return 'Profanity';
     }
   }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -101,7 +103,7 @@ class _DetectionPanelState extends State<DetectionPanel>
         children: [
           // Panel header with tabs
           _buildHeader(context),
-          
+
           // Tab content
           Expanded(
             child: TabBarView(
@@ -120,12 +122,13 @@ class _DetectionPanelState extends State<DetectionPanel>
   Widget _buildHeader(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     // Calculate statistics
     final total = widget.detections.length;
     final active = widget.detections.where((d) => !d.isRejected).length;
     final rejected = widget.detections.where((d) => d.isRejected).length;
-    final handled = widget.detections.where((d) => d.hasAction || d.isRejected).length;
+    final handled =
+        widget.detections.where((d) => d.hasAction || d.isRejected).length;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -202,36 +205,42 @@ class _DetectionPanelState extends State<DetectionPanel>
     );
   }
 
-  Widget _buildStatChip(BuildContext context, String label, int count, Color color) => Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
+  Widget _buildStatChip(
+    BuildContext context,
+    String label,
+    int count,
+    Color color,
+  ) =>
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
           ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          '$count',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: color,
+          const SizedBox(width: 4),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
-        ),
-        const SizedBox(width: 2),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: Theme.of(context).colorScheme.outline,
+          const SizedBox(width: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: Theme.of(context).colorScheme.outline,
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
 
   Widget _buildDetectionsTab(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -270,7 +279,8 @@ class _DetectionPanelState extends State<DetectionPanel>
                   ),
                 ],
                 selected: {_filterMode},
-                onSelectionChanged: (value) => setState(() => _filterMode = value.first),
+                onSelectionChanged: (value) =>
+                    setState(() => _filterMode = value.first),
                 showSelectedIcon: false,
                 style: const ButtonStyle(
                   visualDensity: VisualDensity.compact,
@@ -281,7 +291,7 @@ class _DetectionPanelState extends State<DetectionPanel>
               // Type filter dropdown
               Row(
                 children: [
-                   Expanded(
+                  Expanded(
                     child: DropdownButtonFormField<ContentType?>(
                       initialValue: _filterType,
                       decoration: const InputDecoration(
@@ -295,53 +305,65 @@ class _DetectionPanelState extends State<DetectionPanel>
                       ),
                       items: [
                         const DropdownMenuItem(
-                          child: Text('All types', style: TextStyle(fontSize: 12)),
+                          child:
+                              Text('All types', style: TextStyle(fontSize: 12)),
                         ),
-                        ...ContentType.values.map((type) => DropdownMenuItem(
-                          value: type,
-                          child: Text(
-                            _contentTypeName(type),
-                            style: const TextStyle(fontSize: 12),
+                        ...ContentType.values.map(
+                          (type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(
+                              _contentTypeName(type),
+                              style: const TextStyle(fontSize: 12),
+                            ),
                           ),
-                        ),),
+                        ),
                       ],
                       onChanged: (value) => setState(() => _filterType = value),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(fontSize: 12),
                     ),
                   ),
                   const SizedBox(width: 8),
                   if (widget.onDeleteAll != null)
                     IconButton(
-                        onPressed: widget.onDeleteAll,
-                        icon: const Icon(Icons.delete_forever),
-                        tooltip: 'Delete All Detections',
-                        color: colorScheme.error,
+                      onPressed: widget.onDeleteAll,
+                      icon: const Icon(Icons.delete_forever),
+                      tooltip: 'Delete All Detections',
+                      color: colorScheme.error,
                     ),
                 ],
               ),
-              
+
               if (_selectedIds.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Row(
                     children: [
-                      Text('${_selectedIds.length} selected', style: TextStyle(fontSize: 11, color: colorScheme.primary)),
+                      Text(
+                        '${_selectedIds.length} selected',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: colorScheme.primary,
+                        ),
+                      ),
                       const Spacer(),
                       TextButton(
                         onPressed: _selectAll,
                         style: TextButton.styleFrom(
-                           visualDensity: VisualDensity.compact,
-                           padding: EdgeInsets.zero,
-                           textStyle: const TextStyle(fontSize: 11),
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          textStyle: const TextStyle(fontSize: 11),
                         ),
                         child: const Text('All'),
                       ),
                       TextButton(
                         onPressed: _clearSelection,
                         style: TextButton.styleFrom(
-                           visualDensity: VisualDensity.compact,
-                           padding: EdgeInsets.zero,
-                           textStyle: const TextStyle(fontSize: 11),
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          textStyle: const TextStyle(fontSize: 11),
                         ),
                         child: const Text('None'),
                       ),
@@ -351,7 +373,7 @@ class _DetectionPanelState extends State<DetectionPanel>
             ],
           ),
         ),
-        
+
         // Detection list
         Expanded(
           child: filteredDetections.isEmpty
@@ -380,7 +402,7 @@ class _DetectionPanelState extends State<DetectionPanel>
                   },
                 ),
         ),
-        
+
         // Bulk actions
         _buildBulkActions(context),
       ],
@@ -465,9 +487,9 @@ class _DetectionPanelState extends State<DetectionPanel>
 
   Widget _buildBulkActions(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     if (_selectedIds.isNotEmpty) {
-       return Container(
+      return Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: colorScheme.secondaryContainer,
@@ -477,39 +499,44 @@ class _DetectionPanelState extends State<DetectionPanel>
         ),
         child: Row(
           children: [
-            Text('${_selectedIds.length} selected', style: TextStyle(color: colorScheme.onSecondaryContainer, fontSize: 12)),
+            Text(
+              '${_selectedIds.length} selected',
+              style: TextStyle(
+                color: colorScheme.onSecondaryContainer,
+                fontSize: 12,
+              ),
+            ),
             const Spacer(),
             IconButton(
               icon: const Icon(Icons.block),
               tooltip: 'Reject Selected',
               iconSize: 20,
               onPressed: () {
-                 widget.detections
-                     .where((d) => _selectedIds.contains(d.id))
-                     .toList()
-                     .forEach(widget.onRejectDetection);
-                 _clearSelection();
+                widget.detections
+                    .where((d) => _selectedIds.contains(d.id))
+                    .toList()
+                    .forEach(widget.onRejectDetection);
+                _clearSelection();
               },
             ),
             if (widget.onDeleteMultiple != null)
-            IconButton(
-              icon: const Icon(Icons.delete),
-              tooltip: 'Delete Selected',
-              iconSize: 20,
-              color: colorScheme.error,
-              onPressed: () {
-                 widget.onDeleteMultiple!(_selectedIds.toList());
-                 _clearSelection();
-              },
-            ),
+              IconButton(
+                icon: const Icon(Icons.delete),
+                tooltip: 'Delete Selected',
+                iconSize: 20,
+                color: colorScheme.error,
+                onPressed: () {
+                  widget.onDeleteMultiple!(_selectedIds.toList());
+                  _clearSelection();
+                },
+              ),
           ],
         ),
       );
     }
 
-    final unhandledCount = widget.detections
-        .where((d) => !d.isRejected && !d.hasAction)
-        .length;
+    final unhandledCount =
+        widget.detections.where((d) => !d.isRejected && !d.hasAction).length;
 
     return Container(
       padding: const EdgeInsets.all(8),
@@ -541,18 +568,18 @@ class _DetectionPanelState extends State<DetectionPanel>
   }
 
   List<Detection> _getFilteredDetections() => widget.detections.where((d) {
-      // Apply filter mode
-      switch (_filterMode) {
-        case DetectionFilterMode.active:
-          if (d.isRejected) return false;
-        case DetectionFilterMode.rejected:
-          if (!d.isRejected) return false;
-        case DetectionFilterMode.all:
-          break;
-      }
-      if (_filterType != null && d.type != _filterType) return false;
-      return true;
-    }).toList();
+        // Apply filter mode
+        switch (_filterMode) {
+          case DetectionFilterMode.active:
+            if (d.isRejected) return false;
+          case DetectionFilterMode.rejected:
+            if (!d.isRejected) return false;
+          case DetectionFilterMode.all:
+            break;
+        }
+        if (_filterType != null && d.type != _filterType) return false;
+        return true;
+      }).toList();
 
   void _applyAllSuggested() {
     for (final detection in widget.detections) {
@@ -560,8 +587,8 @@ class _DetectionPanelState extends State<DetectionPanel>
         // Convert EditActionType to RemediationAction
         final RemediationAction action;
         if (detection.isAudioDetection) {
-          action = detection.suggestedAction == EditActionType.beep 
-              ? RemediationAction.beep 
+          action = detection.suggestedAction == EditActionType.beep
+              ? RemediationAction.beep
               : RemediationAction.mute;
         } else {
           switch (detection.suggestedAction) {
@@ -605,9 +632,9 @@ class _DetectionTile extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: isSelected 
-        ? colorScheme.primaryContainer 
-        : (isRejected ? colorScheme.surfaceContainerLow : null),
+      color: isSelected
+          ? colorScheme.primaryContainer
+          : (isRejected ? colorScheme.surfaceContainerLow : null),
       child: InkWell(
         onTap: onSeek,
         onLongPress: onToggleSelection,
@@ -620,18 +647,18 @@ class _DetectionTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (onToggleSelection != null)
-                   Padding(
-                     padding: const EdgeInsets.only(right: 8, top: 4),
-                     child: SizedBox(
-                       width: 20,
-                       height: 20,
-                       child: Checkbox(
-                         value: isSelected,
-                         onChanged: (_) => onToggleSelection!(),
-                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                       ),
-                     ),
-                   ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8, top: 4),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: Checkbox(
+                        value: isSelected,
+                        onChanged: (_) => onToggleSelection!(),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -639,125 +666,151 @@ class _DetectionTile extends StatelessWidget {
                       // Header row
                       Row(
                         children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _getTypeColor(detection.type).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            _getTypeIcon(detection.type),
-                            size: 12,
-                            color: _getTypeColor(detection.type),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getTypeColor(detection.type)
+                                  .withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _getTypeIcon(detection.type),
+                                  size: 12,
+                                  color: _getTypeColor(detection.type),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  detection.typeDisplayName,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: _getTypeColor(detection.type),
+                                    decoration: isRejected
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 8),
+                          // Rejected indicator
+                          if (isRejected) ...[
+                            Icon(
+                              Icons.cancel,
+                              size: 14,
+                              color: Colors.red.shade300,
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                          // Confidence
                           Text(
-                            detection.typeDisplayName,
+                            '${(detection.confidence * 100).round()}%',
                             style: TextStyle(
                               fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: _getTypeColor(detection.type),
-                              decoration: isRejected ? TextDecoration.lineThrough : null,
+                              color: colorScheme.outline,
+                              decoration: isRejected
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
+                          ),
+                          const Spacer(),
+                          // Time
+                          Text(
+                            _formatTimeRange(
+                              detection.startTime,
+                              detection.endTime,
+                            ),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: colorScheme.outline,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Rejected indicator
-                    if (isRejected) ...[
-                      Icon(Icons.cancel, size: 14, color: Colors.red.shade300),
-                      const SizedBox(width: 4),
-                    ],
-                    // Confidence
-                    Text(
-                      '${(detection.confidence * 100).round()}%',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: colorScheme.outline,
-                        decoration: isRejected ? TextDecoration.lineThrough : null,
-                      ),
-                    ),
-                    const Spacer(),
-                    // Time
-                    Text(
-                      _formatTimeRange(detection.startTime, detection.endTime),
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: colorScheme.outline,
-                      ),
-                    ),
-                  ],
-                ),
-                
-                // Content (if any)
-                if (detection.content != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    detection.content!,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontStyle: FontStyle.italic,
-                      color: colorScheme.onSurfaceVariant,
-                      decoration: isRejected ? TextDecoration.lineThrough : null,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              
-              const SizedBox(height: 8),
-              
-              // Action buttons
-              if (detection.isRejected)
-                Row(
-                  children: [
-                    Icon(
-                      Icons.block,
-                      size: 14,
-                      color: colorScheme.outline,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Rejected',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: colorScheme.outline,
-                      ),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: onAccept,
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      child: const Text('Restore', style: TextStyle(fontSize: 10)),
-                    ),
-                  ],
-                )
-              else
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: [
-                    // Show different actions based on detection type
-                    ..._buildActionChips(detection, colorScheme),
-                    _ActionChip(
-                      icon: Icons.block,
-                      label: 'Reject',
-                      color: colorScheme.outline,
-                      onTap: onReject,
-                    ),
+
+                      // Content (if any)
+                      if (detection.content != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          detection.content!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontStyle: FontStyle.italic,
+                            color: colorScheme.onSurfaceVariant,
+                            decoration:
+                                isRejected ? TextDecoration.lineThrough : null,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ],
-                    ),
-                  ],
-                ),
+                      if (detection.hasExplainabilityMetadata) ...[
+                        const SizedBox(height: 8),
+                        DetectionExplanationPanel(
+                          detection: detection,
+                          compact: true,
+                          showFramePreview: false,
+                        ),
+                      ],
+
+                      const SizedBox(height: 8),
+
+                      // Action buttons
+                      if (detection.isRejected)
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.block,
+                              size: 14,
+                              color: colorScheme.outline,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Rejected',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colorScheme.outline,
+                              ),
+                            ),
+                            const Spacer(),
+                            TextButton(
+                              onPressed: onAccept,
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              child: const Text(
+                                'Restore',
+                                style: TextStyle(fontSize: 10),
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: [
+                            // Show different actions based on detection type
+                            ..._buildActionChips(detection, colorScheme),
+                            _ActionChip(
+                              icon: Icons.block,
+                              label: 'Reject',
+                              color: colorScheme.outline,
+                              onTap: onReject,
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -840,7 +893,8 @@ class _DetectionTile extends StatelessWidget {
     }
   }
 
-  String _formatTimeRange(Duration start, Duration end) => '${_formatDuration(start)} - ${_formatDuration(end)}';
+  String _formatTimeRange(Duration start, Duration end) =>
+      '${_formatDuration(start)} - ${_formatDuration(end)}';
 
   String _formatDuration(Duration d) {
     final m = d.inMinutes % 60;
@@ -864,27 +918,27 @@ class _ActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          border: Border.all(color: color.withValues(alpha: 0.5)),
-          borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            border: Border.all(color: color.withValues(alpha: 0.5)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 10, color: color),
+              const SizedBox(width: 2),
+              Text(
+                label,
+                style: TextStyle(fontSize: 9, color: color),
+              ),
+            ],
+          ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 10, color: color),
-            const SizedBox(width: 2),
-            Text(
-              label,
-              style: TextStyle(fontSize: 9, color: color),
-            ),
-          ],
-        ),
-      ),
-    );
+      );
 }
 
 class _EditActionTile extends StatelessWidget {
@@ -916,9 +970,9 @@ class _EditActionTile extends StatelessWidget {
               onChanged: (_) => onToggle(),
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            
+
             const SizedBox(width: 8),
-            
+
             // Action type icon
             Container(
               padding: const EdgeInsets.all(6),
@@ -932,9 +986,9 @@ class _EditActionTile extends StatelessWidget {
                 color: _getActionColor(action.type),
               ),
             ),
-            
+
             const SizedBox(width: 8),
-            
+
             // Details
             Expanded(
               child: Column(
@@ -959,7 +1013,7 @@ class _EditActionTile extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Remove button
             IconButton(
               icon: const Icon(Icons.delete_outline, size: 16),
@@ -1003,7 +1057,8 @@ class _EditActionTile extends StatelessWidget {
     }
   }
 
-  String _formatTimeRange(Duration start, Duration end) => '${_formatDuration(start)} - ${_formatDuration(end)}';
+  String _formatTimeRange(Duration start, Duration end) =>
+      '${_formatDuration(start)} - ${_formatDuration(end)}';
 
   String _formatDuration(Duration d) {
     final m = d.inMinutes % 60;

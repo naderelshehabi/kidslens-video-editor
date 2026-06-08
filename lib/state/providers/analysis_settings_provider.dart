@@ -21,6 +21,7 @@ class AnalysisSettingsState {
     this.cpuThreads = 4,
     this.contentDetectionConfig = const ContentDetectionConfig(),
     this.onnxExecutionProvider = 'auto',
+    this.analysisPipelineId = 'vss_family_safety_v1',
   });
 
   factory AnalysisSettingsState.fromJson(Map<String, dynamic> json) =>
@@ -33,9 +34,9 @@ class AnalysisSettingsState {
         enableProfanity: json['enableProfanity'] as bool? ?? true,
         frameSamplingRate: json['frameSamplingRate'] as int? ?? 5,
         asrLanguage: json['asrLanguage'] as String? ?? 'en',
-        useGpuAcceleration: json['useGpuAcceleration'] as bool? ?? 
+        useGpuAcceleration: json['useGpuAcceleration'] as bool? ??
             (json['asrGpuEnabled'] as bool? ?? true),
-        gpuDeviceIndex: json['gpuDeviceIndex'] as int? ?? 
+        gpuDeviceIndex: json['gpuDeviceIndex'] as int? ??
             (json['asrGpuDevice'] as int? ?? 0),
         cpuThreads: json['cpuThreads'] as int? ?? 4,
         contentDetectionConfig: json['contentDetectionConfig'] != null
@@ -43,7 +44,10 @@ class AnalysisSettingsState {
                 json['contentDetectionConfig'] as Map<String, dynamic>,
               )
             : const ContentDetectionConfig(),
-        onnxExecutionProvider: json['onnxExecutionProvider'] as String? ?? 'auto',
+        onnxExecutionProvider:
+            json['onnxExecutionProvider'] as String? ?? 'auto',
+        analysisPipelineId:
+            json['analysisPipelineId'] as String? ?? 'vss_family_safety_v1',
       );
 
   factory AnalysisSettingsState.withDefaults() => const AnalysisSettingsState();
@@ -69,6 +73,7 @@ class AnalysisSettingsState {
   final int cpuThreads;
   final ContentDetectionConfig contentDetectionConfig;
   final String onnxExecutionProvider;
+  final String analysisPipelineId;
 
   AnalysisSettingsState copyWith({
     String? asrModelId,
@@ -82,6 +87,7 @@ class AnalysisSettingsState {
     int? cpuThreads,
     ContentDetectionConfig? contentDetectionConfig,
     String? onnxExecutionProvider,
+    String? analysisPipelineId,
   }) =>
       AnalysisSettingsState(
         asrModelId: asrModelId ?? this.asrModelId,
@@ -95,7 +101,9 @@ class AnalysisSettingsState {
         cpuThreads: cpuThreads ?? this.cpuThreads,
         contentDetectionConfig:
             contentDetectionConfig ?? this.contentDetectionConfig,
-        onnxExecutionProvider: onnxExecutionProvider ?? this.onnxExecutionProvider,
+        onnxExecutionProvider:
+            onnxExecutionProvider ?? this.onnxExecutionProvider,
+        analysisPipelineId: analysisPipelineId ?? this.analysisPipelineId,
       );
 
   AnalysisSettings toAnalysisSettings() => AnalysisSettings(
@@ -113,6 +121,7 @@ class AnalysisSettingsState {
         ),
         enableProfanity: enableProfanity,
         frameSamplingRate: frameSamplingRate,
+        analysisPipelineId: analysisPipelineId,
         contentDetectionConfig: contentDetectionConfig,
       );
 
@@ -128,6 +137,7 @@ class AnalysisSettingsState {
         'cpuThreads': cpuThreads,
         'contentDetectionConfig': contentDetectionConfig.toJson(),
         'onnxExecutionProvider': onnxExecutionProvider,
+        'analysisPipelineId': analysisPipelineId,
       };
 }
 
@@ -234,6 +244,11 @@ class AnalysisSettingsNotifier extends _$AnalysisSettingsNotifier {
     final resolvedDevice =
         device == null ? currentDevice : (device < 0 ? 0 : device);
     state = state.copyWith(gpuDeviceIndex: resolvedDevice);
+    saveSettings();
+  }
+
+  void setAnalysisPipeline(String pipelineId) {
+    state = state.copyWith(analysisPipelineId: pipelineId);
     saveSettings();
   }
 
