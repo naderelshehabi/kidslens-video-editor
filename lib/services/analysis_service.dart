@@ -198,24 +198,39 @@ class AnalysisService {
     required DetectionPipeline pipeline,
     required DetectionPipelineRequest request,
     required DetectionPipelineRolloutDecision decision,
-  }) async* {
-    try {
-      yield* pipeline.analyze(request);
-    } catch (error) {
-      unawaited(
-        _recordFailure(
-          detectionFailureHandler.resolve(
-            kind: _classifyPipelineFailure(error),
-            activePipelineId: decision.activePipelineId,
-            requestedPipelineId: decision.requestedPipelineId,
-            rolloutState: decision.state,
-            error: error,
-            details: decision.toJson(),
-          ),
-        ),
+  }) {
+    late StreamSubscription<AnalysisProgress> subscription;
+    final controller = StreamController<AnalysisProgress>();
+
+    controller.onListen = () {
+      subscription = pipeline.analyze(request).listen(
+        controller.add,
+        onError: (Object error, StackTrace stackTrace) async {
+          await _recordFailure(
+            detectionFailureHandler.resolve(
+              kind: _classifyPipelineFailure(error),
+              activePipelineId: decision.activePipelineId,
+              requestedPipelineId: decision.requestedPipelineId,
+              rolloutState: decision.state,
+              error: error,
+              details: decision.toJson(),
+            ),
+          );
+          controller.addError(error, stackTrace);
+          await controller.close();
+        },
+        onDone: controller.close,
       );
-      rethrow;
-    }
+    };
+    controller.onPause = () {
+      subscription.pause();
+    };
+    controller.onResume = () {
+      subscription.resume();
+    };
+    controller.onCancel = () => subscription.cancel();
+
+    return controller.stream;
   }
 
   Future<void> _recordFailure(

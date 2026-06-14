@@ -179,14 +179,14 @@ Phases are ordered for execution. Each has an exit gate. Run `flutter analyze` a
 
 New file `lib/services/detection/runtime_binary_manager.dart`:
 
-- [ ] 2.1 `RuntimeBinaryManager` downloads and verifies the llama.cpp server binaries:
+- [x] 2.1 `RuntimeBinaryManager` downloads and verifies the llama.cpp server binaries:
   - Pin one release tag in a const config (choose the latest release at implementation time from https://github.com/ggml-org/llama.cpp/releases; record tag + per-zip sha256 in the const and in `docs/implement/model-bundle-manifest-source-review.md`).
   - Three assets: `llama-<tag>-bin-win-cuda-13.3-x64.zip` (or current CUDA-13.x asset name), `cudart-llama-bin-win-cuda-13.3-x64.zip`, `llama-<tag>-bin-win-vulkan-x64.zip`. Asset names change across releases — resolve them by pattern (`bin-win-cuda-1[23]`, `cudart-llama-bin-win-cuda`, `bin-win-vulkan-x64`) against the pinned tag's asset list at implementation time, then hardcode the resolved names + checksums.
   - Download URL shape: `https://github.com/ggml-org/llama.cpp/releases/download/<tag>/<asset>`.
   - Extract under `<getApplicationSupportDirectory()>/kidslens_runtimes/llamacpp/<tag>/cuda/` and `/vulkan/` (cudart DLLs extracted into the `cuda/` directory beside `llama-server.exe`).
   - Expose `Future<RuntimeBinaryStatus> status()`, `Stream<DownloadProgress> ensureInstalled(RuntimeFlavor flavor)`, `String? serverExePath(RuntimeFlavor flavor)`. sha256-verify each zip before extraction; refuse to run unverified binaries.
   - Use Dart's `package:archive`? **No new heavyweight deps**: prefer invoking PowerShell `Expand-Archive` via `Process.run` (Windows-only app) or add `archive` to pubspec — implementer's choice; document the choice in code.
-- [ ] 2.2 New file `lib/services/detection/llama_server_manager.dart` — `LlamaServerManager`:
+- [x] 2.2 New file `lib/services/detection/llama_server_manager.dart` — `LlamaServerManager`:
   - `Future<LlamaServerHandle> startVlm({required ModelBundleManifest bundle, required RuntimeFlavor flavor, required String modelDir})`:
     - Resolve model + mmproj paths from the downloaded bundle files.
     - Pick a free loopback port (bind a `ServerSocket` to port 0, read the port, close it).
@@ -197,8 +197,8 @@ New file `lib/services/detection/runtime_binary_manager.dart`:
   - `LlamaServerHandle` carries `port`, `process`, `flavor`, `bundleId`, `Future<void> dispose()` (graceful kill + wait). Manager tracks handles, kills all on `dispose()`; register cleanup with `AppLifecycleListener`/app shutdown hook in `lib/app.dart` and on analysis cancellation.
   - Idle shutdown: stop the VLM instance after N minutes with no requests (default 10) to release VRAM; restart lazily.
   - Hardening: clean stale child processes started by KidsLens on app startup, keep at most one active VLM instance per GPU, retry port allocation if the selected loopback port is stolen before spawn, and retain stderr/stdout ring-buffer diagnostics for UI/debug overlay and failure reports.
-- [ ] 2.3 Unit tests (`test/services/detection/llama_server_manager_test.dart`): spawn-arg construction, port allocation, health-poll loop against a fake local HTTP server, fallback ordering, dispose kills process (use a stub executable, e.g. a tiny PowerShell/cmd script that serves nothing — assert process kill semantics only). The real-binary integration test lives in Phase 10.
-- [ ] Exit gate: all unit tests pass; manual smoke (`dart run` harness or debug menu) can start/stop a real llama-server when binaries+model are present.
+- [x] 2.3 Unit tests (`test/services/detection/llama_server_manager_test.dart`): spawn-arg construction, port allocation, health-poll loop against a fake local HTTP server, fallback ordering, dispose kills process (use a stub executable, e.g. a tiny PowerShell/cmd script that serves nothing — assert process kill semantics only). The real-binary integration test lives in Phase 10.
+- [x] Exit gate: all unit tests pass; manual smoke (`dart run` harness or debug menu) can start/stop a real llama-server when binaries+model are present. Implemented 2026-06-14 with `RuntimeBinaryManager` pinned to official llama.cpp `b9628` Windows CUDA 13.3 and Vulkan assets, `LlamaServerManager` loopback process lifecycle, health polling, one-active-server-per-GPU-slot replacement, idle release, and stdout/stderr ring-buffer diagnostics. Verified with focused analyzer and Phase 2 plus adjacent runtime/model tests. Real-binary smoke remains conditional on the user downloading the large runtime/model artifacts.
 
 ### Phase 3 — VLM provider that actually sends frames (OpenAI-compatible)
 

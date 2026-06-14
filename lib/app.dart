@@ -9,6 +9,7 @@ import 'package:kidslens_video_editor/presentation/themes/app_theme.dart';
 import 'package:kidslens_video_editor/services/project_service.dart';
 import 'package:kidslens_video_editor/state/providers/model_provider.dart';
 import 'package:kidslens_video_editor/state/providers/project_provider.dart';
+import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -48,41 +49,40 @@ class _KidsLensAppState extends ConsumerState<KidsLensApp> {
     Future<void>(() async {
       await ref.read(settingsNotifierProvider.notifier).loadSettings();
       await ref.read(modelNotifierProvider.notifier).loadAvailableModels();
+      await ref.read(llamaServerManagerProvider).cleanupStaleChildren();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsNotifierProvider);
-    
+
     return MaterialApp(
-        title: 'KidsLens Video Editor',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: settings.themeMode,
-        home: const _OnboardingWrapper(),
-        routes: {
-          '/analysis-settings': (context) => const AnalysisSettingsScreen(),
-          '/settings': (context) => const SettingsScreen(),
-          '/about': (context) => const AboutScreen(),
-        },
-        onGenerateRoute: (settings) {
-          // Handle dynamic routes that require arguments
-          switch (settings.name) {
-            case '/editor':
-              return MaterialPageRoute<void>(
-                builder: (context) => const EditorScreen(),
-              );
-            default:
-              return null;
-          }
-        },
-      );
+      title: 'KidsLens Video Editor',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: settings.themeMode,
+      home: const _OnboardingWrapper(),
+      routes: {
+        '/analysis-settings': (context) => const AnalysisSettingsScreen(),
+        '/settings': (context) => const SettingsScreen(),
+        '/about': (context) => const AboutScreen(),
+      },
+      onGenerateRoute: (settings) {
+        // Handle dynamic routes that require arguments
+        switch (settings.name) {
+          case '/editor':
+            return MaterialPageRoute<void>(
+              builder: (context) => const EditorScreen(),
+            );
+          default:
+            return null;
+        }
+      },
+    );
   }
 }
-
-
 
 /// Wrapper to check if onboarding should be shown
 class _OnboardingWrapper extends StatefulWidget {

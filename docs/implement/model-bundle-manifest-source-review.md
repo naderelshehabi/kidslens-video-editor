@@ -74,6 +74,18 @@ conversion recipe when applicable, and RTX 5070 validation evidence.
 - `nvidia/LocateAnything-3B` remains optional/blocked for commercial builds
   because its license is non-commercial.
 
+## 2026-06-14 Runtime Binary Pin
+
+Phase 2 pins official llama.cpp release `b9628` for Windows desktop local
+inference. The runtime downloader verifies each zip independently before
+extraction and records provenance metadata under the app support runtime cache.
+
+| Runtime | Official asset | Size | SHA-256 |
+| --- | --- | ---: | --- |
+| CUDA llama.cpp | `llama-b9628-bin-win-cuda-13.3-x64.zip` | 159,018,881 | `3762ce9bcdadf3ba3bafd98f5dc5addc2520c9f94b672d91086496934ddb4c1e` |
+| CUDA runtime DLLs | `cudart-llama-bin-win-cuda-13.3-x64.zip` | 390,970,417 | `1462a050eb4c684921ba51dcc4cc488a036674c3e73e9945ee705b854808d03e` |
+| Vulkan llama.cpp | `llama-b9628-bin-win-vulkan-x64.zip` | 38,546,148 | `0545d862acf0940288a13cd4eb1e9c995fb0c42db86d011eabc54fd886cd044e` |
+
 ## Sources
 
 - NVIDIA Cosmos Reason1 7B Hugging Face model card:
@@ -106,3 +118,7 @@ conversion recipe when applicable, and RTX 5070 validation evidence.
   https://huggingface.co/nvidia/Llama-4-Scout-17B-16E-Instruct-FP8
 - NVIDIA LocateAnything 3B Hugging Face model card:
   https://huggingface.co/nvidia/LocateAnything-3B
+- llama.cpp b9628 GitHub release:
+  https://github.com/ggml-org/llama.cpp/releases/tag/b9628
+- llama.cpp b9628 GitHub release API metadata:
+  https://api.github.com/repos/ggml-org/llama.cpp/releases/tags/b9628

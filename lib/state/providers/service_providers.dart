@@ -9,17 +9,19 @@ import 'package:kidslens_video_editor/services/analysis_service.dart';
 import 'package:kidslens_video_editor/services/asr_cache_service.dart';
 import 'package:kidslens_video_editor/services/asr_service.dart';
 import 'package:kidslens_video_editor/services/beep_audio_service.dart';
+import 'package:kidslens_video_editor/services/detection/llama_server_manager.dart';
+import 'package:kidslens_video_editor/services/detection/runtime_binary_manager.dart';
 import 'package:kidslens_video_editor/services/export_service.dart';
 import 'package:kidslens_video_editor/services/frame_sampling_service.dart';
 import 'package:kidslens_video_editor/services/media_service.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
+import 'package:kidslens_video_editor/services/nsfw_onnx_service.dart';
 import 'package:kidslens_video_editor/services/performance_monitor.dart';
 import 'package:kidslens_video_editor/services/profanity_service.dart';
 import 'package:kidslens_video_editor/services/project_service.dart';
 import 'package:kidslens_video_editor/services/sample_analysis_service.dart';
 import 'package:kidslens_video_editor/services/subtitle_service.dart';
 import 'package:kidslens_video_editor/services/temporal_aggregator.dart';
-import 'package:kidslens_video_editor/services/nsfw_onnx_service.dart';
 import 'package:kidslens_video_editor/services/thumbnail_service.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -48,7 +50,7 @@ ONNXBindings onnxBindings(Ref ref) {
   final config = ref.watch(gpuConfigProvider);
   final bindings = ONNXBindings();
 
-  ref.onDispose(() => bindings.dispose());
+  ref.onDispose(bindings.dispose);
 
   bindings.initialize(
     executionProviders: config.onnxExecutionProviders,
@@ -87,6 +89,18 @@ ModelManagerService modelManagerService(Ref ref) {
         (modelPath == null || modelPath.isEmpty) ? null : modelPath,
   );
 }
+
+final runtimeBinaryManagerProvider = Provider<RuntimeBinaryManager>(
+  (ref) => RuntimeBinaryManager(),
+);
+
+final llamaServerManagerProvider = Provider<LlamaServerManager>((ref) {
+  final manager = LlamaServerManager(
+    runtimeBinaryManager: ref.watch(runtimeBinaryManagerProvider),
+  );
+  ref.onDispose(manager.dispose);
+  return manager;
+});
 
 @Riverpod(keepAlive: true)
 ProfanityService profanityService(Ref ref) => ProfanityService();
