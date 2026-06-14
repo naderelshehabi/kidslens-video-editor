@@ -17,6 +17,7 @@ void main() {
         ids,
         containsAll(const [
           'nvidia_cosmos_reason1_7b',
+          'nvidia_cosmos_reason2_8b',
           'nvidia_nemotron_nano_12b_v2_vl_fp8',
           'kidslens_nemotron_nano_12b_v2_vl_int4',
           'qwen_3_5_4b',
@@ -99,6 +100,8 @@ void main() {
           'Qwen/Qwen3.5-14B-*',
           'Qwen/Qwen3.5-32B-*',
           'microsoft/Phi-4-vision-reasoning-15B',
+          'meta-llama/Llama-4-Scout-17B-16E-Instruct',
+          'nvidia/Llama-4-Scout-17B-16E-Instruct-FP8',
           'meta-llama/Llama-4-Maverick-*',
           'OpenGVLab/InternVL-*',
           'allenai/Molmo-*',
