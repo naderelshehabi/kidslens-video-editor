@@ -215,7 +215,8 @@ class HuggingFaceModelRegistry {
       speedMultiplier: 10,
       accuracyPercent: 92,
       modelType: HuggingFaceModelType.nsfw,
-      description: 'ViT-based NSFW detector (ONNX, 224x224, 5-class, Int8 quantized)',
+      description:
+          'ViT-based NSFW detector (ONNX, 224x224, 5-class, Int8 quantized)',
     ),
     const HuggingFaceModel(
       id: 'nsfw-onnx-community-vit-224-q4',
@@ -229,7 +230,8 @@ class HuggingFaceModelRegistry {
       speedMultiplier: 11,
       accuracyPercent: 90,
       modelType: HuggingFaceModelType.nsfw,
-      description: 'ViT-based NSFW detector (ONNX, 224x224, 5-class, Q4 quantized)',
+      description:
+          'ViT-based NSFW detector (ONNX, 224x224, 5-class, Q4 quantized)',
     ),
     const HuggingFaceModel(
       id: 'nsfw-onnx-community-vit-224-bnb4',
@@ -243,7 +245,8 @@ class HuggingFaceModelRegistry {
       speedMultiplier: 10,
       accuracyPercent: 90,
       modelType: HuggingFaceModelType.nsfw,
-      description: 'ViT-based NSFW detector (ONNX, 224x224, 5-class, BNB4 quantized)',
+      description:
+          'ViT-based NSFW detector (ONNX, 224x224, 5-class, BNB4 quantized)',
     ),
     const HuggingFaceModel(
       id: 'nsfw-nudenet-detector-640',
@@ -257,7 +260,9 @@ class HuggingFaceModelRegistry {
       speedMultiplier: 6,
       accuracyPercent: 91,
       modelType: HuggingFaceModelType.nsfw,
-      description: 'NudeNet YOLO-style ONNX detector for region-level NSFW detections (640x640)',
+      description:
+          'NudeNet YOLO-style ONNX detector for region-level NSFW detections (640x640)',
+      license: 'AGPL-3.0',
     ),
     const HuggingFaceModel(
       id: 'nsfw-nudenet-detector-320',
@@ -271,7 +276,9 @@ class HuggingFaceModelRegistry {
       speedMultiplier: 10,
       accuracyPercent: 88,
       modelType: HuggingFaceModelType.nsfw,
-      description: 'NudeNet YOLO-style ONNX detector for region-level NSFW detections (320x320, faster)',
+      description:
+          'NudeNet YOLO-style ONNX detector for region-level NSFW detections (320x320, faster)',
+      license: 'AGPL-3.0',
     ),
   ];
 
@@ -291,7 +298,6 @@ class HuggingFaceModelRegistry {
       badge: 'Recommended',
       description:
           'Foreground/person silhouette segmentation helper used to approximate limb exposure zones for modesty rules.',
-      license: 'MIT',
     ),
   ];
 
@@ -436,8 +442,9 @@ class HuggingFaceModelRegistry {
 
   List<HuggingFaceModel> getAsrModels() => List.unmodifiable(_asrModels);
 
-  List<HuggingFaceModel> getVisualModels() =>
-      List.unmodifiable([..._nsfwModels, ..._parserModels, ..._genderHelperModels]);
+  List<HuggingFaceModel> getVisualModels() => List.unmodifiable(
+        [..._nsfwModels, ..._parserModels, ..._genderHelperModels],
+      );
 
   List<HuggingFaceModel> getModelsByType(HuggingFaceModelType type) {
     switch (type) {
@@ -452,8 +459,7 @@ class HuggingFaceModelRegistry {
     }
   }
 
-  List<HuggingFaceModel> getAllModels() =>
-      List.unmodifiable([
+  List<HuggingFaceModel> getAllModels() => List.unmodifiable([
         ..._asrModels,
         ..._nsfwModels,
         ..._parserModels,
@@ -462,7 +468,12 @@ class HuggingFaceModelRegistry {
 
   HuggingFaceModel? getModelById(String id) {
     final normalizedId = _normalizeLegacyModelId(id);
-    for (final model in [..._asrModels, ..._nsfwModels, ..._parserModels, ..._genderHelperModels]) {
+    for (final model in [
+      ..._asrModels,
+      ..._nsfwModels,
+      ..._parserModels,
+      ..._genderHelperModels,
+    ]) {
       if (model.id == normalizedId) return model;
     }
     return null;
@@ -532,10 +543,10 @@ class HuggingFaceModelRegistry {
 
   List<HuggingFaceModel> getNsfwModels() => List.unmodifiable(_nsfwModels);
   List<HuggingFaceModel> getNsfwClassifierModels() => List.unmodifiable(
-    _nsfwModels
-        .where((model) => !model.id.contains('nudenet'))
-        .toList(growable: false),
-  );
+        _nsfwModels
+            .where((model) => !model.id.contains('nudenet'))
+            .toList(growable: false),
+      );
   List<HuggingFaceModel> getParserModels() => List.unmodifiable(_parserModels);
   List<HuggingFaceModel> getGenderHelperModels() =>
       List.unmodifiable(_genderHelperModels);
@@ -543,10 +554,10 @@ class HuggingFaceModelRegistry {
   List<HuggingFaceModel> getBloodModels() => const [];
   List<HuggingFaceModel> getWeaponsModels() => const [];
   List<HuggingFaceModel> getNudeNetModels() => List.unmodifiable(
-    _nsfwModels
-        .where((model) => model.id.contains('nudenet'))
-        .toList(growable: false),
-  );
+        _nsfwModels
+            .where((model) => model.id.contains('nudenet'))
+            .toList(growable: false),
+      );
   List<HuggingFaceModel> getClipModels() => const [];
 
   List<HuggingFaceModel> getModelsSortedBySize(HuggingFaceModelType type) {

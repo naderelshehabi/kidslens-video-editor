@@ -4,7 +4,8 @@ import 'package:kidslens_video_editor/services/detection/model_bundle_selection_
 
 void main() {
   group('ModelBundleSelectionPolicy', () {
-    test('allows production-approved bundles for matching roles and runtime', () {
+    test('allows production-approved bundles for matching roles and runtime',
+        () {
       final manifest = _manifest();
       final policy = ModelBundleSelectionPolicy(catalog: [manifest]);
 
@@ -100,12 +101,58 @@ void main() {
         contains('Requires CUDA Transformers Helper.'),
       );
     });
+
+    test('accepts either llama.cpp runtime for llama server bundles', () {
+      final manifest = _manifest(
+        runtime: ModelBundleRuntime.llamaCppServer,
+        artifactType: ModelBundleArtifactType.officialGguf,
+        artifactFiles: const <ModelBundleArtifactFile>[
+          ModelBundleArtifactFile(
+            path: 'model.gguf',
+            sizeBytes: 2,
+            sha256:
+                '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+          ),
+          ModelBundleArtifactFile(
+            path: 'mmproj.gguf',
+            sizeBytes: 3,
+            sha256:
+                'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789',
+          ),
+        ],
+      );
+      final policy = ModelBundleSelectionPolicy(catalog: [manifest]);
+
+      expect(
+        policy.blockers(
+          manifest: manifest,
+          role: ModelBundleRole.vlm,
+          localRuntimeId: LocalRuntimeId.cudaLlamaCpp.jsonValue,
+          acceptedTerms: const <String>{},
+        ),
+        isEmpty,
+      );
+      expect(
+        policy.blockers(
+          manifest: manifest,
+          role: ModelBundleRole.vlm,
+          localRuntimeId: LocalRuntimeId.vulkanLlamaCpp.jsonValue,
+          acceptedTerms: const <String>{},
+        ),
+        isEmpty,
+      );
+    });
   });
 }
 
 ModelBundleManifest _manifest({
   bool acceptedTermsRequired = false,
   CommercialUseStatus commercialUse = CommercialUseStatus.allowed,
+  ModelBundleRuntime runtime = ModelBundleRuntime.cudaTransformersHelper,
+  ModelBundleArtifactType artifactType =
+      ModelBundleArtifactType.internalQuantizedArtifact,
+  List<ModelBundleArtifactFile> artifactFiles =
+      const <ModelBundleArtifactFile>[],
 }) =>
     ModelBundleManifest(
       modelId: 'kidslens_gemma_4_e4b_it_int4',
@@ -116,12 +163,12 @@ ModelBundleManifest _manifest({
       license: ModelBundleLicense.apache20,
       commercialUse: commercialUse,
       acceptedTermsRequired: acceptedTermsRequired,
-      artifactType: ModelBundleArtifactType.internalQuantizedArtifact,
+      artifactType: artifactType,
       artifactUri: 'kidslens-model://gemma-4-e4b-it-int4',
       sha256:
           '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
       conversionRecipeId: 'gemma-4-e4b-it-int4-v1',
-      runtime: ModelBundleRuntime.cudaTransformersHelper,
+      runtime: runtime,
       minVramGb: 6,
       recommendedVramGb: 8,
       targetGpuClass: ModelBundleCatalog.targetGpuClass,
@@ -142,4 +189,5 @@ ModelBundleManifest _manifest({
       roles: const <ModelBundleRole>[ModelBundleRole.vlm],
       approvalStatus: ModelBundleApprovalStatus.productionApproved,
       reviewNotes: 'Validated local bundle.',
+      artifactFiles: artifactFiles,
     );

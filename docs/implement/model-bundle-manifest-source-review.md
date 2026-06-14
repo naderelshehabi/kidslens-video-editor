@@ -26,6 +26,9 @@ This review backs the Phase 1 model bundle catalog in
 | `kidslens_nemotron_nano_12b_v2_vl_int4` | Derived from `nvidia/NVIDIA-Nemotron-Nano-12B-v2-VL-FP8` | Must inherit NVIDIA Open Model License obligations and use a committed conversion recipe. | Allowed only after reproducible KidsLens artifact, checksum, and RTX 5070 validation. | Evaluation only |
 | `qwen_3_5_4b` | `Qwen/Qwen3.5-4B` | Apache 2.0. | Allowed after checksum and RTX 5070 validation. | Evaluation only |
 | `qwen_3_5_2b` | `Qwen/Qwen3.5-2B` | Apache 2.0. | Allowed after checksum, quality review, and RTX 5070 validation. | Evaluation only |
+| `qwen3_vl_8b_instruct_gguf_q4km` | `Qwen/Qwen3-VL-8B-Instruct-GGUF` | Apache 2.0. | Primary v2 GGUF candidate; not production-selectable until per-file checksums and RTX 5070 validation are recorded. | Evaluation only |
+| `qwen3_vl_4b_instruct_gguf_q4km` | `Qwen/Qwen3-VL-4B-Instruct-GGUF` | Apache 2.0. | Lightweight v2 GGUF candidate; not production-selectable until per-file checksums and RTX 5070 validation are recorded. | Evaluation only |
+| `qwen3_embedding_0_6b_gguf_q8` | `Qwen/Qwen3-Embedding-0.6B-GGUF` | Apache 2.0. | Text-evidence search embedding candidate; not production-selectable until checksum and local smoke validation are recorded. | Evaluation only |
 | `google_gemma_4_e4b_it` | `google/gemma-4-E4B-it` | Apache 2.0. | Allowed after checksum and RTX 5070 validation. | Evaluation only |
 | `google_gemma_4_12b_it_int4` | Derived from `google/gemma-4-12B-it` | Apache 2.0. | Allowed only after reproducible KidsLens 4-bit artifact, checksum, and RTX 5070 validation. | Evaluation only |
 | `microsoft_phi_4_multimodal_instruct` | `microsoft/Phi-4-multimodal-instruct` | MIT. | Allowed after checksum and runtime validation. | Evaluation only |

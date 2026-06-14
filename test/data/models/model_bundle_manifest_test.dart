@@ -20,6 +20,8 @@ void main() {
           'nvidia_cosmos_reason2_8b',
           'nvidia_nemotron_nano_12b_v2_vl_fp8',
           'kidslens_nemotron_nano_12b_v2_vl_int4',
+          'qwen3_vl_8b_instruct_gguf_q4km',
+          'qwen3_vl_4b_instruct_gguf_q4km',
           'qwen_3_5_4b',
           'qwen_3_5_2b',
           'google_gemma_4_e4b_it',
@@ -57,6 +59,33 @@ void main() {
         ModelBundleCatalog.approvedEmbeddingCandidates.map((m) => m.modelId),
         contains('qwen3_embedding_0_6b'),
       );
+    });
+
+    test('contains official Qwen GGUF candidates with explicit files', () {
+      final primary = ModelBundleCatalog.byModelId(
+        'qwen3_vl_8b_instruct_gguf_q4km',
+      );
+      final lightweight = ModelBundleCatalog.byModelId(
+        'qwen3_vl_4b_instruct_gguf_q4km',
+      );
+      final embedding = ModelBundleCatalog.byModelId(
+        'qwen3_embedding_0_6b_gguf_q8',
+      );
+
+      expect(primary.artifactType, ModelBundleArtifactType.officialGguf);
+      expect(primary.runtime, ModelBundleRuntime.llamaCppServer);
+      expect(primary.artifactFiles.map((file) => file.path), [
+        'Qwen3VL-8B-Instruct-Q4_K_M.gguf',
+        'mmproj-Qwen3VL-8B-Instruct-F16.gguf',
+      ]);
+      expect(lightweight.artifactFiles, hasLength(2));
+      expect(
+        embedding.artifactFiles.single.path,
+        'Qwen3-Embedding-0.6B-Q8_0.gguf',
+      );
+      expect(primary.validateForCatalog(), isEmpty);
+      expect(lightweight.validateForCatalog(), isEmpty);
+      expect(embedding.validateForCatalog(), isEmpty);
     });
 
     test('does not expose production-selectable models without checksums', () {
@@ -112,6 +141,21 @@ void main() {
   });
 
   group('ModelBundleManifest validation', () {
+    test('artifact files round trip through JSON and equality', () {
+      const file = ModelBundleArtifactFile(
+        path: 'model.gguf',
+        sizeBytes: 2,
+        sha256:
+            '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      );
+
+      final restored = ModelBundleArtifactFile.fromJson(file.toJson());
+
+      expect(restored, file);
+      expect(restored.hashCode, file.hashCode);
+      expect(restored.isRequired, isTrue);
+    });
+
     test('accepts a complete production-approved local bundle', () {
       const manifest = ModelBundleManifest(
         modelId: 'kidslens_gemma_4_e4b_it_int4',
@@ -240,6 +284,46 @@ void main() {
 
       expect(manifest.validateForCatalog(), isEmpty);
     });
+
+    test('requires explicit artifact files for official GGUF manifests', () {
+      final manifest = _validManifest(
+        artifactType: ModelBundleArtifactType.officialGguf,
+        runtime: ModelBundleRuntime.llamaCppServer,
+      );
+
+      expect(
+        manifest.validateForCatalog(),
+        contains('official GGUF artifacts must list explicit artifact files'),
+      );
+    });
+
+    test('accepts production GGUF manifests with per-file checksums', () {
+      final manifest = _validManifest(
+        sha256: null,
+        artifactType: ModelBundleArtifactType.officialGguf,
+        runtime: ModelBundleRuntime.llamaCppServer,
+        artifactFiles: const <ModelBundleArtifactFile>[
+          ModelBundleArtifactFile(
+            path: 'model.gguf',
+            sizeBytes: 2,
+            sha256:
+                '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+          ),
+          ModelBundleArtifactFile(
+            path: 'mmproj.gguf',
+            sizeBytes: 3,
+            sha256:
+                'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789',
+          ),
+        ],
+      );
+
+      expect(manifest.validateForCatalog(), isEmpty);
+      expect(
+        manifest.validateForProductionSelection(),
+        isNot(contains('sha256 must be a 64-character lowercase hex digest')),
+      );
+    });
   });
 
   group('KidsLensModelScorecard', () {
@@ -293,6 +377,10 @@ ModelBundleManifest _validManifest({
   bool supportsPointLocalization = true,
   bool supportsImageInput = true,
   bool supportsVideoInput = true,
+  ModelBundleArtifactType artifactType =
+      ModelBundleArtifactType.internalQuantizedArtifact,
+  List<ModelBundleArtifactFile> artifactFiles =
+      const <ModelBundleArtifactFile>[],
 }) =>
     ModelBundleManifest(
       modelId: 'test_model',
@@ -303,7 +391,7 @@ ModelBundleManifest _validManifest({
       license: license,
       commercialUse: commercialUse,
       acceptedTermsRequired: false,
-      artifactType: ModelBundleArtifactType.internalQuantizedArtifact,
+      artifactType: artifactType,
       artifactUri: artifactUri,
       sha256: sha256,
       conversionRecipeId: 'conversion-v1',
@@ -326,4 +414,5 @@ ModelBundleManifest _validManifest({
       roles: roles,
       approvalStatus: ModelBundleApprovalStatus.productionApproved,
       reviewNotes: 'Test manifest.',
+      artifactFiles: artifactFiles,
     );

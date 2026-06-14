@@ -113,7 +113,8 @@ class _LocalModelBundlesTabState extends ConsumerState<LocalModelBundlesTab> {
     Set<String> acceptedTerms,
   ) =>
       (manifest.artifactType == ModelBundleArtifactType.officialWeights ||
-          manifest.artifactType == ModelBundleArtifactType.officialOnnx) &&
+          manifest.artifactType == ModelBundleArtifactType.officialOnnx ||
+          manifest.artifactType == ModelBundleArtifactType.officialGguf) &&
       manifest.artifactUri.startsWith('hf://') &&
       ModelSourceGovernance.isAcceptedOfficialOrganization(
         manifest.officialOrganization,
@@ -163,7 +164,7 @@ class _LocalModelBundlesTabState extends ConsumerState<LocalModelBundlesTab> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Downloading ${manifest.displayName} from official repo'),
-        duration: Duration(seconds: 1),
+        duration: const Duration(seconds: 1),
       ),
     );
   }
@@ -322,7 +323,6 @@ class _RoleSelector extends StatelessWidget {
       value: value,
       items: [
         DropdownMenuItem<String?>(
-          value: null,
           child: Text(
             selectable.isEmpty ? 'No approved bundle' : 'None selected',
           ),
@@ -493,7 +493,9 @@ class _ModelBundleCandidateTile extends StatelessWidget {
                   enabled: manifest.supportsBoundingBoxes,
                 ),
                 _CapabilityChip(
-                    label: 'Masks', enabled: manifest.supportsMasks),
+                  label: 'Masks',
+                  enabled: manifest.supportsMasks,
+                ),
                 _CapabilityChip(
                   label: 'Point localization',
                   enabled: manifest.supportsPointLocalization,
@@ -550,12 +552,12 @@ class _ModelBundleCandidateTile extends StatelessWidget {
 
 class _DropdownField<T> extends StatelessWidget {
   const _DropdownField({
-    super.key,
     required this.label,
     required this.width,
     required this.value,
     required this.items,
     required this.onChanged,
+    super.key,
   });
 
   final String label;
@@ -642,6 +644,8 @@ String _pipelineLabel(DetectionPipelineProfile profile) {
 
 String _runtimeLabel(ModelBundleRuntime runtime) {
   switch (runtime) {
+    case ModelBundleRuntime.llamaCppServer:
+      return 'llama.cpp server';
     case ModelBundleRuntime.cudaVllm:
       return 'CUDA vLLM';
     case ModelBundleRuntime.cudaTransformersHelper:

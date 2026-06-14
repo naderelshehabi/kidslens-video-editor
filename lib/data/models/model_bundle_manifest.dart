@@ -16,11 +16,13 @@ enum ModelBundleApprovalStatus {
 enum ModelBundleArtifactType {
   officialWeights,
   officialOnnx,
+  officialGguf,
   internalQuantizedArtifact,
   disabledReference,
 }
 
 enum ModelBundleRuntime {
+  llamaCppServer,
   cudaVllm,
   cudaTransformersHelper,
   cudaTensorRt,
@@ -49,9 +51,75 @@ enum ModelBundleQuantization {
   bf16,
   fp8,
   nvfp4,
+  q4KM,
+  q8_0,
   int4,
   onnxFp16,
   none,
+}
+
+class ModelBundleArtifactFile {
+  const ModelBundleArtifactFile({
+    required this.path,
+    required this.sizeBytes,
+    this.sha256,
+    this.isRequired = true,
+  });
+
+  factory ModelBundleArtifactFile.fromJson(Map<String, dynamic> json) =>
+      ModelBundleArtifactFile(
+        path: json['path'] as String,
+        sizeBytes: (json['sizeBytes'] as num?)?.toInt() ?? 0,
+        sha256: json['sha256'] as String?,
+        isRequired: json['required'] as bool? ?? true,
+      );
+
+  final String path;
+  final int sizeBytes;
+  final String? sha256;
+  final bool isRequired;
+
+  bool get hasValidSha256 =>
+      sha256 != null && RegExp(r'^[a-f0-9]{64}$').hasMatch(sha256 ?? '');
+
+  Map<String, dynamic> toJson() => {
+        'path': path,
+        'sizeBytes': sizeBytes,
+        if (sha256 != null) 'sha256': sha256,
+        'required': isRequired,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ModelBundleArtifactFile &&
+          runtimeType == other.runtimeType &&
+          path == other.path &&
+          sizeBytes == other.sizeBytes &&
+          sha256 == other.sha256 &&
+          isRequired == other.isRequired;
+
+  @override
+  int get hashCode => Object.hash(path, sizeBytes, sha256, isRequired);
+
+  List<String> validate({required bool requireSha256}) {
+    final issues = <String>[];
+    if (path.trim().isEmpty) {
+      issues.add('artifact file path is required');
+    }
+    if (path.startsWith('/') || path.contains('..')) {
+      issues.add('artifact file path must be repo-relative');
+    }
+    if (sizeBytes < 0) {
+      issues.add('artifact file size cannot be negative');
+    }
+    if (requireSha256 && !hasValidSha256) {
+      issues.add(
+        'artifact file sha256 must be a 64-character lowercase hex digest',
+      );
+    }
+    return issues;
+  }
 }
 
 class ModelBundleManifest {
@@ -88,6 +156,7 @@ class ModelBundleManifest {
     required this.approvalStatus,
     required this.reviewNotes,
     this.leaderboardSourcesReviewed = const <String>[],
+    this.artifactFiles = const <ModelBundleArtifactFile>[],
     this.scorecard,
   });
 
@@ -123,6 +192,7 @@ class ModelBundleManifest {
   final ModelBundleApprovalStatus approvalStatus;
   final String reviewNotes;
   final List<String> leaderboardSourcesReviewed;
+  final List<ModelBundleArtifactFile> artifactFiles;
   final KidsLensModelScorecard? scorecard;
 
   String get officialOrganization => officialSourceRepo.split('/').first;
@@ -136,6 +206,7 @@ class ModelBundleManifest {
     _validateOfficialSource(issues);
     _validateRuntime(issues);
     _validateArtifactUri(issues);
+    _validateArtifactFiles(issues, production: false);
     _validateCapabilities(issues);
     _validateVram(issues);
 
@@ -165,13 +236,14 @@ class ModelBundleManifest {
     _validateOfficialSource(issues);
     _validateRuntime(issues);
     _validateArtifactUri(issues);
+    _validateArtifactFiles(issues, production: true);
     _validateCapabilities(issues);
     _validateVram(issues);
 
     if (approvalStatus != ModelBundleApprovalStatus.productionApproved) {
       issues.add('model is not production approved');
     }
-    if (!_hasValidSha256) {
+    if (!_hasValidChecksum) {
       issues.add('sha256 must be a 64-character lowercase hex digest');
     }
     if (commercialUse != CommercialUseStatus.allowed &&
@@ -197,6 +269,13 @@ class ModelBundleManifest {
 
   bool get _hasValidSha256 =>
       sha256 != null && RegExp(r'^[a-f0-9]{64}$').hasMatch(sha256 ?? '');
+
+  bool get _hasValidChecksum =>
+      _hasValidSha256 ||
+      (artifactFiles.isNotEmpty &&
+          artifactFiles
+              .where((file) => file.isRequired)
+              .every((file) => file.hasValidSha256));
 
   void _validateRequiredFields(List<String> issues) {
     final requiredStrings = <String, String>{
@@ -239,6 +318,10 @@ class ModelBundleManifest {
     if (runtime == ModelBundleRuntime.cpuLightweight && minVramGb > 0) {
       issues.add('CPU-only runtime cannot require VRAM');
     }
+    if (artifactType == ModelBundleArtifactType.officialGguf &&
+        runtime != ModelBundleRuntime.llamaCppServer) {
+      issues.add('official GGUF artifacts require llama.cpp server runtime');
+    }
   }
 
   void _validateArtifactUri(List<String> issues) {
@@ -257,6 +340,20 @@ class ModelBundleManifest {
     }
     if (uri.scheme == 'file' && uri.path.trim().isEmpty) {
       issues.add('file artifactUri must include a path');
+    }
+  }
+
+  void _validateArtifactFiles(
+    List<String> issues, {
+    required bool production,
+  }) {
+    if (artifactType == ModelBundleArtifactType.officialGguf &&
+        artifactFiles.isEmpty) {
+      issues.add('official GGUF artifacts must list explicit artifact files');
+    }
+
+    for (final file in artifactFiles) {
+      issues.addAll(file.validate(requireSha256: production));
     }
   }
 
@@ -521,6 +618,148 @@ class ModelBundleCatalog {
       reviewNotes:
           'Potential KidsLens-owned conversion from official NVIDIA weights; not selectable until reproducible artifact exists.',
       leaderboardSourcesReviewed: reviewedLeaderboardSources,
+    ),
+    ModelBundleManifest(
+      modelId: 'qwen3_vl_8b_instruct_gguf_q4km',
+      displayName: 'Qwen3-VL 8B Instruct GGUF Q4_K_M',
+      vendor: 'Alibaba / Qwen',
+      officialSourceRepo: 'Qwen/Qwen3-VL-8B-Instruct-GGUF',
+      officialRevision: 'main',
+      license: ModelBundleLicense.apache20,
+      commercialUse: CommercialUseStatus.allowed,
+      acceptedTermsRequired: false,
+      artifactType: ModelBundleArtifactType.officialGguf,
+      artifactUri: 'hf://Qwen/Qwen3-VL-8B-Instruct-GGUF',
+      sha256: null,
+      conversionRecipeId: null,
+      runtime: ModelBundleRuntime.llamaCppServer,
+      minVramGb: 8,
+      recommendedVramGb: 10,
+      targetGpuClass: targetGpuClass,
+      maxValidatedVramGb: 12,
+      quantization: ModelBundleQuantization.q4KM,
+      fitsRtx5070Validated: false,
+      supportsVideoInput: false,
+      supportsImageInput: true,
+      supportsBoundingBoxes: true,
+      supportsMasks: false,
+      supportsPointLocalization: false,
+      maxFramesPerChunk: 16,
+      maxContextTokens: 16384,
+      recommendedChunkSeconds: 8,
+      knownFailureModes: <String>[
+        'RTX 5070 validation run has not been recorded.',
+        'Grounding quality must be validated against NudeNet auxiliary regions.',
+        'llama.cpp release flags must be pinned by the runtime smoke spike.',
+      ],
+      roles: <ModelBundleRole>[ModelBundleRole.vlm],
+      approvalStatus: ModelBundleApprovalStatus.evaluationOnly,
+      reviewNotes:
+          'Primary v2 local VLM candidate using official Qwen-published GGUF model and mmproj artifacts.',
+      leaderboardSourcesReviewed: reviewedLeaderboardSources,
+      artifactFiles: <ModelBundleArtifactFile>[
+        ModelBundleArtifactFile(
+          path: 'Qwen3VL-8B-Instruct-Q4_K_M.gguf',
+          sizeBytes: 5027784800,
+        ),
+        ModelBundleArtifactFile(
+          path: 'mmproj-Qwen3VL-8B-Instruct-F16.gguf',
+          sizeBytes: 1159029824,
+        ),
+      ],
+    ),
+    ModelBundleManifest(
+      modelId: 'qwen3_vl_4b_instruct_gguf_q4km',
+      displayName: 'Qwen3-VL 4B Instruct GGUF Q4_K_M',
+      vendor: 'Alibaba / Qwen',
+      officialSourceRepo: 'Qwen/Qwen3-VL-4B-Instruct-GGUF',
+      officialRevision: 'main',
+      license: ModelBundleLicense.apache20,
+      commercialUse: CommercialUseStatus.allowed,
+      acceptedTermsRequired: false,
+      artifactType: ModelBundleArtifactType.officialGguf,
+      artifactUri: 'hf://Qwen/Qwen3-VL-4B-Instruct-GGUF',
+      sha256: null,
+      conversionRecipeId: null,
+      runtime: ModelBundleRuntime.llamaCppServer,
+      minVramGb: 5,
+      recommendedVramGb: 6,
+      targetGpuClass: targetGpuClass,
+      maxValidatedVramGb: 12,
+      quantization: ModelBundleQuantization.q4KM,
+      fitsRtx5070Validated: false,
+      supportsVideoInput: false,
+      supportsImageInput: true,
+      supportsBoundingBoxes: true,
+      supportsMasks: false,
+      supportsPointLocalization: false,
+      maxFramesPerChunk: 16,
+      maxContextTokens: 16384,
+      recommendedChunkSeconds: 8,
+      knownFailureModes: <String>[
+        'Quality may be below the 8B profile for subtle safety categories.',
+        'RTX 5070 validation run has not been recorded.',
+        'llama.cpp release flags must be pinned by the runtime smoke spike.',
+      ],
+      roles: <ModelBundleRole>[ModelBundleRole.vlm],
+      approvalStatus: ModelBundleApprovalStatus.evaluationOnly,
+      reviewNotes:
+          'Lightweight v2 local VLM candidate using official Qwen-published GGUF model and mmproj artifacts.',
+      leaderboardSourcesReviewed: reviewedLeaderboardSources,
+      artifactFiles: <ModelBundleArtifactFile>[
+        ModelBundleArtifactFile(
+          path: 'Qwen3VL-4B-Instruct-Q4_K_M.gguf',
+          sizeBytes: 2497281664,
+        ),
+        ModelBundleArtifactFile(
+          path: 'mmproj-Qwen3VL-4B-Instruct-F16.gguf',
+          sizeBytes: 836180256,
+        ),
+      ],
+    ),
+    ModelBundleManifest(
+      modelId: 'qwen3_embedding_0_6b_gguf_q8',
+      displayName: 'Qwen3 Embedding 0.6B GGUF Q8',
+      vendor: 'Alibaba / Qwen',
+      officialSourceRepo: 'Qwen/Qwen3-Embedding-0.6B-GGUF',
+      officialRevision: 'main',
+      license: ModelBundleLicense.apache20,
+      commercialUse: CommercialUseStatus.allowed,
+      acceptedTermsRequired: false,
+      artifactType: ModelBundleArtifactType.officialGguf,
+      artifactUri: 'hf://Qwen/Qwen3-Embedding-0.6B-GGUF',
+      sha256: null,
+      conversionRecipeId: null,
+      runtime: ModelBundleRuntime.llamaCppServer,
+      minVramGb: 0,
+      recommendedVramGb: 1,
+      targetGpuClass: targetGpuClass,
+      maxValidatedVramGb: 12,
+      quantization: ModelBundleQuantization.q8_0,
+      fitsRtx5070Validated: false,
+      supportsVideoInput: false,
+      supportsImageInput: false,
+      supportsBoundingBoxes: false,
+      supportsMasks: false,
+      supportsPointLocalization: false,
+      maxFramesPerChunk: 1,
+      maxContextTokens: 8192,
+      recommendedChunkSeconds: 1,
+      knownFailureModes: <String>[
+        'Text-only embedding model; search quality depends on VLM captions and findings.',
+        'CPU smoke validation has not been recorded.',
+      ],
+      roles: <ModelBundleRole>[ModelBundleRole.embedding],
+      approvalStatus: ModelBundleApprovalStatus.evaluationOnly,
+      reviewNotes:
+          'Official Qwen GGUF embedding candidate for local text-evidence search.',
+      leaderboardSourcesReviewed: reviewedLeaderboardSources,
+      artifactFiles: <ModelBundleArtifactFile>[
+        ModelBundleArtifactFile(
+          path: 'Qwen3-Embedding-0.6B-Q8_0.gguf',
+          sizeBytes: 639150592,
+        ),
+      ],
     ),
     ModelBundleManifest(
       modelId: 'qwen_3_5_4b',

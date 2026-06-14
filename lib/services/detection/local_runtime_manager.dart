@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:kidslens_video_editor/data/models/models.dart';
@@ -85,9 +86,12 @@ class LocalRuntimeManager {
     final runtimeIds = <LocalRuntimeId>{
       ...config.installedRuntimeIds,
       if (providers.contains('CUDAExecutionProvider')) ...{
+        LocalRuntimeId.cudaLlamaCpp,
         LocalRuntimeId.cudaVllm,
         LocalRuntimeId.cudaTransformersHelper,
       },
+      if (cudaDevices.isNotEmpty || directMlDevices.isNotEmpty)
+        LocalRuntimeId.vulkanLlamaCpp,
       if (providers.contains('DmlExecutionProvider'))
         LocalRuntimeId.directmlOnnx,
       if (providers.contains('CPUExecutionProvider'))
@@ -303,6 +307,8 @@ class LocalRuntimeManager {
         ) *
         0.1;
     final runtimeOverheadGb = switch (runtimeId) {
+      LocalRuntimeId.cudaLlamaCpp => 0.75,
+      LocalRuntimeId.vulkanLlamaCpp => 0.75,
       LocalRuntimeId.cudaTensorRt => 1.5,
       LocalRuntimeId.cudaVllm => 1.25,
       LocalRuntimeId.cudaTransformersHelper => 0.75,
@@ -403,6 +409,9 @@ class LocalRuntimeManager {
     }
 
     switch (model.runtime) {
+      case ModelBundleRuntime.llamaCppServer:
+        add(LocalRuntimeId.cudaLlamaCpp);
+        add(LocalRuntimeId.vulkanLlamaCpp);
       case ModelBundleRuntime.cudaTensorRt:
         add(LocalRuntimeId.cudaVllm);
         add(LocalRuntimeId.cudaTransformersHelper);
@@ -418,6 +427,8 @@ class LocalRuntimeManager {
       case ModelBundleRuntime.cpuLightweight:
         add(LocalRuntimeId.cpuLightweight);
       case ModelBundleRuntime.notYetValidated:
+        add(LocalRuntimeId.cudaLlamaCpp);
+        add(LocalRuntimeId.vulkanLlamaCpp);
         add(LocalRuntimeId.cudaTensorRt);
         add(LocalRuntimeId.cudaVllm);
         add(LocalRuntimeId.cudaTransformersHelper);
@@ -442,11 +453,18 @@ class LocalRuntimeManager {
       ...config.installedRuntimeIds,
     };
 
+    if (Platform.isWindows && _isUnsupportedWindowsRuntime(profile.id)) {
+      issues.add('runtime not supported on Windows desktop');
+    }
     if (!availableRuntimeIds.contains(profile.id)) {
       issues.add('${profile.id.jsonValue} is not installed or discoverable');
     }
     if (profile.requiresCuda && !hardware.hasCuda) {
       issues.add('CUDA GPU/provider is unavailable');
+    }
+    if (profile.id == LocalRuntimeId.vulkanLlamaCpp &&
+        hardware.gpuDevices.isEmpty) {
+      issues.add('GPU device is unavailable for Vulkan llama.cpp runtime');
     }
     if (profile.id == LocalRuntimeId.directmlOnnx) {
       if (!hardware.hasDirectMl) {
@@ -476,11 +494,13 @@ class LocalRuntimeManager {
       return null;
     }
     final provider = switch (profile.id) {
+      LocalRuntimeId.cudaLlamaCpp ||
       LocalRuntimeId.cudaTensorRt ||
       LocalRuntimeId.cudaVllm ||
       LocalRuntimeId.cudaTransformersHelper =>
         'cuda',
       LocalRuntimeId.directmlOnnx => 'directml',
+      LocalRuntimeId.vulkanLlamaCpp => null,
       LocalRuntimeId.cpuLightweight => null,
     };
     final candidates = hardware.gpuDevices
@@ -497,6 +517,11 @@ class LocalRuntimeManager {
       model.runtime == ModelBundleRuntime.directmlOnnx ||
       model.artifactType == ModelBundleArtifactType.officialOnnx ||
       model.quantization == ModelBundleQuantization.onnxFp16;
+
+  bool _isUnsupportedWindowsRuntime(LocalRuntimeId runtimeId) =>
+      runtimeId == LocalRuntimeId.cudaVllm ||
+      runtimeId == LocalRuntimeId.cudaTensorRt ||
+      runtimeId == LocalRuntimeId.cudaTransformersHelper;
 
   double _roundGb(num value) => (value * 100).roundToDouble() / 100;
 }

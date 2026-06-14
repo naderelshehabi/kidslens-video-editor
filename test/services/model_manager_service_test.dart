@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
@@ -214,6 +215,69 @@ void main() {
       );
     });
 
+    test('downloads explicit GGUF artifact files without repo-wide scan',
+        () async {
+      const modelBytes = <int>[1, 2];
+      const mmprojBytes = <int>[3, 4, 5];
+      var apiRequested = false;
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
+      server.listen((request) async {
+        final path = request.uri.path;
+        if (path == '/api/models/Qwen/fake-gguf/revision/main') {
+          apiRequested = true;
+          request.response.statusCode = HttpStatus.internalServerError;
+          await request.response.close();
+          return;
+        }
+        if (path == '/Qwen/fake-gguf/resolve/main/model.gguf') {
+          request.response.add(modelBytes);
+          await request.response.close();
+          return;
+        }
+        if (path == '/Qwen/fake-gguf/resolve/main/mmproj.gguf') {
+          request.response.add(mmprojBytes);
+          await request.response.close();
+          return;
+        }
+        request.response.statusCode = HttpStatus.notFound;
+        await request.response.close();
+      });
+
+      final service = ModelManagerService(
+        customModelsPath: tempDir.path,
+        huggingFaceBaseUrl: 'http://127.0.0.1:${server.port}',
+      );
+      final manifest = _ggufManifest(
+        modelSha256: sha256.convert(modelBytes).toString(),
+        mmprojSha256: sha256.convert(mmprojBytes).toString(),
+      );
+
+      final progress = await service.downloadModelBundle(manifest).toList();
+
+      expect(progress.last.status, ModelDownloadStatus.complete);
+      expect(apiRequested, isFalse);
+      expect(
+        File(
+          p.join(
+            tempDir.path,
+            'model_bundles',
+            manifest.modelId,
+            'model.gguf',
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+      final metadata = await service.getModelBundleMetadata(manifest.modelId);
+      expect(metadata?['files'], hasLength(2));
+      expect(
+        (metadata?['files'] as List)
+            .cast<Map<String, dynamic>>()
+            .map((file) => file['path']),
+        ['mmproj.gguf', 'model.gguf'],
+      );
+    });
+
     test('blocks non-commercial official bundles at runtime', () async {
       final service = ModelManagerService(customModelsPath: tempDir.path);
       final manifest = ModelBundleCatalog.byModelId('nvidia_locateanything_3b');
@@ -225,3 +289,53 @@ void main() {
     });
   });
 }
+
+ModelBundleManifest _ggufManifest({
+  required String modelSha256,
+  required String mmprojSha256,
+}) =>
+    ModelBundleManifest(
+      modelId: 'qwen_fake_gguf',
+      displayName: 'Qwen Fake GGUF',
+      vendor: 'Alibaba / Qwen',
+      officialSourceRepo: 'Qwen/fake-gguf',
+      officialRevision: 'main',
+      license: ModelBundleLicense.apache20,
+      commercialUse: CommercialUseStatus.allowed,
+      acceptedTermsRequired: false,
+      artifactType: ModelBundleArtifactType.officialGguf,
+      artifactUri: 'hf://Qwen/fake-gguf',
+      sha256: null,
+      conversionRecipeId: null,
+      runtime: ModelBundleRuntime.llamaCppServer,
+      minVramGb: 1,
+      recommendedVramGb: 1,
+      targetGpuClass: ModelBundleCatalog.targetGpuClass,
+      maxValidatedVramGb: ModelBundleCatalog.targetGpuVramGb,
+      quantization: ModelBundleQuantization.q4KM,
+      fitsRtx5070Validated: false,
+      supportsVideoInput: false,
+      supportsImageInput: true,
+      supportsBoundingBoxes: true,
+      supportsMasks: false,
+      supportsPointLocalization: false,
+      maxFramesPerChunk: 2,
+      maxContextTokens: 8192,
+      recommendedChunkSeconds: 8,
+      knownFailureModes: const <String>['test fixture'],
+      roles: const <ModelBundleRole>[ModelBundleRole.vlm],
+      approvalStatus: ModelBundleApprovalStatus.evaluationOnly,
+      reviewNotes: 'test fixture',
+      artifactFiles: <ModelBundleArtifactFile>[
+        ModelBundleArtifactFile(
+          path: 'model.gguf',
+          sizeBytes: 2,
+          sha256: modelSha256,
+        ),
+        ModelBundleArtifactFile(
+          path: 'mmproj.gguf',
+          sizeBytes: 3,
+          sha256: mmprojSha256,
+        ),
+      ],
+    );

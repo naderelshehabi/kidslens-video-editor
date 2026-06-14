@@ -72,16 +72,31 @@ class ModelBundleSelectionPolicy {
       issues.add('Terms must be accepted before selection.');
     }
 
-    final runtimeProfile = LocalRuntimeProfile.byModelRuntime(
-      manifest.runtime,
-    );
-    if (runtimeProfile == null) {
+    final selectedRuntime = _runtimeByJsonValue(localRuntimeId);
+    final runtimeProfile = selectedRuntime == null
+        ? null
+        : LocalRuntimeProfile.byId(selectedRuntime);
+    final compatibleProfiles = LocalRuntimeProfile.profiles
+        .where((profile) => profile.modelRuntime == manifest.runtime)
+        .toList(growable: false);
+    if (compatibleProfiles.isEmpty) {
       issues.add('Runtime is not validated.');
-    } else if (runtimeProfile.id.jsonValue != localRuntimeId) {
-      issues.add('Requires ${runtimeProfile.displayName}.');
+    } else if (runtimeProfile == null ||
+        runtimeProfile.modelRuntime != manifest.runtime) {
+      final labels =
+          compatibleProfiles.map((profile) => profile.displayName).join(' or ');
+      issues.add('Requires $labels.');
     }
 
     return issues.toSet().toList(growable: false);
+  }
+
+  LocalRuntimeId? _runtimeByJsonValue(String value) {
+    try {
+      return LocalRuntimeId.fromJson(value);
+    } catch (_) {
+      return null;
+    }
   }
 
   String checksumLabel(ModelBundleManifest manifest) =>

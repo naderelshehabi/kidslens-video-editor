@@ -72,14 +72,17 @@ class ModelBundleDownloadFile {
   const ModelBundleDownloadFile({
     required this.path,
     required this.sizeBytes,
+    this.sha256,
   });
 
   final String path;
   final int sizeBytes;
+  final String? sha256;
 
   Map<String, dynamic> toJson() => {
         'path': path,
         'sizeBytes': sizeBytes,
+        if (sha256 != null) 'sha256': sha256,
       };
 }
 
@@ -371,13 +374,15 @@ class ModelManagerService {
         status: ModelDownloadStatus.pending,
       );
 
-      final resolvedFiles = await _resolveHuggingFaceRepoFiles(
-        client: client,
-        repoId: repoId,
-        revision: manifest.officialRevision,
-        huggingFaceToken: huggingFaceToken,
-        modelId: manifest.modelId,
-      );
+      final resolvedFiles = manifest.artifactFiles.isNotEmpty
+          ? _downloadFilesFromManifest(manifest)
+          : await _resolveHuggingFaceRepoFiles(
+              client: client,
+              repoId: repoId,
+              revision: manifest.officialRevision,
+              huggingFaceToken: huggingFaceToken,
+              modelId: manifest.modelId,
+            );
       files.addAll(
         await _resolveHuggingFaceFileSizes(
           client: client,
@@ -408,7 +413,8 @@ class ModelManagerService {
 
         if (destination.existsSync() &&
             fileRef.sizeBytes > 0 &&
-            await destination.length() == fileRef.sizeBytes) {
+            await destination.length() == fileRef.sizeBytes &&
+            await _downloadFileChecksumMatches(destination, fileRef)) {
           downloadedBytes += fileRef.sizeBytes;
           yield ModelDownloadProgress(
             modelId: manifest.modelId,
@@ -462,6 +468,12 @@ class ModelManagerService {
           await destination.delete();
         }
         await partialFile.rename(destination.path);
+        if (!await _downloadFileChecksumMatches(destination, fileRef)) {
+          throw ModelDownloadException(
+            manifest.modelId,
+            'Downloaded ${fileRef.path} checksum mismatch',
+          );
+        }
       }
 
       yield ModelDownloadProgress(
@@ -558,7 +570,7 @@ class ModelManagerService {
     }
 
     // Try to find the model file by checking common extensions
-    final possibleExtensions = ['.bin', '.onnx', '.pt', '.pth', '.h5'];
+    final possibleExtensions = ['.bin', '.gguf', '.onnx', '.pt', '.pth', '.h5'];
     for (final ext in possibleExtensions) {
       final files = modelDir
           .listSync(recursive: true)
@@ -664,7 +676,7 @@ class ModelManagerService {
     await for (final entity in dir.list(recursive: true, followLinks: false)) {
       if (entity is! File) continue;
       final ext = p.extension(entity.path).toLowerCase();
-      if (['.bin', '.onnx', '.pt', '.pth', '.h5'].contains(ext)) {
+      if (['.bin', '.gguf', '.onnx', '.pt', '.pth', '.h5'].contains(ext)) {
         return true;
       }
     }
@@ -822,6 +834,21 @@ class ModelManagerService {
       ..sort((a, b) => a.path.compareTo(b.path));
   }
 
+  List<ModelBundleDownloadFile> _downloadFilesFromManifest(
+    ModelBundleManifest manifest,
+  ) =>
+      manifest.artifactFiles
+          .where((file) => file.isRequired)
+          .map(
+            (file) => ModelBundleDownloadFile(
+              path: file.path,
+              sizeBytes: file.sizeBytes,
+              sha256: file.sha256,
+            ),
+          )
+          .toList(growable: false)
+        ..sort((a, b) => a.path.compareTo(b.path));
+
   Future<List<ModelBundleDownloadFile>> _resolveHuggingFaceFileSizes({
     required http.Client client,
     required String repoId,
@@ -845,9 +872,25 @@ class ModelManagerService {
         huggingFaceToken: huggingFaceToken,
         modelId: modelId,
       );
-      resolved.add(ModelBundleDownloadFile(path: file.path, sizeBytes: size));
+      resolved.add(
+        ModelBundleDownloadFile(
+          path: file.path,
+          sizeBytes: size,
+          sha256: file.sha256,
+        ),
+      );
     }
     return resolved;
+  }
+
+  Future<bool> _downloadFileChecksumMatches(
+    File file,
+    ModelBundleDownloadFile fileRef,
+  ) async {
+    if (fileRef.sha256 == null || fileRef.sha256!.trim().isEmpty) {
+      return true;
+    }
+    return validateFileChecksum(file.path, fileRef.sha256!);
   }
 
   Future<int> _resolveHuggingFaceFileSize({
@@ -981,11 +1024,10 @@ class ModelManagerService {
   }
 
   String? _repoIdFromHfUri(String artifactUri) {
-    final uri = Uri.tryParse(artifactUri);
-    if (uri == null || uri.scheme != 'hf') {
+    if (!artifactUri.startsWith('hf://')) {
       return null;
     }
-    final repoId = uri.host.isEmpty ? uri.path : '${uri.host}${uri.path}';
+    final repoId = artifactUri.substring('hf://'.length);
     return repoId.replaceAll(RegExp(r'^/+|/+$'), '');
   }
 
@@ -994,7 +1036,8 @@ class ModelManagerService {
     Set<String> acceptedTerms,
   ) {
     if (manifest.artifactType != ModelBundleArtifactType.officialWeights &&
-        manifest.artifactType != ModelBundleArtifactType.officialOnnx) {
+        manifest.artifactType != ModelBundleArtifactType.officialOnnx &&
+        manifest.artifactType != ModelBundleArtifactType.officialGguf) {
       throw ModelDownloadException(
         manifest.modelId,
         'Only official HF artifacts can be downloaded at runtime',

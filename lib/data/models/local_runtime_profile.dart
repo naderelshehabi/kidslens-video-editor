@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:kidslens_video_editor/data/models/model_bundle_manifest.dart';
 
 enum LocalRuntimeId {
+  cudaLlamaCpp('cuda_llamacpp'),
+  vulkanLlamaCpp('vulkan_llamacpp'),
   cudaTensorRt('cuda_tensorrt'),
   cudaVllm('cuda_vllm'),
   cudaTransformersHelper('cuda_transformers_helper'),
@@ -65,6 +67,31 @@ class LocalRuntimeProfile {
       };
 
   static const profiles = <LocalRuntimeProfile>[
+    LocalRuntimeProfile(
+      id: LocalRuntimeId.cudaLlamaCpp,
+      displayName: 'Local llama.cpp server (CUDA)',
+      modelRuntime: ModelBundleRuntime.llamaCppServer,
+      preferredExecutionProviders: <String>['CUDAExecutionProvider'],
+      supportsGpu: true,
+      supportsCpu: false,
+      requiresCuda: true,
+      requiresOnnx: false,
+      usesLoopbackServer: true,
+      description: 'Bundled local llama.cpp server using CUDA on loopback.',
+    ),
+    LocalRuntimeProfile(
+      id: LocalRuntimeId.vulkanLlamaCpp,
+      displayName: 'Local llama.cpp server (Vulkan)',
+      modelRuntime: ModelBundleRuntime.llamaCppServer,
+      preferredExecutionProviders: <String>['Vulkan'],
+      supportsGpu: true,
+      supportsCpu: false,
+      requiresCuda: false,
+      requiresOnnx: false,
+      usesLoopbackServer: true,
+      description:
+          'Bundled local llama.cpp server using Vulkan GPU acceleration on loopback.',
+    ),
     LocalRuntimeProfile(
       id: LocalRuntimeId.cudaTensorRt,
       displayName: 'CUDA TensorRT',

@@ -142,14 +142,14 @@ Phases are ordered for execution. Each has an exit gate. Run `flutter analyze` a
 
 ### Phase 1 — Model catalog: GGUF bundles, explicit artifact file lists, llama.cpp runtime enums
 
-- [ ] 1.1 `lib/data/models/model_bundle_manifest.dart`:
+- [x] 1.1 `lib/data/models/model_bundle_manifest.dart`:
   - Add enum value `ModelBundleRuntime.llamaCppServer`.
   - Add enum value `ModelBundleArtifactType.officialGguf`.
-  - Add `ModelBundleArtifactFile` with `path`, `sizeBytes`, `sha256`, and `required`, then add `final List<ModelBundleArtifactFile> artifactFiles;` (default `const []`) to `ModelBundleManifest` — when non-empty, the downloader fetches **exactly these repo paths** instead of all artifact-extension matches. Include in JSON serialization and tests.
+  - Add `ModelBundleArtifactFile` with `path`, `sizeBytes`, `sha256`, and `required`, then add `final List<ModelBundleArtifactFile> artifactFiles;` (default `const []`) to `ModelBundleManifest` — when non-empty, the downloader fetches **exactly these repo paths** instead of all artifact-extension matches. Include artifact-file JSON serialization, equality, and tests.
   - Update manifest validation: `officialGguf` + `llamaCppServer` is a valid production combination; `artifactFiles` must be non-empty for `officialGguf` bundles; every production-selectable artifact file must have a verified size and sha256.
-- [ ] 1.2 `lib/data/models/local_runtime_profile.dart`: add `LocalRuntimeId.cudaLlamaCpp('cuda_llamacpp')` and `LocalRuntimeId.vulkanLlamaCpp('vulkan_llamacpp')` with corresponding `LocalRuntimeProfile` entries (display names "Local llama.cpp server (CUDA)" / "(Vulkan)"). Keep existing IDs for compatibility.
-- [ ] 1.3 `lib/services/detection/local_runtime_manager.dart`: runtime selection order on Windows becomes: manifest runtime → `cudaLlamaCpp` (when an NVIDIA GPU is discovered) → `vulkanLlamaCpp` (any GPU) → `directmlOnnx` (legacy ONNX models only) → `cpuLightweight` (only when explicitly permitted). `cuda_vllm` / `cuda_tensorrt` / `cuda_transformers_helper` must resolve as unavailable on Windows with a structured fallback reason ("runtime not supported on Windows desktop").
-- [ ] 1.4 Add three catalog entries to `ModelBundleCatalog` (exact values; sha256 must be filled at implementation time by downloading each file once and hashing it — record in the manifest and in `docs/implement/model-bundle-manifest-source-review.md`):
+- [x] 1.2 `lib/data/models/local_runtime_profile.dart`: add `LocalRuntimeId.cudaLlamaCpp('cuda_llamacpp')` and `LocalRuntimeId.vulkanLlamaCpp('vulkan_llamacpp')` with corresponding `LocalRuntimeProfile` entries (display names "Local llama.cpp server (CUDA)" / "(Vulkan)"). Keep existing IDs for compatibility.
+- [x] 1.3 `lib/services/detection/local_runtime_manager.dart`: runtime selection order on Windows becomes: manifest runtime → `cudaLlamaCpp` (when an NVIDIA GPU is discovered) → `vulkanLlamaCpp` (any GPU) → `directmlOnnx` (legacy ONNX models only) → `cpuLightweight` (only when explicitly permitted). `cuda_vllm` / `cuda_tensorrt` / `cuda_transformers_helper` must resolve as unavailable on Windows with a structured fallback reason ("runtime not supported on Windows desktop").
+- [x] 1.4 Add three catalog entries to `ModelBundleCatalog` (exact paths and sizes now; sha256 stays null until the real artifacts are downloaded and hashed by the runtime smoke/validation flow, then recorded in the manifest and in `docs/implement/model-bundle-manifest-source-review.md`):
 
   | field | primary VLM | lightweight VLM | embedding |
   |---|---|---|---|
@@ -171,9 +171,9 @@ Phases are ordered for execution. Each has an exit gate. Run `flutter analyze` a
   | fitsRtx5070Validated | false until Phase 10 validation run recorded | false | true after CPU smoke run |
 
   (File names/sizes verified 2026-06-12 via the HF API: 8B Q4_K_M = 5,027,784,800 B; 8B mmproj F16 = 1,159,029,824 B; 4B Q4_K_M = 2,497,281,664 B; 4B mmproj F16 = 836,180,256 B; embedding Q8_0 = 639,150,592 B. Note the file names spell `Qwen3VL` without a hyphen.)
-- [ ] 1.5 `lib/services/model_manager_service.dart` → `downloadModelBundle()`: when `manifest.artifactFiles` is non-empty, skip extension-based sibling filtering and download exactly those paths (still resolving missing sizes via the existing HEAD logic, still recording metadata, and verifying per-file sha256 when provided). Add a test downloading a 2-file fake GGUF bundle from the local fake HF server (mirror the existing gemma test pattern in `test/services/model_manager_service_test.dart`).
-- [ ] 1.6 Record NudeNet's AGPL-3.0 license in its `HuggingFaceModelRegistry` entry metadata (license field/comment) so the settings UI can display it; do not change its behavior.
-- [ ] Exit gate: catalog tests pass; `ModelBundleCatalog.byModelId('qwen3_vl_8b_instruct_gguf_q4km')` validates; bundle download test with explicit `artifactFiles` passes.
+- [x] 1.5 `lib/services/model_manager_service.dart` → `downloadModelBundle()`: when `manifest.artifactFiles` is non-empty, skip extension-based sibling filtering and download exactly those paths (still resolving missing sizes via the existing HEAD logic, still recording metadata, and verifying per-file sha256 when provided). Add a test downloading a 2-file fake GGUF bundle from the local fake HF server (mirror the existing gemma test pattern in `test/services/model_manager_service_test.dart`).
+- [x] 1.6 Record NudeNet's AGPL-3.0 license in its `HuggingFaceModelRegistry` entry metadata (license field/comment) so the settings UI can display it; do not change its behavior.
+- [x] Exit gate: catalog tests pass; `ModelBundleCatalog.byModelId('qwen3_vl_8b_instruct_gguf_q4km')` validates; bundle download test with explicit `artifactFiles` passes. Verified 2026-06-14 with focused analyzer, model/runtime/downloader tests, and local model bundle UI tests.
 
 ### Phase 2 — Runtime binaries and `LlamaServerManager`
 

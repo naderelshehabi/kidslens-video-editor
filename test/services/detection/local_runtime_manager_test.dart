@@ -82,6 +82,8 @@ void main() {
       expect(
         hardware.availableRuntimeIds,
         containsAll([
+          LocalRuntimeId.cudaLlamaCpp,
+          LocalRuntimeId.vulkanLlamaCpp,
           LocalRuntimeId.cudaVllm,
           LocalRuntimeId.cudaTransformersHelper,
           LocalRuntimeId.directmlOnnx,
@@ -91,43 +93,108 @@ void main() {
       expect(hardware.bestGpu?.vramMb, 12288);
     });
 
-    test('selects the manifest runtime when CUDA and VRAM are available', () {
+    test(
+        'selects the manifest llama.cpp runtime when CUDA and VRAM are available',
+        () {
       final result = LocalRuntimeManager().selectRuntime(
-        model: _manifest(),
+        model: _manifest(
+          runtime: ModelBundleRuntime.llamaCppServer,
+          artifactType: ModelBundleArtifactType.officialGguf,
+          quantization: ModelBundleQuantization.q4KM,
+          minVramGb: 8,
+          recommendedVramGb: 10,
+          artifactFiles: const <ModelBundleArtifactFile>[
+            ModelBundleArtifactFile(path: 'model.gguf', sizeBytes: 2),
+            ModelBundleArtifactFile(path: 'mmproj.gguf', sizeBytes: 3),
+          ],
+        ),
         hardware: _hardware(
+          runtimeIds: const [LocalRuntimeId.cudaLlamaCpp],
           cudaVramMb: 12288,
         ),
         workload: _workload(),
       );
 
       expect(result.status, LocalRuntimeSelectionStatus.selected);
-      expect(result.profile?.id, LocalRuntimeId.cudaTransformersHelper);
+      expect(result.profile?.id, LocalRuntimeId.cudaLlamaCpp);
       expect(result.gpuDevice?.provider, 'cuda');
       expect(
         result.toUiStatus(_manifest()).runtimeName,
-        'CUDA Transformers Helper',
+        'Local llama.cpp server (CUDA)',
       );
       expect(result.logs, isNotEmpty);
     });
 
-    test(
-        'falls back from CUDA TensorRT to CUDA vLLM when TensorRT is unavailable',
-        () {
+    test('rejects vLLM and TensorRT runtimes on Windows desktop', () {
       final result = LocalRuntimeManager().selectRuntime(
         model: _manifest(runtime: ModelBundleRuntime.cudaTensorRt),
         hardware: _hardware(
-          runtimeIds: const [LocalRuntimeId.cudaVllm],
+          runtimeIds: const [
+            LocalRuntimeId.cudaTensorRt,
+            LocalRuntimeId.cudaVllm,
+          ],
           cudaVramMb: 12288,
         ),
         workload: _workload(),
       );
 
-      expect(result.status, LocalRuntimeSelectionStatus.fallbackSelected);
-      expect(result.profile?.id, LocalRuntimeId.cudaVllm);
+      expect(result.status, LocalRuntimeSelectionStatus.rejected);
       expect(
-        result.fallbackReason,
-        contains('preferred runtime cuda_tensorrt'),
+        result.rejectionReasons,
+        contains('runtime not supported on Windows desktop'),
       );
+    });
+
+    test('selects CUDA llama.cpp for GGUF llama server bundles', () {
+      final result = LocalRuntimeManager().selectRuntime(
+        model: _manifest(
+          runtime: ModelBundleRuntime.llamaCppServer,
+          artifactType: ModelBundleArtifactType.officialGguf,
+          quantization: ModelBundleQuantization.q4KM,
+          minVramGb: 8,
+          recommendedVramGb: 10,
+          artifactFiles: const <ModelBundleArtifactFile>[
+            ModelBundleArtifactFile(path: 'model.gguf', sizeBytes: 2),
+            ModelBundleArtifactFile(path: 'mmproj.gguf', sizeBytes: 3),
+          ],
+        ),
+        hardware: _hardware(
+          runtimeIds: const [LocalRuntimeId.cudaLlamaCpp],
+          cudaVramMb: 12288,
+        ),
+        workload: _workload(),
+      );
+
+      expect(result.status, LocalRuntimeSelectionStatus.selected);
+      expect(result.profile?.id, LocalRuntimeId.cudaLlamaCpp);
+      expect(result.gpuDevice?.provider, 'cuda');
+    });
+
+    test('falls back to Vulkan llama.cpp when CUDA llama.cpp is unavailable',
+        () {
+      final result = LocalRuntimeManager().selectRuntime(
+        model: _manifest(
+          runtime: ModelBundleRuntime.llamaCppServer,
+          artifactType: ModelBundleArtifactType.officialGguf,
+          quantization: ModelBundleQuantization.q4KM,
+          minVramGb: 5,
+          recommendedVramGb: 6,
+          artifactFiles: const <ModelBundleArtifactFile>[
+            ModelBundleArtifactFile(path: 'model.gguf', sizeBytes: 2),
+            ModelBundleArtifactFile(path: 'mmproj.gguf', sizeBytes: 3),
+          ],
+        ),
+        hardware: _hardware(
+          providers: const ['CPUExecutionProvider', 'DmlExecutionProvider'],
+          runtimeIds: const [LocalRuntimeId.vulkanLlamaCpp],
+          directMlVramMb: 12288,
+        ),
+        workload: _workload(),
+      );
+
+      expect(result.status, LocalRuntimeSelectionStatus.fallbackSelected);
+      expect(result.profile?.id, LocalRuntimeId.vulkanLlamaCpp);
+      expect(result.fallbackReason, contains('cuda_llamacpp'));
     });
 
     test('falls back to DirectML ONNX for compatible artifacts', () {
@@ -188,10 +255,18 @@ void main() {
     test('rejects runtimes when VRAM estimate exceeds the available GPU', () {
       final result = LocalRuntimeManager().selectRuntime(
         model: _manifest(
+          runtime: ModelBundleRuntime.llamaCppServer,
+          artifactType: ModelBundleArtifactType.officialGguf,
+          quantization: ModelBundleQuantization.q4KM,
           minVramGb: 10,
           recommendedVramGb: 12,
+          artifactFiles: const <ModelBundleArtifactFile>[
+            ModelBundleArtifactFile(path: 'model.gguf', sizeBytes: 2),
+            ModelBundleArtifactFile(path: 'mmproj.gguf', sizeBytes: 3),
+          ],
         ),
         hardware: _hardware(
+          runtimeIds: const [LocalRuntimeId.cudaLlamaCpp],
           cudaVramMb: 6144,
         ),
         workload: _workload(frameCount: 16, maxOutputTokens: 32768),
@@ -312,6 +387,8 @@ ModelBundleManifest _manifest({
   ModelBundleQuantization quantization = ModelBundleQuantization.bf16,
   double minVramGb = 6,
   double recommendedVramGb = 8,
+  List<ModelBundleArtifactFile> artifactFiles =
+      const <ModelBundleArtifactFile>[],
 }) =>
     ModelBundleManifest(
       modelId: 'test_model',
@@ -345,4 +422,5 @@ ModelBundleManifest _manifest({
       roles: const [ModelBundleRole.vlm],
       approvalStatus: ModelBundleApprovalStatus.evaluationOnly,
       reviewNotes: 'test fixture',
+      artifactFiles: artifactFiles,
     );
