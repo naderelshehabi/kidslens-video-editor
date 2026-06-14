@@ -102,16 +102,18 @@ class ModelManagerService {
   })  : _registry = registry ?? HuggingFaceModelRegistry.instance,
         _customModelsPath = customModelsPath,
         _huggingFaceBaseUri = Uri.parse(huggingFaceBaseUrl),
-        _httpClientFactory = httpClientFactory ?? (() => http.Client());
+        _httpClientFactory = httpClientFactory ?? http.Client.new;
 
   static const String _modelsSubdir = 'kidslens_models';
   static const String _metadataFileName = 'model_metadata.json';
   static const String _modelBundlesSubdir = 'model_bundles';
   static const String _modelBundleMetadataFileName =
       'model_bundle_metadata.json';
+  static const String _huggingFaceAccessRequiredMessage =
+      'Official Hugging Face repo requires access. Accept the model terms on Hugging Face and set HF_TOKEN or HUGGINGFACE_TOKEN before downloading.';
   static const Map<String, List<String>> _legacyModelDirectoryAliases = {
     'nsfw-nudenet-detector-640': <String>[
-      'nsfw-nudenet-detector-640-community'
+      'nsfw-nudenet-detector-640-community',
     ],
   };
 
@@ -369,18 +371,27 @@ class ModelManagerService {
         status: ModelDownloadStatus.pending,
       );
 
+      final resolvedFiles = await _resolveHuggingFaceRepoFiles(
+        client: client,
+        repoId: repoId,
+        revision: manifest.officialRevision,
+        huggingFaceToken: huggingFaceToken,
+        modelId: manifest.modelId,
+      );
       files.addAll(
-        await _resolveHuggingFaceRepoFiles(
+        await _resolveHuggingFaceFileSizes(
           client: client,
           repoId: repoId,
           revision: manifest.officialRevision,
+          files: resolvedFiles,
           huggingFaceToken: huggingFaceToken,
+          modelId: manifest.modelId,
         ),
       );
       if (files.isEmpty) {
         throw ModelDownloadException(
           manifest.modelId,
-          'Official repo did not expose downloadable model files',
+          'Official repo did not expose downloadable model files matching supported artifact extensions',
         );
       }
 
@@ -418,9 +429,10 @@ class ModelManagerService {
         final response = await client.send(request);
         if (response.statusCode != 200) {
           await response.stream.drain<void>();
-          throw ModelDownloadException(
-            manifest.modelId,
-            'HTTP ${response.statusCode} while downloading ${fileRef.path}',
+          throw _huggingFaceResponseException(
+            modelId: manifest.modelId,
+            statusCode: response.statusCode,
+            context: 'downloading ${fileRef.path}',
           );
         }
 
@@ -756,14 +768,12 @@ class ModelManagerService {
         .toList(growable: false);
     return _huggingFaceBaseUri.replace(
       pathSegments: <String>[...baseSegments, ...pathSegments],
-      query: null,
-      fragment: null,
     );
   }
 
   void _addHuggingFaceAuth(http.BaseRequest request, String? token) {
     final resolvedToken =
-        token?.trim().isNotEmpty == true ? token!.trim() : _hfTokenFromEnv;
+        (token?.trim().isNotEmpty ?? false) ? token!.trim() : _hfTokenFromEnv;
     if (resolvedToken != null && resolvedToken.isNotEmpty) {
       request.headers['Authorization'] = 'Bearer $resolvedToken';
     }
@@ -780,6 +790,7 @@ class ModelManagerService {
     required String repoId,
     required String revision,
     required String? huggingFaceToken,
+    required String modelId,
   }) async {
     final request = http.Request(
       'GET',
@@ -789,9 +800,10 @@ class ModelManagerService {
     final response = await client.send(request);
     final responseText = await response.stream.bytesToString();
     if (response.statusCode != 200) {
-      throw ModelDownloadException(
-        repoId,
-        'HTTP ${response.statusCode} from official repo metadata endpoint',
+      throw _huggingFaceResponseException(
+        modelId: modelId,
+        statusCode: response.statusCode,
+        context: 'reading official repo metadata for $repoId',
       );
     }
 
@@ -810,6 +822,110 @@ class ModelManagerService {
       ..sort((a, b) => a.path.compareTo(b.path));
   }
 
+  Future<List<ModelBundleDownloadFile>> _resolveHuggingFaceFileSizes({
+    required http.Client client,
+    required String repoId,
+    required String revision,
+    required List<ModelBundleDownloadFile> files,
+    required String? huggingFaceToken,
+    required String modelId,
+  }) async {
+    final resolved = <ModelBundleDownloadFile>[];
+    for (final file in files) {
+      if (file.sizeBytes > 0) {
+        resolved.add(file);
+        continue;
+      }
+
+      final size = await _resolveHuggingFaceFileSize(
+        client: client,
+        repoId: repoId,
+        revision: revision,
+        filePath: file.path,
+        huggingFaceToken: huggingFaceToken,
+        modelId: modelId,
+      );
+      resolved.add(ModelBundleDownloadFile(path: file.path, sizeBytes: size));
+    }
+    return resolved;
+  }
+
+  Future<int> _resolveHuggingFaceFileSize({
+    required http.Client client,
+    required String repoId,
+    required String revision,
+    required String filePath,
+    required String? huggingFaceToken,
+    required String modelId,
+  }) async {
+    final request = http.Request(
+      'HEAD',
+      _huggingFaceResolveUri(
+        repoId: repoId,
+        revision: revision,
+        filePath: filePath,
+      ),
+    );
+    _addHuggingFaceAuth(request, huggingFaceToken);
+    final response = await client.send(request);
+    await response.stream.drain<void>();
+
+    if (response.statusCode == 200) {
+      return _contentLengthFromHeaders(response) ?? 0;
+    }
+    if (response.statusCode == HttpStatus.methodNotAllowed) {
+      return 0;
+    }
+    throw _huggingFaceResponseException(
+      modelId: modelId,
+      statusCode: response.statusCode,
+      context: 'resolving size for $filePath',
+    );
+  }
+
+  int? _contentLengthFromHeaders(http.StreamedResponse response) {
+    final explicitContentLength = response.contentLength;
+    if (explicitContentLength != null && explicitContentLength > 0) {
+      return explicitContentLength;
+    }
+
+    for (final headerName in const <String>[
+      HttpHeaders.contentLengthHeader,
+      'x-linked-size',
+    ]) {
+      final header = response.headers[headerName];
+      final parsed = header == null ? null : int.tryParse(header);
+      if (parsed != null && parsed > 0) {
+        return parsed;
+      }
+    }
+    return null;
+  }
+
+  ModelDownloadException _huggingFaceResponseException({
+    required String modelId,
+    required int statusCode,
+    required String context,
+  }) {
+    if (statusCode == HttpStatus.unauthorized ||
+        statusCode == HttpStatus.forbidden) {
+      return ModelDownloadException(
+        modelId,
+        '$_huggingFaceAccessRequiredMessage ($context; HTTP $statusCode)',
+      );
+    }
+    if (statusCode == HttpStatus.notFound) {
+      return ModelDownloadException(
+        modelId,
+        'Official Hugging Face repo or file was not found ($context; HTTP 404)',
+      );
+    }
+    return ModelDownloadException(
+      modelId,
+      'HTTP $statusCode while $context',
+    );
+  }
+
   ModelBundleDownloadFile? _downloadFileFromSibling(
     Map<String, dynamic> sibling,
   ) {
@@ -821,11 +937,11 @@ class ModelManagerService {
     final lfs = sibling['lfs'];
     final lfsSize = lfs is Map<String, dynamic> ? lfs['size'] : null;
     final size = switch (directSize) {
-      int value => value,
-      num value => value.toInt(),
+      final int value => value,
+      final num value => value.toInt(),
       _ => switch (lfsSize) {
-          int value => value,
-          num value => value.toInt(),
+          final int value => value,
+          final num value => value.toInt(),
           _ => 0,
         },
     };

@@ -21,20 +21,24 @@ void main() {
       }
     });
 
-    test('getDownloadedModels canonicalizes legacy 640 community directory',
-        () async {
-      final legacyDir = Directory(
-        '${tempDir.path}${Platform.pathSeparator}nsfw-nudenet-detector-640-community',
-      )..createSync(recursive: true);
-      File('${legacyDir.path}${Platform.pathSeparator}640m.onnx')
-          .writeAsBytesSync(const <int>[1, 2, 3, 4]);
+    test(
+      'getDownloadedModels canonicalizes legacy 640 community directory',
+      () async {
+        final legacyDir = Directory(
+          '${tempDir.path}${Platform.pathSeparator}nsfw-nudenet-detector-640-community',
+        )..createSync(recursive: true);
+        File('${legacyDir.path}${Platform.pathSeparator}640m.onnx')
+            .writeAsBytesSync(const <int>[1, 2, 3, 4]);
 
-      final downloaded = await service.getDownloadedModels();
+        final downloaded = await service.getDownloadedModels();
 
-      expect(downloaded, contains('nsfw-nudenet-detector-640'));
-      expect(
-          downloaded, isNot(contains('nsfw-nudenet-detector-640-community')));
-    });
+        expect(downloaded, contains('nsfw-nudenet-detector-640'));
+        expect(
+          downloaded,
+          isNot(contains('nsfw-nudenet-detector-640-community')),
+        );
+      },
+    );
 
     test('getModelPath resolves canonical 640 id from legacy directory',
         () async {
@@ -92,8 +96,8 @@ void main() {
 {
   "siblings": [
     {"rfilename": "README.md", "size": 10},
-    {"rfilename": "config.json", "size": 2},
-    {"rfilename": "model.safetensors", "lfs": {"size": 3}},
+    {"rfilename": "config.json"},
+    {"rfilename": "model.safetensors"},
     {"rfilename": "images/example.png", "size": 20}
   ]
 }
@@ -102,11 +106,21 @@ void main() {
           return;
         }
         if (path == '/google/gemma-4-E4B-it/resolve/main/config.json') {
+          if (request.method == 'HEAD') {
+            request.response.contentLength = 2;
+            await request.response.close();
+            return;
+          }
           request.response.add(const <int>[123, 125]);
           await request.response.close();
           return;
         }
         if (path == '/google/gemma-4-E4B-it/resolve/main/model.safetensors') {
+          if (request.method == 'HEAD') {
+            request.response.contentLength = 3;
+            await request.response.close();
+            return;
+          }
           request.response.add(const <int>[1, 2, 3]);
           await request.response.close();
           return;
@@ -124,6 +138,13 @@ void main() {
       final progress = await service.downloadModelBundle(manifest).toList();
 
       expect(progress.last.status, ModelDownloadStatus.complete);
+      expect(
+        progress.any(
+          (entry) => entry.percentage > 0 && entry.percentage < 1,
+        ),
+        isTrue,
+      );
+      expect(progress.last.totalBytes, 5);
       expect(
         File(
           p.join(
@@ -165,6 +186,32 @@ void main() {
       final metadata = await service.getModelBundleMetadata(manifest.modelId);
       expect(metadata?['officialSourceRepo'], manifest.officialSourceRepo);
       expect(metadata?['files'], hasLength(2));
+    });
+
+    test('reports gated official hf repos with token guidance', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
+      server.listen((request) async {
+        request.response.statusCode = HttpStatus.forbidden;
+        await request.response.close();
+      });
+
+      final service = ModelManagerService(
+        customModelsPath: tempDir.path,
+        huggingFaceBaseUrl: 'http://127.0.0.1:${server.port}',
+      );
+      final manifest = ModelBundleCatalog.byModelId('google_gemma_4_e4b_it');
+
+      await expectLater(
+        service.downloadModelBundle(manifest).toList(),
+        throwsA(
+          isA<ModelDownloadException>().having(
+            (error) => error.reason,
+            'reason',
+            contains('HF_TOKEN'),
+          ),
+        ),
+      );
     });
 
     test('blocks non-commercial official bundles at runtime', () async {
