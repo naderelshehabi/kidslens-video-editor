@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:kidslens_video_editor/data/models/frame_data.dart';
 import 'package:kidslens_video_editor/data/models/sampled_frame_ref.dart';
 import 'package:kidslens_video_editor/data/models/video_chunk.dart';
+import 'package:kidslens_video_editor/jobs/cancellation_token.dart';
 import 'package:kidslens_video_editor/native/bindings/ffmpeg_bindings.dart';
+import 'package:kidslens_video_editor/services/detection/vlm_provider.dart';
 
 /// Configuration for frame sampling
 class FrameSamplingConfig {
@@ -356,6 +359,82 @@ class FrameSamplingService {
         format: format,
       );
 
+  /// Extract JPEG payloads for sampled frame references in a video chunk.
+  ///
+  /// This path is used by local VLM providers, so it returns in-memory JPEG
+  /// payloads instead of writing frame files to disk. The implementation uses
+  /// one fast-seek FFmpeg invocation per selected frame for correctness and
+  /// simple cancellation semantics.
+  Future<List<VlmFrameImage>> extractChunkJpegFrames({
+    required String videoPath,
+    required VideoChunk chunk,
+    required List<SampledFrameRef> frameRefs,
+    int maxLongSide = 768,
+    int jpegQuality = 85,
+    CancellationToken? cancellationToken,
+  }) async {
+    if (maxLongSide < 1) {
+      throw ArgumentError.value(maxLongSide, 'maxLongSide', 'must be positive');
+    }
+    if (jpegQuality < 1 || jpegQuality > 100) {
+      throw ArgumentError.value(jpegQuality, 'jpegQuality', 'must be 1..100');
+    }
+    SampledFrameRef? invalidRef;
+    for (final ref in frameRefs) {
+      if (ref.mediaId != chunk.mediaId ||
+          ref.chunkId != chunk.id ||
+          ref.timestamp < chunk.startTime ||
+          ref.timestamp >= chunk.endTime) {
+        invalidRef = ref;
+        break;
+      }
+    }
+    if (invalidRef != null) {
+      throw FrameSamplingException(
+        'Frame reference ${invalidRef.id} does not belong to chunk ${chunk.id}',
+      );
+    }
+
+    await cancellationToken?.checkState();
+    final metadata = await _getVideoMetadata(videoPath);
+    if (metadata == null) {
+      throw FrameSamplingException('Failed to read video metadata');
+    }
+    final size = _scaleToLongSide(
+      width: metadata.width,
+      height: metadata.height,
+      maxLongSide: maxLongSide,
+    );
+
+    final stopwatch = Stopwatch()..start();
+    final images = <VlmFrameImage>[];
+    for (final ref in frameRefs) {
+      await cancellationToken?.checkState();
+      final bytes = await _extractJpegFrame(
+        videoPath: videoPath,
+        timestamp: ref.timestamp,
+        width: size.width,
+        height: size.height,
+        jpegQuality: jpegQuality,
+      );
+      images.add(
+        VlmFrameImage(
+          frameRef: ref,
+          jpegBytes: bytes,
+          width: size.width,
+          height: size.height,
+          sha256: sha256.convert(bytes).toString(),
+        ),
+      );
+    }
+    stopwatch.stop();
+    debugPrint(
+      'Extracted ${images.length} JPEG VLM frame(s) for ${chunk.id} in '
+      '${stopwatch.elapsedMilliseconds} ms',
+    );
+    return images;
+  }
+
   /// Get keyframe timestamps for a video
   ///
   /// Returns timestamps of all I-frames (keyframes) in the video.
@@ -576,6 +655,7 @@ class FrameSamplingService {
   }
 
   /// Calculate frame extraction timestamps
+  // ignore: unused_element
   List<Duration> _calculateFrameTimes({
     required Duration duration,
     required double baseFps,
@@ -660,7 +740,72 @@ class FrameSamplingService {
     }
   }
 
+  Future<List<int>> _extractJpegFrame({
+    required String videoPath,
+    required Duration timestamp,
+    required int width,
+    required int height,
+    required int jpegQuality,
+  }) async {
+    final ffmpegPath = ffmpeg.ffmpegPath ?? 'ffmpeg';
+    final qscale = _jpegQualityToQscale(jpegQuality);
+    String? lastFailure;
+    for (final attemptTimestamp in _jpegSeekAttempts(timestamp)) {
+      final result = await Process.run(
+        ffmpegPath,
+        [
+          '-hide_banner',
+          '-loglevel',
+          'error',
+          '-ss',
+          _formatTimestamp(attemptTimestamp),
+          '-i',
+          videoPath,
+          '-frames:v',
+          '1',
+          '-vf',
+          'scale=$width:$height',
+          '-pix_fmt',
+          'yuvj420p',
+          '-q:v',
+          '$qscale',
+          '-vcodec',
+          'mjpeg',
+          '-f',
+          'image2pipe',
+          'pipe:1',
+        ],
+        stdoutEncoding: null,
+      );
+
+      if (result.exitCode != 0) {
+        final stderr = (result.stderr ?? '').toString();
+        lastFailure =
+            'exit code ${result.exitCode} at ${_formatTimestamp(attemptTimestamp)}: ${_tail(stderr)}';
+        continue;
+      }
+
+      final raw = result.stdout;
+      if (raw is! List<int> || raw.length < 4) {
+        lastFailure =
+            'invalid JPEG buffer at ${_formatTimestamp(attemptTimestamp)} (${raw is List<int> ? raw.length : 0} bytes)';
+        continue;
+      }
+      if (raw[0] != 0xff || raw[1] != 0xd8) {
+        lastFailure =
+            'non-JPEG frame buffer at ${_formatTimestamp(attemptTimestamp)}';
+        continue;
+      }
+      return List<int>.unmodifiable(raw);
+    }
+
+    throw FrameSamplingException(
+      'FFmpeg JPEG frame extraction failed: ${lastFailure ?? 'no frame returned'}',
+    );
+  }
+
   /// Detect scene change between two timestamps
+  // ignore: unused_element
   Future<double> _detectSceneChange(
     String videoPath,
     Duration previous,
@@ -723,6 +868,7 @@ class FrameSamplingService {
   }
 
   /// Check if a timestamp corresponds to a keyframe
+  // ignore: unused_element
   Future<bool> _isKeyframe(String videoPath, Duration timestamp) async {
     try {
       final timeStr = _formatTimestamp(timestamp);
@@ -767,6 +913,57 @@ class FrameSamplingService {
       case FrameFormat.nv12:
         return (width * height * 3) ~/ 2;
     }
+  }
+
+  _ScaledFrameSize _scaleToLongSide({
+    required int width,
+    required int height,
+    required int maxLongSide,
+  }) {
+    if (width < 1 || height < 1) {
+      throw FrameSamplingException(
+        'Invalid source video size: ${width}x$height',
+      );
+    }
+    final longSide = width > height ? width : height;
+    final scale = longSide > maxLongSide ? maxLongSide / longSide : 1.0;
+    var scaledWidth = (width * scale).round();
+    var scaledHeight = (height * scale).round();
+    scaledWidth = _makeEven(scaledWidth.clamp(2, maxLongSide));
+    scaledHeight = _makeEven(scaledHeight.clamp(2, maxLongSide));
+    return _ScaledFrameSize(width: scaledWidth, height: scaledHeight);
+  }
+
+  int _makeEven(num value) {
+    final integer = value.round();
+    if (integer <= 2) {
+      return 2;
+    }
+    return integer.isEven ? integer : integer - 1;
+  }
+
+  int _jpegQualityToQscale(int quality) =>
+      (31 - ((quality.clamp(1, 100) - 1) * 29 / 99)).round().clamp(2, 31);
+
+  List<Duration> _jpegSeekAttempts(Duration timestamp) {
+    final attempts = <Duration>[timestamp];
+    for (final offset in const [
+      Duration(milliseconds: 100),
+      Duration(milliseconds: 250),
+      Duration(milliseconds: 500),
+    ]) {
+      final candidate = timestamp - offset;
+      attempts.add(candidate.isNegative ? Duration.zero : candidate);
+    }
+    return attempts.toSet().toList(growable: false);
+  }
+
+  String _tail(String value, {int maxChars = 1200}) {
+    final trimmed = value.trim();
+    if (trimmed.length <= maxChars) {
+      return trimmed;
+    }
+    return trimmed.substring(trimmed.length - maxChars);
   }
 
   List<int> _selectRepresentativeTimestamps(
@@ -820,6 +1017,16 @@ class _VideoMetadata {
   final int width;
   final int height;
   final double fps;
+}
+
+class _ScaledFrameSize {
+  const _ScaledFrameSize({
+    required this.width,
+    required this.height,
+  });
+
+  final int width;
+  final int height;
 }
 
 /// Exception thrown by frame sampling service

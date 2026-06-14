@@ -254,7 +254,7 @@ Modify `lib/services/detection/vlm_provider.dart`:
 
 Modify `lib/services/frame_sampling_service.dart`:
 
-- [ ] 4.1 Add:
+- [x] 4.1 Add:
   ```dart
   Future<List<VlmFrameImage>> extractChunkJpegFrames({
     required String videoPath,
@@ -266,11 +266,11 @@ Modify `lib/services/frame_sampling_service.dart`:
   })
   ```
   Implementation baseline: one FFmpeg invocation **per frame ref** using fast input seeking, writing JPEG to stdout (no temp files):
-  `ffmpeg -ss <ts> -i <video> -frames:v 1 -vf "scale='min(768,iw)':-2" -q:v 4 -f image2 pipe:1`
-  Collect stdout bytes per call. Add timing instrumentation around extraction. If this stage exceeds 10-15% of wall time on a representative sample, switch before Phase 5 to a single `-ss <chunkStart> -to <chunkEnd>` invocation with a `select='eq(n,..)+..'` filter writing numbered JPEGs to a temp dir.
-  Reuse the existing FFmpeg path-resolution used by `_extractFrame` (`frame_sampling_service.dart:598`). Throw `FrameSamplingException` on non-zero exit with stderr tail.
-- [ ] 4.2 Tests: against the existing video fixture used by `frame_sampling_service` tests — assert JPEG magic bytes (`FF D8`), count == refs count, decoded dimensions ≤ 768 long side (dimension check can parse the JPEG SOF header or just assert byte size sanity if no decoder dep exists).
-- [ ] Exit gate: extraction test passes on the fixture video.
+  `ffmpeg -ss <ts> -i <video> -frames:v 1 -vf "scale=<computedWidth>:<computedHeight>" -pix_fmt yuvj420p -q:v <mapped quality> -vcodec mjpeg -f image2pipe pipe:1`
+  Collect stdout bytes per call and attach byte SHA-256 to each `VlmFrameImage`. Added timing instrumentation around extraction. If this stage exceeds 10-15% of wall time on a representative sample, switch before Phase 5 to a single `-ss <chunkStart> -to <chunkEnd>` invocation with a `select='eq(n,..)+..'` filter writing numbered JPEGs to a temp dir.
+  Reuses the existing FFmpeg path-resolution pattern from `_extractFrame`. Throws `FrameSamplingException` on non-zero exit or invalid/empty JPEG output with stderr tail. Added a small backwards-seek fallback for end-of-chunk timestamps where FFmpeg exits successfully but emits zero frames near EOF.
+- [x] 4.2 Tests: `test/services/frame_sampling_chunk_selection_test.dart` creates a deterministic FFmpeg video fixture, asserts JPEG magic bytes (`FF D8`), count == refs count, decoded dimensions ≤ configured long side via a JPEG SOF parser, and verifies returned dimensions match payload metadata.
+- [x] Exit gate: extraction test passes on the fixture video.
 
 ### Phase 5 — The real `VssFamilySafetyPipeline` orchestrator (core of this plan)
 
