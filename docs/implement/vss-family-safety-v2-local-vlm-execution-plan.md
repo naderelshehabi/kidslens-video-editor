@@ -204,42 +204,51 @@ New file `lib/services/detection/runtime_binary_manager.dart`:
 
 Modify `lib/services/detection/vlm_provider.dart`:
 
-- [ ] 3.1 Add a frame-image payload type and extend the request:
+- [x] 3.1 Add a frame-image payload type and extend the request:
   ```dart
   class VlmFrameImage {
-    const VlmFrameImage({required this.frameRef, required this.jpegBytes});
+    VlmFrameImage({
+      required this.frameRef,
+      required this.jpegBytes,
+      required this.width,
+      required this.height,
+      required this.sha256,
+    });
     final SampledFrameRef frameRef;
-    final Uint8List jpegBytes;
+    final List<int> jpegBytes;
+    final int width;
+    final int height;
+    final String sha256;
   }
   ```
-  Add `final List<VlmFrameImage> frameImages;` (default `const []`) to `VideoSegmentRequest`. Validation (`validateAgainstManifest`): when the provider requires pixels (see 3.2), `frameImages.length` must equal `frames.length` and be ≥ 1; each `jpegBytes` non-empty. Keep `toProviderJson()` for the legacy/test providers, but it must never include raw bytes.
-- [ ] 3.2 Add concrete provider `OpenAiCompatVlmProvider` (same file or new `lib/services/detection/openai_compat_vlm_provider.dart`):
-  - Constructor: `{required Uri endpoint, required LocalRuntimeProfile runtimeProfile, String providerId = 'local_llamacpp_server', http.Client? client, VlmJsonParser parser = const VlmJsonParser()}`. Reuse the loopback validation from `LocalHttpVlmProvider` (extract that check into a shared helper rather than subclassing, because the request body differs).
+  Add `final List<VlmFrameImage> frameImages;` (default `const []`) to `VideoSegmentRequest`. Validation (`validateFrameImages`): when the provider requires pixels (see 3.2), `frameImages.length` must equal `frames.length`; payloads must be non-empty, ordered to match `frames`, under the configured byte cap (default 1.5 MB), dimensioned, and hash-addressed. Keep `toProviderJson()` for the legacy/test providers, but it only includes frame-image metadata and never raw bytes. Evidence provenance now includes `frameId:sha256:<hash>` input IDs for sent images.
+- [x] 3.2 Add concrete provider `OpenAiCompatVlmProvider` (same file or new `lib/services/detection/openai_compat_vlm_provider.dart`):
+  - Constructor: `{required Uri endpoint, required LocalRuntimeProfile runtimeProfile, required String modelAlias, http.Client? client, VlmJsonParser parser = const VlmJsonParser(), bool enforceJsonSchema = true}`. Reuses the loopback validation from `LocalRuntimeEndpointPolicy`.
   - `analyzeSegment`: POST `<endpoint>/v1/chat/completions` with body:
     ```json
     {
-      "model": "<bundle.modelId>",
+      "model": "<modelAlias>",
       "messages": [
-        {"role": "system", "content": "<FamilySafetyPromptTemplates system text>"},
+        {"role": "system", "content": "Return valid JSON only..."},
         {"role": "user", "content": [
           {"type": "text", "text": "<request.prompt — includes chunk timing context>"},
           {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,<frame 1>"}},
-          ... one part per frame, in timestamp order, each preceded by a short text part "frame i/N at <mm:ss.mmm>" ...
+          ... one image part per frame, in sampled-frame order ...
         ]}
       ],
       "max_tokens": <request.maxOutputTokens>,
-      "temperature": 0.1,
-      "response_format": {"type": "json_object"}
+      "temperature": 0,
+      "response_format": {"type": "json_schema", "json_schema": {"name": "kidslens_family_safety", "schema": <FamilySafetyVlmOutputSchema.jsonSchema>, "strict": true}}
     }
     ```
     Extract `choices[0].message.content`, run the existing `VlmJsonParser.parse` (schema validation + deterministic repair), then reuse the existing `_buildResponse` evidence path unchanged.
-    Note: llama-server also supports `response_format: {"type":"json_schema","json_schema":{...}}` (grammar-enforced). Implement `json_object` first (universally supported), then attempt `json_schema` with `FamilySafetyVlmOutputSchema` expressed as JSON Schema and keep it behind a provider option `enforceJsonSchema` (default true, auto-fallback to `json_object` on HTTP 400).
-  - Retry policy: on `VlmSchemaException`, retry once appending `"Your previous reply was not valid JSON matching the schema. Reply with ONLY the JSON object."`; on second failure record an evidence-level provider failure (the policy engine already maps provider failure → review finding).
+    Note: llama-server also supports `response_format: {"type":"json_schema","json_schema":{...}}` (grammar-enforced). Implemented with `enforceJsonSchema` default true and auto-fallback to `json_object` on HTTP 400.
+  - Retry policy: on schema/JSON parse failure, retry once with the original prompt, validation error, and previous response appended; on second failure throw `VlmSchemaException` for the policy engine to map into review/failure handling.
   - Local-only guard: provider construction and tests must reject every non-loopback endpoint. The VSS analysis path must be covered by a test that fails if analysis tries to call a non-loopback HTTP(S) URL after model/runtime installation.
   - Timeout/cancellation: reuse `_withCancellation`.
-- [ ] 3.3 Map `LocalRuntimeId.cudaLlamaCpp`/`vulkanLlamaCpp` → this provider in whatever factory Phase 5 builds (`VlmProviderFactory.forRuntime(...)`, new small file `lib/services/detection/vlm_provider_factory.dart`).
-- [ ] 3.4 Tests (`test/services/detection/openai_compat_vlm_provider_test.dart`): fake loopback HTTP server asserting (a) base64 JPEG data URLs present, one per frame, correct order; (b) `response_format` passed; (c) OpenAI envelope parsed; (d) schema-retry happens exactly once; (e) evidence records persisted via the existing in-memory store; (f) non-loopback endpoint rejected.
-- [ ] Exit gate: provider tests pass; existing `vlm_provider_test.dart` still passes.
+- [x] 3.3 Map `LocalRuntimeId.cudaLlamaCpp`/`vulkanLlamaCpp` → this provider in whatever factory Phase 5 builds (`VlmProviderFactory.forRuntime(...)`, new small file `lib/services/detection/vlm_provider_factory.dart`).
+- [x] 3.4 Tests (`test/services/detection/openai_compat_vlm_provider_test.dart`): fake loopback HTTP server asserting (a) base64 JPEG data URLs present, one per frame, correct order; (b) `response_format` passed; (c) OpenAI envelope parsed; (d) schema-retry happens exactly once; (e) evidence records persisted via the existing in-memory store; (f) non-loopback endpoint rejected.
+- [x] Exit gate: provider tests pass; existing `vlm_provider_test.dart` still passes.
 
 ### Phase 4 — Chunk-aware JPEG frame extraction
 

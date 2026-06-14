@@ -310,6 +310,124 @@ class FamilySafetyVlmOutputSchema {
 }
 ''';
 
+  static final jsonSchema = <String, dynamic>{
+    'type': 'object',
+    'additionalProperties': false,
+    'required': [
+      'schemaVersion',
+      'caption',
+      'groundedRegions',
+      'findings',
+      'searchTerms',
+      'uncertainty',
+    ],
+    'properties': {
+      'schemaVersion': {'const': FamilySafetyPromptTemplates.schemaVersion},
+      'caption': {'type': 'string', 'minLength': 1},
+      'groundedRegions': {
+        'type': 'array',
+        'items': {
+          'type': 'object',
+          'additionalProperties': false,
+          'required': [
+            'regionId',
+            'label',
+            'category',
+            'frameId',
+            'box',
+            'confidence',
+            'rationale',
+          ],
+          'properties': {
+            'regionId': {'type': 'string', 'minLength': 1},
+            'label': {'type': 'string', 'minLength': 1},
+            'category': {
+              'type': 'string',
+              'enum': allowedCategoryIds.toList(growable: false),
+            },
+            'frameId': {'type': 'string', 'minLength': 1},
+            'box': {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['x', 'y', 'width', 'height'],
+              'properties': {
+                'x': {'type': 'number', 'minimum': 0, 'maximum': 1},
+                'y': {'type': 'number', 'minimum': 0, 'maximum': 1},
+                'width': {
+                  'type': 'number',
+                  'exclusiveMinimum': 0,
+                  'maximum': 1,
+                },
+                'height': {
+                  'type': 'number',
+                  'exclusiveMinimum': 0,
+                  'maximum': 1,
+                },
+              },
+            },
+            'maskRef': {
+              'anyOf': [
+                {'type': 'string'},
+                {'type': 'null'},
+              ],
+            },
+            'confidence': {'type': 'number', 'minimum': 0, 'maximum': 1},
+            'rationale': {'type': 'string', 'minLength': 1},
+          },
+        },
+      },
+      'findings': {
+        'type': 'array',
+        'items': {
+          'type': 'object',
+          'additionalProperties': false,
+          'required': [
+            'category',
+            'severity',
+            'confidence',
+            'startTimeMs',
+            'endTimeMs',
+            'rationale',
+            'regionIds',
+            'groundingStatus',
+            'needsReview',
+          ],
+          'properties': {
+            'category': {
+              'type': 'string',
+              'enum': allowedCategoryIds.toList(growable: false),
+            },
+            'severity': {
+              'type': 'string',
+              'enum': allowedSeverityIds.toList(growable: false),
+            },
+            'confidence': {'type': 'number', 'minimum': 0, 'maximum': 1},
+            'startTimeMs': {'type': 'number', 'minimum': 0},
+            'endTimeMs': {'type': 'number', 'minimum': 0},
+            'rationale': {'type': 'string', 'minLength': 1},
+            'regionIds': {
+              'type': 'array',
+              'items': {'type': 'string'},
+            },
+            'groundingStatus': {
+              'type': 'string',
+              'enum': allowedGroundingStatusIds.toList(growable: false),
+            },
+            'needsReview': {'type': 'boolean'},
+          },
+        },
+      },
+      'searchTerms': {
+        'type': 'array',
+        'items': {'type': 'string'},
+      },
+      'uncertainty': {
+        'type': 'array',
+        'items': {'type': 'string'},
+      },
+    },
+  };
+
   static const allowedSeverityIds = <String>{
     'none',
     'low',
