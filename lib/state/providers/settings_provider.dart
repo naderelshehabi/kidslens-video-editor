@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:kidslens_video_editor/data/models/analysis_settings_migration.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
+import 'package:kidslens_video_editor/services/detection/model_bundle_selection_policy.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -43,7 +44,7 @@ class SettingsState {
     this.defaultExportFormat = ExportFormat.mp4,
     this.autoSaveInterval = const Duration(minutes: 5),
     this.thumbnailInterval = const Duration(minutes: 1),
-    this.localRuntimeId = 'cuda_vllm',
+    this.localRuntimeId = 'cuda_llamacpp',
     this.modelBundleIdsByRole = const <String, String>{},
     this.acceptedModelBundleTerms = const <String>[],
   }) : analysisSettings = analysisSettings ?? AnalysisSettings.defaults();
@@ -68,7 +69,7 @@ class SettingsState {
             Duration(minutes: json['autoSaveIntervalMinutes'] as int? ?? 5),
         thumbnailInterval:
             Duration(seconds: json['thumbnailIntervalSeconds'] as int? ?? 60),
-        localRuntimeId: json['localRuntimeId'] as String? ?? 'cuda_vllm',
+        localRuntimeId: json['localRuntimeId'] as String? ?? 'cuda_llamacpp',
         modelBundleIdsByRole: _readStringMap(json['modelBundleIdsByRole']),
         acceptedModelBundleTerms: _readStringList(
           json['acceptedModelBundleTerms'],
@@ -424,8 +425,9 @@ class SettingsNotifier extends _$SettingsNotifier {
         LocalRuntimeId.values.map((runtime) => runtime.jsonValue).toSet();
     final runtimeId = runtimeIds.contains(input.localRuntimeId)
         ? input.localRuntimeId
-        : LocalRuntimeId.cudaVllm.jsonValue;
+        : LocalRuntimeId.cudaLlamaCpp.jsonValue;
     final acceptedTerms = input.acceptedModelBundleTerms.toSet();
+    const selectionPolicy = ModelBundleSelectionPolicy(productionMode: false);
     final normalizedBundleIds = <String, String>{};
     for (final entry in input.modelBundleIdsByRole.entries) {
       ModelBundleRole? role;
@@ -444,17 +446,15 @@ class SettingsNotifier extends _$SettingsNotifier {
           break;
         }
       }
-      if (manifest == null) continue;
-      if (!manifest.roles.contains(role)) continue;
-      if (manifest.validateForProductionSelection().isNotEmpty) continue;
-      if (manifest.acceptedTermsRequired &&
-          !acceptedTerms.contains(manifest.modelId)) {
+      if (manifest == null) {
         continue;
       }
-      final runtimeProfile = LocalRuntimeProfile.byModelRuntime(
-        manifest.runtime,
-      );
-      if (runtimeProfile != null && runtimeProfile.id.jsonValue != runtimeId) {
+      if (!selectionPolicy.canSelect(
+        manifest: manifest,
+        role: role,
+        localRuntimeId: runtimeId,
+        acceptedTerms: acceptedTerms,
+      )) {
         continue;
       }
       normalizedBundleIds[entry.key] = entry.value;

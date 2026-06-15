@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kidslens_video_editor/data/models/content_category_defaults.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/services/detection/detection_pipeline_profile.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
@@ -15,7 +14,7 @@ void main() {
       DetectionPipelineIds.vssFamilySafetyV1,
     );
     expect(state.defaultExportFormat, ExportFormat.mp4);
-    expect(state.localRuntimeId, LocalRuntimeId.cudaVllm.jsonValue);
+    expect(state.localRuntimeId, LocalRuntimeId.cudaLlamaCpp.jsonValue);
     expect(state.modelBundleIdsByRole, isEmpty);
     expect(state.acceptedModelBundleTerms, isEmpty);
   });
@@ -66,7 +65,32 @@ void main() {
     expect(state.localRuntimeId, LocalRuntimeId.directmlOnnx.jsonValue);
   });
 
-  test('settings notifier blocks unapproved model bundle selections', () {
+  test('settings notifier keeps validation-ready official GGUF selections', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    container.read(settingsNotifierProvider.notifier)
+      ..setLocalRuntime(LocalRuntimeId.cudaLlamaCpp.jsonValue)
+      ..selectModelBundleForRole(
+        role: ModelBundleRole.vlm.name,
+        modelBundleId: 'qwen3_vl_8b_instruct_gguf_q4km',
+      )
+      ..selectModelBundleForRole(
+        role: ModelBundleRole.embedding.name,
+        modelBundleId: 'qwen3_embedding_0_6b_gguf_q8',
+      );
+
+    expect(
+      container.read(settingsNotifierProvider).modelBundleIdsByRole,
+      {
+        ModelBundleRole.vlm.name: 'qwen3_vl_8b_instruct_gguf_q4km',
+        ModelBundleRole.embedding.name: 'qwen3_embedding_0_6b_gguf_q8',
+      },
+    );
+  });
+
+  test('settings notifier blocks commercially blocked model bundle selections',
+      () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
@@ -76,7 +100,9 @@ void main() {
         );
 
     expect(
-        container.read(settingsNotifierProvider).modelBundleIdsByRole, isEmpty);
+      container.read(settingsNotifierProvider).modelBundleIdsByRole,
+      isEmpty,
+    );
   });
 
   test('settings notifier persists terms acceptance separately from selection',

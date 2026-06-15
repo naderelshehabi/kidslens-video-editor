@@ -7,20 +7,23 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/app.dart';
 import 'package:kidslens_video_editor/core/constants/supported_formats.dart';
-import 'package:kidslens_video_editor/data/models/content_category.dart';
 import 'package:kidslens_video_editor/data/models/gpu_info.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/presentation/screens/analysis_settings/analysis_settings_screen.dart';
 import 'package:kidslens_video_editor/presentation/screens/settings_screen.dart';
 import 'package:kidslens_video_editor/presentation/widgets/dialogs/export_dialog.dart';
+import 'package:kidslens_video_editor/presentation/widgets/dialogs/vss_first_run_dialog.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/detection_panel.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/media_bin_panel.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/preview_panel.dart';
 import 'package:kidslens_video_editor/presentation/widgets/editor/timeline_panel.dart';
+import 'package:kidslens_video_editor/services/detection/detection_pipeline_profile.dart';
+import 'package:kidslens_video_editor/services/detection/vss_family_safety_pipeline.dart';
 import 'package:kidslens_video_editor/state/providers/analysis_provider.dart';
 import 'package:kidslens_video_editor/state/providers/model_provider.dart';
 import 'package:kidslens_video_editor/state/providers/playback_provider.dart';
 import 'package:kidslens_video_editor/state/providers/project_provider.dart';
+import 'package:kidslens_video_editor/state/providers/runtime_binary_provider.dart';
 import 'package:kidslens_video_editor/state/providers/service_providers.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 
@@ -80,7 +83,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final nsfwThreshold = _nsfwDebugModeEnabled
         ? ref.watch(
             settingsNotifierProvider.select(
-                (state) => _resolveNsfwThreshold(state.analysisSettings)),
+              (state) => _resolveNsfwThreshold(state.analysisSettings),
+            ),
           )
         : 0.5;
     final modestyThresholds = _modestyDebugModeEnabled
@@ -864,7 +868,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     }
   }
 
-  void _startAnalysis() async {
+  Future<void> _startAnalysis() async {
     final project = ref.read(projectNotifierProvider).currentProject;
     if (project == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -881,8 +885,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       return;
     }
 
+    if (!await _ensureVssFirstRunReady()) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+
     // Check for existing detections
-    bool shouldClearDetections = true;
+    var shouldClearDetections = true;
     final existingDetections = project.detectionsForMedia(selectedMedia.id);
     if (existingDetections.isNotEmpty) {
       final result = await showDialog<String>(
@@ -909,6 +920,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ],
         ),
       );
+      if (!mounted) {
+        return;
+      }
 
       if (result == null || result == 'cancel') {
         return;
@@ -918,16 +932,93 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     }
 
     // Show analysis dialog
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => _AnalysisDialog(
-        mediaPath: selectedMedia.path,
-        mediaId: selectedMedia.id,
-        mediaDuration: selectedMedia.duration,
-        clearExistingDetections: shouldClearDetections,
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => _AnalysisDialog(
+          mediaPath: selectedMedia.path,
+          mediaId: selectedMedia.id,
+          mediaDuration: selectedMedia.duration,
+          clearExistingDetections: shouldClearDetections,
+        ),
       ),
     );
+  }
+
+  Future<bool> _ensureVssFirstRunReady() async {
+    var settingsState = ref.read(settingsNotifierProvider);
+    if (settingsState.analysisSettings.analysisPipelineId !=
+        DetectionPipelineIds.vssFamilySafetyV1) {
+      return true;
+    }
+
+    await ref.read(modelNotifierProvider.notifier).loadAvailableModels();
+    await ref.read(runtimeBinaryNotifierProvider.notifier).loadInstallStates();
+
+    settingsState = ref.read(settingsNotifierProvider);
+    final modelState = ref.read(modelNotifierProvider);
+    final runtimeState = ref.read(runtimeBinaryNotifierProvider);
+    final modelBundleId =
+        settingsState.modelBundleIdsByRole[ModelBundleRole.vlm.name] ??
+            VssFamilySafetyPipeline.defaultModelBundleId;
+    final modelBundle = _resolveVssModelBundle(modelBundleId);
+    final runtimeId = _selectedLlamaRuntime(settingsState.localRuntimeId);
+    final runtimeProfile = LocalRuntimeProfile.byId(runtimeId);
+    final modelMissing =
+        !modelState.downloadedModels.contains(modelBundle.modelId);
+    final runtimeMissing =
+        runtimeState.installStates[runtimeId]?.isInstalled != true;
+    if (!modelMissing && !runtimeMissing) {
+      return true;
+    }
+    if (!mounted) {
+      return false;
+    }
+
+    final action = await VssFirstRunDialog.show(
+      context: context,
+      modelName: modelBundle.displayName,
+      runtimeName: runtimeProfile.displayName,
+      modelMissing: modelMissing,
+      runtimeMissing: runtimeMissing,
+    );
+    if (!mounted || action == null || action == VssFirstRunAction.cancel) {
+      return false;
+    }
+    if (action == VssFirstRunAction.useLegacy) {
+      ref
+          .read(settingsNotifierProvider.notifier)
+          .setAnalysisPipeline(DetectionPipelineIds.legacyNsfwRegionV8);
+      return true;
+    }
+
+    ref
+        .read(settingsNotifierProvider.notifier)
+        .setLocalRuntime(runtimeId.jsonValue);
+    if (modelMissing) {
+      unawaited(
+        ref.read(modelNotifierProvider.notifier).downloadModelBundle(
+              modelBundle,
+              acceptedTerms: settingsState.acceptedModelBundleTerms.toSet(),
+            ),
+      );
+    }
+    if (runtimeMissing) {
+      unawaited(
+        ref.read(runtimeBinaryNotifierProvider.notifier).ensureInstalled(
+              runtimeId,
+            ),
+      );
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Local AI downloads started. Run analysis after install completes.',
+        ),
+      ),
+    );
+    return false;
   }
 
   void _togglePlayback() {
@@ -1163,10 +1254,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     if (action.isRegionLevel && detection.hasBoundingBox) {
       final box = detection.boundingBox;
       if (box != null) {
-        final left = (box['x'] ?? 0).clamp(0.0, 1.0).toDouble();
-        final top = (box['y'] ?? 0).clamp(0.0, 1.0).toDouble();
-        final width = (box['width'] ?? 0).clamp(0.0, 1.0 - left).toDouble();
-        final height = (box['height'] ?? 0).clamp(0.0, 1.0 - top).toDouble();
+        final left = (box['x'] ?? 0).clamp(0.0, 1.0);
+        final top = (box['y'] ?? 0).clamp(0.0, 1.0);
+        final width = (box['width'] ?? 0).clamp(0.0, 1.0 - left);
+        final height = (box['height'] ?? 0).clamp(0.0, 1.0 - top);
         boundingBox = BoundingBox(
           left: left,
           top: top,
@@ -2041,6 +2132,7 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final analysisState = ref.watch(analysisNotifierProvider);
+    final settingsState = ref.watch(settingsNotifierProvider);
     final isRunning = analysisState.status == AnalysisStatus.running;
     final isCancelling = analysisState.isCancelling;
     final isComplete = analysisState.status == AnalysisStatus.completed;
@@ -2051,7 +2143,7 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
         ? analysisState.currentStepNumber
         : 1;
     final displayedStepProgress =
-        analysisState.currentStepProgress.clamp(0.0, 1.0).toDouble();
+        analysisState.currentStepProgress.clamp(0.0, 1.0);
 
     // Read categories from content detection config
     final categories = ref
@@ -2059,6 +2151,7 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
         .analysisSettings
         .contentDetectionConfig
         .categories;
+    final runtimeStatus = _resolveRuntimeStatus(settingsState);
 
     ref.listen(analysisNotifierProvider, (_, next) {
       if (next.status != AnalysisStatus.running) {
@@ -2196,6 +2289,13 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
                     analysisState.currentStep ?? 'Processing...',
                     style: theme.textTheme.bodyMedium,
                   ),
+                  if (runtimeStatus != null) ...[
+                    const SizedBox(height: 10),
+                    _RuntimeStatusPanel(
+                      status: runtimeStatus,
+                      progress: analysisState.analysisProgress,
+                    ),
+                  ],
                   if (isCancelling) ...[
                     const SizedBox(height: 8),
                     Text(
@@ -2482,5 +2582,116 @@ class _AnalysisDialogState extends ConsumerState<_AnalysisDialog> {
     if (h > 0) return '${h}h ${m}m ${s}s';
     if (m > 0) return '${m}m ${s}s';
     return '${s}s';
+  }
+
+  LocalRuntimeStatus? _resolveRuntimeStatus(SettingsState settingsState) {
+    if (settingsState.analysisSettings.analysisPipelineId !=
+        DetectionPipelineIds.vssFamilySafetyV1) {
+      return null;
+    }
+    final modelId =
+        settingsState.modelBundleIdsByRole[ModelBundleRole.vlm.name] ??
+            VssFamilySafetyPipeline.defaultModelBundleId;
+    final model = _resolveVssModelBundle(modelId);
+    final runtimeId = _selectedLlamaRuntime(settingsState.localRuntimeId);
+    final runtime = LocalRuntimeProfile.byId(runtimeId);
+    final workload = LocalRuntimeWorkload(
+      chunkSeconds: model.recommendedChunkSeconds,
+      frameCount: model.maxFramesPerChunk < 8 ? model.maxFramesPerChunk : 8,
+      frameWidth: 768,
+      frameHeight: 768,
+      maxOutputTokens: 2048,
+      secondPass: false,
+    );
+    final requiredGb = model.minVramGb + 1.0;
+    return LocalRuntimeStatus(
+      runtimeName: runtime.displayName,
+      modelName: model.displayName,
+      gpuDevice: 'Auto-selected local GPU',
+      vramEstimate: LocalRuntimeVramEstimate(
+        requiredGb: requiredGb,
+        availableGb: ModelBundleCatalog.targetGpuVramGb,
+        hasSufficientVram: requiredGb <= ModelBundleCatalog.targetGpuVramGb,
+        workload: workload,
+        components: {
+          'modelMinGb': model.minVramGb,
+          'runtimeOverheadGb': 1,
+        },
+      ),
+    );
+  }
+}
+
+class _RuntimeStatusPanel extends StatelessWidget {
+  const _RuntimeStatusPanel({
+    required this.status,
+    required this.progress,
+  });
+
+  final LocalRuntimeStatus status;
+  final AnalysisProgress? progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final chunkSummary =
+        progress?.itemsProcessed != null && progress?.totalItems != null
+            ? 'Chunks ${progress!.itemsProcessed}/${progress!.totalItems}'
+            : null;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              status.modelName,
+              style: theme.textTheme.labelLarge,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${status.runtimeName} · ${status.gpuDevice}',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Estimated VRAM ${status.vramEstimate.requiredGb.toStringAsFixed(1)} GB / ${status.vramEstimate.availableGb.toStringAsFixed(0)} GB target',
+              style: theme.textTheme.bodySmall,
+            ),
+            if (chunkSummary != null) ...[
+              const SizedBox(height: 4),
+              Text(chunkSummary, style: theme.textTheme.bodySmall),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+LocalRuntimeId _selectedLlamaRuntime(String runtimeId) {
+  try {
+    final selected = LocalRuntimeId.fromJson(runtimeId);
+    if (selected == LocalRuntimeId.cudaLlamaCpp ||
+        selected == LocalRuntimeId.vulkanLlamaCpp) {
+      return selected;
+    }
+  } catch (_) {
+    // Use the default local VSS runtime.
+  }
+  return LocalRuntimeId.cudaLlamaCpp;
+}
+
+ModelBundleManifest _resolveVssModelBundle(String modelId) {
+  try {
+    return ModelBundleCatalog.byModelId(modelId);
+  } catch (_) {
+    return ModelBundleCatalog.byModelId(
+      VssFamilySafetyPipeline.defaultModelBundleId,
+    );
   }
 }

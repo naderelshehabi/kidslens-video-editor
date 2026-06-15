@@ -205,6 +205,13 @@ and `UnifiedTimeline`. Evidence, `AnalysisRunManifest`, `vss_checkpoint.json`,
 and the family-safety search index are written under the per-media analysis
 cache directory so runs can resume after cancellation.
 
+Settings expose the local model bundle catalog and the pinned llama.cpp CUDA /
+Vulkan runtime installs. If a user starts VSS analysis before the required local
+model bundle or runtime is installed, the editor shows a first-run dialog that
+can start official downloads or persist a switch to the legacy profile. During
+VSS runs the analysis dialog reports the selected runtime, model, GPU target,
+VRAM estimate, and chunk progress.
+
 Legacy NSFW/NudeNet analysis remains available through the explicit
 `legacy_nsfw_region_v8` profile and is also used as a startup fallback when the
 local VSS model/runtime is not available.

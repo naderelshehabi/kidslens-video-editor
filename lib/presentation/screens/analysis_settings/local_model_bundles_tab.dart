@@ -3,15 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/services/detection/detection_pipeline_profile.dart';
 import 'package:kidslens_video_editor/services/detection/model_bundle_selection_policy.dart';
+import 'package:kidslens_video_editor/services/detection/runtime_binary_manager.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
 import 'package:kidslens_video_editor/state/providers/model_provider.dart';
+import 'package:kidslens_video_editor/state/providers/runtime_binary_provider.dart';
 import 'package:kidslens_video_editor/state/providers/settings_provider.dart';
 
 class LocalModelBundlesTab extends ConsumerStatefulWidget {
   const LocalModelBundlesTab({
     super.key,
     this.catalog = ModelBundleCatalog.initialCandidates,
-    this.productionMode = true,
+    this.productionMode = false,
   });
 
   final List<ModelBundleManifest> catalog;
@@ -34,6 +36,10 @@ class _LocalModelBundlesTabState extends ConsumerState<LocalModelBundlesTab> {
     Future<void>.microtask(
       () => ref.read(modelNotifierProvider.notifier).loadAvailableModels(),
     );
+    Future<void>.microtask(
+      () =>
+          ref.read(runtimeBinaryNotifierProvider.notifier).loadInstallStates(),
+    );
   }
 
   @override
@@ -41,6 +47,7 @@ class _LocalModelBundlesTabState extends ConsumerState<LocalModelBundlesTab> {
     final theme = Theme.of(context);
     final settingsState = ref.watch(settingsNotifierProvider);
     final modelState = ref.watch(modelNotifierProvider);
+    final runtimeState = ref.watch(runtimeBinaryNotifierProvider);
     final settings = settingsState.analysisSettings;
     final acceptedTerms = settingsState.acceptedModelBundleTerms.toSet();
 
@@ -76,6 +83,14 @@ class _LocalModelBundlesTabState extends ConsumerState<LocalModelBundlesTab> {
             onPipelineChanged: _setPipeline,
             onRuntimeChanged: _setRuntime,
             onBundleSelected: _selectBundle,
+          ),
+          const SizedBox(height: 20),
+          _LocalRuntimeCard(
+            runtimeState: runtimeState,
+            selectedRuntimeId: settingsState.localRuntimeId,
+            onRuntimeChanged: _setRuntime,
+            onInstall: _installRuntime,
+            onRefresh: _refreshRuntimeState,
           ),
           const SizedBox(height: 20),
           Text('Candidate Review', style: theme.textTheme.titleLarge),
@@ -174,6 +189,222 @@ class _LocalModelBundlesTabState extends ConsumerState<LocalModelBundlesTab> {
       const SnackBar(
         content: Text('Converted artifact install requires KidsLens artifact'),
         duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _installRuntime(LocalRuntimeId runtimeId) {
+    ref.read(settingsNotifierProvider.notifier).setLocalRuntime(
+          runtimeId.jsonValue,
+        );
+    ref.read(runtimeBinaryNotifierProvider.notifier).ensureInstalled(runtimeId);
+  }
+
+  void _refreshRuntimeState() {
+    ref.read(runtimeBinaryNotifierProvider.notifier).loadInstallStates();
+  }
+}
+
+class _LocalRuntimeCard extends StatelessWidget {
+  const _LocalRuntimeCard({
+    required this.runtimeState,
+    required this.selectedRuntimeId,
+    required this.onRuntimeChanged,
+    required this.onInstall,
+    required this.onRefresh,
+  });
+
+  final RuntimeBinaryState runtimeState;
+  final String selectedRuntimeId;
+  final ValueChanged<String> onRuntimeChanged;
+  final ValueChanged<LocalRuntimeId> onInstall;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      key: const Key('local_ai_runtime_card'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.developer_board, color: theme.colorScheme.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Local AI Runtime',
+                    style: theme.textTheme.titleLarge,
+                  ),
+                ),
+                IconButton(
+                  onPressed: runtimeState.isLoading ? null : onRefresh,
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Refresh local runtime status',
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Install the verified llama.cpp server used by local VLM analysis.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (runtimeState.errorMessage != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                runtimeState.errorMessage!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _RuntimeInstallTile(
+                  spec: RuntimeBinaryManager.pinnedCudaSpec,
+                  installState:
+                      runtimeState.installStates[LocalRuntimeId.cudaLlamaCpp],
+                  progress:
+                      runtimeState.activeInstalls[LocalRuntimeId.cudaLlamaCpp],
+                  selectedRuntimeId: selectedRuntimeId,
+                  onRuntimeChanged: onRuntimeChanged,
+                  onInstall: onInstall,
+                ),
+                _RuntimeInstallTile(
+                  spec: RuntimeBinaryManager.pinnedVulkanSpec,
+                  installState:
+                      runtimeState.installStates[LocalRuntimeId.vulkanLlamaCpp],
+                  progress: runtimeState
+                      .activeInstalls[LocalRuntimeId.vulkanLlamaCpp],
+                  selectedRuntimeId: selectedRuntimeId,
+                  onRuntimeChanged: onRuntimeChanged,
+                  onInstall: onInstall,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RuntimeInstallTile extends StatelessWidget {
+  const _RuntimeInstallTile({
+    required this.spec,
+    required this.installState,
+    required this.progress,
+    required this.selectedRuntimeId,
+    required this.onRuntimeChanged,
+    required this.onInstall,
+  });
+
+  final RuntimeBinarySpec spec;
+  final RuntimeBinaryInstallState? installState;
+  final RuntimeBinaryInstallProgress? progress;
+  final String selectedRuntimeId;
+  final ValueChanged<String> onRuntimeChanged;
+  final ValueChanged<LocalRuntimeId> onInstall;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isInstalled = installState?.isInstalled ?? false;
+    final isInstalling = progress != null;
+    final runtimeId = spec.runtimeId;
+    final isSelected = selectedRuntimeId == runtimeId.jsonValue;
+    final statusLabel = isInstalled
+        ? 'Installed'
+        : isInstalling
+            ? _installProgressLabel(progress!)
+            : 'Not installed';
+
+    return SizedBox(
+      width: 360,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isSelected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outlineVariant,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      spec.displayName,
+                      style: theme.textTheme.titleSmall,
+                    ),
+                  ),
+                  _StatusChip(
+                    label: statusLabel,
+                    icon: isInstalled ? Icons.check_circle : Icons.download,
+                    color: isInstalled
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.outline,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${spec.sourceRepo} · ${_formatBytes(spec.totalBytes)} · tag ${spec.tag}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              if (isInstalling) ...[
+                const SizedBox(height: 10),
+                LinearProgressIndicator(value: progress!.percentage),
+                const SizedBox(height: 4),
+                Text(
+                  progress!.currentAsset ?? 'Installing runtime',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    key: Key('${runtimeId.jsonValue}_select_runtime_button'),
+                    onPressed: isSelected
+                        ? null
+                        : () => onRuntimeChanged(runtimeId.jsonValue),
+                    icon: Icon(
+                      isSelected
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_off,
+                    ),
+                    label: Text(isSelected ? 'Selected' : 'Use Runtime'),
+                  ),
+                  FilledButton.icon(
+                    key: Key('${runtimeId.jsonValue}_install_runtime_button'),
+                    onPressed: isInstalled || isInstalling
+                        ? null
+                        : () => onInstall(runtimeId),
+                    icon: Icon(isInstalled ? Icons.check : Icons.download),
+                    label: Text(isInstalled ? 'Installed' : 'Install'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -324,13 +555,13 @@ class _RoleSelector extends StatelessWidget {
       items: [
         DropdownMenuItem<String?>(
           child: Text(
-            selectable.isEmpty ? 'No approved bundle' : 'None selected',
+            selectable.isEmpty ? 'No compatible bundle' : 'None selected',
           ),
         ),
         for (final manifest in selectable)
           DropdownMenuItem<String?>(
             value: manifest.modelId,
-            child: Text(manifest.displayName),
+            child: Text(_bundleSelectorLabel(manifest)),
           ),
       ],
       onChanged: selectable.isEmpty ? null : onChanged,
@@ -659,4 +890,39 @@ String _runtimeLabel(ModelBundleRuntime runtime) {
     case ModelBundleRuntime.notYetValidated:
       return 'Runtime pending';
   }
+}
+
+String _bundleSelectorLabel(ModelBundleManifest manifest) {
+  if (manifest.approvalStatus == ModelBundleApprovalStatus.evaluationOnly) {
+    return '${manifest.displayName} (ready to validate)';
+  }
+  return manifest.displayName;
+}
+
+String _installProgressLabel(RuntimeBinaryInstallProgress progress) {
+  switch (progress.status) {
+    case RuntimeBinaryInstallStatus.pending:
+      return 'Pending';
+    case RuntimeBinaryInstallStatus.downloading:
+      return 'Downloading ${(progress.percentage * 100).toStringAsFixed(0)}%';
+    case RuntimeBinaryInstallStatus.verifying:
+      return 'Verifying';
+    case RuntimeBinaryInstallStatus.extracting:
+      return 'Extracting';
+    case RuntimeBinaryInstallStatus.complete:
+      return 'Installed';
+    case RuntimeBinaryInstallStatus.failed:
+      return 'Failed';
+  }
+}
+
+String _formatBytes(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  }
+  if (bytes < 1024 * 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+  return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
 }

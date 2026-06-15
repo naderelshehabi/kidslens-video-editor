@@ -17,8 +17,17 @@
 
 ### Local Family-Safety VLM Pipeline
 - **Default Detection Pipeline**: `vss_family_safety_v1`
-- **Runtime**: bundled official llama.cpp `llama-server` on `127.0.0.1`
-- **Default VLM Bundle**: official Qwen3-VL GGUF bundle from the model catalog
+- **Runtime**: official pinned llama.cpp `llama-server` on `127.0.0.1`.
+  The Local Model Bundles settings tab can install the CUDA or Vulkan Windows
+  runtime from the official llama.cpp release and reports install/progress
+  state through `RuntimeBinaryNotifier`.
+- **Default VLM Bundle**: official Qwen3-VL GGUF bundle from the model catalog.
+  Until RTX 5070 validation in Phase 10, Qwen3-VL GGUF selections are exposed
+  in settings as validation-ready choices instead of production-approved
+  defaults.
+- **First Run**: starting VSS analysis with a missing model bundle or runtime
+  opens a local setup dialog. Users can start the official downloads or persist
+  a switch to the legacy pipeline for that run path.
 - **Search Embeddings**: when `qwen3_embedding_0_6b_gguf_q8` is downloaded,
   VSS starts a second local `llama-server` embedding instance and posts batched
   OpenAI-compatible `/v1/embeddings` requests. If the embedding bundle or server
