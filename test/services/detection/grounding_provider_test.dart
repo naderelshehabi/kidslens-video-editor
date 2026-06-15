@@ -52,6 +52,81 @@ void main() {
       );
     });
 
+    test('repairs Qwen-style pixel boxes into normalized coordinates',
+        () async {
+      final storeFile = await _tempEvidenceFile();
+      final store = JsonEvidenceStore(storeFile);
+      final result = await const VlmNativeGroundingProvider().ground(
+        _request(
+          evidenceStore: store,
+          vlmResponse: _vlmResponse(
+            groundedRegions: [
+              {
+                'regionId': 'region_weapon',
+                'label': 'knife',
+                'category': 'weapons',
+                'frameId': _frames.first.id,
+                'box': {
+                  'x': 384,
+                  'y': 216,
+                  'width': 576,
+                  'height': 432,
+                },
+                'confidence': 0.86,
+                'rationale': 'Knife-like object in hand.',
+              },
+            ],
+          ),
+        ),
+      );
+      final persisted = await store.readAll(type: EvidenceType.groundedRegion);
+      final box = result.regions.single.box!;
+      final metadata = result.regions.single.metadata;
+      final groundedRegion =
+          persisted.single.payload['groundedRegion'] as Map<String, dynamic>;
+      final persistedMetadata =
+          groundedRegion['metadata'] as Map<String, dynamic>;
+
+      expect(result.status, GroundingStatus.grounded);
+      expect(box.x, closeTo(0.2, 0.0001));
+      expect(box.y, closeTo(0.2, 0.0001));
+      expect(box.width, closeTo(0.3, 0.0001));
+      expect(box.height, closeTo(0.4, 0.0001));
+      expect(result.warnings.single, contains('schemaRepairWarnings'));
+      expect(result.warnings.single, contains('region_weapon'));
+      expect(metadata['schemaRepairWarnings'], result.warnings);
+      expect(persistedMetadata['schemaRepairWarnings'], result.warnings);
+    });
+
+    test('repairs Qwen-style pixel corner boxes into normalized coordinates',
+        () async {
+      final result = await const VlmNativeGroundingProvider().ground(
+        _request(
+          vlmResponse: _vlmResponse(
+            groundedRegions: [
+              {
+                'regionId': 'region_blood',
+                'label': 'blood',
+                'category': 'blood',
+                'frameId': _frames.first.id,
+                'box': [384, 216, 960, 648],
+                'confidence': 0.83,
+                'rationale': 'Visible blood on clothing.',
+              },
+            ],
+          ),
+        ),
+      );
+      final box = result.regions.single.box!;
+
+      expect(result.status, GroundingStatus.grounded);
+      expect(box.x, closeTo(0.2, 0.0001));
+      expect(box.y, closeTo(0.2, 0.0001));
+      expect(box.width, closeTo(0.3, 0.0001));
+      expect(box.height, closeTo(0.4, 0.0001));
+      expect(result.warnings.single, contains('schemaRepairWarnings'));
+    });
+
     test('reports scene-level status when the VLM emits no regions', () async {
       final result = await const VlmNativeGroundingProvider().ground(
         _request(

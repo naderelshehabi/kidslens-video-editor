@@ -46,6 +46,14 @@ void main() {
       final prompt = FamilySafetyPromptTemplates.grounding(_context()).text;
 
       expect(prompt, contains('Use normalized frame-relative boxes'));
+      expect(
+        prompt,
+        contains('Do not return Qwen-style absolute pixel coordinates'),
+      );
+      expect(
+        prompt,
+        contains('convert x and width by the supplied frame width'),
+      );
       expect(prompt, contains('"groundedRegions"'));
       expect(prompt, contains('"frameId"'));
       expect(prompt, contains('boxes: true'));
@@ -151,6 +159,24 @@ void main() {
           'findings[0].exposureSignals contains unsupported signal: unsupported_signal',
           'findings[0].weaponState is not allowed: unknown_state',
         ]),
+      );
+    });
+
+    test('accepts pixel-coordinate grounded boxes for downstream repair', () {
+      final fixture = _baseFixture();
+      final region =
+          (fixture['groundedRegions'] as List<Map<String, dynamic>>).first;
+      region['box'] = const {
+        'x': 384,
+        'y': 216,
+        'width': 576,
+        'height': 432,
+      };
+
+      expect(FamilySafetyVlmOutputSchema.validate(fixture), isEmpty);
+      expect(
+        () => const VlmJsonParser().parse(jsonEncode(fixture)),
+        returnsNormally,
       );
     });
   });

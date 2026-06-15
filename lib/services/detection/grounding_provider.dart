@@ -186,6 +186,7 @@ class VlmNativeGroundingProvider implements GroundingProvider {
             ...response.evidenceRecords.map((record) => record.id),
           ],
           sourceKind: sourceKind,
+          warnings: warnings,
         );
         regions.add(region);
       } on Object catch (error) {
@@ -586,13 +587,21 @@ GroundedRegion _groundedRegionFromMap({
   required String providerVersion,
   required List<String> inputIds,
   required GroundingSourceKind sourceKind,
+  required List<String> warnings,
 }) {
   final frameId = _stringValue(raw, 'frameId');
   final frame = frameId == null ? null : request.frameById(frameId);
   if (frame == null) {
     throw GroundingProviderException('unknown frameId: ${frameId ?? '<null>'}');
   }
-  final box = _readBox(raw, request.frameWidth, request.frameHeight);
+  final regionWarnings = <String>[];
+  final box = _readBox(
+    raw,
+    request.frameWidth,
+    request.frameHeight,
+    warnings: regionWarnings,
+  );
+  warnings.addAll(regionWarnings);
   final categoryId = _stringValue(raw, 'category') ??
       _stringValue(raw, 'categoryId') ??
       'other';
@@ -628,6 +637,7 @@ GroundedRegion _groundedRegionFromMap({
     status: GroundingStatus.grounded,
     metadata: {
       'sourceKind': sourceKind.jsonValue,
+      if (regionWarnings.isNotEmpty) 'schemaRepairWarnings': regionWarnings,
     },
   );
 }
@@ -635,30 +645,87 @@ GroundedRegion _groundedRegionFromMap({
 NormalizedGroundingBox _readBox(
   Map<String, dynamic> raw,
   int? frameWidth,
-  int? frameHeight,
-) {
+  int? frameHeight, {
+  required List<String> warnings,
+}) {
   final box = raw['box'] ?? raw['bbox'];
   if (box is Map) {
+    final x = (box['x'] as num).toDouble();
+    final y = (box['y'] as num).toDouble();
+    final width = (box['width'] as num).toDouble();
+    final height = (box['height'] as num).toDouble();
+    if (_allGreaterThanOne([x, y, width, height])) {
+      final dimensions = _requireFrameDimensions(frameWidth, frameHeight);
+      warnings.add(_pixelRepairWarning(raw));
+      return NormalizedGroundingBox.clamped(
+        x: x / dimensions.width,
+        y: y / dimensions.height,
+        width: width / dimensions.width,
+        height: height / dimensions.height,
+        frameWidth: frameWidth,
+        frameHeight: frameHeight,
+      );
+    }
     return NormalizedGroundingBox.clamped(
-      x: (box['x'] as num).toDouble(),
-      y: (box['y'] as num).toDouble(),
-      width: (box['width'] as num).toDouble(),
-      height: (box['height'] as num).toDouble(),
+      x: x,
+      y: y,
+      width: width,
+      height: height,
       frameWidth: frameWidth,
       frameHeight: frameHeight,
     );
   }
   if (box is List && box.length == 4) {
+    final left = (box[0] as num).toDouble();
+    final top = (box[1] as num).toDouble();
+    final right = (box[2] as num).toDouble();
+    final bottom = (box[3] as num).toDouble();
+    if (_allGreaterThanOne([left, top, right, bottom])) {
+      final dimensions = _requireFrameDimensions(frameWidth, frameHeight);
+      warnings.add(_pixelRepairWarning(raw));
+      return NormalizedGroundingBox.fromCorners(
+        left: left / dimensions.width,
+        top: top / dimensions.height,
+        right: right / dimensions.width,
+        bottom: bottom / dimensions.height,
+        frameWidth: frameWidth,
+        frameHeight: frameHeight,
+      );
+    }
     return NormalizedGroundingBox.fromCorners(
-      left: (box[0] as num).toDouble(),
-      top: (box[1] as num).toDouble(),
-      right: (box[2] as num).toDouble(),
-      bottom: (box[3] as num).toDouble(),
+      left: left,
+      top: top,
+      right: right,
+      bottom: bottom,
       frameWidth: frameWidth,
       frameHeight: frameHeight,
     );
   }
   throw const GroundingProviderException('grounded region missing box');
+}
+
+({double width, double height}) _requireFrameDimensions(
+  int? frameWidth,
+  int? frameHeight,
+) {
+  if (frameWidth == null ||
+      frameHeight == null ||
+      frameWidth <= 0 ||
+      frameHeight <= 0) {
+    throw const GroundingProviderException(
+      'pixel-coordinate grounded region requires positive frame dimensions',
+    );
+  }
+  return (width: frameWidth.toDouble(), height: frameHeight.toDouble());
+}
+
+bool _allGreaterThanOne(Iterable<double> values) =>
+    values.every((value) => value > 1);
+
+String _pixelRepairWarning(Map<String, dynamic> raw) {
+  final id = _stringValue(raw, 'regionId') ?? _stringValue(raw, 'id');
+  final suffix = id == null ? '' : ' for $id';
+  return 'schemaRepairWarnings: converted Qwen-style pixel groundedRegion box$suffix to normalized coordinates';
 }
 
 Future<GroundingResult> _persistResult({

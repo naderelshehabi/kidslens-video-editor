@@ -23,6 +23,10 @@
   content, kissing/romance, immodest female clothing, violence, gore, blood,
   weapons, substances, and profanity. VLM findings may include optional
   `exposureSignals` and `weaponState` fields for explainable policy severity.
+- **Grounding**: VSS stores normalized `[0,1]` grounded-region boxes. If a
+  Qwen-style response emits pixel coordinates, the grounding provider repairs
+  them using the sent frame dimensions and records `schemaRepairWarnings` in the
+  grounded-region evidence.
 - **Persistence**: per-media evidence JSON, `AnalysisRunManifest`,
   `vss_checkpoint.json`, and local search index files
 - **Legacy Option**: `legacy_nsfw_region_v8` remains selectable and is used only

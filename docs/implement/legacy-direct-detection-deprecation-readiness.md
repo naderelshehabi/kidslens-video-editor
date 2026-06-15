@@ -18,6 +18,19 @@ JSON compatibility.
 - Export/remediation behavior continues to accept policy findings and replayed
 legacy detections.
 
+## NudeNet AGPL Motivation
+
+NudeNet remains auxiliary because its code is AGPL-3.0 and the current app is
+MIT. Until legal approves the exact distribution and invocation model, NudeNet
+weights must not be bundled into commercial/release installers and NudeNet must
+not be the required default grounding path. The VSS pipeline keeps NudeNet as a
+local auxiliary comparison source during development so Phase 10 can measure
+whether Qwen3-VL native grounded regions reach parity on labeled frames. The
+demotion gate is the Phase 10 "VLM grounding vs NudeNet regions" report: VLM
+native regions, NudeNet auxiliary regions, and VLM+aux fused regions are compared
+with box IoU, localization recall, and missed-localization cases before NudeNet
+can be disabled or removed.
+
 ## Default Pipeline Rule
 
 The VSS default policy uses `PolicyEngineOptions.vssDefault()`, which sets

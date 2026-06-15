@@ -110,11 +110,9 @@ class ExportService {
     // Check if FFmpeg is available
     await ffmpeg.initialize();
     if (!ffmpeg.isAvailable) {
-      throw ExportException(
-        'FFmpeg is not installed or not found.\n'
-        'Please install FFmpeg and add it to your PATH.\n'
-        'Download from: https://ffmpeg.org/download.html'
-      );
+      throw ExportException('FFmpeg is not installed or not found.\n'
+          'Please install FFmpeg and add it to your PATH.\n'
+          'Download from: https://ffmpeg.org/download.html');
     }
 
     // Collect all modifications with their time ranges
@@ -146,10 +144,12 @@ class ExportService {
 
     int? videoWidth;
     int? videoHeight;
-    final hasRegionMods = videoMods.any((m) =>
-        m.modification is VideoRegionBlur ||
-        m.modification is VideoRegionPixelate ||
-        m.modification is VideoRegionBlackBox,);
+    final hasRegionMods = videoMods.any(
+      (m) =>
+          m.modification is VideoRegionBlur ||
+          m.modification is VideoRegionPixelate ||
+          m.modification is VideoRegionBlackBox,
+    );
 
     if (hasRegionMods) {
       try {
@@ -195,10 +195,12 @@ class ExportService {
     try {
       var effectiveFilterComplex = filterComplex;
       if (filterComplex.length > _maxFilterComplexLength) {
-        filterScriptFile = File(p.join(
-          p.dirname(outputPath),
-          '.kidslens_filter_${DateTime.now().millisecondsSinceEpoch}.txt',
-        ),)..writeAsStringSync(filterComplex);
+        filterScriptFile = File(
+          p.join(
+            p.dirname(outputPath),
+            '.kidslens_filter_${DateTime.now().millisecondsSinceEpoch}.txt',
+          ),
+        )..writeAsStringSync(filterComplex);
         // Empty string signals ffmpeg bindings to skip -filter_complex arg;
         // we'll pass -filter_complex_script via outputSettings instead
         effectiveFilterComplex = '';
@@ -245,12 +247,16 @@ class ExportService {
 
     final outputFile = File(outputPath);
     if (!outputFile.existsSync()) {
-      throw ExportException('Output file was not created. FFmpeg may have failed silently.');
+      throw ExportException(
+        'Output file was not created. FFmpeg may have failed silently.',
+      );
     }
 
     final stat = outputFile.statSync();
     if (stat.size == 0) {
-      throw ExportException('Output file is empty. FFmpeg encoding may have failed.');
+      throw ExportException(
+        'Output file is empty. FFmpeg encoding may have failed.',
+      );
     }
 
     yield const ExportProgress(
@@ -346,11 +352,16 @@ class ExportService {
 
     if (postRegionFilters.isNotEmpty) {
       chains.add('$videoInput${postRegionFilters.join(',')}');
+    } else if (videoInput != '[0:v]') {
+      // Region chains produce a labeled output so later stages can consume it.
+      // When region blur/pixelate is the final video stage, consume that label
+      // into an unlabeled terminal output so FFmpeg can auto-map the stream.
+      chains.add('${videoInput}null');
     }
 
     // ============ AUDIO CHAIN ============
     // Complex graph with mixing for overlays (Beep, Replace)
-    
+
     // 1. Separate modifications
     final baseFilters = <String>[];
     final overlays = <String>[];
@@ -358,56 +369,53 @@ class ExportService {
 
     for (final mod in audioMods) {
       final enable = _buildEnableExpression(mod.start, mod.end);
-      
+
       switch (mod.modification) {
         case AudioMute():
           baseFilters.add("volume=enable='$enable':volume=0");
-          
+
         case AudioBeep(:final frequency, :final volume):
           // Mute original track during beep
           baseFilters.add("volume=enable='$enable':volume=0");
-          
+
           overlayCount++;
           final label = 'beep_$overlayCount';
           final durationSec = mod.duration.inMilliseconds / 1000.0;
           final startMs = mod.start.inMilliseconds;
-          
+
           // Generate beep source
           // aevalsrc -> vol -> adelay -> [label]
-          overlays.add(
-            'aevalsrc=sin($frequency*2*PI*t):d=$durationSec,'
-            'volume=$volume,'
-            'adelay=$startMs|$startMs[out_$label]'
-          );
-          
+          overlays.add('aevalsrc=sin($frequency*2*PI*t):d=$durationSec,'
+              'volume=$volume,'
+              'adelay=$startMs|$startMs[out_$label]');
+
         case AudioReplace(:final audioPath, :final volume, :final loop):
           // Mute original track
           baseFilters.add("volume=enable='$enable':volume=0");
-          
+
           overlayCount++;
           final label = 'replace_$overlayCount';
           // Escape path for FFmpeg string
-          final escapedPath = audioPath.replaceAll("'", "'\\''").replaceAll(':', '\\:');
+          final escapedPath =
+              audioPath.replaceAll("'", "'\\''").replaceAll(':', '\\:');
           final durationSec = mod.duration.inMilliseconds / 1000.0;
           final startMs = mod.start.inMilliseconds;
           final loopVal = loop ? 0 : 1;
-          
+
           // Generate replacement source
           // amovie -> atrim -> vol -> adelay -> [label]
-          overlays.add(
-            "amovie='$escapedPath':loop=$loopVal,"
-            'atrim=duration=$durationSec,'
-            'volume=$volume,'
-            'adelay=$startMs|$startMs[out_$label]'
-          );
-          
+          overlays.add("amovie='$escapedPath':loop=$loopVal,"
+              'atrim=duration=$durationSec,'
+              'volume=$volume,'
+              'adelay=$startMs|$startMs[out_$label]');
+
         default:
-          // Ignore unrelated
+        // Ignore unrelated
       }
     }
 
     // 2. Build Audio Graph
-    
+
     // If we have overlays, we need a base label and mix
     if (overlays.isNotEmpty) {
       // 1. Base Chain
@@ -437,7 +445,7 @@ class ExportService {
         // duration=first ensures output matches base track length
         '${mixInputs}amix=inputs=${overlays.length + 1}:duration=first:dropout_transition=0',
       ];
-      
+
       chains.add(audioGraphParts.join(';'));
     } else if (baseFilters.isNotEmpty) {
       // Simple linear chain
@@ -538,7 +546,9 @@ class ExportService {
         if (isLast) {
           parts.add("[base0][b0]overlay=x=$cropX:y=$cropY:enable='$enable'");
         } else {
-          parts.add("[base0][b0]overlay=x=$cropX:y=$cropY:enable='$enable'[rv0]");
+          parts.add(
+            "[base0][b0]overlay=x=$cropX:y=$cropY:enable='$enable'[rv0]",
+          );
           lastOutputLabel = '[rv0]';
         }
       } else {
@@ -549,7 +559,9 @@ class ExportService {
         if (isLast) {
           parts.add("[base$i][b$i]overlay=x=$cropX:y=$cropY:enable='$enable'");
         } else {
-          parts.add("[base$i][b$i]overlay=x=$cropX:y=$cropY:enable='$enable'[rv$i]");
+          parts.add(
+            "[base$i][b$i]overlay=x=$cropX:y=$cropY:enable='$enable'[rv$i]",
+          );
           lastOutputLabel = '[rv$i]';
         }
       }
@@ -574,23 +586,23 @@ class ExportService {
   }
 
   String _videoModToFilter(Modification mod, String enable) => switch (mod) {
-      VideoBlur(:final intensity) =>
-        "gblur=sigma=${_intensityToBlurSigma(intensity)}:enable='$enable'",
-      VideoPixelate(:final blockSize) =>
-        "scale=iw/$blockSize:ih/$blockSize:enable='$enable',"
-            "scale=iw*$blockSize:ih*$blockSize:flags=neighbor:enable='$enable'",
-      VideoBlackBox(:final color, :final opacity) =>
-        "drawbox=x=0:y=0:w=iw:h=ih:c=${_hexToFFmpegColor(color, opacity)}:t=fill:enable='$enable'",
-      VideoSkip() => '',
-      // Region mods handled separately via split→crop→effect→overlay chain
-      VideoRegionBlur() => '',
-      VideoRegionPixelate() => '',
-      VideoRegionBlackBox() => '',
-      // Audio mods ignored
-      AudioMute() => '',
-      AudioBeep() => '',
-      AudioReplace() => '',
-  };
+        VideoBlur(:final intensity) =>
+          "gblur=sigma=${_intensityToBlurSigma(intensity)}:enable='$enable'",
+        VideoPixelate(:final blockSize) =>
+          "scale=iw/$blockSize:ih/$blockSize:enable='$enable',"
+              "scale=iw*$blockSize:ih*$blockSize:flags=neighbor:enable='$enable'",
+        VideoBlackBox(:final color, :final opacity) =>
+          "drawbox=x=0:y=0:w=iw:h=ih:c=${_hexToFFmpegColor(color, opacity)}:t=fill:enable='$enable'",
+        VideoSkip() => '',
+        // Region mods handled separately via split→crop→effect→overlay chain
+        VideoRegionBlur() => '',
+        VideoRegionPixelate() => '',
+        VideoRegionBlackBox() => '',
+        // Audio mods ignored
+        AudioMute() => '',
+        AudioBeep() => '',
+        AudioReplace() => '',
+      };
 
   // Removed _audioModToFilter as logic is now embedded in _buildFilterComplex
 
@@ -651,6 +663,7 @@ class ExportProgress {
 enum SubtitleExportMode {
   /// No subtitle embedding in video stream
   none,
+
   /// Burn subtitles permanently into the video pixels
   burnIn,
 }

@@ -242,7 +242,8 @@ ${FamilySafetyVlmOutputSchema.schemaDescription}
 You are localizing policy-relevant visible items in a private family video.
 Return JSON only. Do not include Markdown.
 Ground only visible, policy-relevant items such as exposed body regions, blood, gore, weapons, and clearly relevant clothing regions.
-Use normalized frame-relative boxes in [0, 1].
+Use normalized frame-relative boxes in [0, 1] with box fields x, y, width, height.
+Do not return Qwen-style absolute pixel coordinates. If your native grounding output is pixel coordinates, convert x and width by the supplied frame width and y and height by the supplied frame height before writing JSON.
 Clamp boxes to the visible object; avoid full-frame boxes unless the object fills the frame.
 Every grounded region needs regionId, label, category, frameId, box, confidence, and rationale.
 
@@ -591,10 +592,31 @@ class FamilySafetyVlmOutputSchema {
       issues.add('groundedRegions[$index].box is required');
       return;
     }
-    try {
-      NormalizedGroundingBox.fromJson(Map<String, dynamic>.from(box));
-    } on Object catch (error) {
-      issues.add('groundedRegions[$index].box is invalid: $error');
+    _validateGroundedRegionBox(Map<String, dynamic>.from(box), index, issues);
+  }
+
+  static void _validateGroundedRegionBox(
+    Map<String, dynamic> box,
+    int index,
+    List<String> issues,
+  ) {
+    final x = box['x'];
+    final y = box['y'];
+    final width = box['width'];
+    final height = box['height'];
+    if (x is! num || y is! num || width is! num || height is! num) {
+      issues.add(
+        'groundedRegions[$index].box must contain numeric x, y, width, height',
+      );
+      return;
+    }
+    if (!_isFiniteNonNegative(x) ||
+        !_isFiniteNonNegative(y) ||
+        !_isFinitePositive(width) ||
+        !_isFinitePositive(height)) {
+      issues.add(
+        'groundedRegions[$index].box must contain finite non-negative coordinates and positive size',
+      );
     }
   }
 
@@ -695,4 +717,8 @@ class FamilySafetyVlmOutputSchema {
     final value = json[field];
     return value is String && value.trim().isNotEmpty ? value : null;
   }
+
+  static bool _isFiniteNonNegative(num value) => value.isFinite && value >= 0;
+
+  static bool _isFinitePositive(num value) => value.isFinite && value > 0;
 }
