@@ -315,10 +315,11 @@ Modify `lib/services/frame_sampling_service.dart`:
 
 ### Phase 8 — Search embeddings via the embedding server (optional but cheap)
 
-- [ ] 8.1 Add `LlamaServerEmbeddingProvider implements LocalEmbeddingProvider` (`lib/services/detection/local_search_index.dart` defines the interface): POST `/v1/embeddings` `{"model": "qwen3-embedding", "input": ["..."]}` to the embedding server handle; batch ≤ 32 texts per call. Query-side texts get the Qwen3-Embedding instruction prefix (`"Instruct: Given a family-safety video search query, retrieve relevant scene descriptions\nQuery: <q>"` — per the model card guidance).
-- [ ] 8.2 `VssFamilySafetyPipeline` stage 8: if `qwen3_embedding_0_6b_gguf_q8` is downloaded, start the embedding instance and use it; otherwise fall back to the existing `HashLocalEmbeddingProvider` (already implemented) with a log line. Never block analysis on embeddings.
-- [ ] 8.3 Tests with a fake embeddings endpoint (assert request shape, pooling of results into the existing JSON vector store).
-- [ ] Exit gate: search over an analyzed fixture returns timestamped hits with either provider.
+- [x] 8.1 Add `LlamaServerEmbeddingProvider implements LocalEmbeddingProvider` (`lib/services/detection/local_search_index.dart` defines the interface): POST `/v1/embeddings` `{"model": "qwen3-embedding", "input": ["..."]}` to the embedding server handle; batch ≤ 32 texts per call. Query-side texts get the Qwen3-Embedding instruction prefix (`"Instruct: Given a family-safety video search query, retrieve relevant scene descriptions\nQuery: <q>"` — per the model card guidance).
+- [x] 8.2 `VssFamilySafetyPipeline` stage 8: if `qwen3_embedding_0_6b_gguf_q8` is downloaded, start the embedding instance and use it; otherwise fall back to the existing `HashLocalEmbeddingProvider` (already implemented) with a log line. Never block analysis on embeddings.
+- [x] 8.3 Tests with a fake embeddings endpoint (assert request shape, pooling of results into the existing JSON vector store).
+- [x] Exit gate: search over an analyzed fixture returns timestamped hits with either provider.
+  Implemented 2026-06-15 with `LlamaServerEmbeddingProvider`, OpenAI-compatible local `/v1/embeddings` requests, 32-item batching, Qwen3-Embedding query instruction prefixes, JSON vector-store persistence, VSS stage-8 embedding-server startup when the official GGUF bundle is downloaded, hash fallback with debug logging when absent or unavailable, and `ModelManagerService.getModelPath` support for official bundles installed under `model_bundles/`. Verified with focused search-index, VSS pipeline, and model-manager tests using fake local embedding endpoints.
 
 ### Phase 9 — Settings, first-run experience, and UI status
 

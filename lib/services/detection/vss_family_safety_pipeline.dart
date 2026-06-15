@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/jobs/cancellation_token.dart';
 import 'package:kidslens_video_editor/services/detection/analysis_stage_host.dart';
@@ -58,11 +59,13 @@ class VssFamilySafetyPipeline implements DetectionPipeline {
     PolicyDetectionBuilder? policyDetectionBuilder,
     FamilySafetySearchIndexer? searchIndexer,
     VssCacheDirectoryFactory? cacheDirectoryFactory,
-    VssSceneChangeDetector? sceneChangeDetector,
-    VssFrameImageExtractor? frameImageExtractor,
-    VssLlamaServerStarter? llamaServerStarter,
-    VssModelArtifactResolver? modelArtifactResolver,
+    this.sceneChangeDetector,
+    this.frameImageExtractor,
+    this.llamaServerStarter,
+    this.embeddingServerStarter,
+    this.modelArtifactResolver,
     VssModelBundleResolver? modelBundleResolver,
+    this.searchEmbeddingProvider,
     this.enableLegacyAuxiliarySignals = true,
     this.skipRuntimePreflight = false,
   })  : chunkPlanner = chunkPlanner ?? const ChunkPlanner(),
@@ -76,15 +79,12 @@ class VssFamilySafetyPipeline implements DetectionPipeline {
         searchIndexer = searchIndexer ?? const FamilySafetySearchIndexer(),
         cacheDirectoryFactory =
             cacheDirectoryFactory ?? _defaultCacheDirectoryFactory,
-        sceneChangeDetector = sceneChangeDetector,
-        frameImageExtractor = frameImageExtractor,
-        llamaServerStarter = llamaServerStarter,
-        modelArtifactResolver = modelArtifactResolver,
         modelBundleResolver =
             modelBundleResolver ?? _defaultModelBundleResolver,
         _llamaServerManager = llamaServerManager;
 
   static const defaultModelBundleId = 'qwen3_vl_8b_instruct_gguf_q4km';
+  static const embeddingModelBundleId = 'qwen3_embedding_0_6b_gguf_q8';
   static const _checkpointFileName = 'vss_checkpoint.json';
   static const _evidenceFileName = 'evidence.json';
   static const _manifestFileName = 'analysis_run_manifest.json';
@@ -107,8 +107,10 @@ class VssFamilySafetyPipeline implements DetectionPipeline {
   final VssSceneChangeDetector? sceneChangeDetector;
   final VssFrameImageExtractor? frameImageExtractor;
   final VssLlamaServerStarter? llamaServerStarter;
+  final VssLlamaServerStarter? embeddingServerStarter;
   final VssModelArtifactResolver? modelArtifactResolver;
   final VssModelBundleResolver modelBundleResolver;
+  final LocalEmbeddingProvider? searchEmbeddingProvider;
   final bool enableLegacyAuxiliarySignals;
   final bool skipRuntimePreflight;
   final LlamaServerManager? _llamaServerManager;
@@ -331,7 +333,6 @@ class VssFamilySafetyPipeline implements DetectionPipeline {
             modelBundle: bundle,
             runtimeProfile: runtimeProfile,
             prompt: prompt.text,
-            maxOutputTokens: 2048,
             cancellationToken: request.cancellationToken,
             evidenceStore: evidenceStore,
           ),
@@ -388,6 +389,7 @@ class VssFamilySafetyPipeline implements DetectionPipeline {
         evidence: evidence,
         findings: policyResult.findings,
         detections: buildResult.detections,
+        runtimeProfile: runtimeProfile,
       );
 
       yield _progress(
@@ -421,7 +423,9 @@ class VssFamilySafetyPipeline implements DetectionPipeline {
     final modelDir = File(primary).parent;
     if (bundle.artifactFiles.isEmpty) {
       return VssModelArtifacts(
-          modelPath: primary, modelDirectory: modelDir.path);
+        modelPath: primary,
+        modelDirectory: modelDir.path,
+      );
     }
 
     String? modelPath;
@@ -436,8 +440,8 @@ class VssFamilySafetyPipeline implements DetectionPipeline {
       final basename = p.basename(artifact.path).toLowerCase();
       if (basename.startsWith('mmproj') || basename.contains('mmproj')) {
         mmprojPath = file.path;
-      } else if (modelPath == null) {
-        modelPath = file.path;
+      } else {
+        modelPath ??= file.path;
       }
     }
     return VssModelArtifacts(
@@ -448,7 +452,8 @@ class VssFamilySafetyPipeline implements DetectionPipeline {
   }
 
   Future<LocalRuntimeProfile> _resolveRuntime(
-      ModelBundleManifest bundle) async {
+    ModelBundleManifest bundle,
+  ) async {
     final preferred = LocalRuntimeProfile.byModelRuntime(bundle.runtime) ??
         LocalRuntimeProfile.byId(LocalRuntimeId.cudaLlamaCpp);
     if (skipRuntimePreflight) {
@@ -464,7 +469,6 @@ class VssFamilySafetyPipeline implements DetectionPipeline {
         frameWidth: 768,
         frameHeight: 768,
         maxOutputTokens: 2048,
-        firstPass: true,
         secondPass: false,
       ),
     );
@@ -490,7 +494,6 @@ class VssFamilySafetyPipeline implements DetectionPipeline {
       mmprojPath: artifacts.mmprojPath,
       contextTokens:
           bundle.maxContextTokens < 16384 ? bundle.maxContextTokens : 16384,
-      gpuLayers: 999,
     );
     final starter = llamaServerStarter;
     if (starter != null) {
@@ -670,8 +673,20 @@ class VssFamilySafetyPipeline implements DetectionPipeline {
     required List<EvidenceRecord> evidence,
     required List<PolicyFinding> findings,
     required List<Detection> detections,
+    required LocalRuntimeProfile runtimeProfile,
   }) async {
+    VssLlamaServerLease? embeddingLease;
     try {
+      final embeddingSelection = await _selectSearchEmbeddingProvider(
+        runtimeProfile: runtimeProfile,
+      );
+      embeddingLease = embeddingSelection.lease;
+      if (embeddingSelection.fallbackReason != null) {
+        debugPrint(
+          'VSS search embeddings: ${embeddingSelection.fallbackReason}; '
+          'using hash fallback',
+        );
+      }
       final documents = searchIndexer.buildDocuments(
         mediaId: mediaId,
         evidenceRecords: evidence,
@@ -680,13 +695,77 @@ class VssFamilySafetyPipeline implements DetectionPipeline {
       );
       final index = InMemoryLocalSearchIndex(
         store: JsonSearchIndexStore(searchIndexFile),
+        embeddingProvider: embeddingSelection.provider,
       );
       await index.load();
       await index.clearMedia(mediaId);
       await index.indexDocuments(documents);
     } catch (_) {
       // Search indexing is non-fatal to detection results.
+    } finally {
+      await embeddingLease?.release();
     }
+  }
+
+  Future<_SearchEmbeddingSelection> _selectSearchEmbeddingProvider({
+    required LocalRuntimeProfile runtimeProfile,
+  }) async {
+    final override = searchEmbeddingProvider;
+    if (override != null) {
+      return _SearchEmbeddingSelection(provider: override);
+    }
+
+    final bundle = ModelBundleCatalog.byModelId(embeddingModelBundleId);
+    final downloadedPath = await modelManager.getModelPath(bundle.modelId);
+    if (downloadedPath == null) {
+      return const _SearchEmbeddingSelection(
+        provider: HashLocalEmbeddingProvider(),
+        fallbackReason: 'embedding bundle is not downloaded',
+      );
+    }
+
+    try {
+      final artifacts = await _resolveArtifacts(bundle);
+      final lease = await _startEmbeddingServer(
+        bundle: bundle,
+        artifacts: artifacts,
+        runtimeProfile: runtimeProfile,
+      );
+      return _SearchEmbeddingSelection(
+        provider: LlamaServerEmbeddingProvider(
+          endpointUri: lease.endpointUri,
+          modelManifest: bundle,
+        ),
+        lease: lease,
+      );
+    } on Object catch (error) {
+      return _SearchEmbeddingSelection(
+        provider: const HashLocalEmbeddingProvider(),
+        fallbackReason: 'embedding server unavailable: ${_shortError(error)}',
+      );
+    }
+  }
+
+  Future<VssLlamaServerLease> _startEmbeddingServer({
+    required ModelBundleManifest bundle,
+    required VssModelArtifacts artifacts,
+    required LocalRuntimeProfile runtimeProfile,
+  }) {
+    final request = LlamaServerStartRequest(
+      runtimeId: runtimeProfile.id,
+      modelBundleId: bundle.modelId,
+      modelPath: artifacts.modelPath,
+      contextTokens: bundle.maxContextTokens,
+      gpuLayers: 0,
+      embedding: true,
+    );
+    final starter = embeddingServerStarter ?? llamaServerStarter;
+    if (starter != null) {
+      return starter(request);
+    }
+    final manager = _llamaServerManager ??
+        LlamaServerManager(runtimeBinaryManager: runtimeBinaryManager);
+    return manager.startEmbedding(request).then(VssLlamaServerLease.fromHandle);
   }
 
   Map<String, List<SampledFrameRef>> _framesByChunkId(
@@ -790,6 +869,18 @@ class VssLlamaServerLease {
 
   final Uri endpointUri;
   final Future<void> Function() release;
+}
+
+class _SearchEmbeddingSelection {
+  const _SearchEmbeddingSelection({
+    required this.provider,
+    this.lease,
+    this.fallbackReason,
+  });
+
+  final LocalEmbeddingProvider provider;
+  final VssLlamaServerLease? lease;
+  final String? fallbackReason;
 }
 
 class VssPipelineStartupException implements Exception {

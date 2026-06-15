@@ -278,6 +278,35 @@ void main() {
       );
     });
 
+    test('resolves downloaded official bundle paths from model_bundles',
+        () async {
+      final service = ModelManagerService(customModelsPath: tempDir.path);
+      final manifest =
+          ModelBundleCatalog.byModelId('qwen3_embedding_0_6b_gguf_q8');
+      final bundleDir = Directory(
+        p.join(tempDir.path, 'model_bundles', manifest.modelId),
+      )..createSync(recursive: true);
+      final modelFile =
+          File(p.join(bundleDir.path, 'Qwen3-Embedding-0.6B-Q8_0.gguf'))
+            ..writeAsBytesSync(const <int>[1, 2, 3, 4]);
+      File(p.join(bundleDir.path, 'model_bundle_metadata.json'))
+          .writeAsStringSync(
+        '''
+{
+  "id": "${manifest.modelId}",
+  "displayName": "${manifest.displayName}",
+  "officialSourceRepo": "${manifest.officialSourceRepo}",
+  "files": [
+    {"path": "Qwen3-Embedding-0.6B-Q8_0.gguf", "sizeBytes": 4}
+  ]
+}
+''',
+      );
+
+      expect(await service.getModelPath(manifest.modelId), modelFile.path);
+      expect(await service.validateModel(manifest.modelId), isTrue);
+    });
+
     test('blocks non-commercial official bundles at runtime', () async {
       final service = ModelManagerService(customModelsPath: tempDir.path);
       final manifest = ModelBundleCatalog.byModelId('nvidia_locateanything_3b');

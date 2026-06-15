@@ -19,6 +19,11 @@
 - **Default Detection Pipeline**: `vss_family_safety_v1`
 - **Runtime**: bundled official llama.cpp `llama-server` on `127.0.0.1`
 - **Default VLM Bundle**: official Qwen3-VL GGUF bundle from the model catalog
+- **Search Embeddings**: when `qwen3_embedding_0_6b_gguf_q8` is downloaded,
+  VSS starts a second local `llama-server` embedding instance and posts batched
+  OpenAI-compatible `/v1/embeddings` requests. If the embedding bundle or server
+  is unavailable, analysis continues with the deterministic hash embedding
+  fallback and logs the reason.
 - **Policy Taxonomy**: includes explicit nudity, sexual content, suggestive
   content, kissing/romance, immodest female clothing, violence, gore, blood,
   weapons, substances, and profanity. VLM findings may include optional

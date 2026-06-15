@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/services/detection/local_search_index.dart';
@@ -139,6 +141,83 @@ void main() {
       final results = await index.search('blood');
       expect(results, hasLength(1));
       expect(results.single.document.mediaId, 'other_media');
+    });
+
+    test(
+        'uses llama-server embeddings in batches and persists JSON vector store',
+        () async {
+      final endpoint = await _FakeEmbeddingEndpoint.start();
+      addTearDown(endpoint.close);
+      final dir = await Directory.systemTemp.createTemp('kidslens_search_');
+      addTearDown(() async {
+        if (dir.existsSync()) {
+          await dir.delete(recursive: true);
+        }
+      });
+      final store = JsonSearchIndexStore(
+        File('${dir.path}${Platform.pathSeparator}search_index.json'),
+      );
+      final index = InMemoryLocalSearchIndex(
+        store: store,
+        embeddingProvider: LlamaServerEmbeddingProvider(
+          endpointUri: endpoint.uri,
+          dimension: 4,
+        ),
+      );
+      final documents = List<SearchDocument>.generate(
+        33,
+        (index) => SearchDocument(
+          id: 'sd_batch_$index',
+          mediaId: _mediaId,
+          kind: SearchDocumentKind.caption,
+          text: 'weapon visible in family safety scene $index',
+          startTime: Duration(seconds: index),
+          endTime: Duration(seconds: index + 1),
+          categoryId: FamilySafetyPolicyCategory.weapons.id,
+        ),
+      );
+
+      await index.indexDocuments(documents);
+
+      expect(endpoint.requests, hasLength(2));
+      expect(endpoint.requests.map((request) => request.method).toSet(), {
+        'POST',
+      });
+      expect(endpoint.requests.map((request) => request.path).toSet(), {
+        '/v1/embeddings',
+      });
+      expect(
+        endpoint.requests.map((request) => request.model).toSet(),
+        {'qwen3-embedding'},
+      );
+      expect(endpoint.requests.map((request) => request.inputs.length), [
+        32,
+        1,
+      ]);
+      expect(
+        endpoint.requests.every((request) => request.inputs.length <= 32),
+        isTrue,
+      );
+
+      final persisted = await store.readDocuments();
+      expect(persisted, hasLength(33));
+      expect(persisted.first.embedding, hasLength(4));
+
+      final results = await index.search('weapon', limit: 1);
+      expect(results, isNotEmpty);
+      expect(
+        endpoint.requests.last.inputs.single,
+        startsWith(LlamaServerEmbeddingProvider.queryInstructionPrefix),
+      );
+    });
+
+    test('rejects non-local llama-server embedding endpoints', () {
+      expect(
+        () => LlamaServerEmbeddingProvider(
+          endpointUri: Uri.parse('https://huggingface.co'),
+        ),
+        throwsA(isA<LlamaServerEmbeddingException>()),
+      );
     });
   });
 }
@@ -320,3 +399,80 @@ EvidenceProvenance _provenance({
       startTime: start,
       endTime: end,
     );
+
+class _FakeEmbeddingEndpoint {
+  _FakeEmbeddingEndpoint._(this._server);
+
+  final HttpServer _server;
+  final requests = <_EmbeddingRequest>[];
+
+  Uri get uri => Uri.http('127.0.0.1:${_server.port}');
+
+  static Future<_FakeEmbeddingEndpoint> start() async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    final endpoint = _FakeEmbeddingEndpoint._(server);
+    server.listen(endpoint._handle);
+    return endpoint;
+  }
+
+  Future<void> close() => _server.close(force: true);
+
+  Future<void> _handle(HttpRequest request) async {
+    final body = await utf8.decoder.bind(request).join();
+    final decoded = jsonDecode(body) as Map<String, dynamic>;
+    final inputs = (decoded['input'] as List<dynamic>)
+        .map((value) => value as String)
+        .toList(growable: false);
+    requests.add(
+      _EmbeddingRequest(
+        method: request.method,
+        path: request.uri.path,
+        model: decoded['model'] as String,
+        inputs: inputs,
+      ),
+    );
+    request.response.headers.set(
+      HttpHeaders.contentTypeHeader,
+      'application/json; charset=utf-8',
+    );
+    request.response.write(
+      jsonEncode({
+        'object': 'list',
+        'model': decoded['model'],
+        'data': [
+          for (var index = 0; index < inputs.length; index++)
+            {
+              'object': 'embedding',
+              'index': index,
+              'embedding': _embeddingFor(inputs[index]),
+            },
+        ],
+      }),
+    );
+    await request.response.close();
+  }
+}
+
+class _EmbeddingRequest {
+  const _EmbeddingRequest({
+    required this.method,
+    required this.path,
+    required this.model,
+    required this.inputs,
+  });
+
+  final String method;
+  final String path;
+  final String model;
+  final List<String> inputs;
+}
+
+List<double> _embeddingFor(String text) {
+  final digest = sha256.convert(utf8.encode(text)).bytes;
+  return <double>[
+    digest[0] + 1,
+    digest[1] + 1,
+    digest[2] + 1,
+    digest[3] + 1,
+  ];
+}

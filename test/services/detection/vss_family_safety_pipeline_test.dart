@@ -11,6 +11,7 @@ import 'package:kidslens_video_editor/services/detection/chunk_planner.dart';
 import 'package:kidslens_video_editor/services/detection/detection_pipeline.dart';
 import 'package:kidslens_video_editor/services/detection/detection_pipeline_profile.dart';
 import 'package:kidslens_video_editor/services/detection/evidence_store.dart';
+import 'package:kidslens_video_editor/services/detection/llama_server_manager.dart';
 import 'package:kidslens_video_editor/services/detection/local_runtime_manager.dart';
 import 'package:kidslens_video_editor/services/detection/vlm_provider.dart';
 import 'package:kidslens_video_editor/services/detection/vlm_provider_factory.dart';
@@ -18,6 +19,7 @@ import 'package:kidslens_video_editor/services/detection/vss_family_safety_pipel
 import 'package:kidslens_video_editor/services/frame_sampling_service.dart';
 import 'package:kidslens_video_editor/services/media_service.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   group('VssFamilySafetyPipeline', () {
@@ -87,8 +89,102 @@ void main() {
       ) as Map<String, dynamic>;
       expect(checkpoint['completedChunkIds'], hasLength(2));
       expect(
-          File('${tempDir.path}/family_safety_search_index.json').existsSync(),
-          isTrue);
+        File('${tempDir.path}/family_safety_search_index.json').existsSync(),
+        isTrue,
+      );
+      final searchIndex = jsonDecode(
+        File('${tempDir.path}/family_safety_search_index.json')
+            .readAsStringSync(),
+      ) as List<dynamic>;
+      expect(searchIndex, isNotEmpty);
+      expect(
+        (searchIndex.first as Map<String, dynamic>)['embedding'],
+        hasLength(64),
+      );
+    });
+
+    test('uses downloaded Qwen embedding bundle for local search indexing',
+        () async {
+      await _writeDownloadedEmbeddingBundle(tempDir);
+      final endpoint = await _FakeEmbeddingEndpoint.start();
+      addTearDown(endpoint.close);
+      LlamaServerStartRequest? embeddingRequest;
+      var embeddingLeaseReleased = false;
+      final pipeline = _pipeline(
+        tempDir: tempDir,
+        host: _FakeStageHost(),
+        provider: _CountingVlmProvider(_unsafeRawResponse),
+        embeddingStarter: (request) async {
+          embeddingRequest = request;
+          return VssLlamaServerLease(
+            endpointUri: endpoint.uri,
+            release: () async {
+              embeddingLeaseReleased = true;
+            },
+          );
+        },
+      );
+
+      await pipeline
+          .analyze(
+            DetectionPipelineRequest(
+              mediaPath: 'fixture.mp4',
+              mediaId: 'media-1',
+              settings: _settings(),
+            ),
+          )
+          .drain<void>();
+
+      expect(embeddingRequest, isNotNull);
+      expect(
+        embeddingRequest!.modelBundleId,
+        VssFamilySafetyPipeline.embeddingModelBundleId,
+      );
+      expect(embeddingRequest!.embedding, isTrue);
+      expect(embeddingRequest!.gpuLayers, 0);
+      expect(endpoint.requests, isNotEmpty);
+      expect(embeddingLeaseReleased, isTrue);
+      final searchIndex = jsonDecode(
+        File('${tempDir.path}/family_safety_search_index.json')
+            .readAsStringSync(),
+      ) as List<dynamic>;
+      expect(searchIndex, isNotEmpty);
+      expect(
+        (searchIndex.first as Map<String, dynamic>)['embedding'],
+        hasLength(4),
+      );
+    });
+
+    test('embedding startup failures do not block completed analysis',
+        () async {
+      await _writeDownloadedEmbeddingBundle(tempDir);
+      final pipeline = _pipeline(
+        tempDir: tempDir,
+        host: _FakeStageHost(),
+        provider: _CountingVlmProvider(_unsafeRawResponse),
+        embeddingStarter: (_) async => throw StateError('embedding offline'),
+      );
+
+      final progress = await pipeline
+          .analyze(
+            DetectionPipelineRequest(
+              mediaPath: 'fixture.mp4',
+              mediaId: 'media-1',
+              settings: _settings(),
+            ),
+          )
+          .toList();
+
+      expect(progress.last.stepName, 'Analysis complete');
+      final searchIndex = jsonDecode(
+        File('${tempDir.path}/family_safety_search_index.json')
+            .readAsStringSync(),
+      ) as List<dynamic>;
+      expect(searchIndex, isNotEmpty);
+      expect(
+        (searchIndex.first as Map<String, dynamic>)['embedding'],
+        hasLength(64),
+      );
     });
 
     test('resume skips chunks already completed in the VSS checkpoint',
@@ -224,6 +320,7 @@ VssFamilySafetyPipeline _pipeline({
   required _CountingVlmProvider provider,
   Uri? endpoint,
   VssLlamaServerStarter? starter,
+  VssLlamaServerStarter? embeddingStarter,
 }) =>
     VssFamilySafetyPipeline(
       stageHost: host,
@@ -240,11 +337,11 @@ VssFamilySafetyPipeline _pipeline({
       ),
       vlmProviderFactory: VlmProviderFactory(
         overrideProvider: ({
-          required LocalRuntimeProfile runtimeProfile,
-          required Uri endpoint,
-          required String modelAlias,
+          required runtimeProfile,
+          required endpoint,
+          required modelAlias,
         }) {
-          LocalRuntimeEndpointPolicy()
+          const LocalRuntimeEndpointPolicy()
               .validate(
                 LocalRuntimeConfig(endpointUri: endpoint.toString()),
               )
@@ -277,6 +374,7 @@ VssFamilySafetyPipeline _pipeline({
                 endpointUri: endpoint ?? Uri.http('127.0.0.1:11434'),
                 release: () async {},
               ),
+      embeddingServerStarter: embeddingStarter,
       modelArtifactResolver: (_) async => const VssModelArtifacts(
         modelPath: r'C:\models\qwen.gguf',
         mmprojPath: r'C:\models\mmproj.gguf',
@@ -359,6 +457,107 @@ class _CountingVlmProvider implements VlmProvider {
     afterCall?.call(calls);
     return response;
   }
+}
+
+Future<void> _writeDownloadedEmbeddingBundle(Directory modelsDir) async {
+  final bundleDir = Directory(
+    p.join(
+      modelsDir.path,
+      'model_bundles',
+      VssFamilySafetyPipeline.embeddingModelBundleId,
+    ),
+  );
+  await bundleDir.create(recursive: true);
+  await File(p.join(bundleDir.path, 'Qwen3-Embedding-0.6B-Q8_0.gguf'))
+      .writeAsBytes(const <int>[1, 2, 3, 4]);
+  await File(p.join(bundleDir.path, 'model_bundle_metadata.json'))
+      .writeAsString(
+    jsonEncode({
+      'id': VssFamilySafetyPipeline.embeddingModelBundleId,
+      'displayName': 'Qwen3 Embedding 0.6B GGUF Q8',
+      'officialSourceRepo': 'Qwen/Qwen3-Embedding-0.6B-GGUF',
+      'officialRevision': 'main',
+      'artifactUri': 'hf://Qwen/Qwen3-Embedding-0.6B-GGUF',
+      'files': [
+        {
+          'path': 'Qwen3-Embedding-0.6B-Q8_0.gguf',
+          'sizeBytes': 4,
+        },
+      ],
+    }),
+  );
+}
+
+class _FakeEmbeddingEndpoint {
+  _FakeEmbeddingEndpoint._(this._server);
+
+  final HttpServer _server;
+  final requests = <_EmbeddingRequest>[];
+
+  Uri get uri => Uri.http('127.0.0.1:${_server.port}');
+
+  static Future<_FakeEmbeddingEndpoint> start() async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    final endpoint = _FakeEmbeddingEndpoint._(server);
+    server.listen(endpoint._handle);
+    return endpoint;
+  }
+
+  Future<void> close() => _server.close(force: true);
+
+  Future<void> _handle(HttpRequest request) async {
+    final body = await utf8.decoder.bind(request).join();
+    final decoded = jsonDecode(body) as Map<String, dynamic>;
+    final inputs = (decoded['input'] as List<dynamic>).cast<String>();
+    requests.add(
+      _EmbeddingRequest(
+        path: request.uri.path,
+        model: decoded['model'] as String,
+        inputs: inputs,
+      ),
+    );
+    request.response.headers.set(
+      HttpHeaders.contentTypeHeader,
+      'application/json; charset=utf-8',
+    );
+    request.response.write(
+      jsonEncode({
+        'object': 'list',
+        'model': decoded['model'],
+        'data': [
+          for (var index = 0; index < inputs.length; index++)
+            {
+              'object': 'embedding',
+              'index': index,
+              'embedding': _embeddingFor(inputs[index]),
+            },
+        ],
+      }),
+    );
+    await request.response.close();
+  }
+}
+
+class _EmbeddingRequest {
+  const _EmbeddingRequest({
+    required this.path,
+    required this.model,
+    required this.inputs,
+  });
+
+  final String path;
+  final String model;
+  final List<String> inputs;
+}
+
+List<double> _embeddingFor(String text) {
+  final digest = sha256.convert(utf8.encode(text)).bytes;
+  return <double>[
+    digest[0] + 1,
+    digest[1] + 1,
+    digest[2] + 1,
+    digest[3] + 1,
+  ];
 }
 
 class _FakeStageHost implements AnalysisStageHost {

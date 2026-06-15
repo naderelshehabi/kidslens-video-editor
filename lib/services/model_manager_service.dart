@@ -1161,6 +1161,12 @@ class ModelManagerService {
       if (candidateDir.existsSync()) {
         return candidateDir;
       }
+      final bundleDir = Directory(
+        p.join(dir, _modelBundlesSubdir, candidateId),
+      );
+      if (await _isModelBundleValid(bundleDir.path)) {
+        return bundleDir;
+      }
     }
     return null;
   }

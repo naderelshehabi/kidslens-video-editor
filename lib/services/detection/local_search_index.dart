@@ -3,8 +3,10 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:http/http.dart' as http;
 
 import 'package:kidslens_video_editor/data/models/models.dart';
+import 'package:kidslens_video_editor/services/detection/local_runtime_manager.dart';
 
 enum SearchDocumentKind {
   caption('caption'),
@@ -211,6 +213,8 @@ abstract interface class LocalEmbeddingProvider {
 
   Future<List<double>> embedText(String text);
 
+  Future<List<double>> embedQuery(String query) => embedText(query);
+
   Future<List<List<double>>> embedBatch(List<String> texts) =>
       Future.wait(texts.map(embedText));
 }
@@ -240,8 +244,135 @@ class HashLocalEmbeddingProvider implements LocalEmbeddingProvider {
   }
 
   @override
+  Future<List<double>> embedQuery(String query) => embedText(query);
+
+  @override
   Future<List<List<double>>> embedBatch(List<String> texts) =>
       Future.wait(texts.map(embedText));
+}
+
+class LlamaServerEmbeddingException implements Exception {
+  const LlamaServerEmbeddingException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'LlamaServerEmbeddingException: $message';
+}
+
+class LlamaServerEmbeddingProvider implements LocalEmbeddingProvider {
+  LlamaServerEmbeddingProvider({
+    required this.endpointUri,
+    this.modelAlias = 'qwen3-embedding',
+    this.dimension = 1024,
+    this.modelManifest = _qwenEmbeddingManifest,
+    this.maxBatchSize = 32,
+    http.Client? httpClient,
+    LocalRuntimeEndpointPolicy endpointPolicy =
+        const LocalRuntimeEndpointPolicy(),
+  }) : _httpClient = httpClient {
+    final issues = endpointPolicy.validate(
+      LocalRuntimeConfig(endpointUri: endpointUri.toString()),
+    );
+    if (issues.isNotEmpty) {
+      throw LlamaServerEmbeddingException(issues.join('; '));
+    }
+    if (maxBatchSize < 1 || maxBatchSize > 32) {
+      throw const LlamaServerEmbeddingException(
+        'embedding batch size must be between 1 and 32',
+      );
+    }
+  }
+
+  static const queryInstructionPrefix =
+      'Instruct: Given a family-safety video search query, retrieve relevant scene descriptions\nQuery: ';
+
+  final Uri endpointUri;
+  final String modelAlias;
+  @override
+  final int dimension;
+  @override
+  final ModelBundleManifest modelManifest;
+  final int maxBatchSize;
+  final http.Client? _httpClient;
+
+  @override
+  Future<List<double>> embedText(String text) async {
+    final vectors = await embedBatch([text]);
+    return vectors.single;
+  }
+
+  @override
+  Future<List<double>> embedQuery(String query) =>
+      embedText('$queryInstructionPrefix$query');
+
+  @override
+  Future<List<List<double>>> embedBatch(List<String> texts) async {
+    if (texts.isEmpty) return const <List<double>>[];
+    final vectors = <List<double>>[];
+    for (var offset = 0; offset < texts.length; offset += maxBatchSize) {
+      final end = min(offset + maxBatchSize, texts.length);
+      vectors.addAll(await _postEmbeddingBatch(texts.sublist(offset, end)));
+    }
+    return vectors;
+  }
+
+  Future<List<List<double>>> _postEmbeddingBatch(List<String> texts) async {
+    final uri = endpointUri.resolve('/v1/embeddings');
+    const headers = {'content-type': 'application/json'};
+    final body = jsonEncode({
+      'model': modelAlias,
+      'input': texts,
+    });
+    final response = _httpClient == null
+        ? await http.post(uri, headers: headers, body: body)
+        : await _httpClient.post(uri, headers: headers, body: body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw LlamaServerEmbeddingException(
+        'embedding request failed with HTTP ${response.statusCode}',
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) {
+      throw const LlamaServerEmbeddingException(
+        'embedding response must be a JSON object',
+      );
+    }
+    final data = decoded['data'];
+    if (data is! List || data.length != texts.length) {
+      throw LlamaServerEmbeddingException(
+        'embedding response data length ${data is List ? data.length : '<invalid>'} did not match request length ${texts.length}',
+      );
+    }
+
+    final indexed = <({int index, List<double> embedding})>[];
+    for (var position = 0; position < data.length; position++) {
+      final item = data[position];
+      if (item is! Map) {
+        throw const LlamaServerEmbeddingException(
+          'embedding response data entries must be objects',
+        );
+      }
+      final embedding = item['embedding'];
+      if (embedding is! List || embedding.isEmpty) {
+        throw const LlamaServerEmbeddingException(
+          'embedding response entry is missing embedding vector',
+        );
+      }
+      final indexValue = item['index'];
+      indexed.add(
+        (
+          index: indexValue is num ? indexValue.toInt() : position,
+          embedding: _l2Normalize(
+            embedding.map((value) => (value as num).toDouble()).toList(),
+          ),
+        ),
+      );
+    }
+    indexed.sort((a, b) => a.index.compareTo(b.index));
+    return indexed.map((entry) => entry.embedding).toList(growable: false);
+  }
 }
 
 abstract interface class LocalSearchIndex {
@@ -309,13 +440,31 @@ class InMemoryLocalSearchIndex implements LocalSearchIndex {
 
   @override
   Future<void> indexDocuments(Iterable<SearchDocument> documents) async {
-    for (final document in documents) {
-      final indexed = document.embedding == null
-          ? document.copyWithEmbedding(
-              await embeddingProvider.embedText(document.text),
-            )
-          : document;
-      _documentsById[indexed.id] = indexed;
+    final pending = documents.toList(growable: false);
+    final needsEmbedding = <SearchDocument>[];
+    for (final document in pending) {
+      if (document.embedding == null) {
+        needsEmbedding.add(document);
+      } else {
+        _documentsById[document.id] = document;
+      }
+    }
+
+    if (needsEmbedding.isNotEmpty) {
+      final embeddings = await embeddingProvider.embedBatch(
+        needsEmbedding.map((document) => document.text).toList(growable: false),
+      );
+      if (embeddings.length != needsEmbedding.length) {
+        throw StateError(
+          'embedding provider returned ${embeddings.length} vectors for ${needsEmbedding.length} documents',
+        );
+      }
+      for (var index = 0; index < needsEmbedding.length; index++) {
+        final document = needsEmbedding[index].copyWithEmbedding(
+          embeddings[index],
+        );
+        _documentsById[document.id] = document;
+      }
     }
     await save();
   }
@@ -328,7 +477,7 @@ class InMemoryLocalSearchIndex implements LocalSearchIndex {
   }) async {
     final queryTerms = tokenizeForFamilySafetySearch(query);
     if (queryTerms.isEmpty) return const <SearchResult>[];
-    final queryEmbedding = await embeddingProvider.embedText(query);
+    final queryEmbedding = await embeddingProvider.embedQuery(query);
     final results = <SearchResult>[];
 
     for (final document in _sortedDocuments()) {
@@ -745,24 +894,24 @@ const _familySafetySynonyms = <String, Set<String>>{
 };
 
 const _qwenEmbeddingManifest = ModelBundleManifest(
-  modelId: 'qwen3_embedding_0_6b',
-  displayName: 'Qwen3 Embedding 0.6B',
+  modelId: 'qwen3_embedding_0_6b_gguf_q8',
+  displayName: 'Qwen3 Embedding 0.6B GGUF Q8',
   vendor: 'Alibaba / Qwen',
-  officialSourceRepo: 'Qwen/Qwen3-Embedding-0.6B',
+  officialSourceRepo: 'Qwen/Qwen3-Embedding-0.6B-GGUF',
   officialRevision: 'main',
   license: ModelBundleLicense.apache20,
   commercialUse: CommercialUseStatus.allowed,
   acceptedTermsRequired: false,
-  artifactType: ModelBundleArtifactType.officialWeights,
-  artifactUri: 'hf://Qwen/Qwen3-Embedding-0.6B',
+  artifactType: ModelBundleArtifactType.officialGguf,
+  artifactUri: 'hf://Qwen/Qwen3-Embedding-0.6B-GGUF',
   sha256: null,
   conversionRecipeId: null,
-  runtime: ModelBundleRuntime.cudaTransformersHelper,
-  minVramGb: 1,
-  recommendedVramGb: 2,
+  runtime: ModelBundleRuntime.llamaCppServer,
+  minVramGb: 0,
+  recommendedVramGb: 1,
   targetGpuClass: ModelBundleCatalog.targetGpuClass,
   maxValidatedVramGb: ModelBundleCatalog.targetGpuVramGb,
-  quantization: ModelBundleQuantization.bf16,
+  quantization: ModelBundleQuantization.q8_0,
   fitsRtx5070Validated: false,
   supportsVideoInput: false,
   supportsImageInput: false,
@@ -770,15 +919,21 @@ const _qwenEmbeddingManifest = ModelBundleManifest(
   supportsMasks: false,
   supportsPointLocalization: false,
   maxFramesPerChunk: 1,
-  maxContextTokens: 32768,
+  maxContextTokens: 8192,
   recommendedChunkSeconds: 1,
   knownFailureModes: <String>[
-    'Text-only retrieval model; cannot inspect frames directly.',
-    'Checksum and local throughput validation are required before production selection.',
+    'Text-only embedding model; search quality depends on VLM captions and findings.',
+    'CPU smoke validation has not been recorded.',
   ],
   roles: <ModelBundleRole>[ModelBundleRole.embedding],
   approvalStatus: ModelBundleApprovalStatus.evaluationOnly,
   reviewNotes:
-      'Official Qwen text embedding candidate for local retrieval; Apache-2.0 and small enough for high-end consumer GPUs.',
+      'Official Qwen GGUF embedding candidate for local text-evidence search.',
   leaderboardSourcesReviewed: ModelBundleCatalog.reviewedLeaderboardSources,
+  artifactFiles: <ModelBundleArtifactFile>[
+    ModelBundleArtifactFile(
+      path: 'Qwen3-Embedding-0.6B-Q8_0.gguf',
+      sizeBytes: 639150592,
+    ),
+  ],
 );
