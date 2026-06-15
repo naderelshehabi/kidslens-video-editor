@@ -70,7 +70,7 @@ Frame budget per chunk (Qwen3-VL dynamic resolution ≈ H×W/1024 tokens per fra
 
 The product objective explicitly includes kissing and substances. Amazon Rekognition v7 has a dedicated "Kissing" node; Sightengine grades immodesty/suggestiveness in tiers (https://docs.aws.amazon.com/rekognition/latest/dg/moderation-api.html, https://sightengine.com/docs/image-video-moderation-classes-and-concepts). Add one category and enrich prompt guidance (Phase 6):
 
-- New policy category `kissing_romance` (review-first, scene-level, default action `review`).
+- New policy category `kissing_romance` (review-first, scene-level, scene cut as the suggested remediation because the current remediation enum has no separate `review` action).
 - Weapon prompt guidance distinguishes state: `in_hand / aimed / worn / displayed / toy` (Hive-style state-aware classes).
 - Immodesty prompt guidance enumerates graded exposure signals (cleavage, bare midriff, bare legs, bare arms, swimwear, lingerie, miniskirt/minishort), mapped to severity by the policy engine — the schema's `exposureSignals` field already supports this.
 
@@ -295,14 +295,15 @@ Modify `lib/services/frame_sampling_service.dart`:
 
 ### Phase 6 — Taxonomy and prompt enrichment
 
-- [ ] 6.1 `lib/data/models/family_safety_policy.dart` (Phase 0 source of truth): add category `kissing_romance` — default action `review`, enforcement review-first, scene-level (no boundary requirement), severity mapping: peck/brief = low, prolonged/passionate = medium, with sexualized context escalating to `sexual_content` instead. Add to `PolicyCategory` wrapper and `PolicyEngine` mapping (VLM category string `kissing_romance` in the schema enum).
-- [ ] 6.2 `lib/services/detection/family_safety_prompt_templates.dart`:
+- [x] 6.1 `lib/data/models/family_safety_policy.dart` (Phase 0 source of truth): add category `kissing_romance` — enforcement review-first, scene-level (no boundary requirement), scene cut as the suggested remediation because review is modeled by enforcement mode, severity mapping: peck/brief = low, prolonged/passionate = medium, with sexualized context escalating to `sexual_content` instead. Add to `PolicyCategory` wrapper and `PolicyEngine` mapping (VLM category string `kissing_romance` in the schema enum).
+- [x] 6.2 `lib/services/detection/family_safety_prompt_templates.dart`:
   - Add `kissing_romance` to the category enum in the policy prompt + schema validation (`FamilySafetyVlmOutputSchema`), with the existing "romantic kissing" example mapped to it.
   - Weapon guidance: require the evidence rationale to state weapon state (`in_hand`, `aimed`, `worn/holstered`, `displayed`, `toy/prop`); `toy/prop` with high confidence maps to severity `none`/`low`.
   - Immodesty guidance: enumerate graded exposure signals (cleavage, bare_midriff, bare_legs, bare_arms, swimwear, lingerie, miniskirt_minishort, sheer_clothing) in `exposureSignals`; policy engine maps signal count/type to severity (1 mild signal = low, multiple or swimwear/lingerie = medium+) — implement that mapping in `PolicyEngine`'s immodesty handler.
   - Substances guidance: distinguish alcohol consumption, smoking/vaping, illegal drugs, drug paraphernalia in rationale text (single `substances` category retained).
-- [ ] 6.3 Update golden tests in `test/services/detection/family_safety_prompt_templates_test.dart` and `policy_engine_test.dart` for the new category and severity mappings.
-- [ ] Exit gate: schema/prompt/policy golden tests pass.
+- [x] 6.3 Update golden tests in `test/services/detection/family_safety_prompt_templates_test.dart` and `policy_engine_test.dart` for the new category and severity mappings.
+- [x] Exit gate: schema/prompt/policy golden tests pass.
+  Implemented 2026-06-15 with `kissing_romance` in the policy catalog/schema, prompt guidance for romance/weapon state/immodesty/substances, optional `exposureSignals` and `weaponState` schema fields, policy normalization for romance escalation, immodesty exposure severity, and toy/prop weapon severity. Verified with focused analyzer, focused prompt/policy tests, and `flutter test test\services\detection`.
 
 ### Phase 7 — Grounding via Qwen3-VL native boxes (NudeNet demotion path)
 

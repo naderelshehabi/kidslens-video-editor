@@ -11,6 +11,7 @@ void main() {
           'explicit_nudity',
           'sexual_content',
           'suggestive_content',
+          'kissing_romance',
           'immodest_female_clothing',
           'violence',
           'gore',
@@ -20,8 +21,8 @@ void main() {
           'profanity',
         ]),
       );
-      expect(FamilySafetyPolicyCategory.values, hasLength(10));
-      expect(FamilySafetyPolicyCatalog.definitions, hasLength(10));
+      expect(FamilySafetyPolicyCategory.values, hasLength(11));
+      expect(FamilySafetyPolicyCatalog.definitions, hasLength(11));
     });
 
     test('defines all severity levels', () {
@@ -67,6 +68,12 @@ void main() {
           FamilySafetyPolicyCategory.sexualContent,
         ).enforcementMode,
         FamilySafetyEnforcementMode.reviewFirst,
+      );
+      expect(
+        FamilySafetyPolicyCatalog.byCategory(
+          FamilySafetyPolicyCategory.kissingRomance,
+        ).boundaryRequirement,
+        BoundaryRequirement.sceneLevelAllowed,
       );
       expect(
         FamilySafetyPolicyCatalog.byCategory(

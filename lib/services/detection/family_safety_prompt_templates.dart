@@ -89,14 +89,14 @@ class FamilySafetyPromptTemplates {
       visibleContext:
           'adult-presenting person in a bikini or revealing outfit, no explicit nudity',
       expectedHandling:
-          'use suggestive_content or immodest_female_clothing only when the configured category applies; provide rationale',
+          'use suggestive_content or immodest_female_clothing only when the configured category applies; include exposureSignals and provide rationale',
     ),
     FamilySafetyPromptExample(
       id: 'exposed_female_legs',
       title: 'exposed female legs',
       visibleContext: 'female-presenting person with visibly bare legs',
       expectedHandling:
-          'use immodest_female_clothing when configured and include region IDs if localized',
+          'use immodest_female_clothing when configured, include exposureSignals such as bare_legs, and include region IDs if localized',
     ),
     FamilySafetyPromptExample(
       id: 'explicit_nudity',
@@ -110,7 +110,7 @@ class FamilySafetyPromptTemplates {
       title: 'romantic kissing',
       visibleContext: 'romantic kissing without nudity or sexual activity',
       expectedHandling:
-          'use suggestive_content or sexual_content only if the policy category is triggered; explain ambiguity',
+          'use kissing_romance; brief/peck kissing is low severity, prolonged or passionate kissing is medium, and sexualized touching escalates to sexual_content',
     ),
     FamilySafetyPromptExample(
       id: 'sexualized_behavior',
@@ -147,8 +147,27 @@ class FamilySafetyPromptTemplates {
       title: 'weapons/toy weapons ambiguity',
       visibleContext: 'object resembles a weapon but may be a toy or prop',
       expectedHandling:
-          'use weapons only when plausible; add uncertainty for toy/prop ambiguity and localize the object if possible',
+          'use weapons only when plausible; state weaponState as in_hand, aimed, worn/holstered, displayed, or toy/prop in the rationale; toy/prop is none or low severity',
     ),
+  ];
+
+  static const immodestyExposureSignals = <String>[
+    'cleavage',
+    'bare_midriff',
+    'bare_legs',
+    'bare_arms',
+    'swimwear',
+    'lingerie',
+    'miniskirt_minishort',
+    'sheer_clothing',
+  ];
+
+  static const weaponStates = <String>[
+    'in_hand',
+    'aimed',
+    'worn/holstered',
+    'displayed',
+    'toy/prop',
   ];
 
   static FamilySafetyPromptTemplate caption(
@@ -196,6 +215,10 @@ Allowed categories: ${context.categoryIds.join(', ')}
 Localizable categories: ${localizableCategoryIds.join(', ')}
 Allowed severity values: none, low, medium, high, critical
 Allowed groundingStatus values: grounded, scene_level_only, unsupported_by_model, failed, ambiguous
+For kissing_romance: use low severity for brief/peck kissing, medium for prolonged or passionate kissing, and use sexual_content instead when sexualized touching or simulated sexual activity is visible.
+For immodest_female_clothing: include exposureSignals from: ${immodestyExposureSignals.join(', ')}. Use low for one mild signal such as bare_arms or bare_legs; use medium or higher for multiple signals, swimwear, lingerie, sheer clothing, or miniskirt/minishort.
+For weapons: the rationale must state weaponState as one of: ${weaponStates.join(', ')}. Toy/prop ambiguity should be severity none or low unless other context makes it unsafe.
+For substances: distinguish alcohol_consumption, smoking_vaping, illegal_drugs, or drug_paraphernalia in the rationale text.
 
 Examples:
 $_examplesBlock
@@ -294,12 +317,14 @@ class FamilySafetyVlmOutputSchema {
   ],
   "findings": [
     {
-      "category": "explicit_nudity|sexual_content|suggestive_content|immodest_female_clothing|violence|gore|blood|weapons|substances|profanity|other",
+      "category": "explicit_nudity|sexual_content|suggestive_content|kissing_romance|immodest_female_clothing|violence|gore|blood|weapons|substances|profanity|other",
       "severity": "none|low|medium|high|critical",
       "confidence": 0.0,
       "startTimeMs": 0,
       "endTimeMs": 0,
       "rationale": "short factual visible evidence",
+      "exposureSignals": ["bare_legs"],
+      "weaponState": "in_hand|aimed|worn/holstered|displayed|toy/prop",
       "regionIds": ["region_1"],
       "groundingStatus": "grounded|scene_level_only|unsupported_by_model|failed|ambiguous",
       "needsReview": true
@@ -413,6 +438,17 @@ class FamilySafetyVlmOutputSchema {
               'type': 'string',
               'enum': allowedGroundingStatusIds.toList(growable: false),
             },
+            'exposureSignals': {
+              'type': 'array',
+              'items': {
+                'type': 'string',
+                'enum': allowedExposureSignalIds.toList(growable: false),
+              },
+            },
+            'weaponState': {
+              'type': 'string',
+              'enum': allowedWeaponStateIds.toList(growable: false),
+            },
             'needsReview': {'type': 'boolean'},
           },
         },
@@ -440,6 +476,12 @@ class FamilySafetyVlmOutputSchema {
     ...FamilySafetyPolicyCategory.values.map((category) => category.id),
     'other',
   };
+
+  static final allowedExposureSignalIds =
+      FamilySafetyPromptTemplates.immodestyExposureSignals.toSet();
+
+  static final allowedWeaponStateIds =
+      FamilySafetyPromptTemplates.weaponStates.toSet();
 
   static final allowedGroundingStatusIds = <String>{
     for (final status in GroundingStatus.values) status.jsonValue,
@@ -624,6 +666,28 @@ class FamilySafetyVlmOutputSchema {
 
     if (finding['needsReview'] is! bool) {
       issues.add('findings[$index].needsReview boolean is required');
+    }
+
+    final exposureSignals = finding['exposureSignals'];
+    if (exposureSignals != null) {
+      if (exposureSignals is! List) {
+        issues.add('findings[$index].exposureSignals must be a list');
+      } else {
+        for (final signal in exposureSignals) {
+          if (signal is! String || !allowedExposureSignalIds.contains(signal)) {
+            issues.add(
+              'findings[$index].exposureSignals contains unsupported signal: $signal',
+            );
+          }
+        }
+      }
+    }
+
+    final weaponState = finding['weaponState'];
+    if (weaponState != null &&
+        (weaponState is! String ||
+            !allowedWeaponStateIds.contains(weaponState))) {
+      issues.add('findings[$index].weaponState is not allowed: $weaponState');
     }
   }
 

@@ -5,6 +5,7 @@ enum FamilySafetyPolicyCategory {
   explicitNudity,
   sexualContent,
   suggestiveContent,
+  kissingRomance,
   immodestFemaleClothing,
   violence,
   gore,
@@ -19,6 +20,7 @@ extension FamilySafetyPolicyCategoryX on FamilySafetyPolicyCategory {
         FamilySafetyPolicyCategory.explicitNudity => 'explicit_nudity',
         FamilySafetyPolicyCategory.sexualContent => 'sexual_content',
         FamilySafetyPolicyCategory.suggestiveContent => 'suggestive_content',
+        FamilySafetyPolicyCategory.kissingRomance => 'kissing_romance',
         FamilySafetyPolicyCategory.immodestFemaleClothing =>
           'immodest_female_clothing',
         FamilySafetyPolicyCategory.violence => 'violence',
@@ -33,6 +35,7 @@ extension FamilySafetyPolicyCategoryX on FamilySafetyPolicyCategory {
         FamilySafetyPolicyCategory.explicitNudity => 'Explicit Nudity',
         FamilySafetyPolicyCategory.sexualContent => 'Sexual Content',
         FamilySafetyPolicyCategory.suggestiveContent => 'Suggestive Content',
+        FamilySafetyPolicyCategory.kissingRomance => 'Kissing/Romance',
         FamilySafetyPolicyCategory.immodestFemaleClothing =>
           'Immodest Female Clothing',
         FamilySafetyPolicyCategory.violence => 'Violence',
@@ -134,6 +137,12 @@ class FamilySafetyPolicyCatalog {
     ),
     FamilySafetyPolicyDefinition(
       category: FamilySafetyPolicyCategory.suggestiveContent,
+      defaultAction: RemediationAction.cutScene,
+      enforcementMode: FamilySafetyEnforcementMode.reviewFirst,
+      boundaryRequirement: BoundaryRequirement.sceneLevelAllowed,
+    ),
+    FamilySafetyPolicyDefinition(
+      category: FamilySafetyPolicyCategory.kissingRomance,
       defaultAction: RemediationAction.cutScene,
       enforcementMode: FamilySafetyEnforcementMode.reviewFirst,
       boundaryRequirement: BoundaryRequirement.sceneLevelAllowed,

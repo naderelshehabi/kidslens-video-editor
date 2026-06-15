@@ -19,6 +19,10 @@
 - **Default Detection Pipeline**: `vss_family_safety_v1`
 - **Runtime**: bundled official llama.cpp `llama-server` on `127.0.0.1`
 - **Default VLM Bundle**: official Qwen3-VL GGUF bundle from the model catalog
+- **Policy Taxonomy**: includes explicit nudity, sexual content, suggestive
+  content, kissing/romance, immodest female clothing, violence, gore, blood,
+  weapons, substances, and profanity. VLM findings may include optional
+  `exposureSignals` and `weaponState` fields for explainable policy severity.
 - **Persistence**: per-media evidence JSON, `AnalysisRunManifest`,
   `vss_checkpoint.json`, and local search index files
 - **Legacy Option**: `legacy_nsfw_region_v8` remains selectable and is used only

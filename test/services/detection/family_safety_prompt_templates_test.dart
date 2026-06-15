@@ -25,7 +25,11 @@ void main() {
       expect(prompt, contains('groundingStatus'));
       expect(prompt, contains('regionIds'));
       expect(prompt, contains('explicit_nudity'));
+      expect(prompt, contains('kissing_romance'));
       expect(prompt, contains('immodest_female_clothing'));
+      expect(prompt, contains('exposureSignals'));
+      expect(prompt, contains('weaponState'));
+      expect(prompt, contains('alcohol_consumption'));
       expect(prompt, contains('safe beach/swimwear'));
       expect(prompt, contains('bikini or revealing clothing'));
       expect(prompt, contains('exposed female legs'));
@@ -130,6 +134,25 @@ void main() {
         contains('findings[0].regionIds contains unknown id: missing_region'),
       );
     });
+
+    test('validates optional exposure signals and weapon state enums', () {
+      final fixture = _baseFixture();
+      final finding = (fixture['findings'] as List<Map<String, dynamic>>).first;
+      finding['exposureSignals'] = const <String>['bare_legs'];
+      finding['weaponState'] = 'toy/prop';
+
+      expect(FamilySafetyVlmOutputSchema.validate(fixture), isEmpty);
+
+      finding['exposureSignals'] = const <String>['unsupported_signal'];
+      finding['weaponState'] = 'unknown_state';
+      expect(
+        FamilySafetyVlmOutputSchema.validate(fixture),
+        containsAll([
+          'findings[0].exposureSignals contains unsupported signal: unsupported_signal',
+          'findings[0].weaponState is not allowed: unknown_state',
+        ]),
+      );
+    });
   });
 }
 
@@ -208,8 +231,8 @@ List<Map<String, dynamic>> _validFixtures() => [
       ),
       _baseFixture(
         caption: 'Two adults are romantically kissing.',
-        category: 'suggestive_content',
-        rationale: 'Romantic kissing is visible without nudity.',
+        category: 'kissing_romance',
+        rationale: 'Brief romantic kissing is visible without nudity.',
         groundingStatus: 'scene_level_only',
         regionIds: const <String>[],
       ),

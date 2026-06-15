@@ -129,11 +129,16 @@ class PolicyEngine {
     for (final rawFinding in rawFindings) {
       if (rawFinding is! Map) continue;
       final finding = Map<String, dynamic>.from(rawFinding);
-      final category = _tryCategory(finding['category']);
-      if (category == null) {
+      final rawCategory = _tryCategory(finding['category']);
+      if (rawCategory == null) {
         warnings.add('vlm finding skipped unknown category');
         continue;
       }
+      final rationale = _stringOrDefault(
+        finding['rationale'],
+        'The local VLM reported ${rawCategory.displayName}.',
+      );
+      final category = _normalizeVlmCategory(rawCategory, rationale);
       final confidence =
           (finding['confidence'] as num?)?.toDouble().clamp(0.0, 1.0) ?? 0.0;
       final needsReview = finding['needsReview'] as bool? ?? false;
@@ -156,16 +161,18 @@ class PolicyEngine {
         _finding(
           mediaId: record.mediaId,
           category: category,
-          severity: _severityFromAny(finding['severity']) ??
-              familySafetySeverityFromScore(confidence),
+          severity: _normalizeVlmSeverity(
+            category: category,
+            rawSeverity: _severityFromAny(finding['severity']),
+            confidence: confidence,
+            rationale: rationale,
+            finding: finding,
+          ),
           confidence: confidence,
           startTime: start,
           endTime: end,
           needsReview: needsReview,
-          rationale: _stringOrDefault(
-            finding['rationale'],
-            'The local VLM reported ${category.displayName}.',
-          ),
+          rationale: rationale,
           supportingEvidenceIds: supportingIds,
           sourceModels: _sourceModels(record),
           origins: const [PolicyFindingOrigin.vlm],
@@ -697,6 +704,114 @@ FamilySafetyPolicyCategory? _tryCategory(Object? value) {
     if (category.id == value) return category;
   }
   return null;
+}
+
+FamilySafetyPolicyCategory _normalizeVlmCategory(
+  FamilySafetyPolicyCategory category,
+  String rationale,
+) {
+  if (category == FamilySafetyPolicyCategory.kissingRomance &&
+      _containsAny(rationale, const [
+        'sexualized',
+        'sexual touching',
+        'simulated sexual',
+        'explicit sexual',
+      ])) {
+    return FamilySafetyPolicyCategory.sexualContent;
+  }
+  return category;
+}
+
+FamilySafetySeverity _normalizeVlmSeverity({
+  required FamilySafetyPolicyCategory category,
+  required FamilySafetySeverity? rawSeverity,
+  required double confidence,
+  required String rationale,
+  required Map<String, dynamic> finding,
+}) {
+  final base = rawSeverity ?? familySafetySeverityFromScore(confidence);
+  return switch (category) {
+    FamilySafetyPolicyCategory.kissingRomance =>
+      _kissingRomanceSeverity(base, rationale),
+    FamilySafetyPolicyCategory.sexualContent
+        when _containsAny(rationale, const [
+          'sexualized',
+          'sexual touching',
+          'simulated sexual',
+        ]) =>
+      _maxSeverity(base, FamilySafetySeverity.medium),
+    FamilySafetyPolicyCategory.immodestFemaleClothing =>
+      _immodestySeverity(base, finding),
+    FamilySafetyPolicyCategory.weapons => _weaponSeverity(base, finding),
+    _ => base,
+  };
+}
+
+FamilySafetySeverity _kissingRomanceSeverity(
+  FamilySafetySeverity base,
+  String rationale,
+) {
+  if (_containsAny(
+    rationale,
+    const ['prolonged', 'passionate', 'making out'],
+  )) {
+    return _maxSeverity(base, FamilySafetySeverity.medium);
+  }
+  if (_containsAny(rationale, const ['brief', 'peck', 'quick kiss'])) {
+    return FamilySafetySeverity.low;
+  }
+  return base.index > FamilySafetySeverity.medium.index
+      ? FamilySafetySeverity.medium
+      : base;
+}
+
+FamilySafetySeverity _immodestySeverity(
+  FamilySafetySeverity base,
+  Map<String, dynamic> finding,
+) {
+  final signals = _stringList(finding['exposureSignals']).toSet();
+  if (signals.isEmpty) return base;
+
+  const mediumSignals = <String>{
+    'swimwear',
+    'lingerie',
+    'sheer_clothing',
+    'miniskirt_minishort',
+    'cleavage',
+  };
+  if (signals.length > 1 || signals.any(mediumSignals.contains)) {
+    return _maxSeverity(base, FamilySafetySeverity.medium);
+  }
+  return FamilySafetySeverity.low;
+}
+
+FamilySafetySeverity _weaponSeverity(
+  FamilySafetySeverity base,
+  Map<String, dynamic> finding,
+) {
+  final weaponState = _stringOrDefault(finding['weaponState'], '');
+  final rationale = _stringOrDefault(finding['rationale'], '');
+  if (weaponState == 'toy/prop' ||
+      _containsAny(
+        rationale,
+        const ['toy weapon', 'prop weapon', 'toy/prop'],
+      )) {
+    return base == FamilySafetySeverity.none
+        ? FamilySafetySeverity.none
+        : FamilySafetySeverity.low;
+  }
+  return base;
+}
+
+FamilySafetySeverity _maxSeverity(
+  FamilySafetySeverity a,
+  FamilySafetySeverity b,
+) =>
+    a.index >= b.index ? a : b;
+
+bool _containsAny(String text, Iterable<String> needles) {
+  final normalized = text.toLowerCase();
+  return needles.any(normalized.contains);
 }
 
 FamilySafetyPolicyCategory? _categoryFromLegacyRegionLabel(String label) {

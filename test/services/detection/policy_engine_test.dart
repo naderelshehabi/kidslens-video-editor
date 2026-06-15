@@ -102,6 +102,117 @@ void main() {
         [FamilySafetyPolicyCategory.weapons],
       );
     });
+
+    test('maps kissing romance as review-first scene-level content', () {
+      final record = _vlmCaptionRecord(
+        findings: [
+          _vlmFinding(
+            category: FamilySafetyPolicyCategory.kissingRomance,
+            rationale: 'Brief peck kissing is visible without sexual activity.',
+          ),
+        ],
+      );
+
+      final result = const PolicyEngine().evaluate(
+        mediaId: _mediaId,
+        records: [record],
+      );
+
+      expect(
+        result.findings.single.category,
+        FamilySafetyPolicyCategory.kissingRomance,
+      );
+      expect(result.findings.single.severity, FamilySafetySeverity.low);
+      expect(result.findings.single.needsReview, isTrue);
+      expect(result.findings.single.groundingStatus, 'scene_level_only');
+    });
+
+    test('escalates sexualized romance context to sexual content', () {
+      final record = _vlmCaptionRecord(
+        findings: [
+          _vlmFinding(
+            category: FamilySafetyPolicyCategory.kissingRomance,
+            severity: 'low',
+            rationale:
+                'Romantic kissing includes sexualized touching and simulated sexual behavior.',
+          ),
+        ],
+      );
+
+      final result = const PolicyEngine().evaluate(
+        mediaId: _mediaId,
+        records: [record],
+      );
+
+      expect(
+        result.findings.single.category,
+        FamilySafetyPolicyCategory.sexualContent,
+      );
+      expect(result.findings.single.severity, FamilySafetySeverity.medium);
+    });
+
+    test('normalizes immodesty severity from exposure signals', () {
+      final record = _vlmCaptionRecord(
+        findings: [
+          _vlmFinding(
+            category: FamilySafetyPolicyCategory.immodestFemaleClothing,
+            exposureSignals: const ['bare_legs'],
+          ),
+          _vlmFinding(
+            category: FamilySafetyPolicyCategory.immodestFemaleClothing,
+            severity: 'low',
+            startTimeMs: 2000,
+            endTimeMs: 3000,
+            exposureSignals: const ['bare_legs', 'bare_midriff'],
+          ),
+          _vlmFinding(
+            category: FamilySafetyPolicyCategory.immodestFemaleClothing,
+            severity: 'low',
+            startTimeMs: 4000,
+            endTimeMs: 5000,
+            exposureSignals: const ['lingerie'],
+          ),
+        ],
+      );
+
+      final result = const PolicyEngine().evaluate(
+        mediaId: _mediaId,
+        records: [record],
+      );
+
+      expect(
+        result.findings.map((finding) => finding.severity),
+        [
+          FamilySafetySeverity.low,
+          FamilySafetySeverity.medium,
+          FamilySafetySeverity.medium,
+        ],
+      );
+    });
+
+    test('downgrades toy or prop weapon findings to low severity', () {
+      final record = _vlmCaptionRecord(
+        findings: [
+          _vlmFinding(
+            category: FamilySafetyPolicyCategory.weapons,
+            severity: 'critical',
+            weaponState: 'toy/prop',
+            rationale: 'A toy/prop gun-like object is displayed.',
+          ),
+        ],
+      );
+
+      final result = const PolicyEngine().evaluate(
+        mediaId: _mediaId,
+        records: [record],
+      );
+
+      expect(
+        result.findings.single.category,
+        FamilySafetyPolicyCategory.weapons,
+      );
+      expect(result.findings.single.severity, FamilySafetySeverity.low);
+    });
   });
 
   group('PolicyEngine legacy and transcript mapping', () {
@@ -420,19 +531,27 @@ Map<String, dynamic> _vlmFinding({
   required FamilySafetyPolicyCategory category,
   double confidence = 0.81,
   String severity = 'high',
+  String? rationale,
   String groundingStatus = 'scene_level_only',
   List<String> regionIds = const <String>[],
+  List<String>? exposureSignals,
+  String? weaponState,
+  int startTimeMs = 0,
+  int endTimeMs = 1000,
 }) =>
     {
       'category': category.id,
       'severity': severity,
       'confidence': confidence,
-      'rationale': 'Local VLM rationale for ${category.displayName}.',
-      'startTimeMs': 0,
-      'endTimeMs': 1000,
+      'rationale':
+          rationale ?? 'Local VLM rationale for ${category.displayName}.',
+      'startTimeMs': startTimeMs,
+      'endTimeMs': endTimeMs,
       'regionIds': regionIds,
       'groundingStatus': groundingStatus,
       'needsReview': false,
+      if (exposureSignals != null) 'exposureSignals': exposureSignals,
+      if (weaponState != null) 'weaponState': weaponState,
     };
 
 EvidenceRecord _vlmCaptionRecord({
