@@ -15,6 +15,15 @@
 - **Auto-Fallback**: If GPU unavailable, automatically uses CPU
 - **Build-time Detection**: CMake detects Vulkan SDK and enables GPU support if available
 
+### Local Family-Safety VLM Pipeline
+- **Default Detection Pipeline**: `vss_family_safety_v1`
+- **Runtime**: bundled official llama.cpp `llama-server` on `127.0.0.1`
+- **Default VLM Bundle**: official Qwen3-VL GGUF bundle from the model catalog
+- **Persistence**: per-media evidence JSON, `AnalysisRunManifest`,
+  `vss_checkpoint.json`, and local search index files
+- **Legacy Option**: `legacy_nsfw_region_v8` remains selectable and is used only
+  as a startup fallback when the VSS local model/runtime is unavailable
+
 ### Architectural Pattern
 The application follows a **Clean Architecture** approach, separated into layers:
 

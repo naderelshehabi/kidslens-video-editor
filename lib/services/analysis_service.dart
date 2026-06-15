@@ -10,14 +10,17 @@ import 'package:kidslens_video_editor/native/bindings/mms_bindings.dart';
 import 'package:kidslens_video_editor/native/bindings/onnx_bindings.dart';
 import 'package:kidslens_video_editor/native/bindings/whisper_bindings.dart';
 import 'package:kidslens_video_editor/services/asr_service.dart';
+import 'package:kidslens_video_editor/services/detection/analysis_stage_host.dart';
 import 'package:kidslens_video_editor/services/detection/detection_pipeline.dart';
 import 'package:kidslens_video_editor/services/detection/detection_pipeline_profile.dart';
 import 'package:kidslens_video_editor/services/detection/detection_pipeline_registry.dart';
 import 'package:kidslens_video_editor/services/detection/detection_pipeline_rollout.dart';
 import 'package:kidslens_video_editor/services/detection/legacy_nsfw_pipeline_adapter.dart';
-import 'package:kidslens_video_editor/services/detection/vss_family_safety_pipeline_adapter.dart';
+import 'package:kidslens_video_editor/services/detection/vss_family_safety_pipeline.dart';
 import 'package:kidslens_video_editor/services/frame_sampling_service.dart';
 import 'package:kidslens_video_editor/services/huggingface_model_registry.dart';
+import 'package:kidslens_video_editor/services/media_service.dart'
+    show MediaMetadata;
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
 import 'package:kidslens_video_editor/services/modesty_analysis_service.dart';
 import 'package:kidslens_video_editor/services/nsfw_model_adapter.dart';
@@ -103,7 +106,7 @@ class _VisualProgressUpdate {
 }
 
 /// Service for running content analysis on media files
-class AnalysisService {
+class AnalysisService implements AnalysisStageHost {
   AnalysisService({
     required this.ffmpeg,
     required this.whisper,
@@ -121,7 +124,11 @@ class AnalysisService {
     this.detectionPipelineRegistry = detectionPipelineRegistry ??
         DetectionPipelineRegistry(
           pipelines: [
-            VssFamilySafetyPipelineAdapter(runAnalysis: _runLegacyAnalysis),
+            VssFamilySafetyPipeline(
+              stageHost: this,
+              frameSamplingService: FrameSamplingService(ffmpeg: ffmpeg),
+              modelManager: modelManager,
+            ),
             LegacyNsfwPipelineAdapter(runLegacyAnalysis: _runLegacyAnalysis),
           ],
           defaultPipelineId: DetectionPipelineIds.vssFamilySafetyV1,
@@ -259,6 +266,233 @@ class AnalysisService {
     }
     return DetectionPipelineFailureKind.pipelineCrash;
   }
+
+  @override
+  Stream<AnalysisProgress> runLegacyAnalysis(
+    DetectionPipelineRequest request,
+  ) =>
+      _runLegacyAnalysis(request);
+
+  @override
+  Future<MediaMetadata> probeMedia(
+    String mediaPath, {
+    CancellationToken? cancellationToken,
+  }) async {
+    await _checkState(cancellationToken);
+    final metadata = await ffmpeg.probeMedia(mediaPath);
+    await _checkState(cancellationToken);
+    return metadata;
+  }
+
+  @override
+  Future<Transcript> transcribeAudio(
+    String mediaPath,
+    AnalysisSettings settings, {
+    CancellationToken? cancellationToken,
+    void Function(String message, double progress)? onProgress,
+  }) =>
+      _transcribeAudio(
+        mediaPath,
+        settings,
+        cancellationToken: cancellationToken,
+        onProgress: onProgress,
+      );
+
+  @override
+  Future<List<ProfanityMatch>> detectProfanity(
+    Transcript transcript,
+    AnalysisSettings settings, {
+    CancellationToken? cancellationToken,
+  }) =>
+      _detectProfanity(
+        transcript,
+        settings,
+        cancellationToken: cancellationToken,
+      );
+
+  @override
+  Stream<AnalysisVisualAuxiliaryProgressUpdate> runVisualAuxiliarySignals(
+    DetectionPipelineRequest request, {
+    required Duration mediaDuration,
+    required int currentStep,
+    required int totalSteps,
+  }) async* {
+    final settings = request.settings;
+    final enabledVisualCategories =
+        settings.contentDetectionConfig.enabledVisualCategories;
+    final includeNsfw =
+        enabledVisualCategories.any((category) => category.id == 'nsfw');
+    final includeRegionDetection = enabledVisualCategories.any(
+      (category) =>
+          _supportsRegionDetectorCategory(category) ||
+          _supportsParserCategory(category),
+    );
+    if (!includeNsfw && !includeRegionDetection) {
+      yield AnalysisVisualAuxiliaryProgressUpdate(
+        progress: _durationProgress(
+          stepName: 'Legacy auxiliary visual signals skipped',
+          currentStep: currentStep,
+          totalSteps: totalSteps,
+          processedDurationMs: 0,
+          totalDurationMs: mediaDuration.inMilliseconds,
+          stepProgress: 1,
+        ),
+        result: const AnalysisVisualAuxiliaryResult(),
+      );
+      return;
+    }
+
+    final effectiveMediaId = request.mediaId ?? request.mediaPath;
+    final mediaDurationMs =
+        mediaDuration.inMilliseconds <= 0 ? 1 : mediaDuration.inMilliseconds;
+    final frameResults = <FrameAnalysisResult>[];
+    final visualDetections = <Detection>[];
+    final visualContext = await _resolveVisualContext(settings);
+    final compatibleCheckpoint = _isVisualCheckpointCompatible(
+      request.checkpoint,
+      visualContext,
+    );
+
+    if (compatibleCheckpoint && request.checkpoint?.frameResults != null) {
+      frameResults.addAll(request.checkpoint!.frameResults!);
+      if (includeNsfw) {
+        visualDetections.addAll(
+          _buildVisualDetectionsFromFrames(
+            mediaId: effectiveMediaId,
+            frameResults: frameResults,
+            nsfwCategory: visualContext.nsfwCategory,
+            visualCategories: const <VisualContentCategory>[],
+          ),
+        );
+      }
+      if (includeRegionDetection) {
+        visualDetections.addAll(
+          _buildVisualDetectionsFromFrames(
+            mediaId: effectiveMediaId,
+            frameResults: frameResults,
+            nsfwCategory: null,
+            visualCategories: visualContext.visualCategories,
+          ),
+        );
+      }
+      yield AnalysisVisualAuxiliaryProgressUpdate(
+        progress: _durationProgress(
+          stepName: 'Legacy auxiliary visual signals restored',
+          currentStep: currentStep,
+          totalSteps: totalSteps,
+          processedDurationMs: mediaDurationMs,
+          totalDurationMs: mediaDurationMs,
+          stepProgress: 1,
+          itemsProcessed: visualDetections.length,
+          totalItems: visualDetections.length,
+        ),
+        result: AnalysisVisualAuxiliaryResult(
+          frameResults: List<FrameAnalysisResult>.unmodifiable(frameResults),
+          visualDetections: List<Detection>.unmodifiable(visualDetections),
+        ),
+      );
+      return;
+    }
+
+    if (includeNsfw) {
+      await for (final update in _runVisualAnalysis(
+        request.mediaPath,
+        effectiveMediaId,
+        mediaDuration,
+        settings,
+        visualContext,
+        runNsfwClassifier: true,
+        runNudityDetector: false,
+        nsfwCategoryForDetections: visualContext.nsfwCategory,
+        visualCategoriesForDetections: const <VisualContentCategory>[],
+        cancellationToken: request.cancellationToken,
+      )) {
+        final stepProgress = mediaDurationMs <= 0
+            ? 0.0
+            : (update.processedDurationMs / mediaDurationMs).clamp(0.0, 1.0);
+        if (update.output != null) {
+          _mergeFrameResults(frameResults, update.output!.frameResults);
+          visualDetections.addAll(update.output!.visualDetections);
+        }
+        yield AnalysisVisualAuxiliaryProgressUpdate(
+          progress: _durationProgress(
+            stepName: 'Legacy auxiliary: detecting NSFW',
+            currentStep: currentStep,
+            totalSteps: totalSteps,
+            processedDurationMs: update.processedDurationMs,
+            totalDurationMs: mediaDurationMs,
+            stepProgress: stepProgress,
+            itemsProcessed: update.itemsProcessed,
+            totalItems: update.totalItems,
+          ),
+        );
+      }
+    }
+
+    if (includeRegionDetection) {
+      var regionWarningMessage = '';
+      await for (final update in _runVisualAnalysis(
+        request.mediaPath,
+        effectiveMediaId,
+        mediaDuration,
+        settings,
+        visualContext,
+        runNsfwClassifier: false,
+        runNudityDetector: true,
+        nsfwCategoryForDetections: null,
+        visualCategoriesForDetections: visualContext.visualCategories,
+        cancellationToken: request.cancellationToken,
+      )) {
+        final stepProgress = mediaDurationMs <= 0
+            ? 0.0
+            : (update.processedDurationMs / mediaDurationMs).clamp(0.0, 1.0);
+        if (update.warningMessage != null &&
+            update.warningMessage!.isNotEmpty) {
+          regionWarningMessage = update.warningMessage!;
+        }
+        if (update.output != null) {
+          _mergeFrameResults(frameResults, update.output!.frameResults);
+          visualDetections.addAll(update.output!.visualDetections);
+        }
+        yield AnalysisVisualAuxiliaryProgressUpdate(
+          progress: _durationProgress(
+            stepName: regionWarningMessage.isEmpty
+                ? 'Legacy auxiliary: detecting body exposure'
+                : regionWarningMessage,
+            currentStep: currentStep,
+            totalSteps: totalSteps,
+            processedDurationMs: update.processedDurationMs,
+            totalDurationMs: mediaDurationMs,
+            stepProgress: stepProgress,
+            itemsProcessed: update.itemsProcessed,
+            totalItems: update.totalItems,
+          ),
+        );
+      }
+    }
+
+    request.onFrameResultsBuilt
+        ?.call(List<FrameAnalysisResult>.unmodifiable(frameResults));
+    yield AnalysisVisualAuxiliaryProgressUpdate(
+      progress: _durationProgress(
+        stepName: 'Legacy auxiliary visual signals complete',
+        currentStep: currentStep,
+        totalSteps: totalSteps,
+        processedDurationMs: mediaDurationMs,
+        totalDurationMs: mediaDurationMs,
+        stepProgress: 1,
+        itemsProcessed: visualDetections.length,
+        totalItems: visualDetections.length,
+      ),
+      result: AnalysisVisualAuxiliaryResult(
+        frameResults: List<FrameAnalysisResult>.unmodifiable(frameResults),
+        visualDetections: List<Detection>.unmodifiable(visualDetections),
+      ),
+    );
+  }
+
+  @override
+  Future<void> checkState(CancellationToken? token) => _checkState(token);
 
   Stream<AnalysisProgress> _runLegacyAnalysis(
     DetectionPipelineRequest request,

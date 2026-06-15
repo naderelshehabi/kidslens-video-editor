@@ -26,7 +26,8 @@ For detailed technical information, please refer to the documentation in the `do
 
 ## Features
 
-- **Visual Content Detection**: Identify inappropriate scenes using ONNX Runtime
+- **Local VLM Family-Safety Detection**: Analyze video chunks with the default local VSS pipeline using official open-weight VLM bundles and a loopback llama.cpp runtime
+- **Legacy Visual Detection Option**: Keep the older ONNX NSFW/NudeNet-style detectors selectable while the VSS pipeline is validated
 - **Audio Profanity Detection**: Detect offensive language in audio tracks
 - **Speech Transcription**: Automatic speech-to-text with Whisper AI
 - **Multi-language Support**: Analyze content in 100+ languages with Meta MMS

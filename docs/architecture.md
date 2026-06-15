@@ -182,11 +182,32 @@ The service layer contains business logic and coordinates between the state laye
 | Service | Responsibilities |
 |---------|------------------|
 | `MediaService` | Media import, metadata extraction, frame/audio extraction |
-| `AnalysisService` | Orchestrates ASR, visual analysis, and profanity detection |
+| `AnalysisService` | Routes analysis through pluggable detection pipelines; the default VSS pipeline runs local VLM chunk analysis, policy fusion, search indexing, and legacy fallback |
 | `ExportService` | Applies modifications and exports processed media |
 | `ProfanityService` | Dictionary-based profanity detection with phonetic matching |
 | `ModelManagerService` | Model downloads, validation, and lifecycle |
 | `SampleAnalysisService` | Quick 5-second sample analysis for preview |
+
+#### Detection Pipeline Architecture
+
+`AnalysisService` uses `DetectionPipelineRegistry` to select the active
+pipeline from `AnalysisSettings.analysisPipelineId`. The default profile is
+`vss_family_safety_v1`, implemented by
+`lib/services/detection/vss_family_safety_pipeline.dart`.
+
+The VSS pipeline is fully local. It resolves the official Qwen3-VL GGUF bundle
+from the model catalog, verifies downloaded artifacts and the pinned llama.cpp
+runtime, starts `llama-server` on loopback, plans deterministic video chunks,
+extracts JPEG frame payloads, and sends them to the local OpenAI-compatible
+provider. Provider responses persist as `EvidenceRecord`s, then
+`PolicyEngine` and `PolicyDetectionBuilder` create the final `Detection` list
+and `UnifiedTimeline`. Evidence, `AnalysisRunManifest`, `vss_checkpoint.json`,
+and the family-safety search index are written under the per-media analysis
+cache directory so runs can resume after cancellation.
+
+Legacy NSFW/NudeNet analysis remains available through the explicit
+`legacy_nsfw_region_v8` profile and is also used as a startup fallback when the
+local VSS model/runtime is not available.
 
 ---
 
