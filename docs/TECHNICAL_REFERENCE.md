@@ -28,6 +28,13 @@
 - **First Run**: starting VSS analysis with a missing model bundle or runtime
   opens a local setup dialog. Users can start the official downloads or persist
   a switch to the legacy pipeline for that run path.
+- **RTX Validation**: `scripts/vss_validation_runner.dart` validates a supplied
+  `EvaluationDataset` manifest and clip directory, consumes prediction JSON or
+  invokes an external real-pipeline command per profile/clip, polls
+  `nvidia-smi` for peak VRAM, and writes comparison reports under
+  `docs/implement/validation-reports/`. The production-default model flip
+  remains gated on a passing report using the user-supplied unsafe validation
+  clip set.
 - **Search Embeddings**: when `qwen3_embedding_0_6b_gguf_q8` is downloaded,
   VSS starts a second local `llama-server` embedding instance and posts batched
   OpenAI-compatible `/v1/embeddings` requests. If the embedding bundle or server

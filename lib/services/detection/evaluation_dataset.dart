@@ -38,6 +38,19 @@ class EvaluationDataset {
     required this.clips,
   });
 
+  factory EvaluationDataset.fromJson(Map<String, dynamic> json) =>
+      EvaluationDataset(
+        id: _readString(json, 'id'),
+        version: _readString(json, 'version'),
+        clips: _readList(json, 'clips')
+            .map(
+              (value) => EvaluationClip.fromJson(
+                _readMap(value, 'clips[]'),
+              ),
+            )
+            .toList(growable: false),
+      );
+
   final String id;
   final String version;
   final List<EvaluationClip> clips;
@@ -91,7 +104,7 @@ class EvaluationDataset {
         'clips': clips.map((clip) => clip.toJson()).toList(),
       };
 
-  static final familySafetyV1Smoke = EvaluationDataset(
+  static const familySafetyV1Smoke = EvaluationDataset(
     id: 'kidslens_family_safety_v1_smoke',
     version: '2026-06-08',
     clips: [
@@ -99,17 +112,17 @@ class EvaluationDataset {
         id: 'safe_kitchen_001',
         mediaId: 'safe_kitchen_001',
         relativePath: 'fixtures/evaluation/safe_kitchen_001.mp4',
-        duration: const Duration(seconds: 24),
-        kinds: const {EvaluationClipKind.safeControl},
+        duration: Duration(seconds: 24),
+        kinds: {EvaluationClipKind.safeControl},
         notes: 'Safe cooking scene with adults and children fully clothed.',
-        groundTruth: const [],
+        groundTruth: [],
       ),
       EvaluationClip(
         id: 'nudity_beach_legs_001',
         mediaId: 'nudity_beach_legs_001',
         relativePath: 'fixtures/evaluation/nudity_beach_legs_001.mp4',
-        duration: const Duration(seconds: 18),
-        kinds: const {
+        duration: Duration(seconds: 18),
+        kinds: {
           EvaluationClipKind.categoryPositive,
           EvaluationClipKind.immodestClothing,
         },
@@ -131,8 +144,8 @@ class EvaluationDataset {
         id: 'explicit_nudity_scene_001',
         mediaId: 'explicit_nudity_scene_001',
         relativePath: 'fixtures/evaluation/explicit_nudity_scene_001.mp4',
-        duration: const Duration(seconds: 14),
-        kinds: const {EvaluationClipKind.categoryPositive},
+        duration: Duration(seconds: 14),
+        kinds: {EvaluationClipKind.categoryPositive},
         notes: 'Explicit nudity positive with region-level boundary.',
         groundTruth: [
           EvaluationAnnotation(
@@ -150,8 +163,8 @@ class EvaluationDataset {
         id: 'violence_shadow_001',
         mediaId: 'violence_shadow_001',
         relativePath: 'fixtures/evaluation/violence_shadow_001.mp4',
-        duration: const Duration(seconds: 16),
-        kinds: const {
+        duration: Duration(seconds: 16),
+        kinds: {
           EvaluationClipKind.categoryPositive,
           EvaluationClipKind.lowLightMotionBlur,
         },
@@ -171,8 +184,8 @@ class EvaluationDataset {
         id: 'blood_flash_001',
         mediaId: 'blood_flash_001',
         relativePath: 'fixtures/evaluation/blood_flash_001.mp4',
-        duration: const Duration(seconds: 12),
-        kinds: const {
+        duration: Duration(seconds: 12),
+        kinds: {
           EvaluationClipKind.categoryPositive,
           EvaluationClipKind.shortUnsafeFlash,
         },
@@ -193,8 +206,8 @@ class EvaluationDataset {
         id: 'weapon_context_001',
         mediaId: 'weapon_context_001',
         relativePath: 'fixtures/evaluation/weapon_context_001.mp4',
-        duration: const Duration(seconds: 75),
-        kinds: const {
+        duration: Duration(seconds: 75),
+        kinds: {
           EvaluationClipKind.categoryPositive,
           EvaluationClipKind.longTemporalContext,
         },
@@ -215,20 +228,20 @@ class EvaluationDataset {
         id: 'ambiguous_sports_contact_001',
         mediaId: 'ambiguous_sports_contact_001',
         relativePath: 'fixtures/evaluation/ambiguous_sports_contact_001.mp4',
-        duration: const Duration(seconds: 20),
-        kinds: const {
+        duration: Duration(seconds: 20),
+        kinds: {
           EvaluationClipKind.safeControl,
           EvaluationClipKind.ambiguousBoundary,
         },
         notes: 'Sports contact that should not be labeled as violence.',
-        groundTruth: const [],
+        groundTruth: [],
       ),
       EvaluationClip(
         id: 'gore_scene_001',
         mediaId: 'gore_scene_001',
         relativePath: 'fixtures/evaluation/gore_scene_001.mp4',
-        duration: const Duration(seconds: 22),
-        kinds: const {EvaluationClipKind.categoryPositive},
+        duration: Duration(seconds: 22),
+        kinds: {EvaluationClipKind.categoryPositive},
         notes: 'Gore-positive scene-level unsafe example.',
         groundTruth: [
           EvaluationAnnotation(
@@ -255,6 +268,24 @@ class EvaluationClip {
     required this.notes,
     required this.groundTruth,
   });
+
+  factory EvaluationClip.fromJson(Map<String, dynamic> json) => EvaluationClip(
+        id: _readString(json, 'id'),
+        mediaId: _readString(json, 'mediaId'),
+        relativePath: _readString(json, 'relativePath'),
+        duration: Duration(milliseconds: _readInt(json, 'durationMs')),
+        kinds: _readList(json, 'kinds')
+            .map((value) => _readClipKind('$value'))
+            .toSet(),
+        notes: _readString(json, 'notes'),
+        groundTruth: _readList(json, 'groundTruth')
+            .map(
+              (value) => EvaluationAnnotation.fromJson(
+                _readMap(value, 'groundTruth[]'),
+              ),
+            )
+            .toList(growable: false),
+      );
 
   final String id;
   final String mediaId;
@@ -361,6 +392,34 @@ class EvaluationAnnotation {
         metadata: finding.toJson(),
       );
 
+  factory EvaluationAnnotation.fromJson(Map<String, dynamic> json) =>
+      EvaluationAnnotation(
+        id: _readString(json, 'id'),
+        categoryId: _readString(json, 'categoryId'),
+        startTime: Duration(milliseconds: _readInt(json, 'startTimeMs')),
+        endTime: Duration(milliseconds: _readInt(json, 'endTimeMs')),
+        severity: _readString(json, 'severity'),
+        confidence: _readDouble(json, 'confidence', defaultValue: 1),
+        requiresReview: _readBool(
+          json,
+          'requiresReview',
+          defaultValue: false,
+        ),
+        rationale: _readString(json, 'rationale'),
+        box: json['box'] == null
+            ? null
+            : EvaluationBox.fromJson(_readMap(json['box'], 'box')),
+        maskId: json['maskId'] as String?,
+        maskIouHint: json['maskIouHint'] == null
+            ? null
+            : _readDouble(json, 'maskIouHint'),
+        sourceProfileId: json['sourceProfileId'] as String?,
+        runtimeId: json['runtimeId'] as String?,
+        metadata: json['metadata'] is Map
+            ? Map<String, dynamic>.from(json['metadata'] as Map)
+            : const <String, dynamic>{},
+      );
+
   final String id;
   final String categoryId;
   final Duration startTime;
@@ -422,6 +481,13 @@ class EvaluationBox {
     required this.width,
     required this.height,
   });
+
+  factory EvaluationBox.fromJson(Map<String, dynamic> json) => EvaluationBox(
+        x: _readDouble(json, 'x'),
+        y: _readDouble(json, 'y'),
+        width: _readDouble(json, 'width'),
+        height: _readDouble(json, 'height'),
+      );
 
   final double x;
   final double y;
@@ -502,6 +568,32 @@ class EvaluationProfilePredictions {
         vramUsageMb: vramUsageMb,
       );
 
+  factory EvaluationProfilePredictions.fromJson(Map<String, dynamic> json) {
+    final detectionsJson =
+        _readMap(json['detectionsByClipId'], 'detectionsByClipId');
+    return EvaluationProfilePredictions(
+      profileId: _readString(json, 'profileId'),
+      displayName: json['displayName'] as String? ??
+          EvaluationProfileId.tryParse(_readString(json, 'profileId'))
+              ?.displayName ??
+          _readString(json, 'profileId'),
+      runtimeId: json['runtimeId'] as String?,
+      detectionsByClipId: {
+        for (final entry in detectionsJson.entries)
+          entry.key: _readList(detectionsJson, entry.key)
+              .map(
+                (value) => EvaluationAnnotation.fromJson(
+                  _readMap(value, '${entry.key}[]'),
+                ),
+              )
+              .toList(growable: false),
+      },
+      chunkLatencyMs: _readOptionalIntList(json, 'chunkLatencyMs'),
+      memoryUsageMb: _readOptionalIntList(json, 'memoryUsageMb'),
+      vramUsageMb: _readOptionalIntList(json, 'vramUsageMb'),
+    );
+  }
+
   final String profileId;
   final String displayName;
   final Map<String, List<EvaluationAnnotation>> detectionsByClipId;
@@ -529,27 +621,23 @@ class EvaluationProfilePredictions {
         detectionsByProfile,
     Map<String, Map<String, List<EvaluationAnnotation>>> detectionsByRuntime =
         const <String, Map<String, List<EvaluationAnnotation>>>{},
-  }) {
-    final profiles = <EvaluationProfilePredictions>[
-      for (final profile in EvaluationProfileId.values)
-        EvaluationProfilePredictions.forBuiltInProfile(
-          profile: profile,
-          detectionsByClipId: detectionsByProfile[profile] ??
-              const <String, List<EvaluationAnnotation>>{},
+  }) =>
+      <EvaluationProfilePredictions>[
+        for (final profile in EvaluationProfileId.values)
+          EvaluationProfilePredictions.forBuiltInProfile(
+            profile: profile,
+            detectionsByClipId: detectionsByProfile[profile] ??
+                const <String, List<EvaluationAnnotation>>{},
+          ),
+        ...detectionsByRuntime.entries.map(
+          (entry) => EvaluationProfilePredictions(
+            profileId: 'runtime_${entry.key}',
+            displayName: 'Runtime ${entry.key}',
+            runtimeId: entry.key,
+            detectionsByClipId: entry.value,
+          ),
         ),
-    ];
-    profiles.addAll(
-      detectionsByRuntime.entries.map(
-        (entry) => EvaluationProfilePredictions(
-          profileId: 'runtime_${entry.key}',
-          displayName: 'Runtime ${entry.key}',
-          runtimeId: entry.key,
-          detectionsByClipId: entry.value,
-        ),
-      ),
-    );
-    return profiles;
-  }
+      ];
 }
 
 EvaluationBox? _boxFromMetadata(Map<String, dynamic> metadata) {
@@ -568,4 +656,69 @@ EvaluationBox? _boxFromMetadata(Map<String, dynamic> metadata) {
     width: width.toDouble(),
     height: height.toDouble(),
   );
+}
+
+EvaluationClipKind _readClipKind(String value) {
+  for (final kind in EvaluationClipKind.values) {
+    if (kind.name == value) return kind;
+  }
+  throw FormatException('Unknown evaluation clip kind: $value');
+}
+
+Map<String, dynamic> _readMap(Object? value, String field) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return Map<String, dynamic>.from(value);
+  throw FormatException('$field must be an object');
+}
+
+List<dynamic> _readList(Map<String, dynamic> json, String field) {
+  final value = json[field];
+  if (value is List) return value;
+  throw FormatException('$field must be a list');
+}
+
+String _readString(Map<String, dynamic> json, String field) {
+  final value = json[field];
+  if (value is String) return value;
+  throw FormatException('$field must be a string');
+}
+
+int _readInt(Map<String, dynamic> json, String field) {
+  final value = json[field];
+  if (value is int) return value;
+  if (value is num) return value.round();
+  throw FormatException('$field must be an integer');
+}
+
+double _readDouble(
+  Map<String, dynamic> json,
+  String field, {
+  double? defaultValue,
+}) {
+  final value = json[field];
+  if (value == null && defaultValue != null) return defaultValue;
+  if (value is num) return value.toDouble();
+  throw FormatException('$field must be a number');
+}
+
+bool _readBool(
+  Map<String, dynamic> json,
+  String field, {
+  required bool defaultValue,
+}) {
+  final value = json[field];
+  if (value == null) return defaultValue;
+  if (value is bool) return value;
+  throw FormatException('$field must be a boolean');
+}
+
+List<int> _readOptionalIntList(Map<String, dynamic> json, String field) {
+  final value = json[field];
+  if (value == null) return const <int>[];
+  if (value is! List) throw FormatException('$field must be a list');
+  return value.map((entry) {
+    if (entry is int) return entry;
+    if (entry is num) return entry.round();
+    throw FormatException('$field entries must be integers');
+  }).toList(growable: false);
 }
