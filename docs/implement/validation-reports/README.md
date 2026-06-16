@@ -15,5 +15,11 @@ emit `EvaluationAnnotation` JSON to stdout. The runner validates clip files,
 records latency, schema failures, crashes, peak VRAM samples from `nvidia-smi`,
 and adds grounding localization metrics.
 
+Each report includes `rtxValidationGate`. It fails if the comparison exit gate
+fails, the default profile p95 chunk latency exceeds 8000 ms, any profile
+reports schema failures/crashes/runtime errors, peak VRAM exceeds 12288 MB, or
+default latency/VRAM samples are missing. Use `--fail-on-validation-gate` in CI
+or release validation jobs to return a non-zero exit code when this gate fails.
+
 Do not commit unsafe validation clips. Commit only reviewed aggregate reports
 that are safe to publish.

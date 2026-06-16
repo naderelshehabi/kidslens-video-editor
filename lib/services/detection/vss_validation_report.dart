@@ -40,6 +40,7 @@ class VssValidationReport {
     required this.comparison,
     required this.profileRuns,
     required this.groundingComparison,
+    required this.rtxValidationGate,
   });
 
   final DateTime generatedAt;
@@ -47,6 +48,7 @@ class VssValidationReport {
   final EvaluationComparisonReport comparison;
   final List<VssValidationProfileRun> profileRuns;
   final VssGroundingComparisonReport groundingComparison;
+  final VssRtxValidationGateResult rtxValidationGate;
 
   Map<String, dynamic> toJson() => {
         'generatedAt': generatedAt.toUtc().toIso8601String(),
@@ -70,6 +72,7 @@ class VssValidationReport {
             },
         },
         'groundingComparison': groundingComparison.toJson(),
+        'rtxValidationGate': rtxValidationGate.toJson(),
       };
 
   String toPrettyJson() => const JsonEncoder.withIndent('  ').convert(toJson());
@@ -79,10 +82,12 @@ class VssValidationReportBuilder {
   const VssValidationReportBuilder({
     this.runner = const EvaluationRunner(),
     this.thresholds = const EvaluationThresholds(),
+    this.rtxThresholds = const VssRtxValidationThresholds(),
   });
 
   final EvaluationRunner runner;
   final EvaluationThresholds thresholds;
+  final VssRtxValidationThresholds rtxThresholds;
 
   VssValidationReport build({
     required EvaluationDataset dataset,
@@ -96,19 +101,142 @@ class VssValidationReportBuilder {
           profileRuns.map((run) => run.predictions).toList(growable: false),
       thresholds: thresholds,
     );
+    final groundingComparison = VssGroundingComparisonReport.compute(
+      dataset: dataset,
+      profileRuns: profileRuns,
+      temporalIouThreshold: runner.temporalIouThreshold,
+      boxIouThreshold: runner.boxIouThreshold,
+    );
     return VssValidationReport(
       generatedAt: generatedAt ?? DateTime.now().toUtc(),
       datasetRoot: datasetRoot,
       comparison: comparison,
       profileRuns: profileRuns,
-      groundingComparison: VssGroundingComparisonReport.compute(
-        dataset: dataset,
+      groundingComparison: groundingComparison,
+      rtxValidationGate: VssRtxValidationGateResult.evaluate(
+        comparison: comparison,
         profileRuns: profileRuns,
-        temporalIouThreshold: runner.temporalIouThreshold,
-        boxIouThreshold: runner.boxIouThreshold,
+        thresholds: rtxThresholds,
       ),
     );
   }
+}
+
+class VssRtxValidationThresholds {
+  const VssRtxValidationThresholds({
+    this.maxDefaultChunkLatencyP95Ms = 8000,
+    this.maxPeakVramMb = 12288,
+    this.maxSchemaFailureCount = 0,
+    this.maxCrashCount = 0,
+  });
+
+  final int maxDefaultChunkLatencyP95Ms;
+  final int maxPeakVramMb;
+  final int maxSchemaFailureCount;
+  final int maxCrashCount;
+
+  Map<String, dynamic> toJson() => {
+        'maxDefaultChunkLatencyP95Ms': maxDefaultChunkLatencyP95Ms,
+        'maxPeakVramMb': maxPeakVramMb,
+        'maxSchemaFailureCount': maxSchemaFailureCount,
+        'maxCrashCount': maxCrashCount,
+      };
+}
+
+class VssRtxValidationGateResult {
+  const VssRtxValidationGateResult({
+    required this.passed,
+    required this.defaultProfileId,
+    required this.issues,
+    required this.thresholds,
+  });
+
+  factory VssRtxValidationGateResult.evaluate({
+    required EvaluationComparisonReport comparison,
+    required List<VssValidationProfileRun> profileRuns,
+    required VssRtxValidationThresholds thresholds,
+  }) {
+    final issues = <String>[];
+    if (!comparison.exitGate.passed) {
+      issues.addAll(
+        comparison.exitGate.issues.map((issue) => 'exit gate: $issue'),
+      );
+    }
+
+    VssValidationProfileRun? defaultRun;
+    for (final run in profileRuns) {
+      if (run.predictions.profileId == comparison.defaultProfileId) {
+        defaultRun = run;
+      }
+      if (run.schemaFailureCount > thresholds.maxSchemaFailureCount) {
+        issues.add(
+          '${run.predictions.profileId}: schema failure count '
+          '${run.schemaFailureCount} exceeds '
+          '${thresholds.maxSchemaFailureCount}',
+        );
+      }
+      if (run.crashCount > thresholds.maxCrashCount) {
+        issues.add(
+          '${run.predictions.profileId}: crash count ${run.crashCount} '
+          'exceeds ${thresholds.maxCrashCount}',
+        );
+      }
+      if (run.errors.isNotEmpty) {
+        issues.add('${run.predictions.profileId}: runtime errors reported');
+      }
+      final peakVram = _maxOrZero(run.predictions.vramUsageMb);
+      if (peakVram > thresholds.maxPeakVramMb) {
+        issues.add(
+          '${run.predictions.profileId}: peak VRAM ${peakVram}MB exceeds '
+          '${thresholds.maxPeakVramMb}MB',
+        );
+      }
+    }
+
+    if (defaultRun == null) {
+      issues.add(
+        'default profile ${comparison.defaultProfileId} was not evaluated',
+      );
+    } else {
+      final latencies = defaultRun.predictions.chunkLatencyMs;
+      if (latencies.isEmpty) {
+        issues.add(
+          '${comparison.defaultProfileId}: chunk latency samples are missing',
+        );
+      } else {
+        final p95 = _percentile(latencies, 0.95);
+        if (p95 > thresholds.maxDefaultChunkLatencyP95Ms) {
+          issues.add(
+            '${comparison.defaultProfileId}: p95 chunk latency ${p95}ms '
+            'exceeds ${thresholds.maxDefaultChunkLatencyP95Ms}ms; reduce '
+            'first-pass frames to 6 and/or long side to 640, then re-measure',
+          );
+        }
+      }
+      if (defaultRun.predictions.vramUsageMb.isEmpty) {
+        issues.add('${comparison.defaultProfileId}: VRAM samples are missing');
+      }
+    }
+
+    return VssRtxValidationGateResult(
+      passed: issues.isEmpty,
+      defaultProfileId: comparison.defaultProfileId,
+      issues: issues,
+      thresholds: thresholds,
+    );
+  }
+
+  final bool passed;
+  final String defaultProfileId;
+  final List<String> issues;
+  final VssRtxValidationThresholds thresholds;
+
+  Map<String, dynamic> toJson() => {
+        'passed': passed,
+        'defaultProfileId': defaultProfileId,
+        'thresholds': thresholds.toJson(),
+        'issues': issues,
+      };
 }
 
 class VssGroundingComparisonReport {

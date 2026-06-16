@@ -32,9 +32,11 @@
   `EvaluationDataset` manifest and clip directory, consumes prediction JSON or
   invokes an external real-pipeline command per profile/clip, polls
   `nvidia-smi` for peak VRAM, and writes comparison reports under
-  `docs/implement/validation-reports/`. The production-default model flip
-  remains gated on a passing report using the user-supplied unsafe validation
-  clip set.
+  `docs/implement/validation-reports/`. Reports include `rtxValidationGate`,
+  which can fail CI via `--fail-on-validation-gate` when recall, latency,
+  schema/crash, VRAM, or missing runtime-telemetry gates fail. The
+  production-default model flip remains gated on a passing report using the
+  user-supplied unsafe validation clip set.
 - **Search Embeddings**: when `qwen3_embedding_0_6b_gguf_q8` is downloaded,
   VSS starts a second local `llama-server` embedding instance and posts batched
   OpenAI-compatible `/v1/embeddings` requests. If the embedding bundle or server

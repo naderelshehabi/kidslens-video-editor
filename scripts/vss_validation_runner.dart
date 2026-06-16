@@ -56,12 +56,13 @@ Future<void> main(List<String> args) async {
 
   stdout.writeln(
     const JsonEncoder.withIndent('  ').convert({
-      'status': report.comparison.exitGate.passed ? 'passed' : 'failed',
+      'status': report.rtxValidationGate.passed ? 'passed' : 'failed',
       'outputPath': outputFile.path,
       'exitGate': report.comparison.exitGate.toJson(),
+      'rtxValidationGate': report.rtxValidationGate.toJson(),
     }),
   );
-  if (!report.comparison.exitGate.passed && options.failOnExitGate) {
+  if (!report.rtxValidationGate.passed && options.failOnValidationGate) {
     exitCode = 1;
   }
 }
@@ -268,7 +269,7 @@ class _ValidationOptions {
     required this.runtimeId,
     required this.commandTimeout,
     required this.gpuPollInterval,
-    required this.failOnExitGate,
+    required this.failOnValidationGate,
     required this.showHelp,
   });
 
@@ -282,7 +283,7 @@ class _ValidationOptions {
     var profiles = EvaluationProfileId.values.toList(growable: false);
     var commandTimeout = const Duration(minutes: 20);
     var gpuPollInterval = const Duration(seconds: 2);
-    var failOnExitGate = false;
+    var failOnValidationGate = false;
     var showHelp = false;
 
     for (var i = 0; i < args.length; i += 1) {
@@ -317,8 +318,9 @@ class _ValidationOptions {
           commandTimeout = Duration(minutes: int.parse(readValue()));
         case '--gpu-poll-seconds':
           gpuPollInterval = Duration(seconds: int.parse(readValue()));
+        case '--fail-on-validation-gate':
         case '--fail-on-exit-gate':
-          failOnExitGate = true;
+          failOnValidationGate = true;
         case '--help':
         case '-h':
           showHelp = true;
@@ -338,7 +340,7 @@ class _ValidationOptions {
         runtimeId: runtimeId,
         commandTimeout: commandTimeout,
         gpuPollInterval: gpuPollInterval,
-        failOnExitGate: failOnExitGate,
+        failOnValidationGate: failOnValidationGate,
         showHelp: true,
       );
     }
@@ -370,7 +372,7 @@ class _ValidationOptions {
       runtimeId: runtimeId,
       commandTimeout: commandTimeout,
       gpuPollInterval: gpuPollInterval,
-      failOnExitGate: failOnExitGate,
+      failOnValidationGate: failOnValidationGate,
       showHelp: false,
     );
   }
@@ -384,7 +386,7 @@ class _ValidationOptions {
   final String? runtimeId;
   final Duration commandTimeout;
   final Duration gpuPollInterval;
-  final bool failOnExitGate;
+  final bool failOnValidationGate;
   final bool showHelp;
 }
 
@@ -517,5 +519,6 @@ Options:
   --output path\\report.json
   --command-timeout-minutes 20
   --gpu-poll-seconds 2
-  --fail-on-exit-gate
+  --fail-on-validation-gate
+  --fail-on-exit-gate  (legacy alias for --fail-on-validation-gate)
 ''';
