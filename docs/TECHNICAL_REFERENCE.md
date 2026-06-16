@@ -28,6 +28,10 @@
 - **First Run**: starting VSS analysis with a missing model bundle or runtime
   opens a local setup dialog. Users can start the official downloads or persist
   a switch to the legacy pipeline for that run path.
+- **Downloads**: official Hugging Face model bundles and GitHub llama.cpp
+  runtime archives use bounded parallel HTTP range requests for large files,
+  verify sizes/checksums, and fall back to a single stream when a server does
+  not support `Range`.
 - **RTX Validation**: `scripts/vss_validation_runner.dart` validates a supplied
   `EvaluationDataset` manifest and clip directory, consumes prediction JSON or
   invokes an external real-pipeline command per profile/clip, polls

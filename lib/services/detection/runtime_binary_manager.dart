@@ -6,6 +6,7 @@ import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:kidslens_video_editor/data/models/models.dart';
+import 'package:kidslens_video_editor/services/high_performance_downloader.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -133,11 +134,13 @@ class RuntimeBinaryManager {
     http.Client Function()? httpClientFactory,
     RuntimeArchiveExtractor? archiveExtractor,
     Map<LocalRuntimeId, RuntimeBinarySpec>? specOverrides,
+    HighPerformanceDownloader downloader = const HighPerformanceDownloader(),
   })  : _customRuntimeRoot = customRuntimeRoot,
         _httpClientFactory = httpClientFactory ?? http.Client.new,
         _archiveExtractor = archiveExtractor ?? _extractZipArchive,
         _specOverrides =
-            specOverrides ?? const <LocalRuntimeId, RuntimeBinarySpec>{};
+            specOverrides ?? const <LocalRuntimeId, RuntimeBinarySpec>{},
+        _downloader = downloader;
 
   static const _runtimeSubdir = 'kidslens_runtimes';
   static const _llamaCppSubdir = 'llamacpp';
@@ -206,6 +209,7 @@ class RuntimeBinaryManager {
   final http.Client Function() _httpClientFactory;
   final RuntimeArchiveExtractor _archiveExtractor;
   final Map<LocalRuntimeId, RuntimeBinarySpec> _specOverrides;
+  final HighPerformanceDownloader _downloader;
   String? _runtimeRoot;
 
   Future<String> get runtimeRoot async {
@@ -316,47 +320,38 @@ class RuntimeBinaryManager {
           continue;
         }
 
-        final request = http.Request('GET', asset.downloadUrl);
-        final response = await client.send(request);
-        if (response.statusCode != HttpStatus.ok) {
-          await response.stream.drain<void>();
+        final progressDeltas = StreamController<int>();
+        late final Future<HighPerformanceDownloadResult> downloadFuture;
+        try {
+          downloadFuture = _downloader
+              .download(
+                client: client,
+                uri: asset.downloadUrl,
+                destination: destination,
+                expectedSizeBytes: asset.sizeBytes,
+                expectedSha256: asset.sha256,
+                onProgress: progressDeltas.add,
+              )
+              .whenComplete(progressDeltas.close);
+          await for (final bytesDelta in progressDeltas.stream) {
+            downloadedBytes += bytesDelta;
+            yield RuntimeBinaryInstallProgress(
+              runtimeId: runtimeId,
+              percentage: (downloadedBytes / totalBytes).clamp(0.0, 1.0),
+              downloadedBytes: downloadedBytes,
+              totalBytes: totalBytes,
+              status: RuntimeBinaryInstallStatus.downloading,
+              currentAsset: asset.name,
+            );
+          }
+          await downloadFuture;
+        } on HighPerformanceDownloadException catch (error) {
           throw RuntimeBinaryException(
-            'HTTP ${response.statusCode} while downloading ${asset.name}',
+            error.statusCode == null
+                ? 'Failed downloading ${asset.name}: ${error.message}'
+                : 'HTTP ${error.statusCode} while downloading ${asset.name}',
           );
         }
-
-        final partial = File('${destination.path}.partial');
-        final sink = partial.openWrite();
-        var assetBytes = 0;
-        await for (final chunk in response.stream) {
-          sink.add(chunk);
-          assetBytes += chunk.length;
-          downloadedBytes += chunk.length;
-          yield RuntimeBinaryInstallProgress(
-            runtimeId: runtimeId,
-            percentage: (downloadedBytes / totalBytes).clamp(0.0, 1.0),
-            downloadedBytes: downloadedBytes,
-            totalBytes: totalBytes,
-            status: RuntimeBinaryInstallStatus.downloading,
-            currentAsset: asset.name,
-          );
-        }
-        await sink.close();
-
-        if (assetBytes != asset.sizeBytes) {
-          throw RuntimeBinaryException(
-            'Downloaded ${asset.name} size mismatch: expected ${asset.sizeBytes}, got $assetBytes',
-          );
-        }
-        if (!await _sha256Matches(partial, asset.sha256)) {
-          throw RuntimeBinaryException(
-            'Downloaded ${asset.name} checksum mismatch',
-          );
-        }
-        if (destination.existsSync()) {
-          await destination.delete();
-        }
-        await partial.rename(destination.path);
       }
 
       yield RuntimeBinaryInstallProgress(

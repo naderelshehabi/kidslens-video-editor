@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:kidslens_video_editor/data/models/models.dart';
+import 'package:kidslens_video_editor/services/high_performance_downloader.dart';
 import 'package:kidslens_video_editor/services/huggingface_model_registry.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -102,10 +104,12 @@ class ModelManagerService {
     String? customModelsPath,
     String huggingFaceBaseUrl = 'https://huggingface.co',
     http.Client Function()? httpClientFactory,
+    HighPerformanceDownloader downloader = const HighPerformanceDownloader(),
   })  : _registry = registry ?? HuggingFaceModelRegistry.instance,
         _customModelsPath = customModelsPath,
         _huggingFaceBaseUri = Uri.parse(huggingFaceBaseUrl),
-        _httpClientFactory = httpClientFactory ?? http.Client.new;
+        _httpClientFactory = httpClientFactory ?? http.Client.new,
+        _downloader = downloader;
 
   static const String _modelsSubdir = 'kidslens_models';
   static const String _metadataFileName = 'model_metadata.json';
@@ -124,6 +128,7 @@ class ModelManagerService {
   final String? _customModelsPath;
   final Uri _huggingFaceBaseUri;
   final http.Client Function() _httpClientFactory;
+  final HighPerformanceDownloader _downloader;
   String? _cacheDir;
 
   /// Get the models cache directory
@@ -430,50 +435,58 @@ class ModelManagerService {
           revision: manifest.officialRevision,
           filePath: fileRef.path,
         );
-        final request = http.Request('GET', downloadUri);
-        _addHuggingFaceAuth(request, huggingFaceToken);
-        final response = await client.send(request);
-        if (response.statusCode != 200) {
-          await response.stream.drain<void>();
-          throw _huggingFaceResponseException(
-            modelId: manifest.modelId,
-            statusCode: response.statusCode,
-            context: 'downloading ${fileRef.path}',
-          );
-        }
-
-        final partialFile = File('${destination.path}.partial');
-        final sink = partialFile.openWrite();
-        var fileBytes = 0;
-        await for (final chunk in response.stream) {
-          sink.add(chunk);
-          downloadedBytes += chunk.length;
-          fileBytes += chunk.length;
-          yield ModelDownloadProgress(
-            modelId: manifest.modelId,
-            percentage: (downloadedBytes / progressTotalBytes).clamp(0.0, 1.0),
-            downloadedBytes: downloadedBytes,
-            totalBytes: progressTotalBytes,
-          );
-        }
-        await sink.close();
-
-        if (fileRef.sizeBytes > 0 && fileBytes != fileRef.sizeBytes) {
+        final progressDeltas = StreamController<int>();
+        late final Future<HighPerformanceDownloadResult> downloadFuture;
+        try {
+          downloadFuture = _downloader
+              .download(
+                client: client,
+                uri: downloadUri,
+                destination: destination,
+                expectedSizeBytes: fileRef.sizeBytes,
+                expectedSha256: fileRef.sha256,
+                customizeRequest: (request) {
+                  _addHuggingFaceAuth(request, huggingFaceToken);
+                },
+                onProgress: progressDeltas.add,
+              )
+              .whenComplete(progressDeltas.close);
+          await for (final bytesDelta in progressDeltas.stream) {
+            downloadedBytes += bytesDelta;
+            yield ModelDownloadProgress(
+              modelId: manifest.modelId,
+              percentage:
+                  (downloadedBytes / progressTotalBytes).clamp(0.0, 1.0),
+              downloadedBytes: downloadedBytes,
+              totalBytes: progressTotalBytes,
+            );
+          }
+          await downloadFuture;
+        } on HighPerformanceDownloadException catch (error) {
+          if (error.statusCode != null) {
+            throw _huggingFaceResponseException(
+              modelId: manifest.modelId,
+              statusCode: error.statusCode!,
+              context: 'downloading ${fileRef.path}',
+            );
+          }
           throw ModelDownloadException(
             manifest.modelId,
-            'Downloaded ${fileRef.path} size mismatch',
+            'Failed downloading ${fileRef.path}: ${error.message}',
           );
         }
-        if (destination.existsSync()) {
-          await destination.delete();
-        }
-        await partialFile.rename(destination.path);
         if (!await _downloadFileChecksumMatches(destination, fileRef)) {
           throw ModelDownloadException(
             manifest.modelId,
             'Downloaded ${fileRef.path} checksum mismatch',
           );
         }
+        yield ModelDownloadProgress(
+          modelId: manifest.modelId,
+          percentage: (downloadedBytes / progressTotalBytes).clamp(0.0, 1.0),
+          downloadedBytes: downloadedBytes,
+          totalBytes: progressTotalBytes,
+        );
       }
 
       yield ModelDownloadProgress(

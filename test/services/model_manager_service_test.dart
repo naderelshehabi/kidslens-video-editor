@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kidslens_video_editor/data/models/models.dart';
+import 'package:kidslens_video_editor/services/high_performance_downloader.dart';
 import 'package:kidslens_video_editor/services/model_manager_service.dart';
 import 'package:path/path.dart' as p;
 
@@ -278,6 +279,78 @@ void main() {
       );
     });
 
+    test('uses ranged requests for explicit GGUF bundle artifacts', () async {
+      const modelBytes = <int>[1, 2];
+      const mmprojBytes = <int>[5, 6, 7];
+      final ranges = <String>[];
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
+      server.listen((request) async {
+        Future<void> respondBytes(List<int> bytes) async {
+          final range = request.headers.value(HttpHeaders.rangeHeader);
+          if (range == null) {
+            request.response.add(bytes);
+            await request.response.close();
+            return;
+          }
+          ranges.add(range);
+          final parsed = _parseRange(range);
+          request.response.statusCode = HttpStatus.partialContent;
+          final slice = bytes.sublist(parsed.start, parsed.end + 1);
+          request.response.contentLength = slice.length;
+          request.response.headers.set(
+            HttpHeaders.contentRangeHeader,
+            'bytes ${parsed.start}-${parsed.end}/${bytes.length}',
+          );
+          request.response.add(slice);
+          await request.response.close();
+        }
+
+        final path = request.uri.path;
+        if (path == '/Qwen/fake-gguf/resolve/main/model.gguf') {
+          await respondBytes(modelBytes);
+          return;
+        }
+        if (path == '/Qwen/fake-gguf/resolve/main/mmproj.gguf') {
+          await respondBytes(mmprojBytes);
+          return;
+        }
+        request.response.statusCode = HttpStatus.notFound;
+        await request.response.close();
+      });
+
+      final service = ModelManagerService(
+        customModelsPath: tempDir.path,
+        huggingFaceBaseUrl: 'http://127.0.0.1:${server.port}',
+        downloader: const HighPerformanceDownloader(
+          maxParallelRequests: 2,
+          segmentSizeBytes: 1,
+          minParallelFileBytes: 1,
+        ),
+      );
+      final manifest = _ggufManifest(
+        modelSha256: sha256.convert(modelBytes).toString(),
+        mmprojSha256: sha256.convert(mmprojBytes).toString(),
+      );
+
+      final progress = await service.downloadModelBundle(manifest).toList();
+
+      expect(progress.last.status, ModelDownloadStatus.complete);
+      expect(ranges, contains('bytes=0-0'));
+      expect(ranges.where((range) => range != 'bytes=0-0'), isNotEmpty);
+      expect(
+        await File(
+          p.join(
+            tempDir.path,
+            'model_bundles',
+            manifest.modelId,
+            'model.gguf',
+          ),
+        ).readAsBytes(),
+        modelBytes,
+      );
+    });
+
     test('resolves downloaded official bundle paths from model_bundles',
         () async {
       final service = ModelManagerService(customModelsPath: tempDir.path);
@@ -317,6 +390,24 @@ void main() {
       );
     });
   });
+}
+
+_Range _parseRange(String value) {
+  final match = RegExp(r'^bytes=(\d+)-(\d+)$').firstMatch(value);
+  if (match == null) {
+    throw StateError('Invalid range header: $value');
+  }
+  return _Range(
+    start: int.parse(match.group(1)!),
+    end: int.parse(match.group(2)!),
+  );
+}
+
+class _Range {
+  const _Range({required this.start, required this.end});
+
+  final int start;
+  final int end;
 }
 
 ModelBundleManifest _ggufManifest({

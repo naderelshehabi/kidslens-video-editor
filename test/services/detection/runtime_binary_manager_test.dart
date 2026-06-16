@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:kidslens_video_editor/data/models/models.dart';
 import 'package:kidslens_video_editor/services/detection/runtime_binary_manager.dart';
+import 'package:kidslens_video_editor/services/high_performance_downloader.dart';
 
 void main() {
   late Directory tempDir;
@@ -110,6 +111,46 @@ void main() {
     final state = await manager.getInstallState(LocalRuntimeId.vulkanLlamaCpp);
     expect(state.isInstalled, isFalse);
   });
+
+  test('uses ranged downloader for runtime archives', () async {
+    final archiveBytes = _zipBytes({
+      'bin/llama-server.exe': 'fake runtime with enough bytes for ranges',
+      'README.txt': 'llama.cpp test archive',
+    });
+    final spec = _fakeSpec(
+      assetBytes: archiveBytes,
+      sha: sha256.convert(archiveBytes).toString(),
+    );
+    final ranges = <String>[];
+    final manager = RuntimeBinaryManager(
+      customRuntimeRoot: tempDir.path,
+      specOverrides: {LocalRuntimeId.vulkanLlamaCpp: spec},
+      downloader: const HighPerformanceDownloader(
+        maxParallelRequests: 3,
+        segmentSizeBytes: 8,
+        minParallelFileBytes: 1,
+      ),
+      httpClientFactory: () => _FakeHttpClient((request) {
+        final range = request.headers[HttpHeaders.rangeHeader];
+        if (range == null) {
+          return http.Response.bytes(archiveBytes, HttpStatus.ok);
+        }
+        ranges.add(range);
+        final parsed = _parseRange(range);
+        return http.Response.bytes(
+          archiveBytes.sublist(parsed.start, parsed.end + 1),
+          HttpStatus.partialContent,
+        );
+      }),
+    );
+
+    final progress =
+        await manager.ensureInstalled(LocalRuntimeId.vulkanLlamaCpp).toList();
+
+    expect(progress.last.status, RuntimeBinaryInstallStatus.complete);
+    expect(ranges.first, 'bytes=0-0');
+    expect(ranges.skip(1).length, greaterThan(1));
+  });
 }
 
 RuntimeBinarySpec _fakeSpec({
@@ -144,6 +185,24 @@ List<int> _zipBytes(Map<String, String> files) {
     archive.addFile(ArchiveFile(entry.key, bytes.length, bytes));
   }
   return ZipEncoder().encodeBytes(archive);
+}
+
+_Range _parseRange(String value) {
+  final match = RegExp(r'^bytes=(\d+)-(\d+)$').firstMatch(value);
+  if (match == null) {
+    throw StateError('Invalid range header: $value');
+  }
+  return _Range(
+    start: int.parse(match.group(1)!),
+    end: int.parse(match.group(2)!),
+  );
+}
+
+class _Range {
+  const _Range({required this.start, required this.end});
+
+  final int start;
+  final int end;
 }
 
 class _FakeHttpClient extends http.BaseClient {
