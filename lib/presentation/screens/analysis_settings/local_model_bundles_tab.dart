@@ -127,9 +127,9 @@ class _LocalModelBundlesTabState extends ConsumerState<LocalModelBundlesTab> {
     ModelBundleManifest manifest,
     Set<String> acceptedTerms,
   ) =>
-      (manifest.artifactType == ModelBundleArtifactType.officialWeights ||
-          manifest.artifactType == ModelBundleArtifactType.officialOnnx ||
+      (manifest.artifactType == ModelBundleArtifactType.officialOnnx ||
           manifest.artifactType == ModelBundleArtifactType.officialGguf) &&
+      _runtimeDownloadBlocker(manifest) == null &&
       manifest.artifactUri.startsWith('hf://') &&
       ModelSourceGovernance.isAcceptedOfficialOrganization(
         manifest.officialOrganization,
@@ -604,7 +604,12 @@ class _ModelBundleCandidateTile extends StatelessWidget {
           acceptedTerms: acceptedTerms,
         ),
     }.toList(growable: false);
-    final statusColor = blockers.isEmpty
+    final downloadBlocker = _runtimeDownloadBlocker(manifest);
+    final displayedBlockers = {
+      ...blockers,
+      if (downloadBlocker != null) downloadBlocker,
+    }.toList(growable: false);
+    final statusColor = displayedBlockers.isEmpty
         ? theme.colorScheme.primary
         : theme.colorScheme.onSurfaceVariant;
     final isDownloading = downloadProgress != null;
@@ -639,8 +644,8 @@ class _ModelBundleCandidateTile extends StatelessWidget {
                 ),
                 _StatusChip(
                   label: policy.approvalLabel(manifest),
-                  icon: blockers.isEmpty ? Icons.verified : Icons.lock,
-                  color: blockers.isEmpty
+                  icon: displayedBlockers.isEmpty ? Icons.verified : Icons.lock,
+                  color: displayedBlockers.isEmpty
                       ? theme.colorScheme.primary
                       : theme.colorScheme.outline,
                 ),
@@ -733,10 +738,10 @@ class _ModelBundleCandidateTile extends StatelessWidget {
                 ),
               ],
             ),
-            if (blockers.isNotEmpty) ...[
+            if (displayedBlockers.isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(
-                blockers.join(' '),
+                displayedBlockers.join(' '),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -890,6 +895,23 @@ String _runtimeLabel(ModelBundleRuntime runtime) {
     case ModelBundleRuntime.notYetValidated:
       return 'Runtime pending';
   }
+}
+
+String? _runtimeDownloadBlocker(ModelBundleManifest manifest) {
+  if (manifest.artifactType == ModelBundleArtifactType.officialWeights) {
+    return 'Raw official weights require conversion to GGUF or ONNX before '
+        'local runtime download.';
+  }
+  if (manifest.artifactType == ModelBundleArtifactType.officialGguf &&
+      manifest.runtime != ModelBundleRuntime.llamaCppServer) {
+    return 'Official GGUF artifacts require the local llama.cpp runtime.';
+  }
+  if (manifest.artifactType == ModelBundleArtifactType.officialOnnx &&
+      manifest.runtime != ModelBundleRuntime.directmlOnnx &&
+      manifest.runtime != ModelBundleRuntime.cpuLightweight) {
+    return 'Official ONNX artifacts require a local ONNX runtime.';
+  }
+  return null;
 }
 
 String _bundleSelectorLabel(ModelBundleManifest manifest) {

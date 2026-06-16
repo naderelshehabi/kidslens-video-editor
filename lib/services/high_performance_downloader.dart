@@ -34,6 +34,8 @@ class HighPerformanceDownloader {
     this.minParallelFileBytes = 64 * 1024 * 1024,
   });
 
+  static const _maxRedirects = 8;
+
   final int maxParallelRequests;
   final int segmentSizeBytes;
   final int minParallelFileBytes;
@@ -96,10 +98,12 @@ class HighPerformanceDownloader {
     required DownloadRequestCustomizer? customizeRequest,
     required DownloadProgressCallback? onProgress,
   }) async {
-    final probe = http.Request('GET', uri)
-      ..headers[HttpHeaders.rangeHeader] = 'bytes=0-0';
-    customizeRequest?.call(probe);
-    final probeResponse = await client.send(probe);
+    final probeResponse = await _sendGet(
+      client: client,
+      originalUri: uri,
+      headers: const {HttpHeaders.rangeHeader: 'bytes=0-0'},
+      customizeRequest: customizeRequest,
+    );
     if (probeResponse.statusCode == HttpStatus.ok) {
       return _writeSingleStreamResponse(
         response: probeResponse,
@@ -163,10 +167,14 @@ class HighPerformanceDownloader {
     required DownloadRequestCustomizer? customizeRequest,
     required DownloadProgressCallback? onProgress,
   }) async {
-    final request = http.Request('GET', uri)
-      ..headers[HttpHeaders.rangeHeader] = 'bytes=${range.start}-${range.end}';
-    customizeRequest?.call(request);
-    final response = await client.send(request);
+    final response = await _sendGet(
+      client: client,
+      originalUri: uri,
+      headers: {
+        HttpHeaders.rangeHeader: 'bytes=${range.start}-${range.end}',
+      },
+      customizeRequest: customizeRequest,
+    );
     if (response.statusCode != HttpStatus.partialContent) {
       await response.stream.drain<void>();
       throw HighPerformanceDownloadException(
@@ -204,9 +212,12 @@ class HighPerformanceDownloader {
     required DownloadRequestCustomizer? customizeRequest,
     required DownloadProgressCallback? onProgress,
   }) async {
-    final request = http.Request('GET', uri);
-    customizeRequest?.call(request);
-    final response = await client.send(request);
+    final response = await _sendGet(
+      client: client,
+      originalUri: uri,
+      headers: const {},
+      customizeRequest: customizeRequest,
+    );
     if (response.statusCode != HttpStatus.ok) {
       await response.stream.drain<void>();
       throw HighPerformanceDownloadException(
@@ -290,6 +301,52 @@ class HighPerformanceDownloader {
       }
     }
   }
+
+  Future<http.StreamedResponse> _sendGet({
+    required http.Client client,
+    required Uri originalUri,
+    required Map<String, String> headers,
+    required DownloadRequestCustomizer? customizeRequest,
+  }) async {
+    var uri = originalUri;
+    for (var redirectCount = 0;
+        redirectCount <= _maxRedirects;
+        redirectCount += 1) {
+      final request = http.Request('GET', uri)
+        ..followRedirects = false
+        ..headers.addAll(headers);
+      if (redirectCount == 0 || uri.host == originalUri.host) {
+        customizeRequest?.call(request);
+      }
+
+      final response = await client.send(request);
+      if (!_isRedirect(response.statusCode)) {
+        return response;
+      }
+
+      final location = response.headers[HttpHeaders.locationHeader] ??
+          response.headers['location'];
+      await response.stream.drain<void>();
+      if (location == null || location.trim().isEmpty) {
+        throw HighPerformanceDownloadException(
+          'HTTP ${response.statusCode} redirect without Location',
+          statusCode: response.statusCode,
+        );
+      }
+      uri = uri.resolve(location);
+    }
+
+    throw HighPerformanceDownloadException(
+      'Too many redirects while downloading file',
+    );
+  }
+
+  bool _isRedirect(int statusCode) =>
+      statusCode == HttpStatus.movedPermanently ||
+      statusCode == HttpStatus.found ||
+      statusCode == HttpStatus.seeOther ||
+      statusCode == HttpStatus.temporaryRedirect ||
+      statusCode == HttpStatus.permanentRedirect;
 
   Future<void> _deleteIfExists(File file) async {
     if (file.existsSync()) {

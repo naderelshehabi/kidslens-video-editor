@@ -138,7 +138,8 @@ void main() {
     expect(ranges.first, 'bytes=0-0');
   });
 
-  test('downloads multiple ranged files sequentially with one client', () async {
+  test('downloads multiple ranged files sequentially with one client',
+      () async {
     const firstBytes = <int>[1, 2, 3, 4];
     const secondBytes = <int>[5, 6, 7];
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
@@ -199,6 +200,60 @@ void main() {
 
     expect(await firstDestination.readAsBytes(), firstBytes);
     expect(await secondDestination.readAsBytes(), secondBytes);
+  });
+
+  test('preserves range requests across redirects', () async {
+    final bytes = List<int>.generate(9, (index) => index + 10);
+    final requestedRanges = <String>[];
+    final requestedHosts = <String>[];
+    final client = _FakeHttpClient((request) {
+      requestedHosts.add(request.url.host);
+      if (request.url.host == 'hf.test') {
+        return http.Response(
+          '',
+          HttpStatus.found,
+          headers: {
+            HttpHeaders.locationHeader: 'https://cdn.test${request.url.path}',
+          },
+        );
+      }
+      final range = request.headers[HttpHeaders.rangeHeader];
+      if (range != null) {
+        requestedRanges.add(range);
+        final parsed = _parseRange(range);
+        return http.Response.bytes(
+          bytes.sublist(parsed.start, parsed.end + 1),
+          HttpStatus.partialContent,
+          headers: {
+            HttpHeaders.contentRangeHeader:
+                'bytes ${parsed.start}-${parsed.end}/${bytes.length}',
+          },
+        );
+      }
+      return http.Response.bytes(bytes, HttpStatus.ok);
+    });
+    final destination = File(p.join(tempDir.path, 'redirected.gguf'));
+
+    final result = await const HighPerformanceDownloader(
+      maxParallelRequests: 3,
+      segmentSizeBytes: 3,
+      minParallelFileBytes: 1,
+    ).download(
+      client: client,
+      uri: Uri.parse('https://hf.test/Qwen/model.gguf'),
+      destination: destination,
+      expectedSizeBytes: bytes.length,
+      expectedSha256: sha256.convert(bytes).toString(),
+    );
+
+    expect(result.parallelized, isTrue);
+    expect(await destination.readAsBytes(), bytes);
+    expect(requestedHosts, containsAllInOrder(['hf.test', 'cdn.test']));
+    expect(requestedRanges.first, 'bytes=0-0');
+    expect(
+      requestedRanges.skip(1),
+      containsAll(['bytes=0-2', 'bytes=3-5', 'bytes=6-8']),
+    );
   });
 }
 

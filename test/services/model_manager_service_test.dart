@@ -89,7 +89,7 @@ void main() {
       addTearDown(() async => server.close(force: true));
       server.listen((request) async {
         final path = request.uri.path;
-        if (path == '/api/models/google/gemma-4-E4B-it/revision/main') {
+        if (path == '/api/models/Qwen/repo-scan-gguf/revision/main') {
           request.response.headers.set(
             HttpHeaders.contentTypeHeader,
             'application/json',
@@ -99,7 +99,7 @@ void main() {
   "siblings": [
     {"rfilename": "README.md", "size": 10},
     {"rfilename": "config.json"},
-    {"rfilename": "model.safetensors"},
+    {"rfilename": "model.gguf"},
     {"rfilename": "images/example.png", "size": 20}
   ]
 }
@@ -107,7 +107,7 @@ void main() {
           await request.response.close();
           return;
         }
-        if (path == '/google/gemma-4-E4B-it/resolve/main/config.json') {
+        if (path == '/Qwen/repo-scan-gguf/resolve/main/config.json') {
           if (request.method == 'HEAD') {
             request.response.contentLength = 2;
             await request.response.close();
@@ -117,7 +117,7 @@ void main() {
           await request.response.close();
           return;
         }
-        if (path == '/google/gemma-4-E4B-it/resolve/main/model.safetensors') {
+        if (path == '/Qwen/repo-scan-gguf/resolve/main/model.gguf') {
           if (request.method == 'HEAD') {
             request.response.contentLength = 3;
             await request.response.close();
@@ -135,7 +135,7 @@ void main() {
         customModelsPath: tempDir.path,
         huggingFaceBaseUrl: 'http://127.0.0.1:${server.port}',
       );
-      final manifest = ModelBundleCatalog.byModelId('google_gemma_4_e4b_it');
+      final manifest = _repoScanGgufManifest();
 
       final progress = await service.downloadModelBundle(manifest).toList();
 
@@ -164,7 +164,7 @@ void main() {
             tempDir.path,
             'model_bundles',
             manifest.modelId,
-            'model.safetensors',
+            'model.gguf',
           ),
         ).existsSync(),
         isTrue,
@@ -202,7 +202,7 @@ void main() {
         customModelsPath: tempDir.path,
         huggingFaceBaseUrl: 'http://127.0.0.1:${server.port}',
       );
-      final manifest = ModelBundleCatalog.byModelId('google_gemma_4_e4b_it');
+      final manifest = _repoScanGgufManifest();
 
       await expectLater(
         service.downloadModelBundle(manifest).toList(),
@@ -389,6 +389,23 @@ void main() {
         throwsA(isA<ModelDownloadException>()),
       );
     });
+
+    test('blocks raw official weights before network access', () async {
+      final service = ModelManagerService(customModelsPath: tempDir.path);
+      final manifest =
+          ModelBundleCatalog.byModelId('nvidia_nemotron_nano_12b_v2_vl_fp8');
+
+      await expectLater(
+        service.downloadModelBundle(manifest).toList(),
+        throwsA(
+          isA<ModelDownloadException>().having(
+            (error) => error.reason,
+            'reason',
+            contains('Raw official weights'),
+          ),
+        ),
+      );
+    });
   });
 }
 
@@ -442,8 +459,8 @@ ModelBundleManifest _ggufManifest({
       maxFramesPerChunk: 2,
       maxContextTokens: 8192,
       recommendedChunkSeconds: 8,
-      knownFailureModes: const <String>['test fixture'],
-      roles: const <ModelBundleRole>[ModelBundleRole.vlm],
+      knownFailureModes: <String>['test fixture'],
+      roles: <ModelBundleRole>[ModelBundleRole.vlm],
       approvalStatus: ModelBundleApprovalStatus.evaluationOnly,
       reviewNotes: 'test fixture',
       artifactFiles: <ModelBundleArtifactFile>[
@@ -458,4 +475,38 @@ ModelBundleManifest _ggufManifest({
           sha256: mmprojSha256,
         ),
       ],
+    );
+
+ModelBundleManifest _repoScanGgufManifest() => const ModelBundleManifest(
+      modelId: 'qwen_repo_scan_gguf',
+      displayName: 'Qwen Repo Scan GGUF',
+      vendor: 'Alibaba / Qwen',
+      officialSourceRepo: 'Qwen/repo-scan-gguf',
+      officialRevision: 'main',
+      license: ModelBundleLicense.apache20,
+      commercialUse: CommercialUseStatus.allowed,
+      acceptedTermsRequired: false,
+      artifactType: ModelBundleArtifactType.officialGguf,
+      artifactUri: 'hf://Qwen/repo-scan-gguf',
+      sha256: null,
+      conversionRecipeId: null,
+      runtime: ModelBundleRuntime.llamaCppServer,
+      minVramGb: 1,
+      recommendedVramGb: 1,
+      targetGpuClass: ModelBundleCatalog.targetGpuClass,
+      maxValidatedVramGb: ModelBundleCatalog.targetGpuVramGb,
+      quantization: ModelBundleQuantization.q4KM,
+      fitsRtx5070Validated: false,
+      supportsVideoInput: false,
+      supportsImageInput: true,
+      supportsBoundingBoxes: true,
+      supportsMasks: false,
+      supportsPointLocalization: false,
+      maxFramesPerChunk: 2,
+      maxContextTokens: 8192,
+      recommendedChunkSeconds: 8,
+      knownFailureModes: <String>['test fixture'],
+      roles: <ModelBundleRole>[ModelBundleRole.vlm],
+      approvalStatus: ModelBundleApprovalStatus.evaluationOnly,
+      reviewNotes: 'test fixture',
     );

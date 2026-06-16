@@ -192,6 +192,35 @@ void main() {
       },
     );
 
+    testWidgets(
+      'keeps raw official weights unavailable for runtime download',
+      (tester) async {
+        await tester.pumpWidget(
+          host(
+            catalog: [
+              ModelBundleCatalog.byModelId(
+                'nvidia_nemotron_nano_12b_v2_vl_fp8',
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+
+        expect(find.text('NVIDIA Nemotron Nano 12B v2 VL FP8'), findsOneWidget);
+        expect(
+          find.textContaining('Raw official weights require conversion'),
+          findsOneWidget,
+        );
+
+        final installButton = tester.widget<OutlinedButton>(
+          find
+              .widgetWithText(OutlinedButton, 'Download Official Artifact')
+              .last,
+        );
+        expect(installButton.onPressed, isNull);
+      },
+    );
+
     testWidgets('persists terms acceptance for terms-gated candidates',
         (tester) async {
       await tester.pumpWidget(host());

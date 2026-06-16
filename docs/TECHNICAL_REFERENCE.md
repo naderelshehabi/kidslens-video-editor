@@ -30,8 +30,10 @@
   a switch to the legacy pipeline for that run path.
 - **Downloads**: official Hugging Face model bundles and GitHub llama.cpp
   runtime archives use bounded parallel HTTP range requests for large files,
-  verify sizes/checksums, and fall back to a single stream when a server does
-  not support `Range`.
+  preserve `Range` headers across Hugging Face CDN redirects, verify
+  sizes/checksums, and fall back to a single stream when a server does not
+  support `Range`. Raw official-weight repositories are not offered as runtime
+  downloads until converted to a local GGUF or ONNX artifact.
 - **RTX Validation**: `scripts/vss_validation_runner.dart` validates a supplied
   `EvaluationDataset` manifest and clip directory, consumes prediction JSON or
   invokes an external real-pipeline command per profile/clip, polls

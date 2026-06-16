@@ -1056,6 +1056,29 @@ class ModelManagerService {
         'Only official HF artifacts can be downloaded at runtime',
       );
     }
+    if (manifest.artifactType == ModelBundleArtifactType.officialWeights) {
+      throw ModelDownloadException(
+        manifest.modelId,
+        'Raw official weights are not directly runnable by the local desktop '
+        'pipeline. Use an official GGUF or ONNX bundle, or a KidsLens-owned '
+        'converted artifact.',
+      );
+    }
+    if (manifest.artifactType == ModelBundleArtifactType.officialGguf &&
+        manifest.runtime != ModelBundleRuntime.llamaCppServer) {
+      throw ModelDownloadException(
+        manifest.modelId,
+        'Official GGUF bundles require the local llama.cpp runtime',
+      );
+    }
+    if (manifest.artifactType == ModelBundleArtifactType.officialOnnx &&
+        manifest.runtime != ModelBundleRuntime.directmlOnnx &&
+        manifest.runtime != ModelBundleRuntime.cpuLightweight) {
+      throw ModelDownloadException(
+        manifest.modelId,
+        'Official ONNX bundles require a local ONNX runtime',
+      );
+    }
     if (!ModelSourceGovernance.isAcceptedOfficialOrganization(
       manifest.officialOrganization,
     )) {
