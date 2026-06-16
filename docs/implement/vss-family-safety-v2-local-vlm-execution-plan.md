@@ -345,10 +345,11 @@ These tasks require a machine with an NVIDIA GPU (the dev machine: see `docs/dev
 
 ### Phase 11 — Rollout and documentation
 
-- [ ] 11.1 Rollout flag stays `default` (already is); after Phase 10 passes, the "directly runnable" check makes VSS actually execute for new analyses. `enforce` mode remains opt-in until a stability window passes (existing `LegacyDeprecationReadinessChecker` 30-day gate governs legacy deprecation).
-- [ ] 11.2 Update `docs/architecture.md`, `docs/TECHNICAL_REFERENCE.md`, and `README.md`: VSS pipeline architecture diagram (§3 above), llama.cpp runtime, model bundles, disk/VRAM requirements.
-- [ ] 11.3 Mark the old checklist (`vss-family-safety-detection-implementation-checklist.md`) header with: "Phases 6/18 runtime-integration items superseded by `vss-family-safety-v2-local-vlm-execution-plan.md`".
-- [ ] 11.4 Append the per-phase completion notes to THIS file as phases land (same convention the old checklist used).
+- [x] 11.1 Rollout flag stays `default` (already is); after Phase 10 passes, the "directly runnable" check makes VSS actually execute for new analyses. `enforce` mode remains opt-in until a stability window passes (existing `LegacyDeprecationReadinessChecker` 30-day gate governs legacy deprecation).
+- [x] 11.2 Update `docs/architecture.md`, `docs/TECHNICAL_REFERENCE.md`, and `README.md`: VSS pipeline architecture diagram (§3 above), llama.cpp runtime, model bundles, disk/VRAM requirements.
+- [x] 11.3 Mark the old checklist (`vss-family-safety-detection-implementation-checklist.md`) header with: "Phases 6/18 runtime-integration items superseded by `vss-family-safety-v2-local-vlm-execution-plan.md`".
+- [x] 11.4 Append the per-phase completion notes to THIS file as phases land (same convention the old checklist used).
+  Implemented 2026-06-16 with the rollout default verified in `DetectionPipelineRolloutConfig` / `AnalysisSettings`, VSS architecture and data-flow documentation in `docs/architecture.md`, local llama.cpp/model-bundle/disk/VRAM requirements in `docs/TECHNICAL_REFERENCE.md` and `README.md`, and a superseded-runtime note at the top of the older checklist. Verified with focused rollout/settings tests and final diff checks.
 
 ---
 

@@ -7,6 +7,7 @@ This document provides a comprehensive overview of the KidsLens Video Editor arc
 - [High-Level Architecture](#high-level-architecture)
 - [Layer Descriptions](#layer-descriptions)
 - [Data Flow](#data-flow)
+- [Local Family-Safety VSS Pipeline](#local-family-safety-vss-pipeline)
 - [Component Interactions](#component-interactions)
 - [Native Integration Architecture](#native-integration-architecture)
 
@@ -62,6 +63,13 @@ This document provides a comprehensive overview of the KidsLens Video Editor arc
 │  │  • Filters      │  │  • Leetspeak    │  │  • 5-second samples         │  │
 │  │  • Multiplexing │  │  • Phonetics    │  │  • Detection testing        │  │
 │  └─────────────────┘  └─────────────────┘  └─────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │ Local VSS Family-Safety Pipeline                                     │   │
+│  │ • Official model-bundle catalog                                      │   │
+│  │ • Pinned llama.cpp loopback runtime                                  │   │
+│  │ • Chunked VLM analysis, grounding, policy fusion, local search       │   │
+│  │ • Legacy NSFW/NudeNet profile remains selectable as fallback         │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                              DATA LAYER                                     │
 │  ┌─────────────┐  ┌──────────────┐  ┌─────────────┐  ┌──────────────────┐   │
@@ -216,6 +224,35 @@ Legacy NSFW/NudeNet analysis remains available through the explicit
 `legacy_nsfw_region_v8` profile and is also used as a startup fallback when the
 local VSS model/runtime is not available.
 
+#### Local Runtime and Model Governance
+
+All family-safety inference is local-only. The VSS runtime is an app-managed
+`llama-server` process bound to `127.0.0.1` with a dynamically selected port.
+Only official source repos and KidsLens-owned reproducible conversions are
+allowed in the model catalog. Community ports, hosted endpoints, missing
+checksums, and commercial-blocked licenses are not production-selectable.
+
+The default validation target is a high-end consumer GPU in the RTX 5070 class.
+The production candidate is the official Qwen3-VL GGUF bundle running through
+the pinned llama.cpp CUDA runtime, with Vulkan as a local fallback runtime.
+The Qwen3 embedding GGUF bundle is used for local video search when installed;
+otherwise the search index falls back to deterministic local hash embeddings.
+
+Approximate local storage requirements:
+
+| Component | Purpose | Expected Size |
+|-----------|---------|---------------|
+| Qwen3-VL 8B Q4_K_M bundle | Default VLM validation candidate | 5-7 GB |
+| Qwen3-VL 4B Q4_K_M bundle | Lightweight fallback candidate | 3-4 GB |
+| Qwen3 embedding 0.6B Q8 bundle | Local semantic search | 0.7-1 GB |
+| llama.cpp runtime archive | CUDA or Vulkan helper process | 0.5-2 GB |
+| Analysis cache | Evidence, checkpoints, search index | Project dependent |
+
+Runtime validation is recorded by `scripts/vss_validation_runner.dart`. It
+compares VSS and legacy profiles against a user-supplied unsafe validation clip
+set and writes `rtxValidationGate`. The production model flip remains blocked
+until this gate passes on the target hardware.
+
 ---
 
 ### 4. Data Layer
@@ -286,6 +323,27 @@ The native layer provides FFI bindings to native libraries for media processing 
 ## Data Flow
 
 ### Analysis Pipeline Flow
+
+Default visual analysis uses the local VSS pipeline:
+
+```mermaid
+flowchart TD
+    A["Imported media"] --> B["DetectionPipelineRegistry"]
+    B --> C{"Can VSS run locally?"}
+    C -->|Yes| D["VSS family-safety v1"]
+    C -->|No| E["Legacy NSFW/NudeNet profile"]
+    D --> F["ChunkPlanner"]
+    F --> G["JPEG frame extraction"]
+    G --> H["llama.cpp llama-server on 127.0.0.1"]
+    H --> I["OpenAI-compatible VLM provider"]
+    I --> J["Evidence store and checkpoint"]
+    J --> K["PolicyEngine"]
+    K --> L["Grounding and temporal fusion"]
+    L --> M["Detections, timeline, local search index"]
+    E --> M
+```
+
+The legacy visual flow remains available for compatibility and fallback:
 
 ```
 ┌─────────────┐

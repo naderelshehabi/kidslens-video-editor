@@ -4,6 +4,10 @@ Date: 2026-06-07
 
 Companion plan: `docs/implement/vss-family-safety-detection-revamp-plan.md`
 
+> Superseded runtime-integration note: Phases 6/18 runtime-integration items in
+> this checklist are superseded by
+> `docs/implement/vss-family-safety-v2-local-vlm-execution-plan.md`.
+
 This checklist is ordered for implementation. Each phase should be merged behind feature flags unless the exit gate says otherwise.
 
 ## Phase 0: Policy, Scope, and Model Governance

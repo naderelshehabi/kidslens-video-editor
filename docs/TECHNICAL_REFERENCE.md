@@ -55,6 +55,27 @@
 - **Legacy Option**: `legacy_nsfw_region_v8` remains selectable and is used only
   as a startup fallback when the VSS local model/runtime is unavailable
 
+#### Local Runtime Requirements
+
+| Component | Requirement |
+|-----------|-------------|
+| Network boundary | loopback-only; non-local endpoints are rejected before inference |
+| Model sources | official provider repos or KidsLens-owned reproducible conversions only |
+| Runtime | pinned official llama.cpp `llama-server`; CUDA preferred on NVIDIA, Vulkan fallback |
+| Target GPU | RTX 5070-class high-end consumer GPU for production validation |
+| VRAM gate | peak VRAM must stay at or below 12288 MB in RTX validation |
+| Latency gate | default profile p95 chunk latency must stay at or below 8000 ms |
+| Disk headroom | 10-15 GB for VLM bundle, embedding bundle, runtime archive, and analysis cache |
+
+Approximate installed artifact sizes:
+
+| Artifact | Role | Expected Size |
+|----------|------|---------------|
+| Qwen3-VL 8B Q4_K_M GGUF | default VLM validation candidate | 5-7 GB |
+| Qwen3-VL 4B Q4_K_M GGUF | lightweight VLM candidate | 3-4 GB |
+| Qwen3 embedding 0.6B Q8 GGUF | local semantic search | 0.7-1 GB |
+| llama.cpp CUDA/Vulkan runtime | local inference helper process | 0.5-2 GB |
+
 ### Architectural Pattern
 The application follows a **Clean Architecture** approach, separated into layers:
 
