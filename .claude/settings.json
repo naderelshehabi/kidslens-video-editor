@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -Command \"$d=[Console]::In.ReadToEnd()|ConvertFrom-Json; $p=[string]$d.tool_input.file_path; if($p -match '\\.(g|freezed)\\.dart$'){[Console]::Error.WriteLine('Blocked: ' + $p + ' is generated. Edit the annotated source instead, then run: dart run build_runner build --delete-conflicting-outputs'); exit 2}\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -Command \"$d=[Console]::In.ReadToEnd()|ConvertFrom-Json; $p=[string]$d.tool_input.file_path; if($p -and $p.EndsWith('.dart') -and $p -notmatch '\\.(g|freezed)\\.dart$' -and (Test-Path $p)){dart format $p | Out-Null}\""
+          }
+        ]
+      }
+    ]
+  }
+}
