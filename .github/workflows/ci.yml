@@ -1,0 +1,99 @@
+name: CI
+
+"on":
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Format, analyze, test
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+
+      - name: Setup Dart SDK
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: '3.12.2'
+
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.tool_cache }}/dart-sdk
+            $PUB_CACHE
+            .dart_tool
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.yaml', 'pubspec.lock', 'analysis_options.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Cache build_runner outputs
+        uses: actions/cache@v4
+        with:
+          path: |
+            .dart_tool/build
+          key: ${{ runner.os }}-buildrunner-${{ hashFiles('pubspec.yaml', 'lib/**/*.dart') }}
+          restore-keys: |
+            ${{ runner.os }}-buildrunner-
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Check formatting
+        # dart format does not auto-skip *.g.dart/*.freezed.dart; we rely on the
+        # local PostToolUse hook (see .claude/settings.json) to keep generated
+        # files format-clean at commit time. If this step reports generated-file
+        # diffs, run `dart run build_runner build --delete-conflicting-outputs`
+        # first, then `dart format` the offending non-generated sources.
+        run: dart format --output=none --set-exit-if-changed lib test integration_test scripts
+
+      - name: Regenerate codegen and assert no diff
+        # Generated files (freezed/json_serializable/riverpod_generator) MUST be
+        # committed and current. We regenerate and fail if anything would change.
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          git diff --exit-code -- lib test integration_test scripts
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      - name: Enforce coverage floor
+        # The coverage ratchet script + floor file are added by revamp-checklist
+        # task 0.2. Until then this step is a no-op so 0.1 can land independently.
+        run: |
+          if (Test-Path scripts/check_coverage.dart -PathType Leaf) {
+            if (Test-Path coverage_floor.txt -PathType Leaf) {
+              dart run scripts/check_coverage.dart
+            } else {
+              Write-Output "coverage_floor.txt not present yet — skipping floor check (Phase 0.2 not landed)."
+            }
+          } else {
+            Write-Output "scripts/check_coverage.dart not present yet — skipping floor check (Phase 0.2 not landed)."
+          }
+        shell: pwsh
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
+          if-no-files-found: ignore
+          retention-days: 14
