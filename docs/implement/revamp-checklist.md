@@ -15,7 +15,7 @@
 
 ## Phase 0 — Guardrails & CI
 
-- [x] **0.1 Create GitHub Actions workflow** `.github/workflows/ci.yml`, `windows-latest` (current commit):
+- [x] **0.1 Create GitHub Actions workflow** `.github/workflows/ci.yml`, `windows-latest` (4c4b105):
   1. `flutter pub get`
   2. `dart format --output=none --set-exit-if-changed .` (exclude `**/*.g.dart`, `**/*.freezed.dart` if needed via `dart format` on `lib test integration_test scripts` source globs)
   3. `dart run build_runner build --delete-conflicting-outputs` then `git diff --exit-code` (generated code must be committed and current)
