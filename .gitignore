@@ -1,6 +1,10 @@
 # Miscellaneous
 *.class
 *.lock
+# Flutter apps commit pubspec.lock to lock transitive deps for reproducible
+# builds and CI cache keys. The broad *.lock rule above is repo-flutter-tools
+# convention; this exception restores the app convention for our pubspec.lock.
+!pubspec.lock
 *.log
 *.pyc
 *.swp
