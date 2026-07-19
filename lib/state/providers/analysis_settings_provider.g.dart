@@ -25,7 +25,7 @@ final currentAnalysisSettingsProvider = Provider<AnalysisSettings>.internal(
 // ignore: unused_element
 typedef CurrentAnalysisSettingsRef = ProviderRef<AnalysisSettings>;
 String _$analysisSettingsNotifierHash() =>
-    r'0e5eb019504c9192c31187a86e0c0addb6e73c45';
+    r'b9067ea5ea1fe40d20b989d68672e8482d440694';
 
 /// See also [AnalysisSettingsNotifier].
 @ProviderFor(AnalysisSettingsNotifier)

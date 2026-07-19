@@ -1,0 +1,15 @@
+# KidsLens coverage floor (revamp Phase 0.2).
+#
+# Single decimal percent (0–100); line starting with `#` is a comment.
+# Run `dart run scripts/check_coverage.dart` to enforce it.
+# The CI workflow (.github/workflows/ci.yml) hooks this file after
+# `flutter test --coverage`.
+#
+# Rule: the floor must never decrease without a recorded justification in the
+# commit message. Raising the floor accompanies each completed phase.
+#
+# Baseline measured 2026-07-19 on a green `flutter test --coverage` run:
+#   10564 / 24430 lines -> 43.242%.
+# Seeded slightly below the measured value (43.24) plus the script's
+# 0.005% epsilon to keep the gate from flapping across rounding.
+43.24

@@ -72,7 +72,7 @@ final mmsBindingsProvider = Provider<MMSBindings>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef MmsBindingsRef = ProviderRef<MMSBindings>;
-String _$onnxBindingsHash() => r'3af83a691331c032f420075b79400b5cbe9e76ea';
+String _$onnxBindingsHash() => r'84dc4554b2faea02d08670dd10b855f0b70a03f1';
 
 /// See also [onnxBindings].
 @ProviderFor(onnxBindings)

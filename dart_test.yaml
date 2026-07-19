@@ -1,0 +1,14 @@
+# Test-runner configuration for KidsLens.
+# See https://github.com/dart-lang/test/blob/master/pkgs/test/doc/configuration.md
+#
+# Tags let us selectively run subsets of the suite. `scripts` covers the
+# tests that exec a script via Process.run (Phase 0.2 coverage ratchet and
+# any future sibling scripts).
+
+tags:
+  scripts:
+    # No skip / timeout override — just register so the @Tags(['scripts'])
+    # annotation in test/scripts/* stops emitting a startup warning.
+
+# CI runs on windows-latest; allow unchanged behaviour on all platforms.
+platforms: []
