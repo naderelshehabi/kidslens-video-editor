@@ -74,6 +74,12 @@ jobs:
       - name: Run tests with coverage
         run: flutter test --coverage
 
+      - name: Run opencode-plugin smoke test (node)
+        # Verifies .opencode/plugins/block_generated_files.js hook logic
+        # independently of opencode's runtime loader. `node` is preinstalled
+        # on windows-latest. Phase 0.4 verification gate.
+        run: node test/opencode/block_generated_files.test.mjs
+
       - name: Enforce coverage floor
         # The coverage ratchet script + floor file are added by revamp-checklist
         # task 0.2. Until then this step is a no-op so 0.1 can land independently.

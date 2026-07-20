@@ -26,6 +26,7 @@ flutter test --coverage                                    # coverage/lcov.info
 flutter test integration_test                              # e2e (needs a Windows desktop session)
 flutter build windows                                      # also builds whisper_wrapper via CMake
 scripts\build_windows_vs2022.ps1 -Configuration Release    # full VS build + install target
+node test\opencode\block_generated_files.test.mjs          # smoke test for .opencode/plugins hook logic
 ```
 
 ## Architecture map
@@ -42,6 +43,8 @@ scripts\build_windows_vs2022.ps1 -Configuration Release    # full VS build + ins
 ## Conventions
 
 - Never hand-edit `*.g.dart` / `*.freezed.dart` (a hook blocks this) — edit the source and rerun build_runner; commit generated output.
+  - **opencode** (this repo's primary harness): the blocker is `.opencode/plugins/block_generated_files.js` (`tool.execute.before` hook), and auto-formatting of `.dart` files is enabled via the built-in `dart` formatter in `opencode.json`. The node smoke test at `test/opencode/block_generated_files.test.mjs` exercises the hook's regex/iopath logic and is wired into CI.
+  - **Claude Code** (cross-tool portability): `.claude/settings.json` carries PreToolUse + PostToolUse PowerShell hooks mirroring the same logic; keep both files in sync if you touch either.
 - Riverpod codegen style (`@riverpod`), freezed for models, `Result`/typed exceptions from `lib/core/`.
 - Tests mirror `lib/` structure under `test/`; process boundaries (FFmpeg, llama-server) are faked, not mocked ad hoc — see `test/support/` once Phase 8 lands.
 - Keep files under ~800 lines; the editor/timeline god-widgets are being decomposed (checklist 6.1) — don't grow them further.
