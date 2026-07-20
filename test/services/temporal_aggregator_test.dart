@@ -61,7 +61,9 @@ void main() {
         expect(results.first.end, equals(const Duration(seconds: 1)));
       });
 
-      test('should not merge detections separated by gap larger than hysteresis', () {
+      test(
+          'should not merge detections separated by gap larger than hysteresis',
+          () {
         final results = aggregator.aggregate(
           [
             _createFrameResult(
@@ -118,7 +120,8 @@ void main() {
         // Should have at least one segment meeting the duration requirement
         expect(results, isNotEmpty);
         for (final segment in results) {
-          expect(segment.duration, greaterThanOrEqualTo(const Duration(seconds: 1)));
+          expect(segment.duration,
+              greaterThanOrEqualTo(const Duration(seconds: 1)));
         }
       });
 
@@ -204,7 +207,8 @@ void main() {
         expect(results, isEmpty);
       });
 
-      test('should return AggregatedDetection objects with correct properties', () {
+      test('should return AggregatedDetection objects with correct properties',
+          () {
         final results = aggregator.aggregateRaw(
           [
             _createFrameResult(
@@ -326,7 +330,8 @@ void main() {
 
           // Should filter out short segments
           for (final segment in filtered) {
-            expect(segment.duration, greaterThanOrEqualTo(const Duration(seconds: 5)));
+            expect(segment.duration,
+                greaterThanOrEqualTo(const Duration(seconds: 5)));
           }
         }
       });
@@ -381,20 +386,21 @@ FrameAnalysisResult _createFrameResult({
   double violenceScore = 0.0,
   double bloodScore = 0.0,
   double weaponsScore = 0.0,
-}) => FrameAnalysisResult(
-    frameNumber: timestamp.inMilliseconds,
-    timestamp: timestamp,
-    nsfw: NsfwResult(
-      porn: nsfwScore,
-      sexy: 0,
-      hentai: 0,
-      drawings: 0,
-      neutral: 1 - nsfwScore,
-    ),
-    violence: ViolenceResult(
-      violent: violenceScore,
-      nonViolent: 1 - violenceScore,
-    ),
-    blood: BloodResult(score: bloodScore),
-    weapons: WeaponsResult(score: weaponsScore),
-  );
+}) =>
+    FrameAnalysisResult(
+      frameNumber: timestamp.inMilliseconds,
+      timestamp: timestamp,
+      nsfw: NsfwResult(
+        porn: nsfwScore,
+        sexy: 0,
+        hentai: 0,
+        drawings: 0,
+        neutral: 1 - nsfwScore,
+      ),
+      violence: ViolenceResult(
+        violent: violenceScore,
+        nonViolent: 1 - violenceScore,
+      ),
+      blood: BloodResult(score: bloodScore),
+      weapons: WeaponsResult(score: weaponsScore),
+    );

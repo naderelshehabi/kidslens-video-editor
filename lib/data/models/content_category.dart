@@ -148,7 +148,9 @@ class ContentCategory with _$ContentCategory {
     required CategoryType type,
 
     /// The action to apply when content in this category is detected.
-    required RemediationAction action, /// Whether this category is enabled for detection.
+    required RemediationAction action,
+
+    /// Whether this category is enabled for detection.
     @Default(true) bool enabled,
 
     /// Detection threshold (0.0 to 1.0). The MoE consensus score must meet

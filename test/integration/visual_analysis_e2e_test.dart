@@ -142,10 +142,16 @@ void main() {
         // --- Stage: Aggregation ---
         final result = aggregator.aggregate(frames, [nudityCategory()]);
 
-        expect(result.trackedRegions, hasLength(1),
-            reason: 'All 3 overlapping regions should merge into 1 track',);
-        expect(result.sceneActions, isEmpty,
-            reason: 'NudeNet-only category should not produce scene actions',);
+        expect(
+          result.trackedRegions,
+          hasLength(1),
+          reason: 'All 3 overlapping regions should merge into 1 track',
+        );
+        expect(
+          result.sceneActions,
+          isEmpty,
+          reason: 'NudeNet-only category should not produce scene actions',
+        );
 
         final tracked = result.trackedRegions.first;
         expect(tracked.categoryId, equals('nudity'));
@@ -231,10 +237,16 @@ void main() {
         final result = aggregator.aggregate(frames, [kissingCategory()]);
 
         // CLIP categories produce scene actions, not tracked regions.
-        expect(result.trackedRegions, isEmpty,
-            reason: 'CLIP-only categories have no bounding boxes',);
-        expect(result.sceneActions, hasLength(1),
-            reason: 'Three consecutive CLIP triggers should merge into 1',);
+        expect(
+          result.trackedRegions,
+          isEmpty,
+          reason: 'CLIP-only categories have no bounding boxes',
+        );
+        expect(
+          result.sceneActions,
+          hasLength(1),
+          reason: 'Three consecutive CLIP triggers should merge into 1',
+        );
 
         final action = result.sceneActions.first;
         expect(action.categoryId, equals('kissing'));
@@ -310,10 +322,16 @@ void main() {
         );
 
         // Both types of results present.
-        expect(result.trackedRegions, hasLength(1),
-            reason: 'NudeNet regions should produce 1 tracked region',);
-        expect(result.sceneActions, hasLength(1),
-            reason: 'CLIP scores should produce 1 scene action',);
+        expect(
+          result.trackedRegions,
+          hasLength(1),
+          reason: 'NudeNet regions should produce 1 tracked region',
+        );
+        expect(
+          result.sceneActions,
+          hasLength(1),
+          reason: 'CLIP scores should produce 1 scene action',
+        );
 
         // Verify tracked region (NudeNet / nudity)
         final tracked = result.trackedRegions.first;
@@ -568,8 +586,7 @@ void main() {
           // produce for this region modification.
           final expectedCrop = 'crop=$cropW:$cropH:$cropX:$cropY';
           final expectedBlur = 'gblur=sigma=$sigma';
-          final expectedOverlay =
-              "overlay=x=$cropX:y=$cropY:enable='$enable'";
+          final expectedOverlay = "overlay=x=$cropX:y=$cropY:enable='$enable'";
 
           expect(expectedCrop, equals('crop=691:518:134:173'));
           expect(expectedBlur, equals('gblur=sigma=27'));

@@ -24,7 +24,7 @@ class AcceleratorInfo with _$AcceleratorInfo {
     String? computeCapability,
     @Default(false) bool isAppleSilicon,
   }) = _AcceleratorInfo;
-  
+
   factory AcceleratorInfo.fromJson(Map<String, dynamic> json) =>
       _$AcceleratorInfoFromJson(json);
 }
@@ -41,7 +41,7 @@ class SystemCapabilities with _$SystemCapabilities {
     AcceleratorInfo? accelerator,
     @Default([]) List<String> supportedExecutionProviders,
   }) = _SystemCapabilities;
-  
+
   factory SystemCapabilities.fromJson(Map<String, dynamic> json) =>
       _$SystemCapabilitiesFromJson(json);
 }

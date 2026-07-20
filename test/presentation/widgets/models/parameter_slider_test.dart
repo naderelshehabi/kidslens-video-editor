@@ -48,11 +48,13 @@ void main() {
       });
 
       testWidgets('renders with correct min and max', (tester) async {
-        await tester.pumpWidget(createParameterSlider(
-          min: 10,
-          max: 100,
-          value: 50,
-        ),);
+        await tester.pumpWidget(
+          createParameterSlider(
+            min: 10,
+            max: 100,
+            value: 50,
+          ),
+        );
 
         final slider = tester.widget<Slider>(find.byType(Slider));
         expect(slider.min, equals(10.0));
@@ -60,9 +62,11 @@ void main() {
       });
 
       testWidgets('clamps value to valid range', (tester) async {
-        await tester.pumpWidget(createParameterSlider(
-          value: 2, // Out of range
-        ),);
+        await tester.pumpWidget(
+          createParameterSlider(
+            value: 2, // Out of range
+          ),
+        );
 
         final slider = tester.widget<Slider>(find.byType(Slider));
         expect(slider.value, equals(1.0));
@@ -71,26 +75,32 @@ void main() {
 
     group('labels', () {
       testWidgets('renders min label when provided', (tester) async {
-        await tester.pumpWidget(createParameterSlider(
-          minLabel: 'Low',
-        ),);
+        await tester.pumpWidget(
+          createParameterSlider(
+            minLabel: 'Low',
+          ),
+        );
 
         expect(find.text('Low'), findsOneWidget);
       });
 
       testWidgets('renders max label when provided', (tester) async {
-        await tester.pumpWidget(createParameterSlider(
-          maxLabel: 'High',
-        ),);
+        await tester.pumpWidget(
+          createParameterSlider(
+            maxLabel: 'High',
+          ),
+        );
 
         expect(find.text('High'), findsOneWidget);
       });
 
       testWidgets('renders both labels when provided', (tester) async {
-        await tester.pumpWidget(createParameterSlider(
-          minLabel: 'Min',
-          maxLabel: 'Max',
-        ),);
+        await tester.pumpWidget(
+          createParameterSlider(
+            minLabel: 'Min',
+            maxLabel: 'Max',
+          ),
+        );
 
         expect(find.text('Min'), findsOneWidget);
         expect(find.text('Max'), findsOneWidget);
@@ -106,9 +116,11 @@ void main() {
 
     group('dragging', () {
       testWidgets('slider is draggable', (tester) async {
-        await tester.pumpWidget(createParameterSlider(
-          onChanged: (_) {},
-        ),);
+        await tester.pumpWidget(
+          createParameterSlider(
+            onChanged: (_) {},
+          ),
+        );
 
         final slider = find.byType(Slider);
         expect(slider, findsOneWidget);
@@ -121,9 +133,11 @@ void main() {
       testWidgets('onChanged callback fires when dragged', (tester) async {
         double? changedValue;
 
-        await tester.pumpWidget(createParameterSlider(
-          onChanged: (value) => changedValue = value,
-        ),);
+        await tester.pumpWidget(
+          createParameterSlider(
+            onChanged: (value) => changedValue = value,
+          ),
+        );
 
         // Drag the slider
         await tester.drag(find.byType(Slider), const Offset(100, 0));
@@ -133,9 +147,9 @@ void main() {
       });
 
       testWidgets('slider is disabled when onChanged is null', (tester) async {
-        await tester.pumpWidget(createParameterSlider(
-          
-        ),);
+        await tester.pumpWidget(
+          createParameterSlider(),
+        );
 
         final slider = tester.widget<Slider>(find.byType(Slider));
         expect(slider.onChanged, isNull);
@@ -144,9 +158,11 @@ void main() {
 
     group('divisions', () {
       testWidgets('slider uses divisions when provided', (tester) async {
-        await tester.pumpWidget(createParameterSlider(
-          divisions: 10,
-        ),);
+        await tester.pumpWidget(
+          createParameterSlider(
+            divisions: 10,
+          ),
+        );
 
         final slider = tester.widget<Slider>(find.byType(Slider));
         expect(slider.divisions, equals(10));
@@ -154,9 +170,9 @@ void main() {
 
       testWidgets('slider is continuous when divisions is null',
           (tester) async {
-        await tester.pumpWidget(createParameterSlider(
-          
-        ),);
+        await tester.pumpWidget(
+          createParameterSlider(),
+        );
 
         final slider = tester.widget<Slider>(find.byType(Slider));
         expect(slider.divisions, isNull);
@@ -166,9 +182,11 @@ void main() {
     group('value indicator', () {
       testWidgets('shows label when showValueIndicator is true',
           (tester) async {
-        await tester.pumpWidget(createParameterSlider(
-          label: '50%',
-        ),);
+        await tester.pumpWidget(
+          createParameterSlider(
+            label: '50%',
+          ),
+        );
 
         final slider = tester.widget<Slider>(find.byType(Slider));
         expect(slider.label, equals('50%'));
@@ -176,10 +194,12 @@ void main() {
 
       testWidgets('hides label when showValueIndicator is false',
           (tester) async {
-        await tester.pumpWidget(createParameterSlider(
-          label: '50%',
-          showValueIndicator: false,
-        ),);
+        await tester.pumpWidget(
+          createParameterSlider(
+            label: '50%',
+            showValueIndicator: false,
+          ),
+        );
 
         final slider = tester.widget<Slider>(find.byType(Slider));
         expect(slider.label, isNull);
@@ -221,34 +241,40 @@ void main() {
 
     group('label rendering', () {
       testWidgets('renders label text', (tester) async {
-        await tester.pumpWidget(createLabeledSlider(
-          label: 'Confidence Threshold',
-        ),);
+        await tester.pumpWidget(
+          createLabeledSlider(
+            label: 'Confidence Threshold',
+          ),
+        );
 
         expect(find.text('Confidence Threshold'), findsOneWidget);
       });
 
       testWidgets('renders formatted value', (tester) async {
-        await tester.pumpWidget(createLabeledSlider(
-          value: 0.75,
-          valueFormatter: (v) => '${(v * 100).round()}%',
-        ),);
+        await tester.pumpWidget(
+          createLabeledSlider(
+            value: 0.75,
+            valueFormatter: (v) => '${(v * 100).round()}%',
+          ),
+        );
 
         expect(find.text('75%'), findsOneWidget);
       });
 
       testWidgets('renders description when provided', (tester) async {
-        await tester.pumpWidget(createLabeledSlider(
-          description: 'Adjust the sensitivity',
-        ),);
+        await tester.pumpWidget(
+          createLabeledSlider(
+            description: 'Adjust the sensitivity',
+          ),
+        );
 
         expect(find.text('Adjust the sensitivity'), findsOneWidget);
       });
 
       testWidgets('does not render description when null', (tester) async {
-        await tester.pumpWidget(createLabeledSlider(
-          
-        ),);
+        await tester.pumpWidget(
+          createLabeledSlider(),
+        );
 
         expect(find.text('Adjust the sensitivity'), findsNothing);
       });
@@ -256,10 +282,12 @@ void main() {
 
     group('value display', () {
       testWidgets('value is displayed in container', (tester) async {
-        await tester.pumpWidget(createLabeledSlider(
-          value: 0.85,
-          valueFormatter: (v) => '${(v * 100).round()}%',
-        ),);
+        await tester.pumpWidget(
+          createLabeledSlider(
+            value: 0.85,
+            valueFormatter: (v) => '${(v * 100).round()}%',
+          ),
+        );
 
         expect(find.text('85%'), findsOneWidget);
       });
@@ -305,10 +333,12 @@ void main() {
       });
 
       testWidgets('passes min/max labels to nested slider', (tester) async {
-        await tester.pumpWidget(createLabeledSlider(
-          minLabel: 'Slow',
-          maxLabel: 'Fast',
-        ),);
+        await tester.pumpWidget(
+          createLabeledSlider(
+            minLabel: 'Slow',
+            maxLabel: 'Fast',
+          ),
+        );
 
         expect(find.text('Slow'), findsOneWidget);
         expect(find.text('Fast'), findsOneWidget);
@@ -347,38 +377,46 @@ void main() {
         );
 
     testWidgets('renders label', (tester) async {
-      await tester.pumpWidget(createIntegerSlider(
-        label: 'Frame Rate',
-      ),);
+      await tester.pumpWidget(
+        createIntegerSlider(
+          label: 'Frame Rate',
+        ),
+      );
 
       expect(find.text('Frame Rate'), findsOneWidget);
     });
 
     testWidgets('displays integer value', (tester) async {
-      await tester.pumpWidget(createIntegerSlider(
-        value: 30,
-        min: 1,
-        max: 60,
-      ),);
+      await tester.pumpWidget(
+        createIntegerSlider(
+          value: 30,
+          min: 1,
+          max: 60,
+        ),
+      );
 
       expect(find.text('30'), findsOneWidget);
     });
 
     testWidgets('displays value with suffix', (tester) async {
-      await tester.pumpWidget(createIntegerSlider(
-        value: 30,
-        min: 1,
-        max: 60,
-        suffix: ' fps',
-      ),);
+      await tester.pumpWidget(
+        createIntegerSlider(
+          value: 30,
+          min: 1,
+          max: 60,
+          suffix: ' fps',
+        ),
+      );
 
       expect(find.text('30 fps'), findsOneWidget);
     });
 
     testWidgets('uses default min/max labels', (tester) async {
-      await tester.pumpWidget(createIntegerSlider(
-        max: 100,
-      ),);
+      await tester.pumpWidget(
+        createIntegerSlider(
+          max: 100,
+        ),
+      );
 
       expect(find.text('0'), findsOneWidget);
       expect(find.text('100'), findsOneWidget);
@@ -387,9 +425,11 @@ void main() {
     testWidgets('calls onChanged with integer value', (tester) async {
       int? changedValue;
 
-      await tester.pumpWidget(createIntegerSlider(
-        onChanged: (v) => changedValue = v,
-      ),);
+      await tester.pumpWidget(
+        createIntegerSlider(
+          onChanged: (v) => changedValue = v,
+        ),
+      );
 
       await tester.drag(find.byType(Slider), const Offset(100, 0));
       await tester.pump();
@@ -399,9 +439,9 @@ void main() {
     });
 
     testWidgets('has correct number of divisions', (tester) async {
-      await tester.pumpWidget(createIntegerSlider(
-        
-      ),);
+      await tester.pumpWidget(
+        createIntegerSlider(),
+      );
 
       // IntegerParameterSlider creates divisions = max - min
       final sliderFinder = find.byType(Slider);
@@ -433,17 +473,21 @@ void main() {
         );
 
     testWidgets('renders label', (tester) async {
-      await tester.pumpWidget(createPercentageSlider(
-        label: 'Opacity',
-      ),);
+      await tester.pumpWidget(
+        createPercentageSlider(
+          label: 'Opacity',
+        ),
+      );
 
       expect(find.text('Opacity'), findsOneWidget);
     });
 
     testWidgets('displays value as percentage', (tester) async {
-      await tester.pumpWidget(createPercentageSlider(
-        value: 0.75,
-      ),);
+      await tester.pumpWidget(
+        createPercentageSlider(
+          value: 0.75,
+        ),
+      );
 
       expect(find.text('75%'), findsOneWidget);
     });
@@ -456,9 +500,9 @@ void main() {
     });
 
     testWidgets('has slider with 0 to 1 range', (tester) async {
-      await tester.pumpWidget(createPercentageSlider(
-        
-      ),);
+      await tester.pumpWidget(
+        createPercentageSlider(),
+      );
 
       final slider = tester.widget<Slider>(find.byType(Slider));
       expect(slider.min, equals(0));
@@ -466,18 +510,22 @@ void main() {
     });
 
     testWidgets('uses custom divisions', (tester) async {
-      await tester.pumpWidget(createPercentageSlider(
-        divisions: 10,
-      ),);
+      await tester.pumpWidget(
+        createPercentageSlider(
+          divisions: 10,
+        ),
+      );
 
       final slider = tester.widget<Slider>(find.byType(Slider));
       expect(slider.divisions, equals(10));
     });
 
     testWidgets('renders description when provided', (tester) async {
-      await tester.pumpWidget(createPercentageSlider(
-        description: 'Adjust transparency level',
-      ),);
+      await tester.pumpWidget(
+        createPercentageSlider(
+          description: 'Adjust transparency level',
+        ),
+      );
 
       expect(find.text('Adjust transparency level'), findsOneWidget);
     });

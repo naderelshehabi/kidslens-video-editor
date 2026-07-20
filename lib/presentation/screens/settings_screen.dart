@@ -196,7 +196,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _changeModelsLocation() async {
     final controller = TextEditingController(text: _modelCachePath ?? '');
-    
+
     final newPath = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -216,7 +216,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 labelText: 'Models Directory Path',
                 hintText: 'e.g., D:\\AI Models',
                 border: OutlineInputBorder(),
-                helperText: 'Models will need to be re-downloaded after changing',
+                helperText:
+                    'Models will need to be re-downloaded after changing',
               ),
             ),
           ],
@@ -242,7 +243,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       if (newPath.isEmpty) {
         await prefs.remove(SettingsKeys.modelCachePath);
         ref.read(settingsNotifierProvider.notifier).setModelCachePath('');
@@ -263,7 +264,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Models location updated. Downloaded models will need to be re-downloaded.'),
+            content: Text(
+              'Models location updated. Downloaded models will need to be re-downloaded.',
+            ),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -318,10 +321,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           onChanged: (mode) {
                             if (mode != null) _saveThemeMode(mode);
                           },
-                          items: ThemeMode.values.map((mode) => DropdownMenuItem(
-                              value: mode,
-                              child: Text(_themeModeLabel(mode)),
-                            ),).toList(),
+                          items: ThemeMode.values
+                              .map(
+                                (mode) => DropdownMenuItem(
+                                  value: mode,
+                                  child: Text(_themeModeLabel(mode)),
+                                ),
+                              )
+                              .toList(),
                         ),
                       ),
                     ],
@@ -348,10 +355,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           onChanged: (quality) {
                             if (quality != null) _saveExportQuality(quality);
                           },
-                          items: ExportQuality.values.map((quality) => DropdownMenuItem(
-                              value: quality,
-                              child: Text(quality.label),
-                            ),).toList(),
+                          items: ExportQuality.values
+                              .map(
+                                (quality) => DropdownMenuItem(
+                                  value: quality,
+                                  child: Text(quality.label),
+                                ),
+                              )
+                              .toList(),
                         ),
                       ),
                       const Divider(height: 1),
@@ -365,10 +376,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           onChanged: (format) {
                             if (format != null) _saveExportFormat(format);
                           },
-                          items: ExportFormat.values.map((format) => DropdownMenuItem(
-                              value: format,
-                              child: Text(format.label),
-                            ),).toList(),
+                          items: ExportFormat.values
+                              .map(
+                                (format) => DropdownMenuItem(
+                                  value: format,
+                                  child: Text(format.label),
+                                ),
+                              )
+                              .toList(),
                         ),
                       ),
                     ],
@@ -395,10 +410,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           onChanged: (value) {
                             if (value != null) _saveAutoSaveInterval(value);
                           },
-                          items: [1, 2, 5, 10, 15, 30].map((minutes) => DropdownMenuItem(
-                              value: minutes,
-                              child: Text('$minutes min'),
-                            ),).toList(),
+                          items: [1, 2, 5, 10, 15, 30]
+                              .map(
+                                (minutes) => DropdownMenuItem(
+                                  value: minutes,
+                                  child: Text('$minutes min'),
+                                ),
+                              )
+                              .toList(),
                         ),
                       ),
                     ],

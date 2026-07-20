@@ -40,7 +40,8 @@ class NsfwResult with _$NsfwResult {
       );
 
   /// Maximum NSFW score (highest of porn, sexy, hentai)
-  double get maxNsfwScore => [porn, sexy, hentai].reduce((a, b) => a > b ? a : b);
+  double get maxNsfwScore =>
+      [porn, sexy, hentai].reduce((a, b) => a > b ? a : b);
 
   /// Whether this frame is considered NSFW at a given threshold
   bool isNsfwAtThreshold(double threshold) => maxNsfwScore >= threshold;
@@ -337,7 +338,8 @@ class FrameAnalysisResult with _$FrameAnalysisResult {
   bool hasNsfwAt(double threshold) => nsfw.isNsfwAtThreshold(threshold);
 
   /// Whether this frame has violence at threshold
-  bool hasViolenceAt(double threshold) => violence.isViolentAtThreshold(threshold);
+  bool hasViolenceAt(double threshold) =>
+      violence.isViolentAtThreshold(threshold);
 
   /// Whether this frame has blood at threshold
   bool hasBloodAt(double threshold) =>

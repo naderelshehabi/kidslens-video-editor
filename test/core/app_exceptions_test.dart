@@ -86,7 +86,10 @@ void main() {
           technicalDetails: 'ROCm driver version mismatch',
         );
 
-        expect(exception.technicalDetails, equals('ROCm driver version mismatch'));
+        expect(
+          exception.technicalDetails,
+          equals('ROCm driver version mismatch'),
+        );
       });
 
       test('should be retryable', () {
@@ -271,7 +274,10 @@ void main() {
           technicalDetails: 'Model returned invalid output',
         );
 
-        expect(exception.technicalDetails, equals('Model returned invalid output'));
+        expect(
+          exception.technicalDetails,
+          equals('Model returned invalid output'),
+        );
       });
 
       test('should be retryable', () {
@@ -294,7 +300,10 @@ void main() {
           technicalDetails: 'FFmpeg returned error code -22',
         );
 
-        expect(exception.technicalDetails, equals('FFmpeg returned error code -22'));
+        expect(
+          exception.technicalDetails,
+          equals('FFmpeg returned error code -22'),
+        );
       });
 
       test('should provide user-friendly message', () {
@@ -407,19 +416,20 @@ void main() {
     group('Pattern matching', () {
       test('should pattern match on exception type', () {
         // Use a helper function to avoid dead code warning from static type analysis
-        String matchException(KidsLensException exception) => switch (exception) {
-            ModelDownloadException(:final modelId) => 'Download: $modelId',
-            GPUInitializationException() => 'GPU',
-            UnsupportedMediaException() => 'Unsupported',
-            CorruptedMediaException() => 'Corrupted',
-            OutOfMemoryException() => 'OOM',
-            InsufficientDiskSpaceException() => 'Disk',
-            AnalysisException() => 'Analysis',
-            ExportException() => 'Export',
-            NativeLibraryException() => 'Native',
-            ModelValidationException() => 'Validation',
-            PermissionDeniedException() => 'Permission',
-          };
+        String matchException(KidsLensException exception) =>
+            switch (exception) {
+              ModelDownloadException(:final modelId) => 'Download: $modelId',
+              GPUInitializationException() => 'GPU',
+              UnsupportedMediaException() => 'Unsupported',
+              CorruptedMediaException() => 'Corrupted',
+              OutOfMemoryException() => 'OOM',
+              InsufficientDiskSpaceException() => 'Disk',
+              AnalysisException() => 'Analysis',
+              ExportException() => 'Export',
+              NativeLibraryException() => 'Native',
+              ModelValidationException() => 'Validation',
+              PermissionDeniedException() => 'Permission',
+            };
 
         const exception = ModelDownloadException('whisper');
         expect(matchException(exception), equals('Download: whisper'));
@@ -429,7 +439,8 @@ void main() {
         const exception = GPUInitializationException(AcceleratorType.cuda);
 
         final result = switch (exception) {
-          GPUInitializationException(:final attemptedType) => attemptedType.name,
+          GPUInitializationException(:final attemptedType) =>
+            attemptedType.name,
         };
 
         expect(result, equals('cuda'));
@@ -442,10 +453,8 @@ void main() {
         );
 
         final severity = switch (exception) {
-          OutOfMemoryException(
-            :final requiredMB,
-            :final availableMB
-          ) when requiredMB > availableMB * 2 =>
+          OutOfMemoryException(:final requiredMB, :final availableMB)
+              when requiredMB > availableMB * 2 =>
             'critical',
           OutOfMemoryException() => 'warning',
         };
@@ -460,10 +469,8 @@ void main() {
         );
 
         final severity = switch (exception) {
-          OutOfMemoryException(
-            :final requiredMB,
-            :final availableMB
-          ) when requiredMB > availableMB * 2 =>
+          OutOfMemoryException(:final requiredMB, :final availableMB)
+              when requiredMB > availableMB * 2 =>
             'critical',
           OutOfMemoryException() => 'warning',
         };
@@ -502,14 +509,16 @@ void main() {
     });
 
     group('userMessage', () {
-      test('should provide user-friendly message for UnsupportedMediaException', () {
+      test('should provide user-friendly message for UnsupportedMediaException',
+          () {
         const exception = UnsupportedMediaException(codec: 'hevc');
 
         expect(exception.userMessage, isNotEmpty);
         expect(exception.userMessage, contains('hevc'));
       });
 
-      test('should provide user-friendly message for NativeLibraryException', () {
+      test('should provide user-friendly message for NativeLibraryException',
+          () {
         const exception = NativeLibraryException('ffmpeg.dll');
 
         expect(exception.userMessage, isNotEmpty);

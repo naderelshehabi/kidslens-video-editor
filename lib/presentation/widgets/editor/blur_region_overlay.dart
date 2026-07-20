@@ -76,14 +76,14 @@ class _BlurRegionOverlayState extends State<BlurRegionOverlay> {
   }
 
   Offset _normalizedToPixel(Offset normalized) => Offset(
-      normalized.dx * widget.videoSize.width,
-      normalized.dy * widget.videoSize.height,
-    );
+        normalized.dx * widget.videoSize.width,
+        normalized.dy * widget.videoSize.height,
+      );
 
   Offset _pixelToNormalized(Offset pixel) => Offset(
-      (pixel.dx / widget.videoSize.width).clamp(0.0, 1.0),
-      (pixel.dy / widget.videoSize.height).clamp(0.0, 1.0),
-    );
+        (pixel.dx / widget.videoSize.width).clamp(0.0, 1.0),
+        (pixel.dy / widget.videoSize.height).clamp(0.0, 1.0),
+      );
 
   BoundingBox _handlesToBoundingBox() {
     if (_handles.isEmpty) {
@@ -154,8 +154,10 @@ class _BlurRegionOverlayState extends State<BlurRegionOverlay> {
 
     setState(() {
       for (var i = 0; i < _handles.length; i++) {
-        final newX = (_dragStartHandles![i].dx + normalizedDelta.dx).clamp(0.0, 1.0);
-        final newY = (_dragStartHandles![i].dy + normalizedDelta.dy).clamp(0.0, 1.0);
+        final newX =
+            (_dragStartHandles![i].dx + normalizedDelta.dx).clamp(0.0, 1.0);
+        final newY =
+            (_dragStartHandles![i].dy + normalizedDelta.dy).clamp(0.0, 1.0);
         _handles[i] = Offset(newX, newY);
       }
     });
@@ -176,15 +178,15 @@ class _BlurRegionOverlayState extends State<BlurRegionOverlay> {
 
     // Find the closest edge and add a handle on it
     final normalized = _pixelToNormalized(position);
-    
+
     // Find the two closest handles to insert between
     var insertIndex = 0;
     var minDistance = double.infinity;
-    
+
     for (var i = 0; i < _handles.length; i++) {
       final current = _handles[i];
       final next = _handles[(i + 1) % _handles.length];
-      
+
       // Calculate distance to edge
       final edgeDistance = _distanceToLineSegment(normalized, current, next);
       if (edgeDistance < minDistance) {
@@ -218,17 +220,18 @@ class _BlurRegionOverlayState extends State<BlurRegionOverlay> {
     final dx = end.dx - start.dx;
     final dy = end.dy - start.dy;
     final lengthSquared = dx * dx + dy * dy;
-    
+
     if (lengthSquared == 0) {
       return (point - start).distance;
     }
-    
-    final t = ((point.dx - start.dx) * dx + (point.dy - start.dy) * dy) / lengthSquared;
+
+    final t = ((point.dx - start.dx) * dx + (point.dy - start.dy) * dy) /
+        lengthSquared;
     final tClamped = t.clamp(0.0, 1.0);
-    
+
     final projX = start.dx + tClamped * dx;
     final projY = start.dy + tClamped * dy;
-    
+
     return (point - Offset(projX, projY)).distance;
   }
 
@@ -255,7 +258,7 @@ class _BlurRegionOverlayState extends State<BlurRegionOverlay> {
               ),
             ),
           ),
-          
+
           // Polygon outline
           if (widget.isSelected || widget.isEditing)
             CustomPaint(
@@ -266,20 +269,21 @@ class _BlurRegionOverlayState extends State<BlurRegionOverlay> {
               ),
               size: widget.videoSize,
             ),
-          
+
           // Drag area for moving the entire region
           if (widget.isEditing)
             GestureDetector(
               onPanStart: _onRegionDragStart,
               onPanUpdate: _onRegionDragUpdate,
               onPanEnd: _onRegionDragEnd,
-              onDoubleTapDown: (details) => _onEdgeDoubleTap(details.localPosition),
+              onDoubleTapDown: (details) =>
+                  _onEdgeDoubleTap(details.localPosition),
               child: CustomPaint(
                 painter: _PolygonHitAreaPainter(handles: pixelHandles),
                 size: widget.videoSize,
               ),
             ),
-          
+
           // Handle points
           if (widget.isEditing)
             ...List.generate(_handles.length, (index) {
@@ -296,8 +300,8 @@ class _BlurRegionOverlayState extends State<BlurRegionOverlay> {
                     width: 16,
                     height: 16,
                     decoration: BoxDecoration(
-                      color: _draggingHandleIndex == index 
-                          ? Colors.blue 
+                      color: _draggingHandleIndex == index
+                          ? Colors.blue
                           : Colors.white,
                       border: Border.all(color: Colors.blue, width: 2),
                       shape: BoxShape.circle,
@@ -313,7 +317,7 @@ class _BlurRegionOverlayState extends State<BlurRegionOverlay> {
                 ),
               );
             }),
-          
+
           // Intensity control panel when editing
           if (widget.isEditing)
             Positioned(
@@ -321,7 +325,8 @@ class _BlurRegionOverlayState extends State<BlurRegionOverlay> {
               left: 8,
               right: 8,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(8),
@@ -380,7 +385,8 @@ class _PolygonClipper extends CustomClipper<Path> {
   }
 
   @override
-  bool shouldReclip(_PolygonClipper oldClipper) => oldClipper.handles != handles;
+  bool shouldReclip(_PolygonClipper oldClipper) =>
+      oldClipper.handles != handles;
 }
 
 /// Custom painter for polygon outline
@@ -404,8 +410,7 @@ class _PolygonPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = isEditing ? 3 : 2;
 
-    final path = Path()
-      ..moveTo(handles.first.dx, handles.first.dy);
+    final path = Path()..moveTo(handles.first.dx, handles.first.dy);
     for (var i = 1; i < handles.length; i++) {
       path.lineTo(handles[i].dx, handles[i].dy);
     }
@@ -425,9 +430,10 @@ class _PolygonPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_PolygonPainter oldDelegate) => oldDelegate.handles != handles ||
-        oldDelegate.isEditing != isEditing ||
-        oldDelegate.isSelected != isSelected;
+  bool shouldRepaint(_PolygonPainter oldDelegate) =>
+      oldDelegate.handles != handles ||
+      oldDelegate.isEditing != isEditing ||
+      oldDelegate.isSelected != isSelected;
 }
 
 /// Custom painter for polygon hit area (for drag detection)
@@ -442,14 +448,14 @@ class _PolygonHitAreaPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_PolygonHitAreaPainter oldDelegate) => oldDelegate.handles != handles;
+  bool shouldRepaint(_PolygonHitAreaPainter oldDelegate) =>
+      oldDelegate.handles != handles;
 
   @override
   bool? hitTest(Offset position) {
     if (handles.isEmpty) return false;
 
-    final path = Path()
-      ..moveTo(handles.first.dx, handles.first.dy);
+    final path = Path()..moveTo(handles.first.dx, handles.first.dy);
     for (var i = 1; i < handles.length; i++) {
       path.lineTo(handles[i].dx, handles[i].dy);
     }
@@ -474,8 +480,9 @@ class SimpleBlurOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final box = boundingBox ?? const BoundingBox(left: 0, top: 0, width: 1, height: 1);
-    
+    final box =
+        boundingBox ?? const BoundingBox(left: 0, top: 0, width: 1, height: 1);
+
     final left = box.left * videoSize.width;
     final top = box.top * videoSize.height;
     final width = box.width * videoSize.width;

@@ -93,10 +93,10 @@ class AnalysisArtifact with _$AnalysisArtifact {
   }) = _AnalysisArtifact;
 
   const AnalysisArtifact._();
-  
+
   factory AnalysisArtifact.fromJson(Map<String, dynamic> json) =>
       _$AnalysisArtifactFromJson(json);
-  
+
   /// Save artifact to JSON file
   Future<void> save(String path) async {
     final json = toJson();
@@ -105,12 +105,12 @@ class AnalysisArtifact with _$AnalysisArtifact {
       const JsonEncoder.withIndent('  ').convert(json),
     );
   }
-  
+
   /// Load artifact from JSON file
   static Future<AnalysisArtifact?> load(String path) async {
     final file = File(path);
     if (!file.existsSync()) return null;
-    
+
     try {
       final content = await file.readAsString();
       final json = jsonDecode(content) as Map<String, dynamic>;
@@ -119,7 +119,7 @@ class AnalysisArtifact with _$AnalysisArtifact {
       return null;
     }
   }
-  
+
   /// Check if artifact can be reused for given media and settings
   bool isCompatibleWith({
     required String newMediaHash,
@@ -127,20 +127,22 @@ class AnalysisArtifact with _$AnalysisArtifact {
   }) {
     // Must be same media file
     if (newMediaHash != mediaHash) return false;
-    
+
     // Must be completed
     if (status != AnalysisStatus.completed) return false;
-    
+
     // Check if model config matches
-    if (newSettings.modelConfig.asrModelId != settingsUsed.modelConfig.asrModelId) {
+    if (newSettings.modelConfig.asrModelId !=
+        settingsUsed.modelConfig.asrModelId) {
       return false;
     }
-    
+
     return true;
   }
 
   /// Whether this artifact is complete and usable
-  bool get isComplete => status == AnalysisStatus.completed && completedAt != null;
+  bool get isComplete =>
+      status == AnalysisStatus.completed && completedAt != null;
 
   /// Whether this artifact represents a failed analysis
   bool get isFailed => status == AnalysisStatus.failed;

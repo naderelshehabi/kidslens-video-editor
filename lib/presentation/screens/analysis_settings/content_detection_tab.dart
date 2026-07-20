@@ -331,7 +331,6 @@ class _ContentDetectionTabState extends ConsumerState<ContentDetectionTab> {
                       );
                     },
                   ),
-
                 ],
               ),
             ),

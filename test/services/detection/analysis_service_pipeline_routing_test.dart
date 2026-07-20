@@ -48,9 +48,7 @@ void main() {
     });
 
     test('routes the VSS family-safety pipeline by default', () async {
-      final legacyPipeline = _RecordingPipeline(
-        DetectionPipelineProfile.legacyNsfwRegionV8,
-      );
+      final legacyPipeline = _RecordingPipeline();
       final vssPipeline = _RecordingPipeline(
         DetectionPipelineProfile.vssFamilySafetyV1,
       );
@@ -59,9 +57,6 @@ void main() {
       );
       final service = _service(
         registry,
-        rolloutConfig: const DetectionPipelineRolloutConfig(
-          state: DetectionPipelineRolloutState.defaultProfile,
-        ),
       );
 
       await service

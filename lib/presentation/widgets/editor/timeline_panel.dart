@@ -2415,8 +2415,9 @@ class _NsfwScorePainter extends CustomPainter {
       ..lineTo(size.width, size.height)
       ..close();
 
-    canvas.drawPath(fillPath, fillPaint);
-    canvas.drawPath(linePath, linePaint);
+    canvas
+      ..drawPath(fillPath, fillPaint)
+      ..drawPath(linePath, linePaint);
   }
 
   @override
@@ -2497,8 +2498,9 @@ class _NudenetConfidencePainter extends CustomPainter {
       ..lineTo(size.width, size.height)
       ..close();
 
-    canvas.drawPath(fillPath, fillPaint);
-    canvas.drawPath(linePath, linePaint);
+    canvas
+      ..drawPath(fillPath, fillPaint)
+      ..drawPath(linePath, linePaint);
   }
 
   @override
@@ -2546,7 +2548,8 @@ class _ModestyConfidencePainter extends CustomPainter {
       final regions = frame.visualContent?.detectedRegions ?? const [];
       final modestyRegions = regions
           .where(
-              (region) => _modestyTrackCategoryIdForLabel(region.label) != null)
+            (region) => _modestyTrackCategoryIdForLabel(region.label) != null,
+          )
           .toList(growable: false);
       final maxConfidence = modestyRegions.isEmpty
           ? 0.0
@@ -2582,8 +2585,9 @@ class _ModestyConfidencePainter extends CustomPainter {
       ..lineTo(size.width, size.height)
       ..close();
 
-    canvas.drawPath(fillPath, fillPaint);
-    canvas.drawPath(linePath, linePaint);
+    canvas
+      ..drawPath(fillPath, fillPaint)
+      ..drawPath(linePath, linePaint);
   }
 
   @override

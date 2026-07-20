@@ -39,7 +39,7 @@ class MemoryMonitor {
   Future<void> _checkMemory() async {
     try {
       await _updateMemoryInfo();
-      
+
       if (_totalMemoryMB == 0) return;
 
       final usedRatio = 1.0 - (_availableMemoryMB / _totalMemoryMB);
@@ -97,8 +97,9 @@ class MemoryMonitor {
       // Get page size and free pages
       result = await Process.run('vm_stat', []);
       final output = result.stdout.toString();
-      
-      final pageSizeMatch = RegExp(r'page size of (\d+) bytes').firstMatch(output);
+
+      final pageSizeMatch =
+          RegExp(r'page size of (\d+) bytes').firstMatch(output);
       final pageSize = int.tryParse(pageSizeMatch?.group(1) ?? '') ?? 4096;
 
       final freeMatch = RegExp(r'Pages free:\s+(\d+)').firstMatch(output);
@@ -118,8 +119,10 @@ class MemoryMonitor {
       final totalMatch = RegExp(r'MemTotal:\s+(\d+)').firstMatch(content);
       _totalMemoryMB = (int.tryParse(totalMatch?.group(1) ?? '') ?? 0) ~/ 1024;
 
-      final availableMatch = RegExp(r'MemAvailable:\s+(\d+)').firstMatch(content);
-      _availableMemoryMB = (int.tryParse(availableMatch?.group(1) ?? '') ?? 0) ~/ 1024;
+      final availableMatch =
+          RegExp(r'MemAvailable:\s+(\d+)').firstMatch(content);
+      _availableMemoryMB =
+          (int.tryParse(availableMatch?.group(1) ?? '') ?? 0) ~/ 1024;
     } catch (_) {
       // Ignore errors
     }

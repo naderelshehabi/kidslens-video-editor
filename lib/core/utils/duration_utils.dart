@@ -83,8 +83,10 @@ abstract final class DurationUtils {
   ///
   /// Drop-frame timecode is used for 29.97 and 59.94 fps to maintain
   /// sync with wall-clock time.
-  static String formatDropFrameTimecode(Duration duration,
-      {double fps = 29.97,}) {
+  static String formatDropFrameTimecode(
+    Duration duration, {
+    double fps = 29.97,
+  }) {
     final isNegative = duration.isNegative;
     final absolute = duration.abs();
 

@@ -90,7 +90,9 @@ class DownloadProgress {
         ? (bytesReceived / 1024 / 1024 / elapsed).toStringAsFixed(1)
         : '?';
 
-    stdout.write('\r  Downloading: $receivedMB MB / $totalMB MB ($percent%) - $speed MB/s    ');
+    stdout.write(
+      '\r  Downloading: $receivedMB MB / $totalMB MB ($percent%) - $speed MB/s    ',
+    );
   }
 
   void complete() {
@@ -102,7 +104,6 @@ class DownloadProgress {
 
 /// Main downloader class
 class FFmpegDownloader {
-
   FFmpegDownloader({
     required this.platform,
     required this.outputDir,
@@ -170,7 +171,8 @@ class FFmpegDownloader {
   String _getMacOSUrl() => 'https://evermeet.cx/ffmpeg/getrelease/zip';
 
   /// Get Linux FFmpeg URL from johnvansickle.com
-  String _getLinuxUrl(String arch) => 'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-$arch-static.tar.xz';
+  String _getLinuxUrl(String arch) =>
+      'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-$arch-static.tar.xz';
 
   /// Download file with progress
   Future<File> _downloadFile(String url, String destPath) async {
@@ -531,8 +533,8 @@ Future<void> main(List<String> args) async {
 
   // Determine output directory
   final scriptDir = File(Platform.script.toFilePath()).parent.parent;
-  final outputDir = parsedArgs['output'] ??
-      '${scriptDir.path}/native/ffmpeg/binaries';
+  final outputDir =
+      parsedArgs['output'] ?? '${scriptDir.path}/native/ffmpeg/binaries';
 
   final force = parsedArgs.containsKey('force');
 

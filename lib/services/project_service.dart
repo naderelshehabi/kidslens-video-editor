@@ -19,7 +19,8 @@ class ProjectService {
   }) async {
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final sanitizedName = _sanitizeFileName(name);
-    final projectPath = p.join(directoryPath, '$sanitizedName.$projectExtension');
+    final projectPath =
+        p.join(directoryPath, '$sanitizedName.$projectExtension');
 
     final project = Project.create(
       id: id,
@@ -60,7 +61,7 @@ class ProjectService {
   /// Save a project to its file
   Future<void> saveProject(Project project) async {
     final file = File(project.projectPath);
-    
+
     // Update the modified timestamp
     final updatedProject = project.copyWith(
       modifiedAt: DateTime.now(),
@@ -107,12 +108,14 @@ class ProjectService {
       if (entity is File && entity.path.endsWith('.$projectExtension')) {
         try {
           final project = await loadProject(entity.path);
-          projects.add(ProjectInfo(
-            name: project.name,
-            path: project.projectPath,
-            modifiedAt: project.modifiedAt,
-            mediaCount: project.mediaFiles.length,
-          ),);
+          projects.add(
+            ProjectInfo(
+              name: project.name,
+              path: project.projectPath,
+              modifiedAt: project.modifiedAt,
+              mediaCount: project.mediaFiles.length,
+            ),
+          );
         } catch (_) {
           // Skip invalid project files
         }

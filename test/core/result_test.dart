@@ -172,7 +172,8 @@ void main() {
 
       test('should propagate failure from chain', () {
         const result = Success<int, String>(42);
-        final chained = result.flatMap<int>((v) => const Failure('Chain error'));
+        final chained =
+            result.flatMap<int>((v) => const Failure('Chain error'));
 
         expect(chained.errorOrNull, equals('Chain error'));
       });
@@ -252,11 +253,11 @@ void main() {
       test('should pattern match with when clause', () {
         // Use a helper to avoid dead code warning from static type analysis
         String categorize(Result<int, String> result) => switch (result) {
-            Success(value: final v) when v > 50 => 'large',
-            Success(value: final v) when v > 0 => 'positive',
-            Success() => 'zero or negative',
-            Failure() => 'error',
-          };
+              Success(value: final v) when v > 50 => 'large',
+              Success(value: final v) when v > 0 => 'positive',
+              Success() => 'zero or negative',
+              Failure() => 'error',
+            };
 
         const result = Success<int, String>(42);
         expect(categorize(result), equals('positive'));

@@ -66,12 +66,11 @@ bool canStartExport(Ref ref) {
 @riverpod
 int totalModelDiskUsage(Ref ref) {
   final modelState = ref.watch(modelNotifierProvider);
-  
+
   var total = 0;
   for (final modelId in modelState.downloadedModels) {
-    final info = modelState.availableModels
-        .where((m) => m.id == modelId)
-        .firstOrNull;
+    final info =
+        modelState.availableModels.where((m) => m.id == modelId).firstOrNull;
     if (info != null) {
       total += info.sizeBytes;
     }
@@ -97,9 +96,15 @@ DetectionSummary detectionSummary(Ref ref) {
   final detections = timeline.detections;
   return DetectionSummary(
     total: detections.length,
-    pending: detections.where((d) => d.userStatus == DetectionUserStatus.pending).length,
-    confirmed: detections.where((d) => d.userStatus == DetectionUserStatus.confirmed).length,
-    rejected: detections.where((d) => d.userStatus == DetectionUserStatus.rejected).length,
+    pending: detections
+        .where((d) => d.userStatus == DetectionUserStatus.pending)
+        .length,
+    confirmed: detections
+        .where((d) => d.userStatus == DetectionUserStatus.confirmed)
+        .length,
+    rejected: detections
+        .where((d) => d.userStatus == DetectionUserStatus.rejected)
+        .length,
   );
 }
 

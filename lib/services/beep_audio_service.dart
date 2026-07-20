@@ -7,7 +7,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// Service for generating and playing beep tones during video playback.
-/// 
+///
 /// This service manages the lifecycle of beep audio playback:
 /// - Beep starts only when explicitly requested while video is playing
 /// - Beep stops immediately when video pauses/stops or exits the effect region
@@ -50,10 +50,10 @@ class BeepAudioService {
       _beepPlayer = Player();
       await _beepPlayer!.setPlaylistMode(PlaylistMode.loop);
       await _beepPlayer!.open(Media(beepPath));
-      
+
       _isPlaying = true;
       _currentFrequency = frequency;
-      
+
       debugPrint('BeepAudioService: Started beep at ${frequency}Hz');
     } catch (e) {
       debugPrint('BeepAudioService: Error starting beep: $e');
@@ -109,13 +109,13 @@ class BeepAudioService {
     try {
       // Generate WAV file with beep tone
       final wavData = _generateSineWave(frequency: frequency);
-      
+
       final tempDir = await getTemporaryDirectory();
       final beepFile = File('${tempDir.path}/kidslens_beep_$frequency.wav');
       await beepFile.writeAsBytes(wavData);
-      
+
       _cachedBeepPaths[frequency] = beepFile.path;
-      
+
       return beepFile.path;
     } catch (e) {
       debugPrint('BeepAudioService: Error generating beep audio: $e');
@@ -132,19 +132,19 @@ class BeepAudioService {
   }) {
     final numSamples = (sampleRate * durationSeconds).toInt();
     final samples = Float64List(numSamples);
-    
+
     // Generate sine wave samples
     for (var i = 0; i < numSamples; i++) {
       final t = i / sampleRate;
       samples[i] = math.sin(2 * math.pi * frequency * t) * volume;
     }
-    
+
     // Convert to 16-bit PCM
     final pcmData = Int16List(numSamples);
     for (var i = 0; i < numSamples; i++) {
       pcmData[i] = (samples[i] * 32767).toInt().clamp(-32768, 32767);
     }
-    
+
     // Create WAV file
     return _createWavFile(pcmData, sampleRate);
   }
@@ -153,10 +153,10 @@ class BeepAudioService {
   Uint8List _createWavFile(Int16List pcmData, int sampleRate) {
     final dataSize = pcmData.length * 2;
     final fileSize = 36 + dataSize;
-    
+
     final buffer = ByteData(44 + dataSize);
     var offset = 0;
-    
+
     // RIFF header
     buffer
       ..setUint8(offset++, 0x52) // R
@@ -189,7 +189,7 @@ class BeepAudioService {
       ..setUint16(offset, 2, Endian.little) // BlockAlign
       ..setUint16(offset + 2, 16, Endian.little); // BitsPerSample
     offset += 4;
-    
+
     // data subchunk
     buffer
       ..setUint8(offset++, 0x64) // d
@@ -198,13 +198,13 @@ class BeepAudioService {
       ..setUint8(offset++, 0x61) // a
       ..setUint32(offset, dataSize, Endian.little); // Subchunk2Size
     offset += 4;
-    
+
     // Audio data
     for (final sample in pcmData) {
       buffer.setInt16(offset, sample, Endian.little);
       offset += 2;
     }
-    
+
     return buffer.buffer.asUint8List();
   }
 
@@ -218,7 +218,7 @@ class BeepAudioService {
   /// Dispose resources and clean up cached files
   Future<void> dispose() async {
     await _stopBeepInternal();
-    
+
     // Clean up cached files
     for (final path in _cachedBeepPaths.values) {
       try {

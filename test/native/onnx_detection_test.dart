@@ -88,7 +88,8 @@ void main() {
       expect(r.padY, closeTo(0.0, 1e-6));
     });
 
-    test('portrait video (1080x1920) into 640 target has horizontal padding', () {
+    test('portrait video (1080x1920) into 640 target has horizontal padding',
+        () {
       // scale = min(640/1080, 640/1920) = 640/1920 = 0.33333...
       final r = computeLetterbox(1080, 1920, 640);
       expect(r.scale, closeTo(640.0 / 1920.0, 1e-6));
@@ -153,7 +154,13 @@ void main() {
       );
 
       final result = unmapCoordinates(
-        box, lb.padX, lb.padY, lb.scale, origW, origH, inputSize,
+        box,
+        lb.padX,
+        lb.padY,
+        lb.scale,
+        origW,
+        origH,
+        inputSize,
       );
 
       expect(result.x, closeTo(0.25, 1e-6));
@@ -185,7 +192,13 @@ void main() {
       );
 
       final result = unmapCoordinates(
-        box, lb.padX, lb.padY, lb.scale, origW, origH, inputSize,
+        box,
+        lb.padX,
+        lb.padY,
+        lb.scale,
+        origW,
+        origH,
+        inputSize,
       );
 
       // cx = (0.5 * 640 - 140) / (640/1920) = (320 - 140) / 0.3333 = 540
@@ -218,7 +231,13 @@ void main() {
       );
 
       final result = unmapCoordinates(
-        box, lb.padX, lb.padY, lb.scale, origW, origH, inputSize,
+        box,
+        lb.padX,
+        lb.padY,
+        lb.scale,
+        origW,
+        origH,
+        inputSize,
       );
 
       // cx = (0.5 * 640 - 0) / scale = 320 / (640/1920) = 960
@@ -251,7 +270,13 @@ void main() {
       );
 
       final result = unmapCoordinates(
-        box, lb.padX, lb.padY, lb.scale, origW, origH, inputSize,
+        box,
+        lb.padX,
+        lb.padY,
+        lb.scale,
+        origW,
+        origH,
+        inputSize,
       );
 
       // x and y should be in [0, 1]
@@ -284,7 +309,13 @@ void main() {
       );
 
       final result = unmapCoordinates(
-        box, lb.padX, lb.padY, lb.scale, origW, origH, inputSize,
+        box,
+        lb.padX,
+        lb.padY,
+        lb.scale,
+        origW,
+        origH,
+        inputSize,
       );
 
       // cx = (0.0 * 640 - 140) / scale = -140 / 0.3333 = -420
@@ -318,7 +349,13 @@ void main() {
       );
 
       final result = unmapCoordinates(
-        box, lb.padX, lb.padY, lb.scale, origW, origH, inputSize,
+        box,
+        lb.padX,
+        lb.padY,
+        lb.scale,
+        origW,
+        origH,
+        inputSize,
       );
 
       // cx = (100 - 140) / scale = -40 / 0.3333 = -120 => negative => clamped to 0
@@ -404,7 +441,8 @@ void main() {
   // 4. Full pipeline verification
   // ---------------------------------------------------------------------------
   group('Full pipeline verification', () {
-    test('portrait video detection at letterbox coordinates un-maps correctly', () {
+    test('portrait video detection at letterbox coordinates un-maps correctly',
+        () {
       // Portrait (1080x1920) -> 640 letterbox
       const inputSize = 640;
       const origW = 1080;
@@ -427,7 +465,13 @@ void main() {
       );
 
       final unmapped = unmapCoordinates(
-        detectionBox, lb.padX, lb.padY, lb.scale, origW, origH, inputSize,
+        detectionBox,
+        lb.padX,
+        lb.padY,
+        lb.scale,
+        origW,
+        origH,
+        inputSize,
       );
 
       // cx = (0.5*640 - 140) / (640/1920) = 180 / 0.33333 = 540
@@ -467,7 +511,13 @@ void main() {
       );
 
       final unmapped = unmapCoordinates(
-        detectionBox, lb.padX, lb.padY, lb.scale, origW, origH, inputSize,
+        detectionBox,
+        lb.padX,
+        lb.padY,
+        lb.scale,
+        origW,
+        origH,
+        inputSize,
       );
 
       // cx = (0.5*640 - 0) / 0.25   = 320 / 0.25 = 1280
@@ -504,7 +554,13 @@ void main() {
       );
 
       final unmapped = unmapCoordinates(
-        detectionBox, lb.padX, lb.padY, lb.scale, origW, origH, inputSize,
+        detectionBox,
+        lb.padX,
+        lb.padY,
+        lb.scale,
+        origW,
+        origH,
+        inputSize,
       );
 
       // cx = (0 - 0) / scale = 0 => nx = 0
@@ -539,7 +595,13 @@ void main() {
 
       // Step 1: Un-map from letterbox coords to original image coords
       final unmapped = unmapCoordinates(
-        detectionBox, lb.padX, lb.padY, lb.scale, origW, origH, inputSize,
+        detectionBox,
+        lb.padX,
+        lb.padY,
+        lb.scale,
+        origW,
+        origH,
+        inputSize,
       );
 
       // Verify un-mapped coordinates are in valid range
@@ -587,7 +649,13 @@ void main() {
       );
 
       final unmapped = unmapCoordinates(
-        detectionBox, lb.padX, lb.padY, lb.scale, origW, origH, inputSize,
+        detectionBox,
+        lb.padX,
+        lb.padY,
+        lb.scale,
+        origW,
+        origH,
+        inputSize,
       );
 
       // x should be near the right edge of the original image

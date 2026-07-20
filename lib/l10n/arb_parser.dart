@@ -116,7 +116,8 @@ class AppLocalizationsDelegate {
 
   /// Get a translation
   String translate(String locale, String key, [Map<String, dynamic>? params]) {
-    final localeTranslations = _translations[locale] ?? _translations[defaultLocale];
+    final localeTranslations =
+        _translations[locale] ?? _translations[defaultLocale];
     if (localeTranslations == null) {
       return key;
     }

@@ -41,10 +41,10 @@ class WaveformDisplay extends StatelessWidget {
   }
 
   Widget _buildPlaceholder(BuildContext context) => CustomPaint(
-      painter: _PlaceholderWaveformPainter(
-        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-      ),
-    );
+        painter: _PlaceholderWaveformPainter(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+        ),
+      );
 }
 
 class _WaveformPainter extends CustomPainter {
@@ -101,8 +101,9 @@ class _WaveformPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _WaveformPainter oldDelegate) => oldDelegate.currentPosition != currentPosition ||
-        oldDelegate.zoom != zoom;
+  bool shouldRepaint(covariant _WaveformPainter oldDelegate) =>
+      oldDelegate.currentPosition != currentPosition ||
+      oldDelegate.zoom != zoom;
 }
 
 class _PlaceholderWaveformPainter extends CustomPainter {

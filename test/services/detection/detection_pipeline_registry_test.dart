@@ -74,7 +74,9 @@ void main() {
       );
 
       expect(
-          decision.activePipelineId, DetectionPipelineIds.legacyNsfwRegionV8);
+        decision.activePipelineId,
+        DetectionPipelineIds.legacyNsfwRegionV8,
+      );
       expect(decision.state, DetectionPipelineRolloutState.off);
       expect(decision.shadowPipelineId, isNull);
     });
@@ -94,7 +96,9 @@ void main() {
       );
 
       expect(
-          decision.activePipelineId, DetectionPipelineIds.legacyNsfwRegionV8);
+        decision.activePipelineId,
+        DetectionPipelineIds.legacyNsfwRegionV8,
+      );
       expect(decision.shadowPipelineId, isNull);
       expect(
         decision.warnings,
@@ -115,13 +119,12 @@ void main() {
           timestamp: DateTime.utc(2026),
           pipelineId: DetectionPipelineIds.legacyNsfwRegionV8,
         ),
-        config: const DetectionPipelineRolloutConfig(
-          state: DetectionPipelineRolloutState.defaultProfile,
-        ),
       );
 
       expect(
-          decision.activePipelineId, DetectionPipelineIds.legacyNsfwRegionV8);
+        decision.activePipelineId,
+        DetectionPipelineIds.legacyNsfwRegionV8,
+      );
       expect(decision.existingProjectCompatibilityPreserved, isTrue);
       expect(decision.checkpointCompatible, isTrue);
     });
@@ -149,9 +152,6 @@ void main() {
 
       final decision = registry.resolveRollout(
         DetectionPipelineIds.vssFamilySafetyV1,
-        config: const DetectionPipelineRolloutConfig(
-          state: DetectionPipelineRolloutState.defaultProfile,
-        ),
       );
 
       expect(decision.activePipelineId, DetectionPipelineIds.vssFamilySafetyV1);
@@ -172,18 +172,18 @@ void main() {
           pipelineId: DetectionPipelineIds.legacyNsfwRegionV8,
           pipelineVersion: 1,
         ),
-        config: const DetectionPipelineRolloutConfig(
-          state: DetectionPipelineRolloutState.defaultProfile,
-        ),
       );
 
       expect(
-          decision.activePipelineId, DetectionPipelineIds.legacyNsfwRegionV8);
+        decision.activePipelineId,
+        DetectionPipelineIds.legacyNsfwRegionV8,
+      );
       expect(decision.checkpointCompatible, isFalse);
       expect(
         decision.warnings,
         contains(
-            'checkpoint pipeline version is not compatible with this build'),
+          'checkpoint pipeline version is not compatible with this build',
+        ),
       );
     });
   });

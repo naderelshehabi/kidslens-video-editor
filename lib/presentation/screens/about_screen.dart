@@ -268,29 +268,29 @@ class _ModelAttributionsContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const Column(
-      children: [
-        _AttributionTile(
-          name: 'Whisper',
-          organization: 'OpenAI',
-          description: 'Automatic speech recognition for audio transcription',
-          licenseType: 'MIT License',
-        ),
-        Divider(height: 16),
-        _AttributionTile(
-          name: 'ONNX Runtime',
-          organization: 'Microsoft',
-          description: 'Cross-platform machine learning inference',
-          licenseType: 'MIT License',
-        ),
-        Divider(height: 16),
-        _AttributionTile(
-          name: 'FFmpeg',
-          organization: 'FFmpeg Team',
-          description: 'Video and audio processing',
-          licenseType: 'LGPL v2.1+',
-        ),
-      ],
-    );
+        children: [
+          _AttributionTile(
+            name: 'Whisper',
+            organization: 'OpenAI',
+            description: 'Automatic speech recognition for audio transcription',
+            licenseType: 'MIT License',
+          ),
+          Divider(height: 16),
+          _AttributionTile(
+            name: 'ONNX Runtime',
+            organization: 'Microsoft',
+            description: 'Cross-platform machine learning inference',
+            licenseType: 'MIT License',
+          ),
+          Divider(height: 16),
+          _AttributionTile(
+            name: 'FFmpeg',
+            organization: 'FFmpeg Team',
+            description: 'Video and audio processing',
+            licenseType: 'LGPL v2.1+',
+          ),
+        ],
+      );
 }
 
 class _AttributionTile extends StatelessWidget {
@@ -496,34 +496,35 @@ class _DocumentationLinksContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-      children: [
-        _DocumentationLinkTile(
-          icon: Icons.play_circle_outline,
-          title: 'Getting Started',
-          subtitle: 'Learn the basics of using KidsLens',
-          onTap: () => _launchUrl('https://kidslens.app/docs/getting-started'),
-        ),
-        _DocumentationLinkTile(
-          icon: Icons.architecture,
-          title: 'Architecture',
-          subtitle: 'Technical overview of the application',
-          onTap: () => _launchUrl('https://kidslens.app/docs/architecture'),
-        ),
-        _DocumentationLinkTile(
-          icon: Icons.api,
-          title: 'API Reference',
-          subtitle: 'Detailed API documentation',
-          onTap: () => _launchUrl('https://kidslens.app/docs/api'),
-        ),
-        _DocumentationLinkTile(
-          icon: Icons.bug_report,
-          title: 'Report an Issue',
-          subtitle: 'Found a bug? Let us know',
-          onTap: () =>
-              _launchUrl('https://github.com/kidslens/video-editor/issues'),
-        ),
-      ],
-    );
+        children: [
+          _DocumentationLinkTile(
+            icon: Icons.play_circle_outline,
+            title: 'Getting Started',
+            subtitle: 'Learn the basics of using KidsLens',
+            onTap: () =>
+                _launchUrl('https://kidslens.app/docs/getting-started'),
+          ),
+          _DocumentationLinkTile(
+            icon: Icons.architecture,
+            title: 'Architecture',
+            subtitle: 'Technical overview of the application',
+            onTap: () => _launchUrl('https://kidslens.app/docs/architecture'),
+          ),
+          _DocumentationLinkTile(
+            icon: Icons.api,
+            title: 'API Reference',
+            subtitle: 'Detailed API documentation',
+            onTap: () => _launchUrl('https://kidslens.app/docs/api'),
+          ),
+          _DocumentationLinkTile(
+            icon: Icons.bug_report,
+            title: 'Report an Issue',
+            subtitle: 'Found a bug? Let us know',
+            onTap: () =>
+                _launchUrl('https://github.com/kidslens/video-editor/issues'),
+          ),
+        ],
+      );
 }
 
 class _DocumentationLinkTile extends StatelessWidget {

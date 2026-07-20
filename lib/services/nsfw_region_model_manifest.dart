@@ -68,31 +68,31 @@ class NsfwRegionModelManifest {
 
   static const Map<String, NsfwRegionModelSpec> byModelId =
       <String, NsfwRegionModelSpec>{
-        'nsfw-nudenet-detector-640': NsfwRegionModelSpec(
-          modelId: 'nsfw-nudenet-detector-640',
-          sourceUrl:
-              'https://huggingface.co/notAI-tech/NudeNet-onnx/resolve/main/model.onnx',
-          sha256: null,
-          license: 'MIT',
-          classLabels: kCanonicalNudeNetLabels,
-          inputSize: 640,
-          confidenceThreshold: 0.35,
-          iouThreshold: 0.45,
-          maxDetections: 100,
-        ),
-        'nsfw-nudenet-detector-320': NsfwRegionModelSpec(
-          modelId: 'nsfw-nudenet-detector-320',
-          sourceUrl:
-              'https://huggingface.co/SimonJoz/nudenet/resolve/main/320n.onnx',
-          sha256: null,
-          license: null,
-          classLabels: kCanonicalNudeNetLabels,
-          inputSize: 320,
-          confidenceThreshold: 0.35,
-          iouThreshold: 0.45,
-          maxDetections: 100,
-        ),
-      };
+    'nsfw-nudenet-detector-640': NsfwRegionModelSpec(
+      modelId: 'nsfw-nudenet-detector-640',
+      sourceUrl:
+          'https://huggingface.co/notAI-tech/NudeNet-onnx/resolve/main/model.onnx',
+      sha256: null,
+      license: 'MIT',
+      classLabels: kCanonicalNudeNetLabels,
+      inputSize: 640,
+      confidenceThreshold: 0.35,
+      iouThreshold: 0.45,
+      maxDetections: 100,
+    ),
+    'nsfw-nudenet-detector-320': NsfwRegionModelSpec(
+      modelId: 'nsfw-nudenet-detector-320',
+      sourceUrl:
+          'https://huggingface.co/SimonJoz/nudenet/resolve/main/320n.onnx',
+      sha256: null,
+      license: null,
+      classLabels: kCanonicalNudeNetLabels,
+      inputSize: 320,
+      confidenceThreshold: 0.35,
+      iouThreshold: 0.45,
+      maxDetections: 100,
+    ),
+  };
 
   static NsfwRegionModelSpec? findById(String id) =>
       byModelId[_legacyModelAliases[id] ?? id];

@@ -24,11 +24,12 @@ void main() {
   late AsrCacheService cache;
 
   setUp(() async {
-    tempCacheDir = Directory.systemTemp
-        .createTempSync('asr_cache_test_${DateTime.now().millisecondsSinceEpoch}_');
+    tempCacheDir = Directory.systemTemp.createTempSync(
+      'asr_cache_test_${DateTime.now().millisecondsSinceEpoch}_',
+    );
     tempAudioFile = File(
-        '${Directory.systemTemp.path}/test_audio_${DateTime.now().millisecondsSinceEpoch}.wav',)
-      ..writeAsStringSync('fake wav data');
+      '${Directory.systemTemp.path}/test_audio_${DateTime.now().millisecondsSinceEpoch}.wav',
+    )..writeAsStringSync('fake wav data');
 
     cache = AsrCacheService();
     await cache.init(cacheDirectory: tempCacheDir);

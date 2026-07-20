@@ -17,10 +17,11 @@ class ActionDialog extends StatelessWidget {
   static Future<Modification?> show({
     required BuildContext context,
     required Detection detection,
-  }) => showModalBottomSheet<Modification>(
-      context: context,
-      builder: (context) => ActionDialog(detection: detection),
-    );
+  }) =>
+      showModalBottomSheet<Modification>(
+        context: context,
+        builder: (context) => ActionDialog(detection: detection),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -131,12 +132,13 @@ class ActionDialog extends StatelessWidget {
     String subtitle,
     IconData icon,
     Modification modification,
-  ) => ListTile(
-      leading: Icon(icon),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      onTap: () => Navigator.of(context).pop(modification),
-    );
+  ) =>
+      ListTile(
+        leading: Icon(icon),
+        title: Text(title),
+        subtitle: Text(subtitle),
+        onTap: () => Navigator.of(context).pop(modification),
+      );
 
   IconData _getIcon(ContentType type) {
     if (detection.visualContentCategoryId == 'nudity') {

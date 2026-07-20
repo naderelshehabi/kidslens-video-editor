@@ -25,14 +25,14 @@ class DetectionMarker extends StatelessWidget {
     final color = AppTheme.getDetectionColor(
       detection.visualContentCategoryId ?? detection.type.name,
     );
-    final width = (detection.endTime - detection.startTime).inMilliseconds *
-        zoom /
-        10;
+    final width =
+        (detection.endTime - detection.startTime).inMilliseconds * zoom / 10;
 
     return GestureDetector(
       onTap: onTap,
       child: Opacity(
-        opacity: detection.userStatus == DetectionUserStatus.rejected ? 0.4 : 1.0,
+        opacity:
+            detection.userStatus == DetectionUserStatus.rejected ? 0.4 : 1.0,
         child: Container(
           width: width.clamp(24.0, double.infinity),
           decoration: BoxDecoration(

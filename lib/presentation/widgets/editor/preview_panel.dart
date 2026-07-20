@@ -190,7 +190,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   /// Tracks the previous audio effect state to detect changes
   AudioEffectState _previousEffectState = AudioEffectState.none;
   int _previousBeepFrequency = 0;
-  double _lastKnownUserVolume = 1.0;
+  double _lastKnownUserVolume = 1;
   bool _lastKnownIsPlaying = false;
   bool _isFullScreen = false;
   BeepAudioService? _beepAudioService;
@@ -249,8 +249,10 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   }
 
   /// Stop all audio effects and restore normal playback volume
-  void _stopAllAudioEffects(
-      {bool notifyProvider = true, bool allowRefAccess = true}) {
+  void _stopAllAudioEffects({
+    bool notifyProvider = true,
+    bool allowRefAccess = true,
+  }) {
     // Stop beep audio
     _beepAudioService?.stopBeep();
 
@@ -275,7 +277,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     PlaybackState playbackState;
     try {
       playbackState = ref.read(playbackNotifierProvider);
-    } on StateError {
+    } catch (_) {
       return;
     }
     _lastKnownUserVolume = playbackState.userVolume;
@@ -337,12 +339,18 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
 
     // Apply audio effect changes
     _applyAudioEffectState(
-        newEffectState, beepFrequency, playbackState.userVolume);
+      newEffectState,
+      beepFrequency,
+      playbackState.userVolume,
+    );
   }
 
   /// Apply the audio effect state, managing player volume and beep playback
   void _applyAudioEffectState(
-      AudioEffectState newState, int beepFrequency, double userVolume) {
+    AudioEffectState newState,
+    int beepFrequency,
+    double userVolume,
+  ) {
     if (!mounted || _isDisposing) return;
 
     final beepService = ref.read(beepAudioServiceProvider);
@@ -687,7 +695,9 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                     if (widget.nudenetDebugModeEnabled)
                       ..._buildNudenetBboxOverlays(
                         _findNearestFrameResult(
-                            widget.nsfwFrameResults, position),
+                          widget.nsfwFrameResults,
+                          position,
+                        ),
                         displaySize,
                       ),
 
@@ -758,8 +768,10 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                     children: [
                       Icon(Icons.volume_off, size: 14, color: Colors.white),
                       SizedBox(width: 4),
-                      Text('Muted',
-                          style: TextStyle(color: Colors.white, fontSize: 12)),
+                      Text(
+                        'Muted',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
                     ],
                   ),
                 ),
@@ -1017,8 +1029,10 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
               ],
               if (clipScores.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                const Text('CLIP scores:',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
+                const Text(
+                  'CLIP scores:',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
                 ...clipScores.entries.map(
                   (e) => Padding(
                     padding: const EdgeInsets.symmetric(vertical: 1),
@@ -1113,7 +1127,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                 ...grouped.entries.map((entry) {
                   final maxConfidence = entry.value
                       .map((region) => region.confidence)
-                      .fold<double>(0.0, math.max);
+                      .fold<double>(0, math.max);
                   final threshold = widget.modestyThresholds[entry.key];
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2),
@@ -1174,7 +1188,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
         top: top,
         width: width,
         height: height,
-        child: Container(
+        child: DecoratedBox(
           decoration: BoxDecoration(
             border: Border.all(color: color, width: 2),
           ),
@@ -1223,7 +1237,7 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
         width: width,
         height: height,
         child: IgnorePointer(
-          child: Container(
+          child: DecoratedBox(
             decoration: BoxDecoration(
               border: Border.all(color: color, width: 2),
             ),
@@ -1261,16 +1275,13 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     return Colors.deepPurple;
   }
 
-  String _nudenetShortLabel(String label) {
-    // Shorten verbose NudeNet labels for compact display
-    return label
-        .replaceAll('FEMALE_', 'F_')
-        .replaceAll('MALE_', 'M_')
-        .replaceAll('_EXPOSED', '_EXP')
-        .replaceAll('_COVERED', '_COV')
-        .replaceAll('GENITALIA', 'GENT')
-        .replaceAll('BUTTOCKS', 'BUTT');
-  }
+  String _nudenetShortLabel(String label) => label
+      .replaceAll('FEMALE_', 'F_')
+      .replaceAll('MALE_', 'M_')
+      .replaceAll('_EXPOSED', '_EXP')
+      .replaceAll('_COVERED', '_COV')
+      .replaceAll('GENITALIA', 'GENT')
+      .replaceAll('BUTTOCKS', 'BUTT');
 
   Widget _buildDetectionOverlay(Detection detection) {
     // For visual detections, we would show bounding boxes here
@@ -1395,7 +1406,9 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
   }
 
   Widget _buildPlaybackControls(
-      BuildContext context, PlaybackState playbackState) {
+    BuildContext context,
+    PlaybackState playbackState,
+  ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final duration = playbackState.duration.inMilliseconds > 0
@@ -1470,7 +1483,9 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                 onPressed: () {
                   final newPosition = Duration(
                     milliseconds: math.max(
-                        0, playbackState.position.inMilliseconds - 10000),
+                      0,
+                      playbackState.position.inMilliseconds - 10000,
+                    ),
                   );
                   ref.read(playbackNotifierProvider.notifier).seek(newPosition);
                 },
@@ -1481,7 +1496,8 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
                 onPressed: () =>
                     ref.read(playbackNotifierProvider.notifier).playOrPause(),
                 child: Icon(
-                    playbackState.isPlaying ? Icons.pause : Icons.play_arrow),
+                  playbackState.isPlaying ? Icons.pause : Icons.play_arrow,
+                ),
               ),
               const SizedBox(width: 8),
               IconButton(
@@ -1570,11 +1586,9 @@ class _PreviewPanelState extends ConsumerState<PreviewPanel> {
     );
   }
 
-  Color _getDetectionColor(Detection detection) {
-    return AppTheme.getDetectionColor(
-      detection.visualContentCategoryId ?? detection.type.name,
-    );
-  }
+  Color _getDetectionColor(Detection detection) => AppTheme.getDetectionColor(
+        detection.visualContentCategoryId ?? detection.type.name,
+      );
 
   IconData _getDetectionIcon(Detection detection) {
     if (detection.visualContentCategoryId == 'nudity') {
@@ -1771,7 +1785,7 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                         Colors.black54,
                         Colors.transparent,
                         Colors.transparent,
-                        Colors.black54
+                        Colors.black54,
                       ],
                       stops: [0.0, 0.15, 0.85, 1.0],
                     ),
@@ -1785,8 +1799,10 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                           child: Row(
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.arrow_back,
-                                    color: Colors.white),
+                                icon: const Icon(
+                                  Icons.arrow_back,
+                                  color: Colors.white,
+                                ),
                                 onPressed: () {
                                   widget.onExitFullScreen();
                                   Navigator.of(context).pop();
@@ -1800,8 +1816,10 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                                 ),
                               const Spacer(),
                               IconButton(
-                                icon: const Icon(Icons.fullscreen_exit,
-                                    color: Colors.white),
+                                icon: const Icon(
+                                  Icons.fullscreen_exit,
+                                  color: Colors.white,
+                                ),
                                 onPressed: () {
                                   widget.onExitFullScreen();
                                   Navigator.of(context).pop();
@@ -1822,8 +1840,11 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.replay_10,
-                                      color: Colors.white, size: 32),
+                                  icon: const Icon(
+                                    Icons.replay_10,
+                                    color: Colors.white,
+                                    size: 32,
+                                  ),
                                   onPressed: () {
                                     final position =
                                         widget.player?.state.position ??
@@ -1831,7 +1852,9 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                                     widget.player?.seek(
                                       Duration(
                                         milliseconds: math.max(
-                                            0, position.inMilliseconds - 10000),
+                                          0,
+                                          position.inMilliseconds - 10000,
+                                        ),
                                       ),
                                     );
                                   },
@@ -1848,8 +1871,11 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                                 ),
                                 const SizedBox(width: 24),
                                 IconButton(
-                                  icon: const Icon(Icons.forward_10,
-                                      color: Colors.white, size: 32),
+                                  icon: const Icon(
+                                    Icons.forward_10,
+                                    color: Colors.white,
+                                    size: 32,
+                                  ),
                                   onPressed: () {
                                     final position =
                                         widget.player?.state.position ??
@@ -1897,7 +1923,8 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                                         inactiveTrackColor: Colors.white38,
                                         thumbColor: Colors.white,
                                         thumbShape: const RoundSliderThumbShape(
-                                            enabledThumbRadius: 6),
+                                          enabledThumbRadius: 6,
+                                        ),
                                       ),
                                       child: Slider(
                                         value: duration.inMilliseconds > 0
@@ -1923,14 +1950,16 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                                         Text(
                                           _formatDuration(position),
                                           style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12),
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                          ),
                                         ),
                                         Text(
                                           _formatDuration(duration),
                                           style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12),
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -2093,8 +2122,10 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                 ),
               if (clipScores.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                const Text('CLIP:',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'CLIP:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 ...clipScores.entries.map(
                   (e) => Padding(
                     padding: const EdgeInsets.symmetric(vertical: 1),
@@ -2177,7 +2208,7 @@ class _FullScreenPreviewState extends State<_FullScreenPreview> {
                 ...grouped.entries.map((entry) {
                   final maxConfidence = entry.value
                       .map((region) => region.confidence)
-                      .fold<double>(0.0, math.max);
+                      .fold<double>(0, math.max);
                   final threshold = widget.modestyThresholds[entry.key];
                   return Text(
                     '${_modestyCategoryDisplayName(entry.key)}: '

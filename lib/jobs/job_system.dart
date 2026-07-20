@@ -100,12 +100,14 @@ abstract class Job<T> {
   /// Report progress
   void _reportProgress(double? progress, String message) {
     if (!_progressController.isClosed) {
-      _progressController.add(JobProgress(
-        jobId: id,
-        state: _state,
-        progress: progress,
-        message: message,
-      ),);
+      _progressController.add(
+        JobProgress(
+          jobId: id,
+          state: _state,
+          progress: progress,
+          message: message,
+        ),
+      );
     }
   }
 

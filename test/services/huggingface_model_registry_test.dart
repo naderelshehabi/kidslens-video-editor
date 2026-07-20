@@ -43,7 +43,8 @@ void main() {
   });
 
   test('nudenet detector list contains canonical models only', () {
-    final detectorIds = registry.getNudeNetModels().map((model) => model.id).toSet();
+    final detectorIds =
+        registry.getNudeNetModels().map((model) => model.id).toSet();
 
     expect(detectorIds, contains('nsfw-nudenet-detector-640'));
     expect(detectorIds, contains('nsfw-nudenet-detector-320'));
@@ -51,7 +52,10 @@ void main() {
   });
 
   test('recommended parser and gender helper models exist', () {
-    expect(registry.getRecommendedModel(HuggingFaceModelType.parser), isNotNull);
+    expect(
+      registry.getRecommendedModel(HuggingFaceModelType.parser),
+      isNotNull,
+    );
     expect(
       registry.getRecommendedModel(HuggingFaceModelType.genderHelper),
       isNotNull,
@@ -59,7 +63,8 @@ void main() {
   });
 
   test('parser and gender helper models use ONNX assets', () {
-    final parserModel = registry.getModelById('modesty-parser-birefnet-clothes');
+    final parserModel =
+        registry.getModelById('modesty-parser-birefnet-clothes');
     final genderModel =
         registry.getModelById('gender-classification-onnx-community');
 

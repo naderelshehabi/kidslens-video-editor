@@ -137,7 +137,9 @@ void main() {
       expect(computeIoU(a, b), 0.0);
     });
 
-    test('adjacent boxes (touching edges, not overlapping) should return IoU = 0.0', () {
+    test(
+        'adjacent boxes (touching edges, not overlapping) should return IoU = 0.0',
+        () {
       // Box A ends at x = 0.5, Box B starts at x = 0.5
       final a = makeBox(width: 0.5, height: 0.5);
       final b = makeBox(x: 0.5, width: 0.5, height: 0.5);
@@ -168,7 +170,8 @@ void main() {
       expect(result.first.confidence, 0.8);
     });
 
-    test('two overlapping boxes of same class should keep higher confidence', () {
+    test('two overlapping boxes of same class should keep higher confidence',
+        () {
       // Nearly identical boxes, high overlap
       final highConf = makeBox(
         className: 'person',
@@ -244,7 +247,9 @@ void main() {
       expect(confidences, isNot(contains(0.7)));
     });
 
-    test('multiple classes each with overlaps should apply per-class suppression', () {
+    test(
+        'multiple classes each with overlaps should apply per-class suppression',
+        () {
       // Class 0: two overlapping boxes
       final c0High = makeBox(
         className: 'person',
@@ -282,8 +287,7 @@ void main() {
         height: 0.3,
       );
 
-      final result =
-          nonMaxSuppression([c0Low, c1Low, c0High, c1High], 0.45);
+      final result = nonMaxSuppression([c0Low, c1Low, c0High, c1High], 0.45);
       // Each class should keep only the higher-confidence box
       expect(result, hasLength(2));
       final confidences = result.map((b) => b.confidence).toSet();
@@ -292,9 +296,7 @@ void main() {
     });
 
     test('non-overlapping boxes of same class should all be kept', () {
-      final boxA = makeBox(
-        
-      );
+      final boxA = makeBox();
       final boxB = makeBox(
         confidence: 0.8,
         x: 0.5,
@@ -314,7 +316,8 @@ void main() {
   // 3. NMS edge cases
   // ------------------------------------------------------------------
   group('NMS edge cases', () {
-    test('all identical boxes should keep only the one with highest confidence', () {
+    test('all identical boxes should keep only the one with highest confidence',
+        () {
       final boxes = List.generate(
         5,
         (i) => makeBox(

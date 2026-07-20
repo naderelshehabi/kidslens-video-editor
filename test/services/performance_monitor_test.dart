@@ -36,7 +36,10 @@ void main() {
 
     group('recordTiming()', () {
       test('should store timing for new operation', () {
-        monitor.recordTiming('test_operation', const Duration(milliseconds: 100));
+        monitor.recordTiming(
+          'test_operation',
+          const Duration(milliseconds: 100),
+        );
 
         final average = monitor.getAverageTiming('test_operation');
         expect(average, isNotNull);

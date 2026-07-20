@@ -199,36 +199,49 @@ void main() {
           const VideoPixelate(),
           const VideoBlackBox(),
           const VideoSkip(),
-          const Modification.videoRegionBlur(region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4)),
-          const Modification.videoRegionPixelate(region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4)),
-          const Modification.videoRegionBlackBox(region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4)),
+          const Modification.videoRegionBlur(
+            region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
+          ),
+          const Modification.videoRegionPixelate(
+            region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
+          ),
+          const Modification.videoRegionBlackBox(
+            region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
+          ),
         ];
 
-        final results = modifications.map((mod) => switch (mod) {
-            AudioMute() => 'mute',
-            AudioBeep() => 'beep',
-            AudioReplace() => 'replace',
-            VideoBlur() => 'blur',
-            VideoPixelate() => 'pixelate',
-            VideoBlackBox() => 'blackbox',
-            VideoSkip() => 'skip',
-            VideoRegionBlur() => 'regionblur',
-            VideoRegionPixelate() => 'regionpixelate',
-            VideoRegionBlackBox() => 'regionblackbox',
-          },).toList();
+        final results = modifications
+            .map(
+              (mod) => switch (mod) {
+                AudioMute() => 'mute',
+                AudioBeep() => 'beep',
+                AudioReplace() => 'replace',
+                VideoBlur() => 'blur',
+                VideoPixelate() => 'pixelate',
+                VideoBlackBox() => 'blackbox',
+                VideoSkip() => 'skip',
+                VideoRegionBlur() => 'regionblur',
+                VideoRegionPixelate() => 'regionpixelate',
+                VideoRegionBlackBox() => 'regionblackbox',
+              },
+            )
+            .toList();
 
-        expect(results, equals([
-          'mute',
-          'beep',
-          'replace',
-          'blur',
-          'pixelate',
-          'blackbox',
-          'skip',
-          'regionblur',
-          'regionpixelate',
-          'regionblackbox',
-        ]),);
+        expect(
+          results,
+          equals([
+            'mute',
+            'beep',
+            'replace',
+            'blur',
+            'pixelate',
+            'blackbox',
+            'skip',
+            'regionblur',
+            'regionpixelate',
+            'regionblackbox',
+          ]),
+        );
       });
 
       test('should extract values in pattern matching', () {

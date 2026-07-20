@@ -6,7 +6,6 @@ import 'package:uuid/uuid.dart';
 
 /// Language metadata for profanity detection
 class LanguageInfo {
-
   const LanguageInfo({
     required this.code,
     required this.name,
@@ -14,10 +13,10 @@ class LanguageInfo {
   });
 
   factory LanguageInfo.fromJson(Map<String, dynamic> json) => LanguageInfo(
-      code: json['code'] as String,
-      name: json['name'] as String,
-      rtl: json['rtl'] as bool,
-    );
+        code: json['code'] as String,
+        name: json['name'] as String,
+        rtl: json['rtl'] as bool,
+      );
   final String code;
   final String name;
   final bool rtl;

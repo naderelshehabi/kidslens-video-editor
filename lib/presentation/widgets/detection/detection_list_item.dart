@@ -34,12 +34,11 @@ class DetectionListItem extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Opacity(
-          opacity: detection.userStatus == DetectionUserStatus.rejected ? 0.5 : 1.0,
+          opacity:
+              detection.userStatus == DetectionUserStatus.rejected ? 0.5 : 1.0,
           child: Container(
             decoration: BoxDecoration(
-              border: isSelected
-                  ? Border.all(color: color, width: 2)
-                  : null,
+              border: isSelected ? Border.all(color: color, width: 2) : null,
               borderRadius: BorderRadius.circular(12),
             ),
             padding: const EdgeInsets.all(12),
@@ -85,7 +84,8 @@ class DetectionListItem extends StatelessWidget {
                             '${(detection.confidence * 100).round()}%',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
-                          if (detection.userStatus == DetectionUserStatus.rejected) ...[
+                          if (detection.userStatus ==
+                              DetectionUserStatus.rejected) ...[
                             const SizedBox(width: 8),
                             Icon(
                               Icons.visibility_off,
@@ -124,8 +124,13 @@ class DetectionListItem extends StatelessWidget {
                         size: 20,
                       ),
                       onPressed:
-                          detection.userStatus == DetectionUserStatus.rejected ? onRestore : onDismiss,
-                      tooltip: detection.userStatus == DetectionUserStatus.rejected ? 'Restore' : 'Dismiss',
+                          detection.userStatus == DetectionUserStatus.rejected
+                              ? onRestore
+                              : onDismiss,
+                      tooltip:
+                          detection.userStatus == DetectionUserStatus.rejected
+                              ? 'Restore'
+                              : 'Dismiss',
                       visualDensity: VisualDensity.compact,
                     ),
                     IconButton(

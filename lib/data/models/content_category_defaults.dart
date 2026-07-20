@@ -9,8 +9,7 @@ import 'package:kidslens_video_editor/data/models/huggingface_model.dart';
 class ContentCategoryDefaults {
   ContentCategoryDefaults._();
 
-  static const String _modestyParserModelId =
-      'modesty-parser-birefnet-clothes';
+  static const String _modestyParserModelId = 'modesty-parser-birefnet-clothes';
   static const String _legacyNudeNet640CommunityModelId =
       'nsfw-nudenet-detector-640-community';
   static const String _canonicalNudeNet640ModelId = 'nsfw-nudenet-detector-640';
@@ -83,7 +82,7 @@ class ContentCategoryDefaults {
         return defaultCategory;
       }
 
-      final normalizedThreshold = existing.threshold.clamp(0.0, 1.0).toDouble();
+      final normalizedThreshold = existing.threshold.clamp(0.0, 1.0);
       final normalizedAction = _normalizeActionForType(
         defaultCategory.type,
         existing.action,
@@ -114,14 +113,16 @@ class ContentCategoryDefaults {
         .map(_canonicalizeContribution)
         .toList(growable: false);
     final defaultsById = <String, ModelContribution>{
-      for (final contribution in canonicalDefaults) contribution.modelId: contribution,
+      for (final contribution in canonicalDefaults)
+        contribution.modelId: contribution,
     };
     final normalizedExisting = <String, ModelContribution>{};
 
     for (final contribution in existingContributions) {
       final canonical = _canonicalizeContribution(
         contribution,
-        defaultContribution: defaultsById[_normalizeLegacyModelId(contribution.modelId)],
+        defaultContribution:
+            defaultsById[_normalizeLegacyModelId(contribution.modelId)],
       );
       final previous = normalizedExisting[canonical.modelId];
       normalizedExisting[canonical.modelId] = previous == null
@@ -131,7 +132,8 @@ class ContentCategoryDefaults {
 
     final merged = <ModelContribution>[];
     for (final contribution in canonicalDefaults) {
-      merged.add(normalizedExisting.remove(contribution.modelId) ?? contribution);
+      merged
+          .add(normalizedExisting.remove(contribution.modelId) ?? contribution);
     }
     merged.addAll(normalizedExisting.values);
     return merged;
@@ -165,24 +167,23 @@ class ContentCategoryDefaults {
   static ModelContribution _mergeDuplicateContribution(
     ModelContribution first,
     ModelContribution second,
-  ) {
-    return first.copyWith(
-      enabled: first.enabled || second.enabled,
-      weightOverride: second.weightOverride ?? first.weightOverride,
-      detectionLabels: <String>{
-        ...first.detectionLabels,
-        ...second.detectionLabels,
-      }.toList(growable: false),
-      clipPrompts: <String>{
-        ...first.clipPrompts,
-        ...second.clipPrompts,
-      }.toList(growable: false),
-      clipNegativePrompts: <String>{
-        ...first.clipNegativePrompts,
-        ...second.clipNegativePrompts,
-      }.toList(growable: false),
-    );
-  }
+  ) =>
+      first.copyWith(
+        enabled: first.enabled || second.enabled,
+        weightOverride: second.weightOverride ?? first.weightOverride,
+        detectionLabels: <String>{
+          ...first.detectionLabels,
+          ...second.detectionLabels,
+        }.toList(growable: false),
+        clipPrompts: <String>{
+          ...first.clipPrompts,
+          ...second.clipPrompts,
+        }.toList(growable: false),
+        clipNegativePrompts: <String>{
+          ...first.clipNegativePrompts,
+          ...second.clipNegativePrompts,
+        }.toList(growable: false),
+      );
 
   static String _normalizeLegacyModelId(String modelId) {
     if (modelId == _legacyNudeNet640CommunityModelId) {
@@ -209,7 +210,6 @@ class ContentCategoryDefaults {
     type: CategoryType.visual,
     action: RemediationAction.blurFullFrame,
     iconName: 'no_adult_content',
-    supportsRegions: false,
     modelContributions: [
       ModelContribution(
         modelId: 'nsfw-onnx-community-vit-224',

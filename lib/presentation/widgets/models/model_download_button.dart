@@ -34,61 +34,61 @@ class ModelDownloadButton extends StatelessWidget {
   }
 
   Widget _buildNotDownloadedState(BuildContext context) => FilledButton.icon(
-      onPressed: onDownload,
-      icon: const Icon(Icons.download, size: 18),
-      label: const Text('Download'),
-    );
+        onPressed: onDownload,
+        icon: const Icon(Icons.download, size: 18),
+        label: const Text('Download'),
+      );
 
   Widget _buildDownloadingState(BuildContext context) => SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Progress indicator
-          SizedBox(
-            width: size - 8,
-            height: size - 8,
-            child: CircularProgressIndicator(
-              value: downloadProgress,
-              strokeWidth: 3,
-              backgroundColor: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHighest,
+        width: size,
+        height: size,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Progress indicator
+            SizedBox(
+              width: size - 8,
+              height: size - 8,
+              child: CircularProgressIndicator(
+                value: downloadProgress,
+                strokeWidth: 3,
+                backgroundColor:
+                    Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
             ),
-          ),
-          // Cancel button
-          if (onCancel != null)
-            IconButton(
-              onPressed: onCancel,
-              icon: const Icon(Icons.close, size: 16),
-              tooltip: 'Cancel download',
-              iconSize: 16,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            )
-          else if (downloadProgress != null)
-            Text(
-              '${(downloadProgress! * 100).round()}',
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-            ),
-        ],
-      ),
-    );
+            // Cancel button
+            if (onCancel != null)
+              IconButton(
+                onPressed: onCancel,
+                icon: const Icon(Icons.close, size: 16),
+                tooltip: 'Cancel download',
+                iconSize: 16,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              )
+            else if (downloadProgress != null)
+              Text(
+                '${(downloadProgress! * 100).round()}',
+                style:
+                    const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+              ),
+          ],
+        ),
+      );
 
   Widget _buildDownloadedState(BuildContext context) => Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: AppTheme.successColor.withValues(alpha: 0.2),
-        shape: BoxShape.circle,
-      ),
-      child: const Icon(
-        Icons.check,
-        color: AppTheme.successColor,
-        size: 20,
-      ),
-    );
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: AppTheme.successColor.withValues(alpha: 0.2),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.check,
+          color: AppTheme.successColor,
+          size: 20,
+        ),
+      );
 }
 
 /// Compact version of the download button for use in lists

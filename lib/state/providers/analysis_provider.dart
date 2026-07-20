@@ -121,7 +121,6 @@ class AnalysisNotifier extends _$AnalysisNotifier {
       currentStepNumber: 0,
       totalSteps: _selectedStepCount(settings),
       currentStep: 'Initializing analysis...',
-      analysisProgress: null,
       isCancelling: false,
       clearError: true,
     );
@@ -274,7 +273,8 @@ class AnalysisNotifier extends _$AnalysisNotifier {
       count++;
     }
 
-    final enabledVisual = settings.contentDetectionConfig.enabledVisualCategories;
+    final enabledVisual =
+        settings.contentDetectionConfig.enabledVisualCategories;
     if (enabledVisual.any((c) => c.id == 'nsfw')) {
       count++;
     }

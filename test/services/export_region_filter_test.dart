@@ -39,11 +39,11 @@ class _CapturingFFmpegBindings extends FFmpegBindings {
 
   @override
   Future<MediaMetadata> probeMedia(String path) async => MediaMetadata(
-      duration: const Duration(minutes: 5),
-      fileSizeBytes: 1000000,
-      resolution: Resolution(width: probeWidth, height: probeHeight),
-      frameRate: 30,
-    );
+        duration: const Duration(minutes: 5),
+        fileSizeBytes: 1000000,
+        resolution: Resolution(width: probeWidth, height: probeHeight),
+        frameRate: 30,
+      );
 
   @override
   Stream<double> runFilterComplex({
@@ -94,14 +94,15 @@ TimelineSegment _videoSegment({
   Duration start = const Duration(seconds: 2),
   Duration end = const Duration(seconds: 5),
   String? id,
-}) => TimelineSegment(
-    id: id ?? 'seg_v_${start.inMilliseconds}_${end.inMilliseconds}',
-    start: start,
-    end: end,
-    type: ContentType.nsfw,
-    confidence: 0.95,
-    modification: modification,
-  );
+}) =>
+    TimelineSegment(
+      id: id ?? 'seg_v_${start.inMilliseconds}_${end.inMilliseconds}',
+      start: start,
+      end: end,
+      type: ContentType.nsfw,
+      confidence: 0.95,
+      modification: modification,
+    );
 
 /// Creates a [TimelineSegment] on an audio track with the given modification.
 TimelineSegment _audioSegment({
@@ -109,38 +110,40 @@ TimelineSegment _audioSegment({
   Duration start = const Duration(seconds: 2),
   Duration end = const Duration(seconds: 5),
   String? id,
-}) => TimelineSegment(
-    id: id ?? 'seg_a_${start.inMilliseconds}_${end.inMilliseconds}',
-    start: start,
-    end: end,
-    type: ContentType.profanity,
-    confidence: 0.9,
-    modification: modification,
-  );
+}) =>
+    TimelineSegment(
+      id: id ?? 'seg_a_${start.inMilliseconds}_${end.inMilliseconds}',
+      start: start,
+      end: end,
+      type: ContentType.profanity,
+      confidence: 0.9,
+      modification: modification,
+    );
 
 /// Creates a [UnifiedTimeline] from video and audio segments.
 UnifiedTimeline _buildTimeline({
   List<TimelineSegment> videoSegments = const [],
   List<TimelineSegment> audioSegments = const [],
   Duration mediaDuration = const Duration(minutes: 5),
-}) => UnifiedTimeline(
-    id: 'test_timeline',
-    mediaDuration: mediaDuration,
-    tracks: [
-      TimelineTrack(
-        id: 'track_video',
-        type: TrackType.video,
-        name: 'Video',
-        segments: videoSegments,
-      ),
-      TimelineTrack(
-        id: 'track_audio',
-        type: TrackType.audio,
-        name: 'Audio',
-        segments: audioSegments,
-      ),
-    ],
-  );
+}) =>
+    UnifiedTimeline(
+      id: 'test_timeline',
+      mediaDuration: mediaDuration,
+      tracks: [
+        TimelineTrack(
+          id: 'track_video',
+          type: TrackType.video,
+          name: 'Video',
+          segments: videoSegments,
+        ),
+        TimelineTrack(
+          id: 'track_audio',
+          type: TrackType.audio,
+          name: 'Audio',
+          segments: audioSegments,
+        ),
+      ],
+    );
 
 void main() {
   // ==========================================================================
@@ -149,8 +152,7 @@ void main() {
   group('ExportService region filter formulas', () {
     group('intensity to blur sigma', () {
       // Formula from ExportService: 5 + ((intensity - 1) * 45 ~/ 99)
-      int intensityToSigma(int intensity) =>
-          5 + ((intensity - 1) * 45 ~/ 99);
+      int intensityToSigma(int intensity) => 5 + ((intensity - 1) * 45 ~/ 99);
 
       test('maps minimum intensity 1 to sigma 5', () {
         expect(intensityToSigma(1), 5);
@@ -256,12 +258,10 @@ void main() {
         expect(cropH, 108);
       });
 
-      test('tiny region near origin clamps width and height to at least 1',
-          () {
+      test('tiny region near origin clamps width and height to at least 1', () {
         const videoWidth = 1920;
         const videoHeight = 1080;
-        const region =
-            RegionBounds(x: 0, y: 0, width: 0.001, height: 0.001);
+        const region = RegionBounds(x: 0, y: 0, width: 0.001, height: 0.001);
 
         final px = (region.x * videoWidth).round();
         final py = (region.y * videoHeight).round();
@@ -344,8 +344,7 @@ void main() {
     group('hex color to FFmpeg format', () {
       // Formula from ExportService._hexToFFmpegColor
       String hexToFFmpeg(String hexColor, double opacity) {
-        final hex =
-            hexColor.startsWith('#') ? hexColor.substring(1) : hexColor;
+        final hex = hexColor.startsWith('#') ? hexColor.substring(1) : hexColor;
         final alphaHex =
             (opacity * 255).round().toRadixString(16).padLeft(2, '0');
         return '0x$hex$alphaHex';
@@ -404,8 +403,7 @@ void main() {
         videoSegments: [
           _videoSegment(
             modification: const Modification.videoRegionBlur(
-              region:
-                  RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
+              region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
             ),
           ),
         ],
@@ -431,15 +429,13 @@ void main() {
       expect(filter, contains('[rv0]'));
     });
 
-    test(
-        'single VideoRegionPixelate produces split-crop-scale-overlay chain',
+    test('single VideoRegionPixelate produces split-crop-scale-overlay chain',
         () async {
       final timeline = _buildTimeline(
         videoSegments: [
           _videoSegment(
             modification: const Modification.videoRegionPixelate(
-              region:
-                  RegionBounds(x: 0.5, y: 0.5, width: 0.2, height: 0.2),
+              region: RegionBounds(x: 0.5, y: 0.5, width: 0.2, height: 0.2),
             ),
             start: const Duration(seconds: 1),
             end: const Duration(seconds: 4),
@@ -480,8 +476,7 @@ void main() {
             modification: const Modification.videoRegionBlackBox(
               color: '#FF0000',
               opacity: 0.8,
-              region:
-                  RegionBounds(x: 0.1, y: 0.1, width: 0.2, height: 0.3),
+              region: RegionBounds(x: 0.1, y: 0.1, width: 0.2, height: 0.3),
             ),
             start: const Duration(seconds: 3),
             end: const Duration(seconds: 7),
@@ -507,16 +502,14 @@ void main() {
       expect(filter, isNot(contains('overlay=')));
     });
 
-    test('multiple VideoRegionBlur mods are chained sequentially',
-        () async {
+    test('multiple VideoRegionBlur mods are chained sequentially', () async {
       final timeline = _buildTimeline(
         videoSegments: [
           _videoSegment(
             id: 'seg_v_1',
             modification: const Modification.videoRegionBlur(
               intensity: 30,
-              region:
-                  RegionBounds(x: 0.1, y: 0.1, width: 0.2, height: 0.2),
+              region: RegionBounds(x: 0.1, y: 0.1, width: 0.2, height: 0.2),
             ),
             start: const Duration(seconds: 1),
             end: const Duration(seconds: 3),
@@ -525,8 +518,7 @@ void main() {
             id: 'seg_v_2',
             modification: const Modification.videoRegionBlur(
               intensity: 70,
-              region:
-                  RegionBounds(x: 0.5, y: 0.5, width: 0.3, height: 0.3),
+              region: RegionBounds(x: 0.5, y: 0.5, width: 0.3, height: 0.3),
             ),
             end: const Duration(seconds: 6),
           ),
@@ -543,7 +535,9 @@ void main() {
       // First region: sigma=18, crop=384:216:192:108
       expect(filter, contains('[0:v]split=2[base0][c0]'));
       expect(
-          filter, contains('[c0]crop=384:216:192:108,gblur=sigma=18[b0]'),);
+        filter,
+        contains('[c0]crop=384:216:192:108,gblur=sigma=18[b0]'),
+      );
       expect(
         filter,
         contains(
@@ -574,8 +568,7 @@ void main() {
           _videoSegment(
             id: 'seg_region',
             modification: const Modification.videoRegionBlur(
-              region:
-                  RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
+              region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
             ),
           ),
           _videoSegment(
@@ -614,15 +607,13 @@ void main() {
           _videoSegment(
             id: 'seg_region',
             modification: const Modification.videoRegionBlur(
-              region:
-                  RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
+              region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
             ),
           ),
           _videoSegment(
             id: 'seg_drawbox',
             modification: const Modification.videoRegionBlackBox(
-              region:
-                  RegionBounds(x: 0.5, y: 0.5, width: 0.1, height: 0.1),
+              region: RegionBounds(x: 0.5, y: 0.5, width: 0.1, height: 0.1),
             ),
             start: const Duration(seconds: 3),
             end: const Duration(seconds: 6),
@@ -684,7 +675,9 @@ void main() {
 
       expect(filter, contains('[0:a]'));
       expect(
-          filter, contains("volume=enable='between(t,1.0,3.0)':volume=0"),);
+        filter,
+        contains("volume=enable='between(t,1.0,3.0)':volume=0"),
+      );
       // No video filters
       expect(filter, isNot(contains('[0:v]')));
     });
@@ -696,8 +689,7 @@ void main() {
         videoSegments: [
           _videoSegment(
             modification: const Modification.videoRegionBlur(
-              region:
-                  RegionBounds(x: 0.9, y: 0.9, width: 0.3, height: 0.3),
+              region: RegionBounds(x: 0.9, y: 0.9, width: 0.3, height: 0.3),
             ),
           ),
         ],
@@ -721,8 +713,7 @@ void main() {
         videoSegments: [
           _videoSegment(
             modification: const Modification.videoRegionBlur(
-              region:
-                  RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
+              region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
             ),
           ),
         ],
@@ -760,8 +751,7 @@ void main() {
         videoSegments: [
           _videoSegment(
             modification: const Modification.videoRegionBlur(
-              region:
-                  RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
+              region: RegionBounds(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
             ),
           ),
         ],
@@ -784,9 +774,7 @@ void main() {
       final timeline = _buildTimeline(
         audioSegments: [
           _audioSegment(
-            modification: const Modification.audioBeep(
-              
-            ),
+            modification: const Modification.audioBeep(),
           ),
         ],
       );
@@ -800,7 +788,9 @@ void main() {
 
       expect(filter, contains('[0:a]'));
       expect(
-          filter, contains("volume=enable='between(t,2.0,5.0)':volume=0"),);
+        filter,
+        contains("volume=enable='between(t,2.0,5.0)':volume=0"),
+      );
       expect(filter, contains('aevalsrc=sin(1000*2*PI*t)'));
       expect(filter, contains('amix=inputs=2'));
     });
@@ -810,8 +800,7 @@ void main() {
         videoSegments: [
           _videoSegment(
             modification: const Modification.videoRegionBlur(
-              region:
-                  RegionBounds(x: 0, y: 0, width: 1, height: 1),
+              region: RegionBounds(x: 0, y: 0, width: 1, height: 1),
             ),
           ),
         ],

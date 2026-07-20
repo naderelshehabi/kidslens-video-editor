@@ -124,8 +124,7 @@ class HuggingFaceModel with _$HuggingFaceModel {
   bool get hasBadge => badge != null && badge!.isNotEmpty;
 
   /// Whether this model is marked as recommended
-  bool get isRecommended =>
-      badge?.toLowerCase().contains('recommend') ?? false;
+  bool get isRecommended => badge?.toLowerCase().contains('recommend') ?? false;
 
   /// Speed description based on multiplier
   String get speedDescription {

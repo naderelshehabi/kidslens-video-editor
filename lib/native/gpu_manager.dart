@@ -35,9 +35,9 @@ class GpuInfoDetails {
   final int? temperature;
   final int? utilizationPercent;
   final int? memoryUsedMB;
-  
+
   int get memoryFreeMB => vramMB - (memoryUsedMB ?? 0);
-  
+
   @override
   String toString() => 'GpuInfoDetails($name, $vramMB MB, $vendor)';
 }
@@ -95,7 +95,7 @@ class RequirementsCheckResult {
   final int vramRequired;
   final List<String> warnings;
   final List<String> suggestions;
-  
+
   bool get ramSufficient => ramAvailable >= ramRequired;
   bool get vramSufficient => vramAvailable >= vramRequired;
 }
@@ -119,16 +119,16 @@ class GPUAccelerationManager {
     _detectedAccelerator ??= await _tryVulkan();
     _detectedAccelerator ??= await _tryAmdRocm();
     _detectedAccelerator ??= _cpuFallback();
-    
+
     // Cache system RAM for requirements checking
     _systemRamMB = await _getSystemRamMB();
 
     _initialized = true;
     return _detectedAccelerator!;
   }
-  
+
   /// Get detailed GPU information
-  /// 
+  ///
   /// Returns structured data about the detected GPU including:
   /// - Hardware specifications (name, vendor, VRAM)
   /// - Driver and API versions
@@ -137,11 +137,11 @@ class GPUAccelerationManager {
     if (!_initialized) {
       await detectAccelerator();
     }
-    
+
     if (_gpuDetails != null) {
       return _gpuDetails;
     }
-    
+
     // Build GPU details based on accelerator type
     switch (_detectedAccelerator?.type) {
       case AcceleratorType.cuda:
@@ -155,19 +155,19 @@ class GPUAccelerationManager {
       default:
         return null;
     }
-    
+
     return _gpuDetails;
   }
-  
+
   Future<GpuInfoDetails?> _getNvidiaGpuDetails() async {
     try {
       final result = await _runNvidiaSmi(<String>[
         '--query-gpu=name,memory.total,memory.used,driver_version,temperature.gpu,utilization.gpu',
         '--format=csv,noheader,nounits',
       ]);
-      
+
       if (result == null || result.exitCode != 0) return null;
-      
+
       final lines = result.stdout
           .toString()
           .trim()
@@ -178,7 +178,7 @@ class GPUAccelerationManager {
       if (lines.isEmpty) return null;
       final parts = lines.first.split(',').map((s) => s.trim()).toList();
       if (parts.length < 4) return null;
-      
+
       // Get CUDA version
       String? cudaVersion;
       try {
@@ -190,7 +190,7 @@ class GPUAccelerationManager {
           cudaVersion = cudaResult.stdout.toString().trim();
         }
       } catch (_) {}
-      
+
       return GpuInfoDetails(
         name: parts[0],
         vendor: 'NVIDIA',
@@ -199,33 +199,37 @@ class GPUAccelerationManager {
         driverVersion: parts[3],
         acceleratorType: AcceleratorType.cuda,
         temperature: parts.length > 4 ? int.tryParse(parts[4]) : null,
-        utilizationPercent: parts.length > 5 ? int.tryParse(parts[5].replaceAll('%', '')) : null,
+        utilizationPercent: parts.length > 5
+            ? int.tryParse(parts[5].replaceAll('%', ''))
+            : null,
         cudaVersion: cudaVersion,
       );
     } catch (_) {
       return null;
     }
   }
-  
+
   Future<GpuInfoDetails?> _getAppleGpuDetails() async {
     try {
       // Get GPU name using system_profiler
-      final gpuResult = await Process.run('system_profiler', ['SPDisplaysDataType', '-json']);
-      
+      final gpuResult =
+          await Process.run('system_profiler', ['SPDisplaysDataType', '-json']);
+
       var gpuName = 'Apple GPU';
       const vendor = 'Apple';
-      
+
       if (gpuResult.exitCode == 0) {
         // Parse minimal info from output
         final output = gpuResult.stdout.toString();
         if (output.contains('Apple M')) {
-          final match = RegExp(r'Apple M\d+( Pro| Max| Ultra)?').firstMatch(output);
+          final match =
+              RegExp(r'Apple M\d+( Pro| Max| Ultra)?').firstMatch(output);
           if (match != null) {
             gpuName = match.group(0)!;
           }
         }
       }
-      
+
       // Get macOS version for Metal version approximation
       final osResult = await Process.run('sw_vers', ['-productVersion']);
       final osVersion = osResult.stdout.toString().trim();
@@ -235,7 +239,7 @@ class GPUAccelerationManager {
       } else if (osVersion.startsWith('11.')) {
         metalVersion = 'Metal 2.3';
       }
-      
+
       return GpuInfoDetails(
         name: gpuName,
         vendor: vendor,
@@ -248,11 +252,11 @@ class GPUAccelerationManager {
       return null;
     }
   }
-  
+
   Future<GpuInfoDetails?> _getVulkanGpuDetails() async {
     // Vulkan details populated during _tryVulkan()
     if (_detectedAccelerator?.type != AcceleratorType.vulkan) return null;
-    
+
     return GpuInfoDetails(
       name: _detectedAccelerator?.name ?? 'Vulkan GPU',
       vendor: 'Unknown',
@@ -262,30 +266,34 @@ class GPUAccelerationManager {
       vulkanVersion: '1.3', // Would be populated from vulkaninfo
     );
   }
-  
+
   Future<GpuInfoDetails?> _getAmdGpuDetails() async {
     try {
       // Try rocm-smi for AMD GPUs
-      final result = await Process.run('rocm-smi', ['--showproductname', '--showmeminfo', 'vram']);
-      
+      final result = await Process.run(
+        'rocm-smi',
+        ['--showproductname', '--showmeminfo', 'vram'],
+      );
+
       if (result.exitCode != 0) return null;
-      
+
       final output = result.stdout.toString();
       var gpuName = 'AMD GPU';
       var vramMB = 0;
-      
+
       // Parse product name
       final nameMatch = RegExp(r'GPU\[\d+\].*?:\s*(.+)').firstMatch(output);
       if (nameMatch != null) {
         gpuName = nameMatch.group(1)!.trim();
       }
-      
+
       // Parse VRAM
-      final vramMatch = RegExp(r'VRAM Total Memory.*?:\s*(\d+)').firstMatch(output);
+      final vramMatch =
+          RegExp(r'VRAM Total Memory.*?:\s*(\d+)').firstMatch(output);
       if (vramMatch != null) {
         vramMB = int.tryParse(vramMatch.group(1)!) ?? 0;
       }
-      
+
       return GpuInfoDetails(
         name: gpuName,
         vendor: 'AMD',
@@ -297,33 +305,38 @@ class GPUAccelerationManager {
       return null;
     }
   }
-  
+
   /// Check if system meets memory requirements
-  /// 
+  ///
   /// [ramRequired] Required system RAM in MB
   /// [vramRequired] Required GPU VRAM in MB (0 for CPU-only workloads)
-  /// 
+  ///
   /// Returns detailed result with pass/fail status and suggestions
-  Future<RequirementsCheckResult> checkRequirements(int ramRequired, int vramRequired) async {
+  Future<RequirementsCheckResult> checkRequirements(
+    int ramRequired,
+    int vramRequired,
+  ) async {
     if (!_initialized) {
       await detectAccelerator();
     }
-    
+
     final systemRam = _systemRamMB ?? 0;
     final vramAvailable = _detectedAccelerator?.vramMB ?? 0;
-    
+
     final warnings = <String>[];
     final suggestions = <String>[];
-    
+
     // Check RAM
     if (systemRam < ramRequired) {
-      warnings.add('Insufficient system RAM: ${systemRam}MB available, ${ramRequired}MB required');
+      warnings.add(
+        'Insufficient system RAM: ${systemRam}MB available, ${ramRequired}MB required',
+      );
       suggestions.add('Close other applications to free memory');
       if (systemRam < ramRequired * 0.5) {
         suggestions.add('Consider upgrading system RAM for better performance');
       }
     }
-    
+
     // Check VRAM
     if (vramRequired > 0) {
       if (vramAvailable < vramRequired) {
@@ -333,21 +346,25 @@ class GPUAccelerationManager {
             ..add('Install compatible GPU for hardware acceleration')
             ..add('Alternatively, reduce batch size or use smaller models');
         } else {
-          warnings.add('Insufficient VRAM: ${vramAvailable}MB available, ${vramRequired}MB required');
+          warnings.add(
+            'Insufficient VRAM: ${vramAvailable}MB available, ${vramRequired}MB required',
+          );
           suggestions
             ..add('Use a smaller model or reduce batch size')
             ..add('Close other GPU-intensive applications');
         }
       } else if (vramAvailable < vramRequired * 1.2) {
         // Warn if less than 20% headroom
-        warnings.add('Low VRAM headroom: ${vramAvailable}MB available, ${vramRequired}MB required');
+        warnings.add(
+          'Low VRAM headroom: ${vramAvailable}MB available, ${vramRequired}MB required',
+        );
         suggestions.add('Performance may be reduced due to memory swapping');
       }
     }
-    
-    final passed = systemRam >= ramRequired && 
-                   (vramRequired == 0 || vramAvailable >= vramRequired);
-    
+
+    final passed = systemRam >= ramRequired &&
+        (vramRequired == 0 || vramAvailable >= vramRequired);
+
     return RequirementsCheckResult(
       passed: passed,
       ramAvailable: systemRam,
@@ -360,7 +377,7 @@ class GPUAccelerationManager {
   }
 
   /// Get available DirectML devices (Windows only)
-  /// 
+  ///
   /// Returns list of DirectML-capable GPUs using WMI query
   Future<List<DirectMLDevice>> getDirectMLDevices() async {
     if (_directmlDevices != null) return _directmlDevices!;
@@ -422,7 +439,7 @@ class GPUAccelerationManager {
   }
 
   /// Query available ONNX Runtime execution providers
-  /// 
+  ///
   /// Returns a list of provider names that can be used with the current system
   Future<List<String>> queryAvailableProviders() async {
     final providers = <String>[
@@ -464,12 +481,16 @@ class GPUAccelerationManager {
 
     return providers;
   }
-  
+
   Future<int> _getSystemRamMB() async {
     try {
       if (Platform.isWindows) {
-        final result = await Process.run('wmic', ['OS', 'get', 'TotalVisibleMemorySize', '/value']);
-        final match = RegExp(r'TotalVisibleMemorySize=(\d+)').firstMatch(result.stdout.toString());
+        final result = await Process.run(
+          'wmic',
+          ['OS', 'get', 'TotalVisibleMemorySize', '/value'],
+        );
+        final match = RegExp(r'TotalVisibleMemorySize=(\d+)')
+            .firstMatch(result.stdout.toString());
         if (match != null) {
           // wmic returns KB, convert to MB
           return (int.parse(match.group(1)!) / 1024).round();
@@ -480,7 +501,8 @@ class GPUAccelerationManager {
         return bytes ~/ (1024 * 1024);
       } else if (Platform.isLinux) {
         final result = await Process.run('grep', ['MemTotal', '/proc/meminfo']);
-        final match = RegExp(r'MemTotal:\s*(\d+)').firstMatch(result.stdout.toString());
+        final match =
+            RegExp(r'MemTotal:\s*(\d+)').firstMatch(result.stdout.toString());
         if (match != null) {
           // /proc/meminfo returns kB, convert to MB
           return (int.parse(match.group(1)!) / 1024).round();
@@ -567,8 +589,9 @@ class GPUAccelerationManager {
             index: index,
             name: parts[1],
             memoryTotalMB: int.tryParse(parts[2]),
-            computeCapability:
-                computeCaps != null && i < computeCaps.length ? computeCaps[i] : null,
+            computeCapability: computeCaps != null && i < computeCaps.length
+                ? computeCaps[i]
+                : null,
           ),
         );
       }
@@ -644,8 +667,10 @@ class GPUAccelerationManager {
     // First pass: look for NVIDIA GPU
     for (final device in devices) {
       final nameLower = device.name.toLowerCase();
-      if (nameLower.contains('nvidia') || nameLower.contains('geforce') ||
-          nameLower.contains('quadro') || nameLower.contains('tesla')) {
+      if (nameLower.contains('nvidia') ||
+          nameLower.contains('geforce') ||
+          nameLower.contains('quadro') ||
+          nameLower.contains('tesla')) {
         return device.deviceId;
       }
     }
@@ -654,8 +679,9 @@ class GPUAccelerationManager {
       final nameLower = device.name.toLowerCase();
       if ((nameLower.contains('amd') || nameLower.contains('radeon')) &&
           !nameLower.contains('integrated') &&
-          !nameLower.contains('vega') &&  // Vega iGPUs
-          device.vramMB > 1024) {  // Discrete GPUs have >1GB VRAM
+          !nameLower.contains('vega') && // Vega iGPUs
+          device.vramMB > 1024) {
+        // Discrete GPUs have >1GB VRAM
         return device.deviceId;
       }
     }
@@ -709,8 +735,14 @@ class GPUAccelerationManager {
     }
 
     // Fallback: extract any 4-digit model number
-    final digits1 = RegExp(r'\b(\d{4})\b').allMatches(norm1).map((m) => m.group(1)!).toSet();
-    final digits2 = RegExp(r'\b(\d{4})\b').allMatches(norm2).map((m) => m.group(1)!).toSet();
+    final digits1 = RegExp(r'\b(\d{4})\b')
+        .allMatches(norm1)
+        .map((m) => m.group(1)!)
+        .toSet();
+    final digits2 = RegExp(r'\b(\d{4})\b')
+        .allMatches(norm2)
+        .map((m) => m.group(1)!)
+        .toSet();
     if (digits1.isNotEmpty && digits2.isNotEmpty) {
       return digits1.intersection(digits2).isNotEmpty;
     }
@@ -724,7 +756,8 @@ class GPUAccelerationManager {
 
     try {
       // Check for Apple Silicon
-      final result = await Process.run('sysctl', ['-n', 'machdep.cpu.brand_string']);
+      final result =
+          await Process.run('sysctl', ['-n', 'machdep.cpu.brand_string']);
       final cpuBrand = result.stdout.toString().trim();
       final isAppleSilicon = cpuBrand.contains('Apple');
 
@@ -749,7 +782,7 @@ class GPUAccelerationManager {
   }
 
   /// Detect Vulkan-capable GPUs
-  /// 
+  ///
   /// Implementation Details:
   /// 1. Try running vulkaninfo to detect Vulkan support
   /// 2. On Windows, also check for Intel/AMD GPUs via dxdiag fallback
@@ -759,7 +792,7 @@ class GPUAccelerationManager {
     try {
       // Try vulkaninfo first (available if Vulkan SDK or drivers installed)
       ProcessResult? vulkanResult;
-      
+
       if (Platform.isWindows) {
         // Try common Vulkan SDK locations
         final vulkanPaths = [
@@ -767,7 +800,7 @@ class GPUAccelerationManager {
           r'C:\VulkanSDK\vulkaninfo.exe',
           r'%VULKAN_SDK%\Bin\vulkaninfo.exe',
         ];
-        
+
         for (final path in vulkanPaths) {
           try {
             vulkanResult = await Process.run(path, ['--summary']);
@@ -779,26 +812,28 @@ class GPUAccelerationManager {
       } else if (Platform.isLinux) {
         vulkanResult = await Process.run('vulkaninfo', ['--summary']);
       }
-      
+
       if (vulkanResult != null && vulkanResult.exitCode == 0) {
         final output = vulkanResult.stdout.toString();
-        
+
         // Parse GPU name from vulkaninfo output
         // Format varies but typically: "GPU0: NVIDIA GeForce RTX 3080" or similar
         String? gpuName;
         var vramMB = 2048; // Default estimate
-        
+
         final gpuMatch = RegExp(r'GPU\d+:\s*(.+)').firstMatch(output);
         if (gpuMatch != null) {
           gpuName = gpuMatch.group(1)?.trim();
         }
-        
+
         // Try to extract memory size
-        final memMatch = RegExp(r'deviceLocalMemory:\s*(\d+)\s*MB', caseSensitive: false).firstMatch(output);
+        final memMatch =
+            RegExp(r'deviceLocalMemory:\s*(\d+)\s*MB', caseSensitive: false)
+                .firstMatch(output);
         if (memMatch != null) {
           vramMB = int.tryParse(memMatch.group(1)!) ?? vramMB;
         }
-        
+
         // Fallback memory detection from heap size
         if (vramMB == 2048) {
           final heapMatch = RegExp(r'size\s*=\s*(\d+)\s*\(').firstMatch(output);
@@ -809,7 +844,7 @@ class GPUAccelerationManager {
             }
           }
         }
-        
+
         if (gpuName != null && gpuName.isNotEmpty) {
           return AcceleratorInfo(
             type: AcceleratorType.vulkan,
@@ -819,47 +854,51 @@ class GPUAccelerationManager {
           );
         }
       }
-      
+
       // Fallback for Windows: try dxdiag for basic GPU detection
       if (Platform.isWindows) {
         return await _tryWindowsDxDiag();
       }
-      
+
       return null;
     } catch (_) {
       return null;
     }
   }
-  
+
   /// Windows fallback using dxdiag for GPU detection
   Future<AcceleratorInfo?> _tryWindowsDxDiag() async {
     try {
       // Use wmic for faster GPU detection than dxdiag
       final result = await Process.run('wmic', [
-        'path', 'win32_VideoController', 
-        'get', 'name,AdapterRAM',
+        'path',
+        'win32_VideoController',
+        'get',
+        'name,AdapterRAM',
         '/format:csv',
       ]);
-      
+
       if (result.exitCode != 0) return null;
-      
-      final lines = result.stdout.toString().split('\n')
+
+      final lines = result.stdout
+          .toString()
+          .split('\n')
           .where((l) => l.trim().isNotEmpty && !l.contains('Node'))
           .toList();
-      
+
       if (lines.isEmpty) return null;
-      
+
       // Parse first GPU entry
       final parts = lines.first.split(',');
       if (parts.length < 3) return null;
-      
+
       final adapterRam = int.tryParse(parts[1]) ?? 0;
       final gpuName = parts[2].trim();
       final vramMB = adapterRam ~/ (1024 * 1024);
-      
+
       // Skip if it's an integrated GPU with minimal VRAM
       if (vramMB < 512) return null;
-      
+
       return AcceleratorInfo(
         type: AcceleratorType.vulkan,
         name: gpuName,
@@ -870,34 +909,36 @@ class GPUAccelerationManager {
       return null;
     }
   }
-  
+
   /// Detect AMD ROCm GPUs (Linux)
   Future<AcceleratorInfo?> _tryAmdRocm() async {
     if (!Platform.isLinux) return null;
-    
+
     try {
       final result = await Process.run('rocm-smi', ['--showproductname']);
-      
+
       if (result.exitCode != 0) return null;
-      
+
       final output = result.stdout.toString();
       final nameMatch = RegExp(r'GPU\[\d+\].*?:\s*(.+)').firstMatch(output);
-      
+
       if (nameMatch == null) return null;
-      
+
       final gpuName = nameMatch.group(1)!.trim();
-      
+
       // Get VRAM
-      final memResult = await Process.run('rocm-smi', ['--showmeminfo', 'vram']);
+      final memResult =
+          await Process.run('rocm-smi', ['--showmeminfo', 'vram']);
       var vramMB = 8192; // Default estimate for AMD GPUs
-      
+
       if (memResult.exitCode == 0) {
-        final memMatch = RegExp(r'Total Memory.*?:\s*(\d+)').firstMatch(memResult.stdout.toString());
+        final memMatch = RegExp(r'Total Memory.*?:\s*(\d+)')
+            .firstMatch(memResult.stdout.toString());
         if (memMatch != null) {
           vramMB = int.tryParse(memMatch.group(1)!) ?? vramMB;
         }
       }
-      
+
       return AcceleratorInfo(
         type: AcceleratorType.rocm,
         name: gpuName,
@@ -946,7 +987,7 @@ class GPUAccelerationManager {
 
   /// Get the detected accelerator info
   AcceleratorInfo? get accelerator => _detectedAccelerator;
-  
+
   /// Reset detection state (useful for re-detection after hardware changes)
   void reset() {
     _initialized = false;

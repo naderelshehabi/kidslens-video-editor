@@ -306,7 +306,8 @@ void main() {
 
       // Verify the three channels produce different values
       expect(output[0], isNot(closeTo(output[1 * 224 * 224], 1e-5)));
-      expect(output[1 * 224 * 224], isNot(closeTo(output[2 * 224 * 224], 1e-5)));
+      expect(
+          output[1 * 224 * 224], isNot(closeTo(output[2 * 224 * 224], 1e-5)));
     });
   });
 
@@ -335,12 +336,21 @@ void main() {
       for (var i = 0; i < 10; i++) {
         final idx = i * 50; // sample at various positions
         if (idx < planeSize) {
-          expect(output[0 * planeSize + idx], closeTo(expectedR, 1e-5),
-              reason: 'R channel at index $idx',);
-          expect(output[1 * planeSize + idx], closeTo(expectedG, 1e-5),
-              reason: 'G channel at index $idx',);
-          expect(output[2 * planeSize + idx], closeTo(expectedB, 1e-5),
-              reason: 'B channel at index $idx',);
+          expect(
+            output[0 * planeSize + idx],
+            closeTo(expectedR, 1e-5),
+            reason: 'R channel at index $idx',
+          );
+          expect(
+            output[1 * planeSize + idx],
+            closeTo(expectedG, 1e-5),
+            reason: 'G channel at index $idx',
+          );
+          expect(
+            output[2 * planeSize + idx],
+            closeTo(expectedB, 1e-5),
+            reason: 'B channel at index $idx',
+          );
         }
       }
     });
@@ -355,22 +365,31 @@ void main() {
       // All R-channel values should be the same
       final rVal = output[0];
       for (var i = 1; i < planeSize; i++) {
-        expect(output[i], closeTo(rVal, 1e-6),
-            reason: 'R channel pixel $i differs from pixel 0',);
+        expect(
+          output[i],
+          closeTo(rVal, 1e-6),
+          reason: 'R channel pixel $i differs from pixel 0',
+        );
       }
 
       // All G-channel values should be the same
       final gVal = output[planeSize];
       for (var i = 1; i < planeSize; i++) {
-        expect(output[planeSize + i], closeTo(gVal, 1e-6),
-            reason: 'G channel pixel $i differs from pixel 0',);
+        expect(
+          output[planeSize + i],
+          closeTo(gVal, 1e-6),
+          reason: 'G channel pixel $i differs from pixel 0',
+        );
       }
 
       // All B-channel values should be the same
       final bVal = output[2 * planeSize];
       for (var i = 1; i < planeSize; i++) {
-        expect(output[2 * planeSize + i], closeTo(bVal, 1e-6),
-            reason: 'B channel pixel $i differs from pixel 0',);
+        expect(
+          output[2 * planeSize + i],
+          closeTo(bVal, 1e-6),
+          reason: 'B channel pixel $i differs from pixel 0',
+        );
       }
     });
   });

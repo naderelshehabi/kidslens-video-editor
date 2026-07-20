@@ -44,12 +44,13 @@ class MediaService {
     double fps = 2.0,
     int? startFrame,
     int? endFrame,
-  }) => _ffmpeg.extractFrames(
-      videoPath,
-      fps: fps,
-      startFrame: startFrame,
-      endFrame: endFrame,
-    );
+  }) =>
+      _ffmpeg.extractFrames(
+        videoPath,
+        fps: fps,
+        startFrame: startFrame,
+        endFrame: endFrame,
+      );
 
   /// Generate thumbnail for a video
   Future<String> generateThumbnail(String videoPath, String outputPath) async =>
@@ -64,7 +65,14 @@ class MediaService {
   MediaType _determineMediaType(String path) {
     final extension = path.split('.').last.toLowerCase();
     const videoExtensions = [
-      'mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v',
+      'mp4',
+      'mkv',
+      'avi',
+      'mov',
+      'wmv',
+      'flv',
+      'webm',
+      'm4v',
     ];
     return videoExtensions.contains(extension)
         ? MediaType.video

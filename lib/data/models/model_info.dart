@@ -175,8 +175,7 @@ class ModelInfo with _$ModelInfo {
   bool get hasBadge => badge != null && badge!.isNotEmpty;
 
   /// Whether this model is marked as recommended
-  bool get isRecommended =>
-      badge?.toLowerCase().contains('recommend') ?? false;
+  bool get isRecommended => badge?.toLowerCase().contains('recommend') ?? false;
 
   /// Checks if the hardware meets the model's requirements
   bool meetsRequirements(HardwareInfo info) {

@@ -81,7 +81,10 @@ void main() {
         );
 
         expect(restored.availableRamBytes, equals(original.availableRamBytes));
-        expect(restored.availableVramBytes, equals(original.availableVramBytes));
+        expect(
+          restored.availableVramBytes,
+          equals(original.availableVramBytes),
+        );
         expect(restored.hasGpu, equals(original.hasGpu));
         expect(restored.gpuName, equals(original.gpuName));
         expect(restored.cpuCores, equals(original.cpuCores));
@@ -586,7 +589,10 @@ void main() {
         expect(restored.badge, equals(original.badge));
         expect(restored.minRamBytes, equals(original.minRamBytes));
         expect(restored.requiresAvx2, equals(original.requiresAvx2));
-        expect(restored.supportedLanguages, equals(original.supportedLanguages));
+        expect(
+          restored.supportedLanguages,
+          equals(original.supportedLanguages),
+        );
         expect(restored.version, equals(original.version));
       });
     });
@@ -635,7 +641,10 @@ void main() {
 
     test('visualModels should filter visual models only', () {
       expect(models.visualModels, hasLength(1));
-      expect(models.visualModels.every((m) => m.type == ModelType.visual), isTrue);
+      expect(
+        models.visualModels.every((m) => m.type == ModelType.visual),
+        isTrue,
+      );
     });
 
     test('recommended should return recommended model', () {
@@ -682,7 +691,7 @@ void main() {
       ];
 
       expect(demanding.meetingRequirements(hardwareWithGpu), hasLength(4));
-      
+
       final noGpu = HardwareInfo.basic(ramGb: 16);
       expect(demanding.meetingRequirements(noGpu), hasLength(3));
     });

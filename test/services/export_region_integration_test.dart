@@ -104,14 +104,15 @@ TimelineSegment _videoSegment({
   Duration start = const Duration(seconds: 2),
   Duration end = const Duration(seconds: 5),
   String? id,
-}) => TimelineSegment(
-    id: id ?? 'seg_v_${start.inMilliseconds}_${end.inMilliseconds}',
-    start: start,
-    end: end,
-    type: ContentType.nsfw,
-    confidence: 0.95,
-    modification: modification,
-  );
+}) =>
+    TimelineSegment(
+      id: id ?? 'seg_v_${start.inMilliseconds}_${end.inMilliseconds}',
+      start: start,
+      end: end,
+      type: ContentType.nsfw,
+      confidence: 0.95,
+      modification: modification,
+    );
 
 /// Creates an audio [TimelineSegment] with the given modification and time range.
 TimelineSegment _audioSegment({
@@ -119,38 +120,40 @@ TimelineSegment _audioSegment({
   Duration start = const Duration(seconds: 2),
   Duration end = const Duration(seconds: 5),
   String? id,
-}) => TimelineSegment(
-    id: id ?? 'seg_a_${start.inMilliseconds}_${end.inMilliseconds}',
-    start: start,
-    end: end,
-    type: ContentType.profanity,
-    confidence: 0.9,
-    modification: modification,
-  );
+}) =>
+    TimelineSegment(
+      id: id ?? 'seg_a_${start.inMilliseconds}_${end.inMilliseconds}',
+      start: start,
+      end: end,
+      type: ContentType.profanity,
+      confidence: 0.9,
+      modification: modification,
+    );
 
 /// Builds a [UnifiedTimeline] from video and audio segments.
 UnifiedTimeline _buildTimeline({
   List<TimelineSegment> videoSegments = const [],
   List<TimelineSegment> audioSegments = const [],
   Duration mediaDuration = const Duration(minutes: 5),
-}) => UnifiedTimeline(
-    id: 'test_timeline',
-    mediaDuration: mediaDuration,
-    tracks: [
-      TimelineTrack(
-        id: 'track_video',
-        type: TrackType.video,
-        name: 'Video',
-        segments: videoSegments,
-      ),
-      TimelineTrack(
-        id: 'track_audio',
-        type: TrackType.audio,
-        name: 'Audio',
-        segments: audioSegments,
-      ),
-    ],
-  );
+}) =>
+    UnifiedTimeline(
+      id: 'test_timeline',
+      mediaDuration: mediaDuration,
+      tracks: [
+        TimelineTrack(
+          id: 'track_video',
+          type: TrackType.video,
+          name: 'Video',
+          segments: videoSegments,
+        ),
+        TimelineTrack(
+          id: 'track_audio',
+          type: TrackType.audio,
+          name: 'Audio',
+          segments: audioSegments,
+        ),
+      ],
+    );
 
 // =============================================================================
 // Tests
@@ -217,11 +220,13 @@ void main() {
       final outputPath = '${tempDir.path}${Platform.pathSeparator}output.mp4';
 
       final progressEvents = <ExportProgress>[];
-      await exportService.export(
-        inputPath: inputPath,
-        outputPath: outputPath,
-        timeline: timeline,
-      ).forEach(progressEvents.add);
+      await exportService
+          .export(
+            inputPath: inputPath,
+            outputPath: outputPath,
+            timeline: timeline,
+          )
+          .forEach(progressEvents.add);
 
       // Verify progress starts at 0 and ends at 1.
       expect(progressEvents.first.progress, 0.0);
@@ -433,8 +438,7 @@ void main() {
       expect(regionOutputIndex, lessThan(linearFilterIndex));
     });
 
-    test('progress events are yielded for mixed modification export',
-        () async {
+    test('progress events are yielded for mixed modification export', () async {
       final timeline = _buildTimeline(
         videoSegments: [
           _videoSegment(
@@ -590,11 +594,13 @@ void main() {
       final outputPath = '${tempDir.path}${Platform.pathSeparator}output.mp4';
 
       final progressEvents = <ExportProgress>[];
-      await exportService.export(
-        inputPath: inputPath,
-        outputPath: outputPath,
-        timeline: timeline,
-      ).forEach(progressEvents.add);
+      await exportService
+          .export(
+            inputPath: inputPath,
+            outputPath: outputPath,
+            timeline: timeline,
+          )
+          .forEach(progressEvents.add);
 
       expect(progressEvents.first.progress, 0.0);
       expect(progressEvents.last.progress, 1.0);
@@ -627,8 +633,7 @@ void main() {
       expect(filter, isEmpty);
     });
 
-    test('empty timeline still produces progress events from 0 to 1',
-        () async {
+    test('empty timeline still produces progress events from 0 to 1', () async {
       final timeline = _buildTimeline(
         videoSegments: [],
         audioSegments: [],
@@ -638,11 +643,13 @@ void main() {
       final outputPath = '${tempDir.path}${Platform.pathSeparator}output.mp4';
 
       final progressEvents = <ExportProgress>[];
-      await exportService.export(
-        inputPath: inputPath,
-        outputPath: outputPath,
-        timeline: timeline,
-      ).forEach(progressEvents.add);
+      await exportService
+          .export(
+            inputPath: inputPath,
+            outputPath: outputPath,
+            timeline: timeline,
+          )
+          .forEach(progressEvents.add);
 
       expect(progressEvents.first.progress, 0.0);
       expect(progressEvents.last.progress, 1.0);
@@ -738,11 +745,13 @@ void main() {
       final outputPath = '${tempDir.path}${Platform.pathSeparator}output.mp4';
 
       final progressEvents = <ExportProgress>[];
-      await exportService.export(
-        inputPath: inputPath,
-        outputPath: outputPath,
-        timeline: timeline,
-      ).forEach(progressEvents.add);
+      await exportService
+          .export(
+            inputPath: inputPath,
+            outputPath: outputPath,
+            timeline: timeline,
+          )
+          .forEach(progressEvents.add);
 
       // Export completes successfully.
       expect(progressEvents.last.progress, 1.0);

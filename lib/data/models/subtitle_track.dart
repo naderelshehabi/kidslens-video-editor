@@ -22,7 +22,9 @@ class SubtitleTrack with _$SubtitleTrack {
     @DateTimeConverter() required DateTime createdAt,
 
     /// Subtitle segments with timing
-    required List<SubtitleSegment> segments, /// The ASR model used to generate the subtitles
+    required List<SubtitleSegment> segments,
+
+    /// The ASR model used to generate the subtitles
     String? modelId,
   }) = _SubtitleTrack;
 
@@ -83,58 +85,56 @@ class SubtitleTrack with _$SubtitleTrack {
         language: language,
         generatedAt: createdAt,
         modelId: modelId ?? '',
-        segments: segments
-            .map(
-              (s) {
-                final normalizedText = s.text.trim();
-                final tokens = normalizedText.isEmpty
-                    ? const <String>[]
-                    : normalizedText
-                        .split(RegExp(r'\s+'))
-                        .where((word) => word.isNotEmpty)
-                        .toList(growable: false);
+        segments: segments.map(
+          (s) {
+            final normalizedText = s.text.trim();
+            final tokens = normalizedText.isEmpty
+                ? const <String>[]
+                : normalizedText
+                    .split(RegExp(r'\s+'))
+                    .where((word) => word.isNotEmpty)
+                    .toList(growable: false);
 
-                final segmentDurationUs =
-                    (s.endTime - s.startTime).inMicroseconds;
-                final perWordDurationUs = tokens.isEmpty
-                    ? 0
-                    : (segmentDurationUs / tokens.length).floor();
+            final segmentDurationUs = (s.endTime - s.startTime).inMicroseconds;
+            final perWordDurationUs = tokens.isEmpty
+                ? 0
+                : (segmentDurationUs / tokens.length).floor();
 
-                final words = <TranscriptWord>[];
-                for (var i = 0; i < tokens.length; i++) {
-                  final startOffsetUs = perWordDurationUs * i;
-                  final endOffsetUs = i == tokens.length - 1
-                      ? segmentDurationUs
-                      : perWordDurationUs * (i + 1);
+            final words = <TranscriptWord>[];
+            for (var i = 0; i < tokens.length; i++) {
+              final startOffsetUs = perWordDurationUs * i;
+              final endOffsetUs = i == tokens.length - 1
+                  ? segmentDurationUs
+                  : perWordDurationUs * (i + 1);
 
-                  final startTime =
-                      s.startTime + Duration(microseconds: startOffsetUs);
-                  final endTime = s.startTime + Duration(
+              final startTime =
+                  s.startTime + Duration(microseconds: startOffsetUs);
+              final endTime = s.startTime +
+                  Duration(
                     microseconds: endOffsetUs <= startOffsetUs
                         ? startOffsetUs + 1
                         : endOffsetUs,
                   );
 
-                  words.add(
-                    TranscriptWord(
-                      word: tokens[i],
-                      startTime: startTime,
-                      endTime: endTime,
-                      confidence: 1.0,
-                    ),
-                  );
-                }
+              words.add(
+                TranscriptWord(
+                  word: tokens[i],
+                  startTime: startTime,
+                  endTime: endTime,
+                  confidence: 1,
+                ),
+              );
+            }
 
-                return TranscriptSegment(
-                  id: s.id,
-                  startTime: s.startTime,
-                  endTime: s.endTime,
-                  text: s.text,
-                  words: words,
-                );
-              },
-            )
-            .toList(),
+            return TranscriptSegment(
+              id: s.id,
+              startTime: s.startTime,
+              endTime: s.endTime,
+              text: s.text,
+              words: words,
+            );
+          },
+        ).toList(),
       );
 }
 

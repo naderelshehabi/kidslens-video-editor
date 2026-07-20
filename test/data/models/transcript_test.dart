@@ -662,7 +662,10 @@ void main() {
 
         expect(restored.segments.length, equals(original.segments.length));
         expect(restored.language, equals(original.language));
-        expect(restored.languageDisplayName, equals(original.languageDisplayName));
+        expect(
+          restored.languageDisplayName,
+          equals(original.languageDisplayName),
+        );
         expect(restored.modelId, equals(original.modelId));
         expect(restored.totalWordCount, equals(original.totalWordCount));
       });

@@ -1,5 +1,5 @@
-import 'package:kidslens_video_editor/data/models/content_category_defaults.dart';
 import 'package:kidslens_video_editor/data/models/content_category.dart';
+import 'package:kidslens_video_editor/data/models/content_category_defaults.dart';
 
 /// Migrates analysis settings JSON to schema v5.
 class AnalysisSettingsMigration {
@@ -56,10 +56,11 @@ class AnalysisSettingsMigration {
     }
 
     // Remove old dual-selector fields
-    modelConfig.remove('asrGpuEnabled');
-    modelConfig.remove('asrGpuDevice');
-    modelConfig.remove('onnxGpuEnabled');
-    modelConfig.remove('onnxGpuDevice');
+    modelConfig
+      ..remove('asrGpuEnabled')
+      ..remove('asrGpuDevice')
+      ..remove('onnxGpuEnabled')
+      ..remove('onnxGpuDevice');
 
     // Update schema version
     final config = json['contentDetectionConfig'] as Map<String, dynamic>?;

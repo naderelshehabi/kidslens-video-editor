@@ -321,8 +321,9 @@ class AsrService {
         'Starting transcription...',
         Duration.zero,
       );
-      final resolvedGpuDeviceIndex =
-          await _resolveGpuDeviceIndex(gpuDeviceIndex ?? gpuConfig.gpuDeviceIndex);
+      final resolvedGpuDeviceIndex = await _resolveGpuDeviceIndex(
+        gpuDeviceIndex ?? gpuConfig.gpuDeviceIndex,
+      );
 
       final params = TranscriptionIsolateParams(
         libraryPath: libraryPath,
@@ -747,7 +748,8 @@ class AsrService {
 
     // Need to extract/convert to WAV
     debugPrint(
-        'Extracting audio from ${isVideo ? "video" : "audio"} file: $inputPath',);
+      'Extracting audio from ${isVideo ? "video" : "audio"} file: $inputPath',
+    );
 
     // Create temp file path
     final tempDir = Directory.systemTemp;

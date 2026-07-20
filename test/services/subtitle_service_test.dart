@@ -118,7 +118,8 @@ void main() {
         expect(
           content,
           matches(
-              RegExp(r'\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}'),),
+            RegExp(r'\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}'),
+          ),
         );
       });
 
@@ -157,7 +158,8 @@ void main() {
         expect(
           content,
           matches(
-              RegExp(r'\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}'),),
+            RegExp(r'\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}'),
+          ),
         );
       });
     });
@@ -250,8 +252,10 @@ void main() {
             continue;
           }
           // Content lines should respect the max chars
-          expect(line.length,
-              lessThanOrEqualTo(42),); // Some tolerance for edge cases
+          expect(
+            line.length,
+            lessThanOrEqualTo(42),
+          ); // Some tolerance for edge cases
         }
       });
     });

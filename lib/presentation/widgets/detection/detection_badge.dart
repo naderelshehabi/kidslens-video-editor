@@ -79,13 +79,13 @@ class DetectionBadge extends StatelessWidget {
   }
 
   IconData _getIcon(String type) => switch (type) {
-      'profanity' => Icons.mic_off,
-      'nudity' => Icons.visibility_off,
-      'violence' => Icons.warning,
-      'blood' => Icons.water_drop,
-      'weapons' => Icons.gpp_bad,
-      _ => Icons.error,
-    };
+        'profanity' => Icons.mic_off,
+        'nudity' => Icons.visibility_off,
+        'violence' => Icons.warning,
+        'blood' => Icons.water_drop,
+        'weapons' => Icons.gpp_bad,
+        _ => Icons.error,
+      };
 
   String _formatType(String type) => type[0].toUpperCase() + type.substring(1);
 }

@@ -28,9 +28,9 @@ class EvaluationRunner {
     final defaultResult = resultByProfile[defaultProfileId];
     final legacyResult = resultByProfile[legacyProfileId];
     final exitGate = defaultResult == null || legacyResult == null
-        ? EvaluationExitGateResult(
+        ? const EvaluationExitGateResult(
             passed: false,
-            issues: const [
+            issues: [
               'default and legacy profiles must both be evaluated',
             ],
           )
@@ -222,8 +222,7 @@ class EvaluationThresholds {
         legacyResult.overall.recall + minDefaultRecallLift) {
       issues.add('default recall does not beat legacy recall');
     }
-    if (defaultResult.overall.falsePositiveRate >
-        maxDefaultFalsePositiveRate) {
+    if (defaultResult.overall.falsePositiveRate > maxDefaultFalsePositiveRate) {
       issues.add('default false-positive rate is too high');
     }
     if (defaultResult.overall.reviewBurdenPerHour >
@@ -324,7 +323,8 @@ class EvaluationProfileResult {
         if (runtimeId != null) 'runtimeId': runtimeId,
         'overall': overall.toJson(),
         'byCategory': {
-          for (final entry in byCategory.entries) entry.key: entry.value.toJson(),
+          for (final entry in byCategory.entries)
+            entry.key: entry.value.toJson(),
         },
       };
 }
@@ -411,8 +411,9 @@ class _MetricAccumulator {
     falseNegativeCount += result.falseNegatives;
     groundTruthCount += result.matches.length + result.falseNegatives;
     predictionCount += result.predictions.length;
-    reviewRequiredPredictions +=
-        result.predictions.where((prediction) => prediction.requiresReview).length;
+    reviewRequiredPredictions += result.predictions
+        .where((prediction) => prediction.requiresReview)
+        .length;
     for (final prediction in result.predictions) {
       if (prediction.rationale.trim().isNotEmpty) {
         explainablePredictions += 1;
@@ -512,7 +513,7 @@ int _percentile(List<int> values, double percentile) {
   if (values.isEmpty) return 0;
   final sorted = [...values]..sort();
   final index = ((sorted.length - 1) * percentile).ceil();
-  return sorted[index.clamp(0, sorted.length - 1).toInt()];
+  return sorted[index.clamp(0, sorted.length - 1)];
 }
 
 int _maxOrZero(List<int> values) {

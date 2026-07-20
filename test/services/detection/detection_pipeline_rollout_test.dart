@@ -44,7 +44,7 @@ void main() {
       );
       final schema = handler.schemaFailure(
         activePipelineId: DetectionPipelineIds.vssFamilySafetyV1,
-        error: FormatException('bad schema'),
+        error: const FormatException('bad schema'),
       );
       final gpu = handler.gpuFallback(
         activePipelineId: DetectionPipelineIds.vssFamilySafetyV1,
@@ -55,8 +55,10 @@ void main() {
         error: StateError('old checkpoint'),
       );
 
-      expect(modelLoad.fallbackPipelineId,
-          DetectionPipelineIds.legacyNsfwRegionV8);
+      expect(
+        modelLoad.fallbackPipelineId,
+        DetectionPipelineIds.legacyNsfwRegionV8,
+      );
       expect(schema.telemetryEvent.kind, DetectionPipelineFailureKind.schema);
       expect(gpu.telemetryEvent.kind, DetectionPipelineFailureKind.gpuFallback);
       expect(checkpoint.canRetry, isFalse);
@@ -156,16 +158,18 @@ void main() {
       final file = File.fromUri(stored.uri);
       expect(file.existsSync(), isTrue);
       expect(file.path, endsWith('rollout_report_1.json'));
-      expect(jsonDecode(await file.readAsString())['datasetId'],
-          'rollout_dataset');
+      expect(
+        jsonDecode(await file.readAsString())['datasetId'],
+        'rollout_dataset',
+      );
     });
   });
 }
 
-EvaluationDataset _dataset() => EvaluationDataset(
+EvaluationDataset _dataset() => const EvaluationDataset(
       id: 'rollout_dataset',
       version: '1',
-      clips: const [
+      clips: [
         EvaluationClip(
           id: 'safe',
           mediaId: 'safe',

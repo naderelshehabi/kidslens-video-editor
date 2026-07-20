@@ -50,7 +50,8 @@ void main() {
       expect(result.byCategory['blood']!.recall, 1);
     });
 
-    test('compares required profiles and passes exit gate when default wins', () {
+    test('compares required profiles and passes exit gate when default wins',
+        () {
       final dataset = _dataset();
       final predictions = [
         EvaluationProfilePredictions.forBuiltInProfile(
@@ -112,7 +113,6 @@ void main() {
           ),
         ],
         thresholds: const EvaluationThresholds(
-          minDefaultRecallLift: 0,
           minGoreBloodRecall: 0.9,
         ),
       );
@@ -126,10 +126,10 @@ void main() {
   });
 }
 
-EvaluationDataset _dataset() => EvaluationDataset(
+EvaluationDataset _dataset() => const EvaluationDataset(
       id: 'unit_dataset',
       version: '1',
-      clips: const [
+      clips: [
         EvaluationClip(
           id: 'safe',
           mediaId: 'safe',

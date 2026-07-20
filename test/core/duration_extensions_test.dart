@@ -303,7 +303,10 @@ void main() {
       });
 
       test('should calculate frame at 60fps', () {
-        expect(const Duration(milliseconds: 500).toFrameNumber(fps: 60), equals(30));
+        expect(
+          const Duration(milliseconds: 500).toFrameNumber(fps: 60),
+          equals(30),
+        );
       });
 
       test('should calculate frame at zero duration', () {

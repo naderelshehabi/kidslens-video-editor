@@ -60,7 +60,7 @@ class MediaBinPanel extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Media list
           Expanded(
             child: mediaFiles.isEmpty
@@ -137,8 +137,8 @@ class _MediaTile extends StatelessWidget {
 
     return Card(
       elevation: isSelected ? 4 : 1,
-      color: isSelected 
-          ? colorScheme.primaryContainer 
+      color: isSelected
+          ? colorScheme.primaryContainer
           : colorScheme.surfaceContainerHighest,
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
@@ -157,14 +157,12 @@ class _MediaTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Icon(
-                  media.isVideo 
-                      ? Icons.videocam 
-                      : Icons.audiotrack,
+                  media.isVideo ? Icons.videocam : Icons.audiotrack,
                   color: colorScheme.primary,
                 ),
               ),
               const SizedBox(width: 12),
-              
+
               // Info
               Expanded(
                 child: Column(
@@ -205,7 +203,7 @@ class _MediaTile extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
               // Remove button
               IconButton(
                 icon: const Icon(Icons.close, size: 16),

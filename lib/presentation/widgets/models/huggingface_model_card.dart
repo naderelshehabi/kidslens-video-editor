@@ -171,36 +171,36 @@ class HuggingFaceModelCard extends StatelessWidget {
   }
 
   Widget _buildStats(BuildContext context) => Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        // Parameters
-        _buildStatChip(
-          context,
-          icon: Icons.memory,
-          label: model.parameters,
-          tooltip: 'Parameters: ${model.parameters}',
-        ),
-        // Size
-        _buildStatChip(
-          context,
-          icon: Icons.storage,
-          label: model.sizeFormatted,
-          tooltip: 'Download size: ${model.sizeFormatted}',
-        ),
-        // RAM
-        _buildStatChip(
-          context,
-          icon: Icons.sd_card,
-          label: model.ramFormatted,
-          tooltip: 'RAM required: ${model.ramFormatted}',
-        ),
-        // Speed indicator
-        _buildSpeedIndicator(context),
-        // Accuracy indicator
-        _buildAccuracyIndicator(context),
-      ],
-    );
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          // Parameters
+          _buildStatChip(
+            context,
+            icon: Icons.memory,
+            label: model.parameters,
+            tooltip: 'Parameters: ${model.parameters}',
+          ),
+          // Size
+          _buildStatChip(
+            context,
+            icon: Icons.storage,
+            label: model.sizeFormatted,
+            tooltip: 'Download size: ${model.sizeFormatted}',
+          ),
+          // RAM
+          _buildStatChip(
+            context,
+            icon: Icons.sd_card,
+            label: model.ramFormatted,
+            tooltip: 'RAM required: ${model.ramFormatted}',
+          ),
+          // Speed indicator
+          _buildSpeedIndicator(context),
+          // Accuracy indicator
+          _buildAccuracyIndicator(context),
+        ],
+      );
 
   Widget _buildStatChip(
     BuildContext context, {
@@ -248,7 +248,8 @@ class HuggingFaceModelCard extends StatelessWidget {
             : AppTheme.errorColor;
 
     return Tooltip(
-      message: 'Speed: ${model.speedDescription} (${model.speedMultiplier}x realtime)',
+      message:
+          'Speed: ${model.speedDescription} (${model.speedMultiplier}x realtime)',
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
@@ -304,7 +305,8 @@ class HuggingFaceModelCard extends StatelessWidget {
 
   String _getAccuracyTooltip() {
     final accuracyType = switch (model.modelType) {
-      HuggingFaceModelType.asr => 'Word Error Rate (WER) on LibriSpeech/CommonVoice benchmarks',
+      HuggingFaceModelType.asr =>
+        'Word Error Rate (WER) on LibriSpeech/CommonVoice benchmarks',
       HuggingFaceModelType.nsfw =>
         'NSFW classification agreement on labeled visual validation set',
       HuggingFaceModelType.parser =>
@@ -316,49 +318,50 @@ class HuggingFaceModelCard extends StatelessWidget {
   }
 
   Widget _buildWarning(BuildContext context) => Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: AppTheme.warningColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.warningColor.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.warning_amber,
-            size: 16,
-            color: AppTheme.warningColor,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              hardwareWarning!,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppTheme.warningColor,
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppTheme.warningColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border:
+              Border.all(color: AppTheme.warningColor.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.warning_amber,
+              size: 16,
+              color: AppTheme.warningColor,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                hardwareWarning!,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.warningColor,
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
 
   Widget _buildDownloadProgress(BuildContext context) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        LinearProgressIndicator(
-          value: downloadProgress,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          downloadProgress != null
-              ? 'Downloading... ${(downloadProgress! * 100).toStringAsFixed(1)}%'
-              : 'Downloading...',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
-    );
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LinearProgressIndicator(
+            value: downloadProgress,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            downloadProgress != null
+                ? 'Downloading... ${(downloadProgress! * 100).toStringAsFixed(1)}%'
+                : 'Downloading...',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      );
 
   Widget _buildActions(BuildContext context) {
     if (!isDownloaded) {

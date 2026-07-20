@@ -89,7 +89,16 @@ void main() {
   group('MediaService', () {
     group('media type detection', () {
       test('should identify video files by extension', () {
-        final videoExtensions = ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v'];
+        final videoExtensions = [
+          'mp4',
+          'mkv',
+          'avi',
+          'mov',
+          'wmv',
+          'flv',
+          'webm',
+          'm4v',
+        ];
 
         for (final ext in videoExtensions) {
           final path = '/path/to/video.$ext';
@@ -197,11 +206,13 @@ void main() {
 
       test('mock should respect frame range', () async {
         final frames = <FrameData>[];
-        await mockBindings.extractFrames(
-          '/test.mp4',
-          startFrame: 2,
-          endFrame: 5,
-        ).forEach(frames.add);
+        await mockBindings
+            .extractFrames(
+              '/test.mp4',
+              startFrame: 2,
+              endFrame: 5,
+            )
+            .forEach(frames.add);
 
         expect(frames, hasLength(3));
         expect(frames.first.frameNumber, equals(2));
@@ -291,7 +302,14 @@ void main() {
 MediaType _determineMediaType(String path) {
   final extension = path.split('.').last.toLowerCase();
   const videoExtensions = [
-    'mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v',
+    'mp4',
+    'mkv',
+    'avi',
+    'mov',
+    'wmv',
+    'flv',
+    'webm',
+    'm4v',
   ];
   return videoExtensions.contains(extension)
       ? MediaType.video

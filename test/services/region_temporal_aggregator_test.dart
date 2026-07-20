@@ -388,7 +388,8 @@ void main() {
       // One scene action.
       expect(result.sceneActions, hasLength(1));
       expect(result.sceneActions.first.categoryId, equals('kissing'));
-      expect(result.sceneActions.first.action, equals(VisualContentAction.cutScene));
+      expect(result.sceneActions.first.action,
+          equals(VisualContentAction.cutScene));
     });
 
     test('CLIP score below threshold is ignored', () {
@@ -560,7 +561,9 @@ void main() {
       expect(result.sceneActions, isEmpty);
     });
 
-    test('frames with visual content but no matching categories produce empty result', () {
+    test(
+        'frames with visual content but no matching categories produce empty result',
+        () {
       final frames = [
         _makeFrame(
           frameNumber: 0,

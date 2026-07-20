@@ -8,8 +8,10 @@ part 'playback_provider.g.dart';
 enum AudioEffectState {
   /// No effect active - play audio at user volume
   none,
+
   /// Mute effect - silence the audio
   muted,
+
   /// Beep effect - play beep tone (video audio is muted)
   beep,
 }
@@ -32,10 +34,13 @@ class PlaybackState {
   final Duration position;
   final Duration duration;
   final bool isPlaying;
+
   /// The user-controlled volume (0.0 to 1.0) - independent of effects
   final double userVolume;
+
   /// The current audio effect state
   final AudioEffectState audioEffectState;
+
   /// The current beep frequency (only relevant when audioEffectState == beep)
   final int beepFrequency;
   final double playbackSpeed;
@@ -72,18 +77,18 @@ class PlaybackState {
       );
 
   /// Check if there is a valid selection
-  bool get hasSelection => 
-      selectionStart != null && 
-      selectionEnd != null && 
+  bool get hasSelection =>
+      selectionStart != null &&
+      selectionEnd != null &&
       selectionEnd! > selectionStart!;
 
   /// Get the selection duration
-  Duration get selectionDuration => 
+  Duration get selectionDuration =>
       hasSelection ? selectionEnd! - selectionStart! : Duration.zero;
 
   /// The effective volume for the video player (considering effects)
   /// Returns 0.0 when muted or beeping, userVolume otherwise
-  double get effectiveVolume => 
+  double get effectiveVolume =>
       audioEffectState == AudioEffectState.none ? userVolume : 0.0;
 
   /// Legacy getter for compatibility - returns userVolume
@@ -126,9 +131,13 @@ class PlaybackNotifier extends _$PlaybackNotifier {
 
   /// Update the audio effect state (mute/beep/none)
   /// This is called by the preview panel when checking edit action regions
-  void updateAudioEffect(AudioEffectState effectState, {int beepFrequency = 1000}) {
-    if (state.audioEffectState != effectState || 
-        (effectState == AudioEffectState.beep && state.beepFrequency != beepFrequency)) {
+  void updateAudioEffect(
+    AudioEffectState effectState, {
+    int beepFrequency = 1000,
+  }) {
+    if (state.audioEffectState != effectState ||
+        (effectState == AudioEffectState.beep &&
+            state.beepFrequency != beepFrequency)) {
       state = state.copyWith(
         audioEffectState: effectState,
         beepFrequency: beepFrequency,
@@ -202,7 +211,8 @@ class PlaybackNotifier extends _$PlaybackNotifier {
 
   /// Set selection end at current position
   void setSelectionEnd() {
-    if (state.selectionStart != null && state.position > state.selectionStart!) {
+    if (state.selectionStart != null &&
+        state.position > state.selectionStart!) {
       state = state.copyWith(selectionEnd: state.position);
     }
   }

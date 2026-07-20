@@ -74,10 +74,9 @@ class TranscriptSegment with _$TranscriptSegment {
   int get wordCount => words.length;
 
   /// Gets words within a time range
-  List<TranscriptWord> getWordsInRange(Duration start, Duration end) =>
-      words
-          .where((word) => word.startTime < end && word.endTime > start)
-          .toList();
+  List<TranscriptWord> getWordsInRange(Duration start, Duration end) => words
+      .where((word) => word.startTime < end && word.endTime > start)
+      .toList();
 
   /// Checks if this segment overlaps with a time range
   bool overlapsWithRange(Duration start, Duration end) =>
@@ -162,7 +161,9 @@ class Transcript with _$Transcript {
 
   /// Gets all segments within a time range
   List<TranscriptSegment> getSegmentsInRange(Duration start, Duration end) =>
-      segments.where((segment) => segment.overlapsWithRange(start, end)).toList();
+      segments
+          .where((segment) => segment.overlapsWithRange(start, end))
+          .toList();
 
   /// Gets all words within a time range
   List<TranscriptWord> getWordsInRange(Duration start, Duration end) => segments

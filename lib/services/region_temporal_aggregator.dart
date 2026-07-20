@@ -316,13 +316,15 @@ class RegionTemporalAggregator {
           bestMatch.averageConfidence * (n - 1) / n + confidence / n;
     } else {
       // Create new tracked region
-      _activeRegions.add(TrackedRegion(
-        categoryId: categoryId,
-        startTime: timestamp,
-        endTime: timestamp,
-        keyframes: [keyframe],
-        averageConfidence: confidence,
-      ),);
+      _activeRegions.add(
+        TrackedRegion(
+          categoryId: categoryId,
+          startTime: timestamp,
+          endTime: timestamp,
+          keyframes: [keyframe],
+          averageConfidence: confidence,
+        ),
+      );
     }
   }
 
@@ -352,12 +354,14 @@ class RegionTemporalAggregator {
     }
 
     // Create new scene action
-    _sceneActions.add(SceneAction(
-      categoryId: categoryId,
-      startTime: timestamp,
-      endTime: timestamp,
-      action: action,
-    ),);
+    _sceneActions.add(
+      SceneAction(
+        categoryId: categoryId,
+        startTime: timestamp,
+        endTime: timestamp,
+        action: action,
+      ),
+    );
   }
 
   /// Expire active regions that haven't been updated within maxGapDuration.
@@ -403,9 +407,8 @@ class RegionTemporalAggregator {
       if (_activeRegions.length <= maxConcurrentRegions) break;
 
       // Convert all regions of this category to a single scene action
-      final regionsToRemove = _activeRegions
-          .where((r) => r.categoryId == entry.key)
-          .toList();
+      final regionsToRemove =
+          _activeRegions.where((r) => r.categoryId == entry.key).toList();
 
       if (regionsToRemove.isEmpty) continue;
 
@@ -447,5 +450,3 @@ class RegionTemporalAggregator {
     return union > 0 ? intersection / union : 0.0;
   }
 }
-
-

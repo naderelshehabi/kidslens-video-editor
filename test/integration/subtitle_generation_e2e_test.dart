@@ -79,9 +79,11 @@ void main() {
           print('    - Size: ${_formatBytes(model.sizeBytes)}');
           print('    - Accuracy: ${model.accuracyPercent}%');
           print(
-              '    - Speed: ${model.speedDescription} (${model.speedMultiplier}x)',);
+            '    - Speed: ${model.speedDescription} (${model.speedMultiplier}x)',
+          );
           print(
-              '    - Languages: ${model.isMultilingual ? "99+ languages" : "English only"}',);
+            '    - Languages: ${model.isMultilingual ? "99+ languages" : "English only"}',
+          );
         }
         print('============================\n');
 
@@ -99,7 +101,8 @@ void main() {
         final model = registry.getModelById('whisper-tiny');
         expect(model, isNotNull);
         print(
-            'Model info: ${model!.id}, size: ${_formatBytes(model.sizeBytes)}',);
+          'Model info: ${model!.id}, size: ${_formatBytes(model.sizeBytes)}',
+        );
 
         // Step 2: Initialize whisper bindings
         final whisper = container.read(whisperBindingsProvider);
@@ -116,7 +119,8 @@ void main() {
           // Download the model
           await for (final progress in modelManager.downloadModel(model.id)) {
             print(
-                '  Download progress: ${(progress.percentage * 100).toStringAsFixed(1)}%',);
+              '  Download progress: ${(progress.percentage * 100).toStringAsFixed(1)}%',
+            );
           }
           print('Download complete!');
         } else {
@@ -144,7 +148,8 @@ void main() {
           print('  Segments: ${transcript.segments.length}');
           for (final segment in transcript.segments) {
             print(
-                '    [${_formatDuration(segment.startTime)} - ${_formatDuration(segment.endTime)}] ${segment.text}',);
+              '    [${_formatDuration(segment.startTime)} - ${_formatDuration(segment.endTime)}] ${segment.text}',
+            );
           }
 
           expect(transcript, isA<Transcript>());
@@ -156,7 +161,8 @@ void main() {
             mediaId: 'test_media',
           );
           print(
-              'Created subtitle track with ${subtitleTrack.segments.length} segments',);
+            'Created subtitle track with ${subtitleTrack.segments.length} segments',
+          );
 
           // Step 7: Export to all formats
           final subtitleService = container.read(subtitleServiceProvider);
@@ -218,7 +224,8 @@ void main() {
           print('Downloading whisper-base...');
           await for (final progress in modelManager.downloadModel(model!.id)) {
             print(
-                '  Progress: ${(progress.percentage * 100).toStringAsFixed(1)}%',);
+              '  Progress: ${(progress.percentage * 100).toStringAsFixed(1)}%',
+            );
           }
         }
 

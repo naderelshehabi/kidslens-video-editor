@@ -9,26 +9,27 @@ void main() {
       bool showLabels = false,
       bool showConfidence = false,
       Widget? child,
-    }) => MaterialApp(
-        home: Scaffold(
-          body: SizedBox(
-            width: 400,
-            height: 300,
-            child: DetectionRegionOverlay(
-              regions: regions,
-              showLabels: showLabels,
-              showConfidence: showConfidence,
-              child: child,
+    }) =>
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 400,
+              height: 300,
+              child: DetectionRegionOverlay(
+                regions: regions,
+                showLabels: showLabels,
+                showConfidence: showConfidence,
+                child: child,
+              ),
             ),
           ),
-        ),
-      );
+        );
 
     /// Helper to find widgets that are descendants of DetectionRegionOverlay.
     Finder descendantOfOverlay(Finder matching) => find.descendant(
-        of: find.byType(DetectionRegionOverlay),
-        matching: matching,
-      );
+          of: find.byType(DetectionRegionOverlay),
+          matching: matching,
+        );
 
     group('rendering with 0 regions', () {
       testWidgets('renders without error', (tester) async {
@@ -153,18 +154,19 @@ void main() {
 
         // The text should be inside a Container with decoration
         final container = tester.widget<Container>(
-          find.ancestor(
-            of: textFinder,
-            matching: find.byType(Container),
-          ).first,
+          find
+              .ancestor(
+                of: textFinder,
+                matching: find.byType(Container),
+              )
+              .first,
         );
         final decoration = container.decoration! as BoxDecoration;
         expect(decoration.color, equals(Colors.black87));
         expect(decoration.borderRadius, equals(BorderRadius.circular(4)));
       });
 
-      testWidgets('count badge text is white, bold, and small',
-          (tester) async {
+      testWidgets('count badge text is white, bold, and small', (tester) async {
         await tester.pumpWidget(createWidget(regions: multipleRegions));
 
         final text = tester.widget<Text>(
@@ -195,10 +197,12 @@ void main() {
       ];
 
       testWidgets('no count badge even with multiple regions', (tester) async {
-        await tester.pumpWidget(createWidget(
-          regions: multipleRegions,
-          showLabels: true,
-        ),);
+        await tester.pumpWidget(
+          createWidget(
+            regions: multipleRegions,
+            showLabels: true,
+          ),
+        );
 
         // Count badge is only shown when !showLabels
         expect(
@@ -208,10 +212,12 @@ void main() {
       });
 
       testWidgets('CustomPaint is still present', (tester) async {
-        await tester.pumpWidget(createWidget(
-          regions: multipleRegions,
-          showLabels: true,
-        ),);
+        await tester.pumpWidget(
+          createWidget(
+            regions: multipleRegions,
+            showLabels: true,
+          ),
+        );
 
         expect(
           descendantOfOverlay(find.byType(CustomPaint)),
@@ -220,11 +226,13 @@ void main() {
       });
 
       testWidgets('renders without error in showLabels mode', (tester) async {
-        await tester.pumpWidget(createWidget(
-          regions: multipleRegions,
-          showLabels: true,
-          showConfidence: true,
-        ),);
+        await tester.pumpWidget(
+          createWidget(
+            regions: multipleRegions,
+            showLabels: true,
+            showConfidence: true,
+          ),
+        );
 
         expect(find.byType(DetectionRegionOverlay), findsOneWidget);
       });
@@ -232,9 +240,11 @@ void main() {
 
     group('with child widget', () {
       testWidgets('child is rendered in the stack', (tester) async {
-        await tester.pumpWidget(createWidget(
-          child: const Placeholder(key: Key('test-child')),
-        ),);
+        await tester.pumpWidget(
+          createWidget(
+            child: const Placeholder(key: Key('test-child')),
+          ),
+        );
 
         expect(find.byKey(const Key('test-child')), findsOneWidget);
         expect(
@@ -244,17 +254,19 @@ void main() {
       });
 
       testWidgets('overlay CustomPaint is on top of child', (tester) async {
-        await tester.pumpWidget(createWidget(
-          regions: [
-            const DetectionRegion(
-              x: 0.1,
-              y: 0.1,
-              width: 0.5,
-              height: 0.5,
-            ),
-          ],
-          child: const Placeholder(key: Key('test-child')),
-        ),);
+        await tester.pumpWidget(
+          createWidget(
+            regions: [
+              const DetectionRegion(
+                x: 0.1,
+                y: 0.1,
+                width: 0.5,
+                height: 0.5,
+              ),
+            ],
+            child: const Placeholder(key: Key('test-child')),
+          ),
+        );
 
         // Both child and CustomPaint should be present
         expect(
@@ -290,10 +302,16 @@ void main() {
           }
         }
 
-        expect(childIndex, greaterThanOrEqualTo(0),
-            reason: 'Child should be in Stack',);
-        expect(paintIndex, greaterThan(childIndex),
-            reason: 'CustomPaint overlay should be after child in Stack',);
+        expect(
+          childIndex,
+          greaterThanOrEqualTo(0),
+          reason: 'Child should be in Stack',
+        );
+        expect(
+          paintIndex,
+          greaterThan(childIndex),
+          reason: 'CustomPaint overlay should be after child in Stack',
+        );
       });
 
       testWidgets('renders without child when child is null', (tester) async {

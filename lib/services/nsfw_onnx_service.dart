@@ -268,8 +268,7 @@ class NsfwOnnxService {
 
     for (final provider in candidateProviders) {
       if (!_providerRuntimeLikelyAvailable(provider)) {
-        final reason =
-            'Runtime prerequisites missing for $provider';
+        final reason = 'Runtime prerequisites missing for $provider';
         debugPrint('NSFW ONNX provider skipped: $reason');
         if (isExplicitProvider && provider == requestedProviderName) {
           debugPrint(
@@ -293,8 +292,7 @@ class NsfwOnnxService {
         _resolvedExecutionProvider = provider;
         _resolvedDeviceIndex = deviceIndex;
 
-        final fallbackOccurred =
-            provider != requestedProviderName;
+        final fallbackOccurred = provider != requestedProviderName;
         lastProviderResolution = ProviderResolutionResult(
           requestedProvider: requestedProviderName,
           actualProvider: provider,
@@ -313,8 +311,7 @@ class NsfwOnnxService {
 
         return (provider, deviceIndex);
       } catch (e) {
-        final reason =
-            'provider=$provider, deviceId=$deviceIndex, error=$e';
+        final reason = 'provider=$provider, deviceId=$deviceIndex, error=$e';
         debugPrint('NSFW ONNX provider attempt failed: $reason');
         firstFailureReason ??= reason;
 
@@ -409,7 +406,8 @@ class NsfwOnnxService {
       case 'DmlExecutionProvider':
         final hasOrtShared =
             canLoadFromSearchPaths('onnxruntime_providers_shared.dll');
-        final hasOrtDml = canLoadFromSearchPaths('onnxruntime_providers_dml.dll');
+        final hasOrtDml =
+            canLoadFromSearchPaths('onnxruntime_providers_dml.dll');
         final hasDirectMl = canLoadFromSearchPaths('DirectML.dll');
         final available = hasOrtShared && hasOrtDml && hasDirectMl;
         if (!available) {

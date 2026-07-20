@@ -36,7 +36,8 @@ class DetectionRegion {
 /// - **Full-frame mode** (`showLabels: true`): 2px stroke, category labels
 class DetectionRegionOverlay extends StatelessWidget {
   const DetectionRegionOverlay({
-    required this.regions, super.key,
+    required this.regions,
+    super.key,
     this.showLabels = false,
     this.showConfidence = false,
     this.child,
@@ -56,40 +57,40 @@ class DetectionRegionOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Stack(
-      children: [
-        if (child != null) child!,
-        Positioned.fill(
-          child: CustomPaint(
-            painter: _RegionPainter(
-              regions: regions,
-              showLabels: showLabels,
-              showConfidence: showConfidence,
+        children: [
+          if (child != null) child!,
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _RegionPainter(
+                regions: regions,
+                showLabels: showLabels,
+                showConfidence: showConfidence,
+              ),
             ),
           ),
-        ),
-        // Count badge for thumbnail mode
-        if (!showLabels && regions.length > 1)
-          Positioned(
-            top: 2,
-            right: 2,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                '${regions.length}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
+          // Count badge for thumbnail mode
+          if (!showLabels && regions.length > 1)
+            Positioned(
+              top: 2,
+              right: 2,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${regions.length}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-          ),
-      ],
-    );
+        ],
+      );
 }
 
 class _RegionPainter extends CustomPainter {
@@ -164,8 +165,7 @@ class _RegionPainter extends CustomPainter {
     final bgHeight = textPainter.height + 4;
 
     // Position label above the box, or inside if no room
-    final labelY =
-        rect.top > bgHeight ? rect.top - bgHeight : rect.top;
+    final labelY = rect.top > bgHeight ? rect.top - bgHeight : rect.top;
 
     // Background
     final bgRect = Rect.fromLTWH(rect.left, labelY, bgWidth, bgHeight);

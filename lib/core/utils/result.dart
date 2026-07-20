@@ -16,45 +16,45 @@ sealed class Result<T, E> {
 
   /// Get the value if success, or null
   T? get valueOrNull => switch (this) {
-    Success(:final value) => value,
-    Failure() => null,
-  };
+        Success(:final value) => value,
+        Failure() => null,
+      };
 
   /// Get the error if failure, or null
   E? get errorOrNull => switch (this) {
-    Success() => null,
-    Failure(:final error) => error,
-  };
+        Success() => null,
+        Failure(:final error) => error,
+      };
 
   /// Map the success value
   Result<U, E> map<U>(U Function(T) mapper) => switch (this) {
-    Success(:final value) => Result.success(mapper(value)),
-    Failure(:final error) => Result.failure(error),
-  };
+        Success(:final value) => Result.success(mapper(value)),
+        Failure(:final error) => Result.failure(error),
+      };
 
   /// Map the error
   Result<T, F> mapError<F>(F Function(E) mapper) => switch (this) {
-    Success(:final value) => Result.success(value),
-    Failure(:final error) => Result.failure(mapper(error)),
-  };
+        Success(:final value) => Result.success(value),
+        Failure(:final error) => Result.failure(mapper(error)),
+      };
 
   /// Flat map the success value
   Result<U, E> flatMap<U>(Result<U, E> Function(T) mapper) => switch (this) {
-    Success(:final value) => mapper(value),
-    Failure(:final error) => Result.failure(error),
-  };
+        Success(:final value) => mapper(value),
+        Failure(:final error) => Result.failure(error),
+      };
 
   /// Get the value or throw the error
   T getOrThrow() => switch (this) {
-    Success(:final value) => value,
-    Failure(:final error) => throw error as Object,
-  };
+        Success(:final value) => value,
+        Failure(:final error) => throw error as Object,
+      };
 
   /// Get the value or return a default
   T getOrElse(T Function() defaultValue) => switch (this) {
-    Success(:final value) => value,
-    Failure() => defaultValue(),
-  };
+        Success(:final value) => value,
+        Failure() => defaultValue(),
+      };
 
   /// Execute a function based on the result
   R fold<R>({

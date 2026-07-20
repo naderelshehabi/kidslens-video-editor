@@ -33,10 +33,10 @@ class ExportJob extends Job<String> {
     )) {
       // Check for cancellation
       await cancellationToken.checkState();
-      
+
       reportProgress(progress.progress, progress.phase);
     }
-    
+
     return outputPath;
   }
 }

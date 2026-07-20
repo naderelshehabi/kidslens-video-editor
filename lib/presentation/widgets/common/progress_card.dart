@@ -29,71 +29,72 @@ class ProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, size: 24),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      if (subtitle != null)
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  if (icon != null) ...[
+                    Icon(icon, size: 24),
+                    const SizedBox(width: 12),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          subtitle!,
-                          style: Theme.of(context).textTheme.bodySmall,
+                          title,
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
-                    ],
+                        if (subtitle != null)
+                          Text(
+                            subtitle!,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                if (onPause != null || onResume != null)
-                  IconButton(
-                    icon: Icon(isPaused ? Icons.play_arrow : Icons.pause),
-                    onPressed: isPaused ? onResume : onPause,
-                    tooltip: isPaused ? 'Resume' : 'Pause',
-                  ),
-                if (onCancel != null)
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: onCancel,
-                    tooltip: 'Cancel',
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            LinearProgressIndicator(
-              value: progress,
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  status ?? '${(progress * 100).toStringAsFixed(1)}%',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                if (estimatedTimeRemaining != null)
+                  if (onPause != null || onResume != null)
+                    IconButton(
+                      icon: Icon(isPaused ? Icons.play_arrow : Icons.pause),
+                      onPressed: isPaused ? onResume : onPause,
+                      tooltip: isPaused ? 'Resume' : 'Pause',
+                    ),
+                  if (onCancel != null)
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: onCancel,
+                      tooltip: 'Cancel',
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              LinearProgressIndicator(
+                value: progress,
+                backgroundColor:
+                    Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
                   Text(
-                    'ETA: ${_formatDuration(estimatedTimeRemaining!)}',
+                    status ?? '${(progress * 100).toStringAsFixed(1)}%',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
-              ],
-            ),
-          ],
+                  if (estimatedTimeRemaining != null)
+                    Text(
+                      'ETA: ${_formatDuration(estimatedTimeRemaining!)}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
 
   String _formatDuration(Duration duration) {
     if (duration.inHours > 0) {

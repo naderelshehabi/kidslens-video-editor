@@ -120,7 +120,8 @@ class _TimelineRulerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _TimelineRulerPainter oldDelegate) => oldDelegate.duration != duration ||
-        oldDelegate.zoom != zoom ||
-        oldDelegate.textColor != textColor;
+  bool shouldRepaint(covariant _TimelineRulerPainter oldDelegate) =>
+      oldDelegate.duration != duration ||
+      oldDelegate.zoom != zoom ||
+      oldDelegate.textColor != textColor;
 }

@@ -13,8 +13,7 @@ void main() {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
   });
 
-  testWidgets('App smoke test - launches successfully',
-      (tester) async {
+  testWidgets('App smoke test - launches successfully', (tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(
       const ProviderScope(
@@ -29,8 +28,7 @@ void main() {
     expect(find.text('KidsLens Video Editor'), findsOneWidget);
   });
 
-  testWidgets('App smoke test - shows welcome subtitle',
-      (tester) async {
+  testWidgets('App smoke test - shows welcome subtitle', (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: KidsLensApp(),
@@ -44,8 +42,7 @@ void main() {
     expect(find.text('Create safe media for the whole family'), findsOneWidget);
   });
 
-  testWidgets('App smoke test - shows project buttons',
-      (tester) async {
+  testWidgets('App smoke test - shows project buttons', (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: KidsLensApp(),

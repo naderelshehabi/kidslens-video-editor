@@ -331,7 +331,9 @@ class WhisperBindings extends NativeResource {
       if (_lib != null) {
         _bindFunctions();
         debugPrint('Whisper FFI library loaded successfully');
-        debugPrint('Whisper native library path: ${_nativeLibraryPath ?? 'unknown'}');
+        debugPrint(
+          'Whisper native library path: ${_nativeLibraryPath ?? 'unknown'}',
+        );
         debugPrint('GPU available: ${_whisperGpuAvailable?.call() ?? false}');
 
         final gpuName = _whisperGpuName?.call();
@@ -362,10 +364,44 @@ class WhisperBindings extends NativeResource {
 
         // Try to find library in various locations
         final possiblePaths = [
-          p.join(cwd, 'build', 'windows', 'x64-vs17', 'runner', 'Debug', 'whisper_wrapper.dll'),
-          p.join(cwd, 'build', 'windows', 'x64-vs17', 'runner', 'Release', 'whisper_wrapper.dll'),
-          p.join(exeDir, '..', '..', '..', 'x64-vs17', 'runner', 'Debug', 'whisper_wrapper.dll'),
-          p.join(exeDir, '..', '..', '..', 'x64-vs17', 'runner', 'Release', 'whisper_wrapper.dll'),
+          p.join(
+            cwd,
+            'build',
+            'windows',
+            'x64-vs17',
+            'runner',
+            'Debug',
+            'whisper_wrapper.dll',
+          ),
+          p.join(
+            cwd,
+            'build',
+            'windows',
+            'x64-vs17',
+            'runner',
+            'Release',
+            'whisper_wrapper.dll',
+          ),
+          p.join(
+            exeDir,
+            '..',
+            '..',
+            '..',
+            'x64-vs17',
+            'runner',
+            'Debug',
+            'whisper_wrapper.dll',
+          ),
+          p.join(
+            exeDir,
+            '..',
+            '..',
+            '..',
+            'x64-vs17',
+            'runner',
+            'Release',
+            'whisper_wrapper.dll',
+          ),
           'whisper_wrapper.dll',
           'data/flutter_assets/native/whisper_wrapper.dll',
           '$exeDir/whisper_wrapper.dll',
@@ -439,17 +475,20 @@ class WhisperBindings extends NativeResource {
 
     _whisperTranscribeFile = _lib!
         .lookup<NativeFunction<WhisperTranscribeFileNative>>(
-            'kl_whisper_transcribe_file',)
+          'kl_whisper_transcribe_file',
+        )
         .asFunction();
 
     _whisperFreeResult = _lib!
         .lookup<NativeFunction<WhisperFreeResultNative>>(
-            'kl_whisper_free_result',)
+          'kl_whisper_free_result',
+        )
         .asFunction();
 
     _whisperGetModelInfo = _lib!
         .lookup<NativeFunction<WhisperGetModelInfoNative>>(
-            'kl_whisper_get_model_info',)
+          'kl_whisper_get_model_info',
+        )
         .asFunction();
 
     _whisperGetError = _lib!
@@ -458,7 +497,8 @@ class WhisperBindings extends NativeResource {
 
     _whisperGpuAvailable = _lib!
         .lookup<NativeFunction<WhisperGpuAvailableNative>>(
-            'kl_whisper_gpu_available',)
+          'kl_whisper_gpu_available',
+        )
         .asFunction();
 
     _whisperGpuName = _lib!
@@ -471,7 +511,8 @@ class WhisperBindings extends NativeResource {
 
     _whisperSupportedLanguages = _lib!
         .lookup<NativeFunction<WhisperSupportedLanguagesNative>>(
-            'kl_whisper_supported_languages',)
+          'kl_whisper_supported_languages',
+        )
         .asFunction();
   }
 
@@ -530,7 +571,9 @@ class WhisperBindings extends NativeResource {
         }
 
         _loadedModelPath = modelPath;
-        debugPrint('Model loaded: ${_modelInfo?.modelType} (GPU: ${_modelInfo?.usingGpu})');
+        debugPrint(
+          'Model loaded: ${_modelInfo?.modelType} (GPU: ${_modelInfo?.usingGpu})',
+        );
       } finally {
         malloc.free(modelPathPtr);
       }
@@ -542,16 +585,17 @@ class WhisperBindings extends NativeResource {
   }
 
   /// Create fallback model info when FFI is not available
-  WhisperModelInfo _createFallbackModelInfo(String modelPath) => WhisperModelInfo(
-      modelPath: modelPath,
-      modelType: _inferModelType(modelPath),
-      languageCount: 99,
-      isMultilingual: !modelPath.contains('.en.'),
-      usingGpu: false, // Fallback mode doesn't use GPU
-      vocabSize: 51865,
-      nMels: 80,
-      loadedAt: DateTime.now(),
-    );
+  WhisperModelInfo _createFallbackModelInfo(String modelPath) =>
+      WhisperModelInfo(
+        modelPath: modelPath,
+        modelType: _inferModelType(modelPath),
+        languageCount: 99,
+        isMultilingual: !modelPath.contains('.en.'),
+        usingGpu: false, // Fallback mode doesn't use GPU
+        vocabSize: 51865,
+        nMels: 80,
+        loadedAt: DateTime.now(),
+      );
 
   /// Unload the currently loaded model and free resources
   Future<void> unloadModel() async {
@@ -654,7 +698,8 @@ class WhisperBindings extends NativeResource {
     try {
       // Fill config
       final config = configPtr.ref
-        ..nThreads = nThreads > 0 ? nThreads : Platform.numberOfProcessors.clamp(1, 8)
+        ..nThreads =
+            nThreads > 0 ? nThreads : Platform.numberOfProcessors.clamp(1, 8)
         ..useGpu = useGpu
         ..gpuDevice = gpuDeviceIndex < 0 ? 0 : gpuDeviceIndex
         ..translate = translateToEnglish
@@ -687,7 +732,9 @@ class WhisperBindings extends NativeResource {
       );
 
       stopwatch.stop();
-      debugPrint('Transcription completed in ${stopwatch.elapsedMilliseconds}ms');
+      debugPrint(
+        'Transcription completed in ${stopwatch.elapsedMilliseconds}ms',
+      );
 
       if (resultPtr == nullptr) {
         final errorPtr = _whisperGetError?.call();
@@ -739,9 +786,7 @@ class WhisperBindings extends NativeResource {
         final nativeWord = (nativeSeg.words + j).ref;
         words.add(
           TranscriptWord(
-            word: nativeWord.text != nullptr
-                ? _safeUtf8(nativeWord.text)
-                : '',
+            word: nativeWord.text != nullptr ? _safeUtf8(nativeWord.text) : '',
             startTime: Duration(milliseconds: nativeWord.startMs),
             endTime: Duration(milliseconds: nativeWord.endMs),
             confidence: nativeWord.probability,

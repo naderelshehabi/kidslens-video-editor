@@ -30,15 +30,16 @@ class ModelsManagementTab extends ConsumerStatefulWidget {
   const ModelsManagementTab({super.key});
 
   @override
-  ConsumerState<ModelsManagementTab> createState() => _ModelsManagementTabState();
+  ConsumerState<ModelsManagementTab> createState() =>
+      _ModelsManagementTabState();
 }
 
 class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
   ModelsFilter _filter = ModelsFilter.all;
   ModelsSort _sort = ModelsSort.accuracy;
 
-  static const Map<HuggingFaceModelType, ({IconData icon, String title, String subtitle})>
-      _sectionMetadata = {
+  static const Map<HuggingFaceModelType,
+      ({IconData icon, String title, String subtitle})> _sectionMetadata = {
     HuggingFaceModelType.asr: (
       icon: Icons.mic,
       title: 'ASR',
@@ -57,7 +58,8 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
     HuggingFaceModelType.genderHelper: (
       icon: Icons.diversity_3,
       title: 'Gender Helper',
-      subtitle: 'Conservative helper models for routing modesty rules when confidence is high',
+      subtitle:
+          'Conservative helper models for routing modesty rules when confidence is high',
     ),
   };
 
@@ -70,7 +72,9 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
 
     final modelsByType = <HuggingFaceModelType, List<HuggingFaceModel>>{
       for (final type in _sectionMetadata.keys)
-        type: _applySort(_applyFilter(registry.getModelsByType(type), modelState)),
+        type: _applySort(
+          _applyFilter(registry.getModelsByType(type), modelState),
+        ),
     };
 
     return SingleChildScrollView(
@@ -185,7 +189,8 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
             children: _applySort(
               _applyFilter(registry.getNudeNetModels(), modelState),
             ).map((model) {
-              final isDownloaded = modelState.downloadedModels.contains(model.id);
+              final isDownloaded =
+                  modelState.downloadedModels.contains(model.id);
               final downloadProgress = modelState.activeDownloads[model.id];
               final selected = _isNudityModelSelected(
                 settingsState.analysisSettings,
@@ -201,7 +206,8 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
                   isSelected: selected,
                   onDownload: () => _download(model.id),
                   onDelete: () => _delete(model.id),
-                  onSelect: isDownloaded ? () => _selectNudityModel(model.id) : null,
+                  onSelect:
+                      isDownloaded ? () => _selectNudityModel(model.id) : null,
                 ),
               );
             }).toList(),
@@ -241,7 +247,9 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
       case ModelsFilter.all:
         return models;
       case ModelsFilter.downloaded:
-        return models.where((m) => modelState.downloadedModels.contains(m.id)).toList();
+        return models
+            .where((m) => modelState.downloadedModels.contains(m.id))
+            .toList();
     }
   }
 
@@ -352,10 +360,11 @@ class _ModelsManagementTabState extends ConsumerState<ModelsManagementTab> {
   void _selectNudityModel(String modelId) {
     final notifier = ref.read(settingsNotifierProvider.notifier);
     final current = ref.read(settingsNotifierProvider).analysisSettings;
-    final categories = current.contentDetectionConfig.categories.map((category) {
+    final categories =
+        current.contentDetectionConfig.categories.map((category) {
       if (category.id != 'nudity') return category;
 
-      var updatedContributions = category.modelContributions
+      final updatedContributions = category.modelContributions
           .map(
             (model) => model.copyWith(enabled: model.modelId == modelId),
           )

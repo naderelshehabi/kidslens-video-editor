@@ -51,7 +51,8 @@ class HardwareRequirements extends StatelessWidget {
               context,
               icon: Icons.memory,
               label: 'RAM',
-              available: '${(caps.availableRamMB / 1024).toStringAsFixed(1)} GB available',
+              available:
+                  '${(caps.availableRamMB / 1024).toStringAsFixed(1)} GB available',
               required: requiredRamMB != null
                   ? '${(requiredRamMB! / 1024).toStringAsFixed(1)} GB required'
                   : null,
@@ -85,7 +86,8 @@ class HardwareRequirements extends StatelessWidget {
               label: 'Disk Space',
               available:
                   '${(caps.availableDiskSpaceMB / 1024).toStringAsFixed(1)} GB free',
-              isSatisfied: caps.availableDiskSpaceMB >= 1024, // At least 1GB free
+              isSatisfied:
+                  caps.availableDiskSpaceMB >= 1024, // At least 1GB free
             ),
             const SizedBox(height: 16),
             // Overall status
@@ -97,37 +99,39 @@ class HardwareRequirements extends StatelessWidget {
   }
 
   Widget _buildNoHardwareInfo(BuildContext context) => Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(
-              Icons.info_outline,
-              color: Theme.of(context).colorScheme.outline,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Hardware information unavailable. Requirements cannot be verified.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                color: Theme.of(context).colorScheme.outline,
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Hardware information unavailable. Requirements cannot be verified.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
 
   Widget _buildRequirementRow(
     BuildContext context, {
     required IconData icon,
     required String label,
     required String available,
-    required bool isSatisfied, String? required,
+    required bool isSatisfied,
+    String? required,
   }) {
     final theme = Theme.of(context);
-    final statusColor = isSatisfied ? AppTheme.successColor : AppTheme.errorColor;
+    final statusColor =
+        isSatisfied ? AppTheme.successColor : AppTheme.errorColor;
     final statusIcon = isSatisfied ? Icons.check_circle : Icons.error;
 
     return Row(
@@ -201,7 +205,8 @@ class HardwareRequirements extends StatelessWidget {
         icon: Icons.warning_amber,
         color: AppTheme.warningColor,
         title: 'System Ready (with warnings)',
-        message: 'Your system can run AI analysis, but a GPU is recommended for faster processing.',
+        message:
+            'Your system can run AI analysis, but a GPU is recommended for faster processing.',
       );
     }
 
@@ -220,76 +225,79 @@ class HardwareRequirements extends StatelessWidget {
     required Color color,
     required String title,
     required String message,
-  }) => Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: color,
+  }) =>
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  message,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    message,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
 }
 
 /// Compact widget showing hardware warning for a specific model
 class HardwareWarningChip extends StatelessWidget {
   const HardwareWarningChip({
-    required this.message, super.key,
+    required this.message,
+    super.key,
   });
 
   final String message;
 
   @override
   Widget build(BuildContext context) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppTheme.warningColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppTheme.warningColor.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.warning_amber,
-            size: 12,
-            color: AppTheme.warningColor,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            message,
-            style: const TextStyle(
-              fontSize: 11,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppTheme.warningColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(4),
+          border:
+              Border.all(color: AppTheme.warningColor.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.warning_amber,
+              size: 12,
               color: AppTheme.warningColor,
             ),
-          ),
-        ],
-      ),
-    );
+            const SizedBox(width: 4),
+            Text(
+              message,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppTheme.warningColor,
+              ),
+            ),
+          ],
+        ),
+      );
 }

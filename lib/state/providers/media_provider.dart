@@ -43,12 +43,12 @@ class MediaNotifier extends _$MediaNotifier {
     try {
       final mediaService = ref.read(mediaServiceProvider);
       final mediaFile = await mediaService.importMedia(path);
-      
+
       final updatedRecent = [
         mediaFile,
         ...state.recentFiles.where((f) => f.id != mediaFile.id).take(9),
       ];
-      
+
       state = state.copyWith(
         isLoading: false,
         currentMedia: mediaFile,

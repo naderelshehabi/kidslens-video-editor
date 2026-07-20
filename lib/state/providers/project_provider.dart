@@ -514,7 +514,7 @@ class ProjectNotifier extends _$ProjectNotifier {
     if (state.currentProject == null) return;
 
     _pushUndo();
-    
+
     // Remove existing subtitle track for the same media if any
     final existingTracks = state.currentProject!.subtitleTracks
         .where((s) => s.mediaId != subtitleTrack.mediaId)

@@ -28,98 +28,102 @@ class ModelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-      child: InkWell(
-        onTap: isDownloaded ? onSelect : null,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    _getTypeIcon(model.type),
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              model.displayName,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            if (isSelected) ...[
-                              const SizedBox(width: 8),
-                              _buildActiveTag(context),
-                            ],
-                          ],
-                        ),
-                        Text(
-                          model.description,
-                          style: Theme.of(context).textTheme.bodySmall,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+        child: InkWell(
+          onTap: isDownloaded ? onSelect : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      _getTypeIcon(model.type),
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                  ),
-                  _buildActionButton(context),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // Model info chips
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  _buildInfoChip(context, _formatSize(model.sizeBytes), Icons.storage),
-                  if (model.requiresGpu)
-                    _buildInfoChip(context, 'GPU', Icons.memory),
-                  if (isDownloaded)
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                model.displayName,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              if (isSelected) ...[
+                                const SizedBox(width: 8),
+                                _buildActiveTag(context),
+                              ],
+                            ],
+                          ),
+                          Text(
+                            model.description,
+                            style: Theme.of(context).textTheme.bodySmall,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    _buildActionButton(context),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Model info chips
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
                     _buildInfoChip(
                       context,
-                      'Downloaded',
-                      Icons.check_circle,
-                      color: AppTheme.successColor,
+                      _formatSize(model.sizeBytes),
+                      Icons.storage,
                     ),
-                ],
-              ),
-              // Download progress
-              if (isDownloading && downloadProgress != null) ...[
-                const SizedBox(height: 12),
-                LinearProgressIndicator(value: downloadProgress),
-                const SizedBox(height: 4),
-                Text(
-                  'Downloading... ${(downloadProgress! * 100).toStringAsFixed(1)}%',
-                  style: Theme.of(context).textTheme.bodySmall,
+                    if (model.requiresGpu)
+                      _buildInfoChip(context, 'GPU', Icons.memory),
+                    if (isDownloaded)
+                      _buildInfoChip(
+                        context,
+                        'Downloaded',
+                        Icons.check_circle,
+                        color: AppTheme.successColor,
+                      ),
+                  ],
                 ),
+                // Download progress
+                if (isDownloading && downloadProgress != null) ...[
+                  const SizedBox(height: 12),
+                  LinearProgressIndicator(value: downloadProgress),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Downloading... ${(downloadProgress! * 100).toStringAsFixed(1)}%',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
-      ),
-    );
+      );
 
   Widget _buildActiveTag(BuildContext context) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: AppTheme.successColor.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: const Text(
-        'ACTIVE',
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          color: AppTheme.successColor,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppTheme.successColor.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(4),
         ),
-      ),
-    );
+        child: const Text(
+          'ACTIVE',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.successColor,
+          ),
+        ),
+      );
 
   Widget _buildActionButton(BuildContext context) {
     if (isDownloading) {
@@ -198,9 +202,9 @@ class ModelCard extends StatelessWidget {
   }
 
   IconData _getTypeIcon(ModelType type) => switch (type) {
-      ModelType.asr => Icons.mic,
-      ModelType.visual => Icons.image,
-    };
+        ModelType.asr => Icons.mic,
+        ModelType.visual => Icons.image,
+      };
 
   String _formatSize(int bytes) {
     if (bytes < 1024) return '$bytes B';

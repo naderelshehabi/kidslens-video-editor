@@ -241,24 +241,22 @@ class PerformanceMonitor {
       counts[tier] = (counts[tier] ?? 0) + 1;
     }
 
-    return counts.entries
-        .reduce((a, b) => a.value > b.value ? a : b)
-        .key;
+    return counts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
   }
 
   /// Get a performance summary
   Map<String, dynamic> getSummary() => {
-      'recommendedTier': getRecommendedTier().name,
-      'operations': _stats.map(
-        (key, value) => MapEntry(key, {
-          'count': value.count,
-          'average': value.average.inMilliseconds,
-          'min': value.minimum.inMilliseconds,
-          'max': value.maximum.inMilliseconds,
-          'p95': value.p95.inMilliseconds,
-        }),
-      ),
-    };
+        'recommendedTier': getRecommendedTier().name,
+        'operations': _stats.map(
+          (key, value) => MapEntry(key, {
+            'count': value.count,
+            'average': value.average.inMilliseconds,
+            'min': value.minimum.inMilliseconds,
+            'max': value.maximum.inMilliseconds,
+            'p95': value.p95.inMilliseconds,
+          }),
+        ),
+      };
 
   /// Clear all recorded data
   void clear() {

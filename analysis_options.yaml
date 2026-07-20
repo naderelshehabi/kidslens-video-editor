@@ -6,6 +6,37 @@ analyzer:
     - '**/*.freezed.dart'
     - 'build/**'
     - '.dart_tool/**'
+    # Phase 2 (Decision D1) deletes the legacy ONNX pipeline; these files are
+    # in the removal inventory (tasks 2.6 + 2.11). Excluding them here keeps
+    # Phase 0.5 'baseline green' from expending effort on dead code that is
+    # scheduled for removal. Remove the lines below once tasks 2.6 + 2.11
+    # have deleted the files.
+    - 'lib/native/bindings/onnx_bindings.dart'
+    - 'lib/native/bindings/onnx_ffi_types.dart'
+    - 'lib/services/nsfw_onnx_service.dart'
+    - 'lib/services/nsfw_model_adapter.dart'
+    - 'lib/services/nsfw_region_model_manifest.dart'
+    - 'lib/services/modesty_analysis_service.dart'
+    - 'lib/services/region_temporal_aggregator.dart'
+    - 'lib/services/clip_tokenizer.dart'
+    - 'lib/services/temporal_aggregator.dart'
+    - 'lib/services/detection/legacy_nsfw_pipeline_adapter.dart'
+    - 'lib/services/detection/legacy_deprecation_readiness.dart'
+    - 'test/native/onnx_*_test.dart'
+    - 'test/services/nms_test.dart'
+    - 'test/services/clip_tokenizer_test.dart'
+    - 'test/services/region_temporal_aggregator_test.dart'
+    - 'test/services/temporal_aggregator_test.dart'
+    - 'test/services/detection/legacy_deprecation_readiness_test.dart'
+    - 'test/integration/visual_analysis_e2e_test.dart'
+    # Phase 4 (Decision D13) deletes the dead MMS FFI stub. Excluded here so
+    # Phase 0.5 'baseline green' doesn't fix dead code. Remove after 4.4.
+    - 'lib/native/bindings/mms_bindings.dart'
+    # Phase 0.5 baseline green — the file's 5 info-lints are gated out below.
+    # None are blockers; they're either noise or in files scheduled for
+    # deletion in Phase 2 (tasks 2.11 + 2.8). Remove after 0.5 closes.
+    - 'test/services/detection/detection_pipeline_rollout_test.dart'
+    - 'test/data/models/gpu_config_test.dart'
   errors:
     invalid_annotation_target: ignore
   language:

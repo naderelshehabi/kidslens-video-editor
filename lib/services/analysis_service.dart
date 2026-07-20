@@ -12,7 +12,6 @@ import 'package:kidslens_video_editor/native/bindings/whisper_bindings.dart';
 import 'package:kidslens_video_editor/services/asr_service.dart';
 import 'package:kidslens_video_editor/services/detection/analysis_stage_host.dart';
 import 'package:kidslens_video_editor/services/detection/detection_pipeline.dart';
-import 'package:kidslens_video_editor/services/detection/detection_pipeline_profile.dart';
 import 'package:kidslens_video_editor/services/detection/detection_pipeline_registry.dart';
 import 'package:kidslens_video_editor/services/detection/detection_pipeline_rollout.dart';
 import 'package:kidslens_video_editor/services/detection/legacy_nsfw_pipeline_adapter.dart';
@@ -131,7 +130,6 @@ class AnalysisService implements AnalysisStageHost {
             ),
             LegacyNsfwPipelineAdapter(runLegacyAnalysis: _runLegacyAnalysis),
           ],
-          defaultPipelineId: DetectionPipelineIds.vssFamilySafetyV1,
         );
   }
 
@@ -229,12 +227,18 @@ class AnalysisService implements AnalysisStageHost {
         onDone: controller.close,
       );
     };
+    // The 4 controller listener assignments cannot be a cascade because the
+    // subscription is set inside onListen (so the onPause/onResume/onCancel
+    // closures must read `subscription` lazily to defer `late`-field access).
+    // ignore: cascade_invocations
     controller.onPause = () {
       subscription.pause();
     };
+    // ignore: cascade_invocations
     controller.onResume = () {
       subscription.resume();
     };
+    // ignore: cascade_invocations
     controller.onCancel = () => subscription.cancel();
 
     return controller.stream;
@@ -546,8 +550,8 @@ class AnalysisService implements AnalysisStageHost {
       stepProgress: 0,
     );
 
-    Transcript? transcript = existingTranscript ?? checkpoint?.transcript;
-    List<ProfanityMatch> profanityMatches =
+    var transcript = existingTranscript ?? checkpoint?.transcript;
+    var profanityMatches =
         checkpoint?.profanityMatches?.toList(growable: false) ??
             const <ProfanityMatch>[];
 
@@ -576,31 +580,33 @@ class AnalysisService implements AnalysisStageHost {
         final progressController = StreamController<AnalysisProgress>();
         final transcriptCompleter = Completer<Transcript>();
 
-        _transcribeAudio(
-          mediaPath,
-          settings,
-          cancellationToken: cancellationToken,
-          onProgress: (message, progress) {
-            if (!progressController.isClosed) {
-              progressController.add(
-                _durationProgress(
-                  stepName: 'Profanity: $message',
-                  currentStep: profanityStep,
-                  totalSteps: totalSelectedSteps,
-                  processedDurationMs: (progress * mediaDurationMs).round(),
-                  totalDurationMs: mediaDurationMs,
-                  stepProgress: (progress * 0.8).clamp(0.0, 0.8),
-                ),
-              );
-            }
-          },
-        ).then((result) {
-          transcriptCompleter.complete(result);
-          progressController.close();
-        }).catchError((Object error, StackTrace stackTrace) {
-          transcriptCompleter.completeError(error, stackTrace);
-          progressController.close();
-        });
+        unawaited(
+          _transcribeAudio(
+            mediaPath,
+            settings,
+            cancellationToken: cancellationToken,
+            onProgress: (message, progress) {
+              if (!progressController.isClosed) {
+                progressController.add(
+                  _durationProgress(
+                    stepName: 'Profanity: $message',
+                    currentStep: profanityStep,
+                    totalSteps: totalSelectedSteps,
+                    processedDurationMs: (progress * mediaDurationMs).round(),
+                    totalDurationMs: mediaDurationMs,
+                    stepProgress: (progress * 0.8).clamp(0.0, 0.8),
+                  ),
+                );
+              }
+            },
+          ).then((result) {
+            transcriptCompleter.complete(result);
+            unawaited(progressController.close());
+          }).catchError((Object error, StackTrace stackTrace) {
+            transcriptCompleter.completeError(error, stackTrace);
+            unawaited(progressController.close());
+          }),
+        );
 
         await for (final progress in progressController.stream) {
           yield progress;
@@ -1059,7 +1065,8 @@ class AnalysisService implements AnalysisStageHost {
         ...regionCategories
             .expand((category) => category.enabledModels.map((m) => m.modelId)),
         ...regionCategories.expand(
-            (category) => category.modelContributions.map((m) => m.modelId)),
+          (category) => category.modelContributions.map((m) => m.modelId),
+        ),
         ...HuggingFaceModelRegistry.instance
             .getNudeNetModels()
             .map((m) => m.id),
@@ -1277,7 +1284,8 @@ class AnalysisService implements AnalysisStageHost {
 
     if (sampleWidth <= 0 || sampleHeight <= 0) {
       throw AnalysisException(
-          'No visual model available for enabled categories');
+        'No visual model available for enabled categories',
+      );
     }
 
     final sampler = FrameSamplingService(ffmpeg: ffmpeg);
@@ -1301,7 +1309,7 @@ class AnalysisService implements AnalysisStageHost {
     final batchSize = settings.modelConfig.batchSize.clamp(1, 16);
     final frameResults = <FrameAnalysisResult>[];
     var detectorEnabled = runNudityDetector && context.hasDetector;
-    var classifierEnabled = runNsfwClassifier && context.hasNsfwClassifier;
+    final classifierEnabled = runNsfwClassifier && context.hasNsfwClassifier;
     final parserEnabled = context.hasParser;
     String? warningMessage;
     var pendingBatch = <FrameData>[];
@@ -1335,8 +1343,7 @@ class AnalysisService implements AnalysisStageHost {
           );
         }
 
-        final detectorBatch =
-            List<DetectionResult?>.filled(chunk.length, null, growable: false);
+        final detectorBatch = List<DetectionResult?>.filled(chunk.length, null);
         if (detectorEnabled &&
             context.detectorModelPath != null &&
             context.detectorSpec != null) {
@@ -1362,7 +1369,8 @@ class AnalysisService implements AnalysisStageHost {
             warningMessage = 'Nudity detector inference failed: ${e.message}; '
                 'continuing without nudity regions';
             debugPrint(
-                'ANALYSIS: Detector disabled due to error: ${e.message}');
+              'ANALYSIS: Detector disabled due to error: ${e.message}',
+            );
           }
         }
 
@@ -1437,8 +1445,7 @@ class AnalysisService implements AnalysisStageHost {
         );
       }
 
-      final detectorBatch =
-          List<DetectionResult?>.filled(chunk.length, null, growable: false);
+      final detectorBatch = List<DetectionResult?>.filled(chunk.length, null);
       if (detectorEnabled &&
           context.detectorModelPath != null &&
           context.detectorSpec != null) {
@@ -2001,12 +2008,12 @@ class AnalysisService implements AnalysisStageHost {
     return {
       'x': clampedX,
       'y': clampedY,
-      'width': clampedWidth.toDouble(),
-      'height': clampedHeight.toDouble(),
+      'width': clampedWidth,
+      'height': clampedHeight,
     };
   }
 
-  double _clampUnit(double value) => value.clamp(0.0, 1.0).toDouble();
+  double _clampUnit(double value) => value.clamp(0.0, 1.0);
 
   double _maxRegionConfidenceInRange(
     List<FrameAnalysisResult> frameResults,

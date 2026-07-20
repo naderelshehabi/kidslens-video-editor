@@ -47,51 +47,50 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             ),
           ),
           // Play/Pause overlay
-          if (_showControls)
-            _buildControlsOverlay(),
+          if (_showControls) _buildControlsOverlay(),
         ],
       ),
     );
   }
 
   Widget _buildPlaceholder(BuildContext context) => ColoredBox(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.video_library,
-              size: 48,
-              color: Theme.of(context).colorScheme.outline,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'No media loaded',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-  Widget _buildControlsOverlay() => AnimatedOpacity(
-      opacity: _showControls ? 1.0 : 0.0,
-      duration: const Duration(milliseconds: 200),
-      child: ColoredBox(
-        color: Colors.black38,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         child: Center(
-          child: IconButton(
-            iconSize: 64,
-            icon: Icon(
-              widget.isPlaying ? Icons.pause_circle : Icons.play_circle,
-              color: Colors.white,
-            ),
-            onPressed: widget.onPlayPause,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.video_library,
+                size: 48,
+                color: Theme.of(context).colorScheme.outline,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'No media loaded',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+              ),
+            ],
           ),
         ),
-      ),
-    );
+      );
+
+  Widget _buildControlsOverlay() => AnimatedOpacity(
+        opacity: _showControls ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 200),
+        child: ColoredBox(
+          color: Colors.black38,
+          child: Center(
+            child: IconButton(
+              iconSize: 64,
+              icon: Icon(
+                widget.isPlaying ? Icons.pause_circle : Icons.play_circle,
+                color: Colors.white,
+              ),
+              onPressed: widget.onPlayPause,
+            ),
+          ),
+        ),
+      );
 }

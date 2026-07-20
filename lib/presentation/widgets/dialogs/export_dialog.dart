@@ -58,15 +58,16 @@ class ExportDialog extends ConsumerStatefulWidget {
     required MediaFile media,
     required List<EditAction> editActions,
     SubtitleTrack? subtitleTrack,
-  }) => showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => ExportDialog(
-        media: media,
-        editActions: editActions,
-        subtitleTrack: subtitleTrack,
-      ),
-    );
+  }) =>
+      showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => ExportDialog(
+          media: media,
+          editActions: editActions,
+          subtitleTrack: subtitleTrack,
+        ),
+      );
 
   @override
   ConsumerState<ExportDialog> createState() => _ExportDialogState();
@@ -139,12 +140,12 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
   }
 
   String _getFileExtension(ExportFormat format) => switch (format) {
-      ExportFormat.mp4H264 => '.mp4',
-      ExportFormat.mp4H265 => '.mp4',
-      ExportFormat.webm => '.webm',
-      ExportFormat.mov => '.mov',
-      ExportFormat.audioOnly => '.aac',
-    };
+        ExportFormat.mp4H264 => '.mp4',
+        ExportFormat.mp4H265 => '.mp4',
+        ExportFormat.webm => '.webm',
+        ExportFormat.mov => '.mov',
+        ExportFormat.audioOnly => '.aac',
+      };
 
   void _updateOutputExtension() {
     final extension = _getFileExtension(_format);
@@ -177,11 +178,13 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
                     : colorScheme.primary,
           ),
           const SizedBox(width: 12),
-          Text(_isComplete
-              ? 'Export Complete'
-              : _isExporting
-                  ? 'Exporting...'
-                  : 'Export Video',),
+          Text(
+            _isComplete
+                ? 'Export Complete'
+                : _isExporting
+                    ? 'Exporting...'
+                    : 'Export Video',
+          ),
         ],
       ),
       content: SizedBox(
@@ -285,16 +288,20 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
-              items: ExportFormat.values.map((format) => DropdownMenuItem(
-                  value: format,
-                  child: Row(
-                    children: [
-                      Icon(_getFormatIcon(format), size: 18),
-                      const SizedBox(width: 8),
-                      Text(_formatName(format)),
-                    ],
-                  ),
-                ),).toList(),
+              items: ExportFormat.values
+                  .map(
+                    (format) => DropdownMenuItem(
+                      value: format,
+                      child: Row(
+                        children: [
+                          Icon(_getFormatIcon(format), size: 18),
+                          const SizedBox(width: 8),
+                          Text(_formatName(format)),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(),
               onChanged: (value) {
                 if (value != null) {
                   setState(() {
@@ -323,11 +330,15 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
           _buildSection(
             title: 'Quality',
             child: SegmentedButton<ExportQuality>(
-              segments: ExportQuality.values.map((quality) => ButtonSegment(
-                  value: quality,
-                  label: Text(_qualityName(quality)),
-                  icon: Icon(_qualityIcon(quality), size: 16),
-                ),).toList(),
+              segments: ExportQuality.values
+                  .map(
+                    (quality) => ButtonSegment(
+                      value: quality,
+                      label: Text(_qualityName(quality)),
+                      icon: Icon(_qualityIcon(quality), size: 16),
+                    ),
+                  )
+                  .toList(),
               selected: {_quality},
               onSelectionChanged: (selection) {
                 setState(() => _quality = selection.first);
@@ -397,7 +408,7 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
                     Text(
                       _subtitleExportMode == SubtitleExportMode.burnIn
                           ? 'Subtitles will be permanently rendered into the video pixels. '
-                            'All players will show them without needing subtitle support.'
+                              'All players will show them without needing subtitle support.'
                           : 'Subtitles will be exported as a standalone file alongside the video.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.outline,
@@ -410,20 +421,26 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
                         initialValue: _subtitleFormat,
                         decoration: const InputDecoration(
                           isDense: true,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
                           labelText: 'Subtitle Format',
                         ),
-                        items: SubtitleFormat.values.map((format) => DropdownMenuItem(
-                            value: format,
-                            child: Row(
-                              children: [
-                                const Icon(Icons.subtitles, size: 18),
-                                const SizedBox(width: 8),
-                                Text(format.displayName),
-                              ],
-                            ),
-                          ),).toList(),
+                        items: SubtitleFormat.values
+                            .map(
+                              (format) => DropdownMenuItem(
+                                value: format,
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.subtitles, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text(format.displayName),
+                                  ],
+                                ),
+                              ),
+                            )
+                            .toList(),
                         onChanged: (value) {
                           if (value != null) {
                             setState(() => _subtitleFormat = value);
@@ -460,9 +477,9 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
                       prefixIcon: Icon(Icons.folder, size: 20),
                     ),
                     onChanged: (value) {
-                        _outputPath = value;
-                        // Trigger rebuild to update path validity
-                        if (mounted) setState(() {});
+                      _outputPath = value;
+                      // Trigger rebuild to update path validity
+                      if (mounted) setState(() {});
                     },
                     style: theme.textTheme.bodySmall,
                   ),
@@ -500,75 +517,75 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
               'Export completed successfully!',
               style: theme.textTheme.titleMedium,
             ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.folder, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _outputPath,
-                    style: theme.textTheme.bodySmall,
-                    overflow: TextOverflow.ellipsis,
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.folder, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _outputPath,
+                      style: theme.textTheme.bodySmall,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ] else if (_errorMessage != null) ...[
-          Icon(
-            Icons.error,
-            size: 64,
-            color: colorScheme.error,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Export failed',
-            style: theme.textTheme.titleMedium?.copyWith(
+          ] else if (_errorMessage != null) ...[
+            Icon(
+              Icons.error,
+              size: 64,
               color: colorScheme.error,
             ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colorScheme.errorContainer,
-              borderRadius: BorderRadius.circular(8),
+            const SizedBox(height: 16),
+            Text(
+              'Export failed',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: colorScheme.error,
+              ),
             ),
-            child: Text(
-              _errorMessage!,
-              style: TextStyle(color: colorScheme.onErrorContainer),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _errorMessage!,
+                style: TextStyle(color: colorScheme.onErrorContainer),
+              ),
             ),
-          ),
-        ] else ...[
-          Icon(
-            Icons.video_settings,
-            size: 48,
-            color: colorScheme.primary,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _currentPhase.isNotEmpty ? _currentPhase : 'Preparing...',
-            style: theme.textTheme.bodyLarge,
-          ),
-          const SizedBox(height: 24),
-          LinearProgressIndicator(
-            value: _progress,
-            backgroundColor: colorScheme.surfaceContainerHighest,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${(_progress * 100).toStringAsFixed(1)}%',
-            style: theme.textTheme.bodySmall,
-          ),
+          ] else ...[
+            Icon(
+              Icons.video_settings,
+              size: 48,
+              color: colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _currentPhase.isNotEmpty ? _currentPhase : 'Preparing...',
+              style: theme.textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 24),
+            LinearProgressIndicator(
+              value: _progress,
+              backgroundColor: colorScheme.surfaceContainerHighest,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${(_progress * 100).toStringAsFixed(1)}%',
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
         ],
-      ],
       ),
     );
   }
@@ -763,7 +780,7 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
 
     try {
       final subtitleService = ref.read(subtitleServiceProvider);
-      
+
       // Build subtitle output path (same name as video but with subtitle extension)
       final baseName = p.basenameWithoutExtension(_outputPath);
       final directory = p.dirname(_outputPath);
@@ -774,7 +791,7 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
 
       // Convert SubtitleTrack to Transcript format for the service
       final transcript = widget.subtitleTrack!.toTranscript();
-      
+
       await subtitleService.generateSubtitles(
         transcript,
         subtitlePath,
@@ -843,26 +860,27 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
   }
 
   /// Convert EditAction to Modification
-  Modification? _actionToModification(EditAction action) => switch (action.type) {
-      EditActionType.mute => const Modification.audioMute(),
-      EditActionType.beep => Modification.audioBeep(
-          frequency: action.beepFrequency.round(),
-        ),
-      EditActionType.blur => Modification.videoBlur(
-          intensity: (action.blurIntensity * 100).round().clamp(1, 100),
-        ),
-      EditActionType.cut => const Modification.videoSkip(),
-      EditActionType.skip => const Modification.videoSkip(),
-    };
+  Modification? _actionToModification(EditAction action) =>
+      switch (action.type) {
+        EditActionType.mute => const Modification.audioMute(),
+        EditActionType.beep => Modification.audioBeep(
+            frequency: action.beepFrequency.round(),
+          ),
+        EditActionType.blur => Modification.videoBlur(
+            intensity: (action.blurIntensity * 100).round().clamp(1, 100),
+          ),
+        EditActionType.cut => const Modification.videoSkip(),
+        EditActionType.skip => const Modification.videoSkip(),
+      };
 
   /// Convert EditAction type to ContentType for segment
   ContentType _actionToContentType(EditAction action) => switch (action.type) {
-      EditActionType.mute => ContentType.profanity,
-      EditActionType.beep => ContentType.profanity,
-      EditActionType.blur => ContentType.nsfw,
-      EditActionType.cut => ContentType.nsfw,
-      EditActionType.skip => ContentType.nsfw,
-    };
+        EditActionType.mute => ContentType.profanity,
+        EditActionType.beep => ContentType.profanity,
+        EditActionType.blur => ContentType.nsfw,
+        EditActionType.cut => ContentType.nsfw,
+        EditActionType.skip => ContentType.nsfw,
+      };
 
   /// Build ExportSettings based on selected format and quality
   ExportSettings _createExportSettings() {
@@ -877,7 +895,7 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
       case ExportFormat.mp4H264:
         // Use libopenh264 or h264 relative to what's available
         // libx264 is not available in the bundled build
-        videoCodec = 'libopenh264'; 
+        videoCodec = 'libopenh264';
         audioCodec = 'aac';
       case ExportFormat.mp4H265:
         // Use libkvazaar as libx265 is not available
@@ -899,7 +917,7 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
     // We only set preset for other codecs or if we change implementation.
     // For now, we clear preset for libopenh264/libkvazaar to avoid errors/warnings,
     // or keep it if they handle it gracefully (libkvazaar supports presets).
-    
+
     switch (_quality) {
       case ExportQuality.low:
         videoBitrate = '2M';
@@ -930,79 +948,80 @@ class _ExportDialogState extends ConsumerState<ExportDialog> {
 
   // Helper methods for formatting and icons
   String _formatName(ExportFormat format) => switch (format) {
-      ExportFormat.mp4H264 => 'MP4 (H.264)',
-      ExportFormat.mp4H265 => 'MP4 (H.265/HEVC)',
-      ExportFormat.webm => 'WebM (VP9)',
-      ExportFormat.mov => 'MOV (ProRes)',
-      ExportFormat.audioOnly => 'Audio Only (AAC)',
-    };
+        ExportFormat.mp4H264 => 'MP4 (H.264)',
+        ExportFormat.mp4H265 => 'MP4 (H.265/HEVC)',
+        ExportFormat.webm => 'WebM (VP9)',
+        ExportFormat.mov => 'MOV (ProRes)',
+        ExportFormat.audioOnly => 'Audio Only (AAC)',
+      };
 
   String _formatDescription(ExportFormat format) => switch (format) {
-      ExportFormat.mp4H264 =>
-        'Most compatible format. Works on all devices and platforms.',
-      ExportFormat.mp4H265 =>
-        'Better compression, smaller file size. May not play on older devices.',
-      ExportFormat.webm =>
-        'Open format, great for web. Not widely supported offline.',
-      ExportFormat.mov =>
-        'High quality for editing. Large file size, Mac/iOS focused.',
-      ExportFormat.audioOnly => 'Extract audio only, no video.',
-    };
+        ExportFormat.mp4H264 =>
+          'Most compatible format. Works on all devices and platforms.',
+        ExportFormat.mp4H265 =>
+          'Better compression, smaller file size. May not play on older devices.',
+        ExportFormat.webm =>
+          'Open format, great for web. Not widely supported offline.',
+        ExportFormat.mov =>
+          'High quality for editing. Large file size, Mac/iOS focused.',
+        ExportFormat.audioOnly => 'Extract audio only, no video.',
+      };
 
   IconData _getFormatIcon(ExportFormat format) => switch (format) {
-      ExportFormat.mp4H264 => Icons.video_file,
-      ExportFormat.mp4H265 => Icons.video_file,
-      ExportFormat.webm => Icons.web,
-      ExportFormat.mov => Icons.movie,
-      ExportFormat.audioOnly => Icons.audio_file,
-    };
+        ExportFormat.mp4H264 => Icons.video_file,
+        ExportFormat.mp4H265 => Icons.video_file,
+        ExportFormat.webm => Icons.web,
+        ExportFormat.mov => Icons.movie,
+        ExportFormat.audioOnly => Icons.audio_file,
+      };
 
   String _qualityName(ExportQuality quality) => switch (quality) {
-      ExportQuality.low => 'Low',
-      ExportQuality.medium => 'Medium',
-      ExportQuality.high => 'High',
-      ExportQuality.lossless => 'Lossless',
-    };
+        ExportQuality.low => 'Low',
+        ExportQuality.medium => 'Medium',
+        ExportQuality.high => 'High',
+        ExportQuality.lossless => 'Lossless',
+      };
 
   IconData _qualityIcon(ExportQuality quality) => switch (quality) {
-      ExportQuality.low => Icons.sd,
-      ExportQuality.medium => Icons.hd,
-      ExportQuality.high => Icons.four_k,
-      ExportQuality.lossless => Icons.high_quality,
-    };
+        ExportQuality.low => Icons.sd,
+        ExportQuality.medium => Icons.hd,
+        ExportQuality.high => Icons.four_k,
+        ExportQuality.lossless => Icons.high_quality,
+      };
 
   String _qualityDescription(ExportQuality quality) => switch (quality) {
-      ExportQuality.low =>
-        'Smaller file size, lower quality. Good for sharing.',
-      ExportQuality.medium => 'Balanced quality and file size.',
-      ExportQuality.high => 'High quality, larger file size.',
-      ExportQuality.lossless => 'No quality loss, very large file size.',
-    };
+        ExportQuality.low =>
+          'Smaller file size, lower quality. Good for sharing.',
+        ExportQuality.medium => 'Balanced quality and file size.',
+        ExportQuality.high => 'High quality, larger file size.',
+        ExportQuality.lossless => 'No quality loss, very large file size.',
+      };
 
-  String _getSubtitleFormatDescription(SubtitleFormat format) => switch (format) {
-      SubtitleFormat.srt =>
-        'Most widely supported format. Works with most video players.',
-      SubtitleFormat.vtt =>
-        'Web-friendly format with styling support. Used for HTML5 video.',
-      SubtitleFormat.ass =>
-        'Advanced format with rich styling. Popular for anime subtitles.',
-    };
+  String _getSubtitleFormatDescription(SubtitleFormat format) =>
+      switch (format) {
+        SubtitleFormat.srt =>
+          'Most widely supported format. Works with most video players.',
+        SubtitleFormat.vtt =>
+          'Web-friendly format with styling support. Used for HTML5 video.',
+        SubtitleFormat.ass =>
+          'Advanced format with rich styling. Popular for anime subtitles.',
+      };
 
   IconData _getIconForActionType(EditActionType type) => switch (type) {
-      EditActionType.mute => Icons.volume_off,
-      EditActionType.beep => Icons.notifications_active,
-      EditActionType.blur => Icons.blur_on,
-      EditActionType.cut => Icons.content_cut,
-      EditActionType.skip => Icons.skip_next,
-    };
+        EditActionType.mute => Icons.volume_off,
+        EditActionType.beep => Icons.notifications_active,
+        EditActionType.blur => Icons.blur_on,
+        EditActionType.cut => Icons.content_cut,
+        EditActionType.skip => Icons.skip_next,
+      };
 
   Color _getColorForActionType(EditActionType type) => switch (type) {
-      EditActionType.mute => Colors.orange,
-      EditActionType.beep => Colors.purple,
-      EditActionType.blur => Colors.blue,
-      EditActionType.cut => Colors.red,
-      EditActionType.skip => Colors.grey,
-    };
+        EditActionType.mute => Colors.orange,
+        EditActionType.beep => Colors.purple,
+        EditActionType.blur => Colors.blue,
+        EditActionType.cut => Colors.red,
+        EditActionType.skip => Colors.grey,
+      };
 
   String _formatDuration(Duration d) {
     final hours = d.inHours;

@@ -102,8 +102,10 @@ extension DurationExtensions on Duration {
 
     // Calculate frame number from remaining milliseconds
     final millisecondsPerFrame = 1000.0 / fps;
-    final frames =
-        (remainingMilliseconds / millisecondsPerFrame).floor().toString().padLeft(2, '0');
+    final frames = (remainingMilliseconds / millisecondsPerFrame)
+        .floor()
+        .toString()
+        .padLeft(2, '0');
 
     final formatted = '$hours:$minutes:$seconds:$frames';
     return isNeg ? '-$formatted' : formatted;

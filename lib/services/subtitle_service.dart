@@ -6,15 +6,15 @@ import 'package:kidslens_video_editor/data/models/transcript.dart';
 enum SubtitleFormat {
   /// SubRip Text format (.srt)
   srt('srt', 'SRT (SubRip Text)'),
-  
+
   /// WebVTT format (.vtt)
   vtt('vtt', 'WebVTT'),
-  
+
   /// Advanced SubStation Alpha (.ass)
   ass('ass', 'ASS (Advanced SubStation)');
 
   const SubtitleFormat(this.extension, this.displayName);
-  
+
   final String extension;
   final String displayName;
 }
@@ -32,19 +32,19 @@ class SubtitleOptions {
 
   /// Maximum characters per subtitle line
   final int maxCharsPerLine;
-  
+
   /// Maximum lines per subtitle cue
   final int maxLinesPerCue;
-  
+
   /// Minimum duration for a subtitle cue
   final Duration minCueDuration;
-  
+
   /// Maximum duration for a subtitle cue
   final Duration maxCueDuration;
-  
+
   /// Gap between consecutive cues
   final Duration gapBetweenCues;
-  
+
   /// Include word-level timing (for karaoke effects)
   final bool includeWordTimings;
 }
@@ -54,7 +54,7 @@ class SubtitleService {
   const SubtitleService();
 
   /// Generate subtitle file from a transcript
-  /// 
+  ///
   /// [transcript] - The transcript to convert
   /// [outputPath] - Where to save the subtitle file
   /// [format] - The subtitle format to use
@@ -81,11 +81,12 @@ class SubtitleService {
     Transcript transcript,
     SubtitleFormat format, {
     SubtitleOptions options = const SubtitleOptions(),
-  }) => switch (format) {
-      SubtitleFormat.srt => _generateSrt(transcript, options),
-      SubtitleFormat.vtt => _generateVtt(transcript, options),
-      SubtitleFormat.ass => _generateAss(transcript, options),
-    };
+  }) =>
+      switch (format) {
+        SubtitleFormat.srt => _generateSrt(transcript, options),
+        SubtitleFormat.vtt => _generateVtt(transcript, options),
+        SubtitleFormat.ass => _generateAss(transcript, options),
+      };
 
   /// Generate SRT format subtitles
   String _generateSrt(Transcript transcript, SubtitleOptions options) {
@@ -96,7 +97,9 @@ class SubtitleService {
       final cue = cues[i];
       buffer
         ..writeln('${i + 1}')
-        ..writeln('${_formatSrtTime(cue.startTime)} --> ${_formatSrtTime(cue.endTime)}')
+        ..writeln(
+          '${_formatSrtTime(cue.startTime)} --> ${_formatSrtTime(cue.endTime)}',
+        )
         ..writeln(cue.text)
         ..writeln();
     }
@@ -117,7 +120,9 @@ class SubtitleService {
       final cue = cues[i];
       buffer
         ..writeln('${i + 1}')
-        ..writeln('${_formatVttTime(cue.startTime)} --> ${_formatVttTime(cue.endTime)}')
+        ..writeln(
+          '${_formatVttTime(cue.startTime)} --> ${_formatVttTime(cue.endTime)}',
+        )
         ..writeln(cue.text)
         ..writeln();
     }
@@ -139,12 +144,18 @@ class SubtitleService {
       ..writeln()
       // Styles
       ..writeln('[V4+ Styles]')
-      ..writeln('Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding')
-      ..writeln('Style: Default,Arial,48,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,1,2,10,10,30,1')
+      ..writeln(
+        'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
+      )
+      ..writeln(
+        'Style: Default,Arial,48,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,1,2,10,10,30,1',
+      )
       ..writeln()
       // Events
       ..writeln('[Events]')
-      ..writeln('Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text');
+      ..writeln(
+        'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
+      );
 
     for (final cue in cues) {
       final startStr = _formatAssTime(cue.startTime);
@@ -158,7 +169,10 @@ class SubtitleService {
   }
 
   /// Build subtitle cues from transcript segments
-  List<_SubtitleCue> _buildCues(Transcript transcript, SubtitleOptions options) {
+  List<_SubtitleCue> _buildCues(
+    Transcript transcript,
+    SubtitleOptions options,
+  ) {
     final cues = <_SubtitleCue>[];
 
     for (final segment in transcript.segments) {
@@ -170,7 +184,7 @@ class SubtitleService {
     for (var i = 0; i < cues.length - 1; i++) {
       final current = cues[i];
       final next = cues[i + 1];
-      
+
       if (current.endTime > next.startTime - options.gapBetweenCues) {
         cues[i] = _SubtitleCue(
           text: current.text,
@@ -190,14 +204,16 @@ class SubtitleService {
   ) {
     final cues = <_SubtitleCue>[];
     final words = segment.words;
-    
+
     if (words.isEmpty) {
       // Use segment text directly if no word timings
-      cues.add(_SubtitleCue(
-        text: _wrapText(segment.text, options),
-        startTime: segment.startTime,
-        endTime: segment.endTime,
-      ),);
+      cues.add(
+        _SubtitleCue(
+          text: _wrapText(segment.text, options),
+          startTime: segment.startTime,
+          endTime: segment.endTime,
+        ),
+      );
       return cues;
     }
 
@@ -210,20 +226,24 @@ class SubtitleService {
 
     for (final word in words) {
       cueStart ??= word.startTime;
-      
-      final wouldExceedLine = lineLength + word.word.length + 1 > options.maxCharsPerLine;
-      final wouldExceedLines = wouldExceedLine && lineCount >= options.maxLinesPerCue - 1;
-      final wouldExceedDuration = cueEnd != null && 
-          word.endTime - cueStart > options.maxCueDuration;
+
+      final wouldExceedLine =
+          lineLength + word.word.length + 1 > options.maxCharsPerLine;
+      final wouldExceedLines =
+          wouldExceedLine && lineCount >= options.maxLinesPerCue - 1;
+      final wouldExceedDuration =
+          cueEnd != null && word.endTime - cueStart > options.maxCueDuration;
 
       if (wouldExceedLines || wouldExceedDuration) {
         // Save current cue and start a new one
         if (buffer.isNotEmpty) {
-          cues.add(_SubtitleCue(
-            text: buffer.toString().trim(),
-            startTime: cueStart,
-            endTime: cueEnd ?? word.startTime,
-          ),);
+          cues.add(
+            _SubtitleCue(
+              text: buffer.toString().trim(),
+              startTime: cueStart,
+              endTime: cueEnd ?? word.startTime,
+            ),
+          );
         }
         buffer.clear();
         cueStart = word.startTime;
@@ -248,11 +268,13 @@ class SubtitleService {
 
     // Add final cue
     if (buffer.isNotEmpty && cueStart != null && cueEnd != null) {
-      cues.add(_SubtitleCue(
-        text: buffer.toString().trim(),
-        startTime: cueStart,
-        endTime: cueEnd,
-      ),);
+      cues.add(
+        _SubtitleCue(
+          text: buffer.toString().trim(),
+          startTime: cueStart,
+          endTime: cueEnd,
+        ),
+      );
     }
 
     return cues;
@@ -267,7 +289,8 @@ class SubtitleService {
     for (final word in words) {
       if (currentLine.isEmpty) {
         currentLine.write(word);
-      } else if (currentLine.length + 1 + word.length <= options.maxCharsPerLine) {
+      } else if (currentLine.length + 1 + word.length <=
+          options.maxCharsPerLine) {
         currentLine.write(' $word');
       } else {
         lines.add(currentLine.toString());
@@ -306,7 +329,8 @@ class SubtitleService {
     final hours = d.inHours;
     final minutes = (d.inMinutes % 60).toString().padLeft(2, '0');
     final seconds = (d.inSeconds % 60).toString().padLeft(2, '0');
-    final centis = ((d.inMilliseconds % 1000) / 10).floor().toString().padLeft(2, '0');
+    final centis =
+        ((d.inMilliseconds % 1000) / 10).floor().toString().padLeft(2, '0');
     return '$hours:$minutes:$seconds.$centis';
   }
 }

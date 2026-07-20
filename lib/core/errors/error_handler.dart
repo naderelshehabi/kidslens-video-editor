@@ -35,8 +35,8 @@ class ErrorHandler {
         lastException = e;
         attempt++;
 
-        final canRetry = shouldRetry?.call(e) ??
-            (e is KidsLensException && e.isRetryable);
+        final canRetry =
+            shouldRetry?.call(e) ?? (e is KidsLensException && e.isRetryable);
 
         if (!canRetry || attempt >= maxRetries) {
           _logError('Operation failed after $attempt attempts', e);

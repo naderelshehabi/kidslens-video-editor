@@ -49,36 +49,36 @@ class ConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-      icon: icon != null
-          ? Icon(
-              icon,
-              size: 48,
-              color: iconColor ??
-                  (isDestructive
-                      ? Theme.of(context).colorScheme.error
-                      : Theme.of(context).colorScheme.primary),
-            )
-          : null,
-      title: Text(title),
-      content: Text(message),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: Text(cancelLabel),
-        ),
-        if (isDestructive)
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(confirmLabel),
-          )
-        else
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(confirmLabel),
+        icon: icon != null
+            ? Icon(
+                icon,
+                size: 48,
+                color: iconColor ??
+                    (isDestructive
+                        ? Theme.of(context).colorScheme.error
+                        : Theme.of(context).colorScheme.primary),
+              )
+            : null,
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(cancelLabel),
           ),
-      ],
-    );
+          if (isDestructive)
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(confirmLabel),
+            )
+          else
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(confirmLabel),
+            ),
+        ],
+      );
 }

@@ -104,8 +104,7 @@ void main() {
       expect(regionPixelate.region.y, testRegion.y);
     });
 
-    test(
-        'blackBoxRegion with region produces Modification.videoRegionBlackBox',
+    test('blackBoxRegion with region produces Modification.videoRegionBlackBox',
         () {
       final mod = ExportService.modificationFromRemediationAction(
         action: RemediationAction.blackBoxRegion,
@@ -227,10 +226,16 @@ void main() {
           region: needsRegion ? testRegion : null,
         );
 
-        expect(mod.isVideoModification, true,
-            reason: '${action.name} should produce a video modification',);
-        expect(action.isVisual, true,
-            reason: '${action.name} should be a visual action',);
+        expect(
+          mod.isVideoModification,
+          true,
+          reason: '${action.name} should produce a video modification',
+        );
+        expect(
+          action.isVisual,
+          true,
+          reason: '${action.name} should be a visual action',
+        );
       }
     });
 
@@ -247,10 +252,16 @@ void main() {
           endTime: testEnd,
         );
 
-        expect(mod.isAudioModification, true,
-            reason: '${action.name} should produce an audio modification',);
-        expect(action.isAudio, true,
-            reason: '${action.name} should be an audio action',);
+        expect(
+          mod.isAudioModification,
+          true,
+          reason: '${action.name} should produce an audio modification',
+        );
+        expect(
+          action.isAudio,
+          true,
+          reason: '${action.name} should be an audio action',
+        );
       }
     });
 
@@ -269,10 +280,16 @@ void main() {
           region: testRegion,
         );
 
-        expect(action.isRegionLevel, true,
-            reason: '${action.name} should be region-level',);
-        expect(mod.isRegionModification, true,
-            reason: '${action.name} should produce a region modification',);
+        expect(
+          action.isRegionLevel,
+          true,
+          reason: '${action.name} should be region-level',
+        );
+        expect(
+          mod.isRegionModification,
+          true,
+          reason: '${action.name} should produce a region modification',
+        );
       }
     });
   });
@@ -295,12 +312,18 @@ void main() {
         // Every modification should have a non-null filter string
         // (region-based filters return '' since they use a separate chain)
         final filter = mod.toFFmpegFilter();
-        expect(filter, isA<String>(),
-            reason: '${action.name} should produce a filter string',);
+        expect(
+          filter,
+          isA<String>(),
+          reason: '${action.name} should produce a filter string',
+        );
 
         if (!mod.isRegionModification) {
-          expect(filter.isNotEmpty, true,
-              reason: '${action.name} non-region filter should be non-empty',);
+          expect(
+            filter.isNotEmpty,
+            true,
+            reason: '${action.name} non-region filter should be non-empty',
+          );
         }
       }
     });

@@ -197,19 +197,19 @@ class IntegerParameterSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => LabeledParameterSlider(
-      label: label,
-      value: value.toDouble(),
-      min: min.toDouble(),
-      max: max.toDouble(),
-      divisions: max - min,
-      description: description,
-      minLabel: minLabel ?? '$min',
-      maxLabel: maxLabel ?? '$max',
-      valueFormatter: (v) =>
-          suffix != null ? '${v.round()}$suffix' : '${v.round()}',
-      onChanged: onChanged != null ? (v) => onChanged!(v.round()) : null,
-      activeColor: activeColor,
-    );
+        label: label,
+        value: value.toDouble(),
+        min: min.toDouble(),
+        max: max.toDouble(),
+        divisions: max - min,
+        description: description,
+        minLabel: minLabel ?? '$min',
+        maxLabel: maxLabel ?? '$max',
+        valueFormatter: (v) =>
+            suffix != null ? '${v.round()}$suffix' : '${v.round()}',
+        onChanged: onChanged != null ? (v) => onChanged!(v.round()) : null,
+        activeColor: activeColor,
+      );
 }
 
 /// Slider for percentage values (0-100)
@@ -233,16 +233,16 @@ class PercentageSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => LabeledParameterSlider(
-      label: label,
-      value: value,
-      min: 0,
-      max: 1,
-      divisions: divisions,
-      description: description,
-      minLabel: '0%',
-      maxLabel: '100%',
-      valueFormatter: (v) => '${(v * 100).round()}%',
-      onChanged: onChanged,
-      activeColor: activeColor,
-    );
+        label: label,
+        value: value,
+        min: 0,
+        max: 1,
+        divisions: divisions,
+        description: description,
+        minLabel: '0%',
+        maxLabel: '100%',
+        valueFormatter: (v) => '${(v * 100).round()}%',
+        onChanged: onChanged,
+        activeColor: activeColor,
+      );
 }

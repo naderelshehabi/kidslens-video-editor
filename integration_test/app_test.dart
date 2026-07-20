@@ -29,8 +29,7 @@ void main() {
       );
     });
 
-    testWidgets('app shows empty state on first launch',
-        (tester) async {
+    testWidgets('app shows empty state on first launch', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -41,12 +40,15 @@ void main() {
       // Should show empty state or import prompt
       // Initial screen has video_library_rounded icon, not outlined
       expect(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is Icon &&
-              (widget.icon == Icons.video_library_outlined ||
-                  widget.icon == Icons.video_library_rounded),
-        ).evaluate().isNotEmpty ||
+        find
+                .byWidgetPredicate(
+                  (widget) =>
+                      widget is Icon &&
+                      (widget.icon == Icons.video_library_outlined ||
+                          widget.icon == Icons.video_library_rounded),
+                )
+                .evaluate()
+                .isNotEmpty ||
             find.text('Import').evaluate().isNotEmpty ||
             find.text('New Project').evaluate().isNotEmpty ||
             find.text('Welcome to KidsLens').evaluate().isNotEmpty,
@@ -73,8 +75,7 @@ void main() {
       }
     });
 
-    testWidgets('settings screen has all sections',
-        (tester) async {
+    testWidgets('settings screen has all sections', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -95,8 +96,7 @@ void main() {
       }
     });
 
-    testWidgets('can toggle dark theme in settings',
-        (tester) async {
+    testWidgets('can toggle dark theme in settings', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -120,8 +120,7 @@ void main() {
       }
     });
 
-    testWidgets('can navigate back from settings',
-        (tester) async {
+    testWidgets('can navigate back from settings', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -156,114 +155,119 @@ void main() {
     testWidgets(
       'import → analyze → export flow with mocked data',
       (tester) async {
-      // Create mocked state
-      final testMedia = MediaFile.video(
-        id: 'test-id',
-        path: '/path/to/test_video.mp4',
-        name: 'test_video.mp4',
-        duration: const Duration(minutes: 5),
-        width: 1920,
-        height: 1080,
-        fileSize: 100000000,
-        codec: 'h264',
-        container: 'mp4',
-      );
+        // Create mocked state
+        final testMedia = MediaFile.video(
+          id: 'test-id',
+          path: '/path/to/test_video.mp4',
+          name: 'test_video.mp4',
+          duration: const Duration(minutes: 5),
+          width: 1920,
+          height: 1080,
+          fileSize: 100000000,
+          codec: 'h264',
+          container: 'mp4',
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            mediaNotifierProvider.overrideWith(
-              () => _MockMediaNotifierWithMedia(testMedia),
-            ),
-            analysisNotifierProvider.overrideWith(
-              _MockAnalysisNotifierCompleted.new,
-            ),
-          ],
-          child: const KidsLensApp(),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              mediaNotifierProvider.overrideWith(
+                () => _MockMediaNotifierWithMedia(testMedia),
+              ),
+              analysisNotifierProvider.overrideWith(
+                _MockAnalysisNotifierCompleted.new,
+              ),
+            ],
+            child: const KidsLensApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      // With media loaded, should show media info
-      expect(find.text('test_video.mp4'), findsWidgets);
-    }, skip: true,); // MediaInfoCard has metadata access bug
+        // With media loaded, should show media info
+        expect(find.text('test_video.mp4'), findsWidgets);
+      },
+      skip: true,
+    ); // MediaInfoCard has metadata access bug
 
     testWidgets(
       'shows loading state during analysis',
       (tester) async {
-      final testMedia = MediaFile.video(
-        id: 'test-id',
-        path: '/path/to/test_video.mp4',
-        name: 'test_video.mp4',
-        duration: const Duration(minutes: 5),
-        width: 1920,
-        height: 1080,
-        fileSize: 100000000,
-        codec: 'h264',
-        container: 'mp4',
-      );
+        final testMedia = MediaFile.video(
+          id: 'test-id',
+          path: '/path/to/test_video.mp4',
+          name: 'test_video.mp4',
+          duration: const Duration(minutes: 5),
+          width: 1920,
+          height: 1080,
+          fileSize: 100000000,
+          codec: 'h264',
+          container: 'mp4',
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            mediaNotifierProvider.overrideWith(
-              () => _MockMediaNotifierWithMedia(testMedia),
-            ),
-            analysisNotifierProvider.overrideWith(
-              _MockAnalysisNotifierRunning.new,
-            ),
-          ],
-          child: const KidsLensApp(),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              mediaNotifierProvider.overrideWith(
+                () => _MockMediaNotifierWithMedia(testMedia),
+              ),
+              analysisNotifierProvider.overrideWith(
+                _MockAnalysisNotifierRunning.new,
+              ),
+            ],
+            child: const KidsLensApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      // Should show analysis progress indicator
-      expect(
-        find.byType(CircularProgressIndicator).evaluate().isNotEmpty ||
-            find.byType(LinearProgressIndicator).evaluate().isNotEmpty ||
-            find.textContaining('Analyzing').evaluate().isNotEmpty,
-        isTrue,
-      );
-    }, skip: true,); // MediaInfoCard has metadata access bug
+        // Should show analysis progress indicator
+        expect(
+          find.byType(CircularProgressIndicator).evaluate().isNotEmpty ||
+              find.byType(LinearProgressIndicator).evaluate().isNotEmpty ||
+              find.textContaining('Analyzing').evaluate().isNotEmpty,
+          isTrue,
+        );
+      },
+      skip: true,
+    ); // MediaInfoCard has metadata access bug
 
     testWidgets(
       'shows error state when analysis fails',
       (tester) async {
-      final testMedia = MediaFile.video(
-        id: 'test-id',
-        path: '/path/to/test_video.mp4',
-        name: 'test_video.mp4',
-        duration: const Duration(minutes: 5),
-        width: 1920,
-        height: 1080,
-        fileSize: 100000000,
-        codec: 'h264',
-        container: 'mp4',
-      );
+        final testMedia = MediaFile.video(
+          id: 'test-id',
+          path: '/path/to/test_video.mp4',
+          name: 'test_video.mp4',
+          duration: const Duration(minutes: 5),
+          width: 1920,
+          height: 1080,
+          fileSize: 100000000,
+          codec: 'h264',
+          container: 'mp4',
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            mediaNotifierProvider.overrideWith(
-              () => _MockMediaNotifierWithMedia(testMedia),
-            ),
-            analysisNotifierProvider.overrideWith(
-              _MockAnalysisNotifierFailed.new,
-            ),
-          ],
-          child: const KidsLensApp(),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              mediaNotifierProvider.overrideWith(
+                () => _MockMediaNotifierWithMedia(testMedia),
+              ),
+              analysisNotifierProvider.overrideWith(
+                _MockAnalysisNotifierFailed.new,
+              ),
+            ],
+            child: const KidsLensApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      // Error state could show error icon or message
-    }, skip: true,); // MediaInfoCard has metadata access bug
+        // Error state could show error icon or message
+      },
+      skip: true,
+    ); // MediaInfoCard has metadata access bug
   });
 
   group('Detection Options Integration', () {
-    testWidgets('can toggle all detection options',
-        (tester) async {
+    testWidgets('can toggle all detection options', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -296,8 +300,7 @@ void main() {
       }
     });
 
-    testWidgets('threshold sliders are interactive',
-        (tester) async {
+    testWidgets('threshold sliders are interactive', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -342,8 +345,7 @@ void main() {
   });
 
   group('Navigation Integration', () {
-    testWidgets('import buttons are visible on initial screen',
-        (tester) async {
+    testWidgets('import buttons are visible on initial screen', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),
@@ -374,8 +376,7 @@ void main() {
   });
 
   group('Accessibility Integration', () {
-    testWidgets('main navigation elements have semantics',
-        (tester) async {
+    testWidgets('main navigation elements have semantics', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: KidsLensApp(),

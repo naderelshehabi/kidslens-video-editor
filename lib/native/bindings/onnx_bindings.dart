@@ -698,7 +698,7 @@ class ONNXBindings extends NativeResource {
             .asFunction<UpdateCUDAProviderOptionsDart>();
 
         final status =
-          updateOptions(cudaOptions, keysPtr, valuesPtr, keys.length);
+            updateOptions(cudaOptions, keysPtr, valuesPtr, keys.length);
         _checkStatus(status);
 
         // 3. Append to session options
@@ -979,7 +979,8 @@ class ONNXBindings extends NativeResource {
       );
     } catch (e) {
       if (e is ONNXInferenceException) rethrow;
-      throw ONNXInferenceException('Labeled classification inference failed: $e');
+      throw ONNXInferenceException(
+          'Labeled classification inference failed: $e');
     }
   }
 
@@ -1263,12 +1264,12 @@ class ONNXBindings extends NativeResource {
     }
 
     final maxValue = usable.reduce(max);
-    final exps = usable
-        .map((value) => exp(value - maxValue))
-        .toList(growable: false);
+    final exps =
+        usable.map((value) => exp(value - maxValue)).toList(growable: false);
     final sum = exps.fold<double>(0.0, (total, value) => total + value);
     if (sum <= 0) {
-      throw ONNXInferenceException('Invalid classification output distribution');
+      throw ONNXInferenceException(
+          'Invalid classification output distribution');
     }
     final probabilities = exps
         .map((value) => (value / sum).clamp(0.0, 1.0).toDouble())
@@ -1277,7 +1278,8 @@ class ONNXBindings extends NativeResource {
       return probabilities;
     }
 
-    final padded = List<double>.filled(expectedLabelCount, 0.0, growable: false);
+    final padded =
+        List<double>.filled(expectedLabelCount, 0.0, growable: false);
     for (var i = 0; i < probabilities.length && i < expectedLabelCount; i++) {
       padded[i] = probabilities[i];
     }
@@ -1300,14 +1302,13 @@ class ONNXBindings extends NativeResource {
       maskWidth = shape[shape.length - 1];
       final planeSize = maskWidth * maskHeight;
       if (output.values.length < planeSize) {
-        throw ONNXInferenceException('Segmentation output is smaller than expected plane size');
+        throw ONNXInferenceException(
+            'Segmentation output is smaller than expected plane size');
       }
       final planeIndex = channels > 1 ? channels - 1 : 0;
       final offset = planeIndex * planeSize;
-      planeValues = output.values
-          .skip(offset)
-          .take(planeSize)
-          .toList(growable: false);
+      planeValues =
+          output.values.skip(offset).take(planeSize).toList(growable: false);
     } else if (shape.length == 3) {
       maskHeight = shape[shape.length - 2];
       maskWidth = shape[shape.length - 1];
@@ -1316,11 +1317,13 @@ class ONNXBindings extends NativeResource {
     } else if (shape.length == 2) {
       maskHeight = shape[0];
       maskWidth = shape[1];
-      planeValues = output.values.take(maskWidth * maskHeight).toList(growable: false);
+      planeValues =
+          output.values.take(maskWidth * maskHeight).toList(growable: false);
     } else {
       final side = sqrt(output.values.length).floor();
       if (side <= 0 || side * side != output.values.length) {
-        throw ONNXInferenceException('Unable to infer segmentation plane dimensions');
+        throw ONNXInferenceException(
+            'Unable to infer segmentation plane dimensions');
       }
       maskWidth = side;
       maskHeight = side;
@@ -1329,7 +1332,9 @@ class ONNXBindings extends NativeResource {
 
     final requiresSigmoid = planeValues.any((value) => value < 0 || value > 1);
     final normalized = planeValues
-        .map((value) => requiresSigmoid ? _sigmoid(value) : value.clamp(0.0, 1.0).toDouble())
+        .map((value) => requiresSigmoid
+            ? _sigmoid(value)
+            : value.clamp(0.0, 1.0).toDouble())
         .toList(growable: false);
     return (normalized, maskWidth, maskHeight);
   }
@@ -1928,7 +1933,7 @@ class ONNXBindings extends NativeResource {
             .toList();
         final cappedBoxes = thresholdedBoxes.length > maxDetections
             ? thresholdedBoxes.sublist(0, maxDetections)
-          : thresholdedBoxes;
+            : thresholdedBoxes;
 
         return cappedBoxes;
       });
@@ -1977,12 +1982,10 @@ class ONNXBindings extends NativeResource {
     }
 
     if (!parsedAny) {
-      final shapeText = outputs
-          .map((o) => '[${o.shape.join(', ')}]')
-          .join(', ');
-      final valuesInfo = outputs
-          .map((o) => 'len=${o.values.length}')
-          .join(', ');
+      final shapeText =
+          outputs.map((o) => '[${o.shape.join(', ')}]').join(', ');
+      final valuesInfo =
+          outputs.map((o) => 'len=${o.values.length}').join(', ');
       throw ONNXInferenceException(
         'Unsupported detection output layout. '
         'Received ${outputs.length} tensor(s) with shapes: $shapeText '

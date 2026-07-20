@@ -399,19 +399,18 @@ class DetectionPipelineShadowComparisonRunner {
     required EvaluationProfilePredictions defaultPredictions,
     List<EvaluationProfilePredictions> additionalPredictions =
         const <EvaluationProfilePredictions>[],
-  }) {
-    return evaluationRunner.compare(
-      dataset: dataset,
-      profilePredictions: [
-        legacyPredictions,
-        ...additionalPredictions,
-        defaultPredictions,
-      ],
-      legacyProfileId: legacyPredictions.profileId,
-      defaultProfileId: defaultPredictions.profileId,
-      thresholds: thresholds,
-    );
-  }
+  }) =>
+      evaluationRunner.compare(
+        dataset: dataset,
+        profilePredictions: [
+          legacyPredictions,
+          ...additionalPredictions,
+          defaultPredictions,
+        ],
+        legacyProfileId: legacyPredictions.profileId,
+        defaultProfileId: defaultPredictions.profileId,
+        thresholds: thresholds,
+      );
 
   Future<StoredRolloutComparisonReport> compareAndStoreFixtures({
     required EvaluationDataset dataset,
@@ -436,7 +435,7 @@ String _safeFilePart(String value) {
   final buffer = StringBuffer();
   for (final codeUnit in value.codeUnits) {
     final char = String.fromCharCode(codeUnit);
-    final isSafe = RegExp(r'[A-Za-z0-9._-]').hasMatch(char);
+    final isSafe = RegExp('[A-Za-z0-9._-]').hasMatch(char);
     buffer.write(isSafe ? char : '_');
   }
   final sanitized = buffer.toString();

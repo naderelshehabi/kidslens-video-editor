@@ -255,36 +255,36 @@ class _SubtitleDialogState extends ConsumerState<SubtitleDialog> {
   }
 
   Widget _buildMediaInfo(ThemeData theme) => Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Icon(
-              widget.media.isVideo ? Icons.videocam : Icons.audiotrack,
-              size: 32,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    p.basename(widget.media.path),
-                    style: theme.textTheme.titleSmall,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Duration: ${_formatDuration(widget.media.duration)}',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ],
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Icon(
+                widget.media.isVideo ? Icons.videocam : Icons.audiotrack,
+                size: 32,
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p.basename(widget.media.path),
+                      style: theme.textTheme.titleSmall,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Duration: ${_formatDuration(widget.media.duration)}',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
 
   Widget _buildModelSelection(ThemeData theme) {
     final modelState = ref.watch(modelNotifierProvider);
@@ -344,33 +344,37 @@ class _SubtitleDialogState extends ConsumerState<SubtitleDialog> {
                 vertical: 8,
               ),
             ),
-            items: downloadedAsrModels.map((model) => DropdownMenuItem(
-                value: model.id,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(model.displayName),
-                    ),
-                    if (model.isRecommended)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
+            items: downloadedAsrModels
+                .map(
+                  (model) => DropdownMenuItem(
+                    value: model.id,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(model.displayName),
                         ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          'Recommended',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onPrimaryContainer,
+                        if (model.isRecommended)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Recommended',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onPrimaryContainer,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),).toList(),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
             onChanged: (value) {
               setState(() {
                 _selectedModelId = value;
@@ -382,162 +386,163 @@ class _SubtitleDialogState extends ConsumerState<SubtitleDialog> {
   }
 
   Widget _buildFormatSelection(ThemeData theme) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Subtitle Format', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children: SubtitleFormat.values.map((format) {
-            final isSelected = _format == format;
-            return ChoiceChip(
-              label: Text(format.displayName),
-              selected: isSelected,
-              onSelected: (selected) {
-                if (selected) {
-                  setState(() {
-                    _format = format;
-                    _updateOutputPath();
-                  });
-                }
-              },
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          _getFormatDescription(_format),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Subtitle Format', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: SubtitleFormat.values.map((format) {
+              final isSelected = _format == format;
+              return ChoiceChip(
+                label: Text(format.displayName),
+                selected: isSelected,
+                onSelected: (selected) {
+                  if (selected) {
+                    setState(() {
+                      _format = format;
+                      _updateOutputPath();
+                    });
+                  }
+                },
+              );
+            }).toList(),
           ),
-        ),
-      ],
-    );
+          const SizedBox(height: 8),
+          Text(
+            _getFormatDescription(_format),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      );
 
   Widget _buildOutputPath(ThemeData theme) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Output Location', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                initialValue: _outputPath,
-                readOnly: true,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Output Location', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  initialValue: _outputPath,
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
+                  style: theme.textTheme.bodySmall,
                 ),
-                style: theme.textTheme.bodySmall,
               ),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.folder_open),
-              onPressed: _browseOutputPath,
-              tooltip: 'Browse',
-            ),
-          ],
-        ),
-      ],
-    );
-
-  Widget _buildProgressSection(ThemeData theme, ColorScheme colorScheme) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Progress indicator
-        LinearProgressIndicator(
-          value: _isComplete ? 1.0 : _progress,
-          backgroundColor: colorScheme.surfaceContainerHighest,
-        ),
-        const SizedBox(height: 12),
-
-        // Phase info
-        Row(
-          children: [
-            if (_isComplete)
-              Icon(
-                Icons.check_circle,
-                color: colorScheme.primary,
-                size: 20,
-              )
-            else
-              const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.folder_open),
+                onPressed: _browseOutputPath,
+                tooltip: 'Browse',
               ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                _isComplete
-                    ? 'Subtitles generated successfully!'
-                    : _currentPhase,
-                style: theme.textTheme.bodyMedium,
-              ),
-            ),
-          ],
-        ),
-
-        if (_isComplete && _transcript != null) ...[
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Subtitle Statistics',
-                    style: theme.textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildStatRow(
-                    'Segments',
-                    '${_transcript!.segments.length}',
-                    Icons.segment,
-                  ),
-                  _buildStatRow(
-                    'Total Words',
-                    '${_transcript!.totalWordCount}',
-                    Icons.text_fields,
-                  ),
-                  _buildStatRow(
-                    'Language',
-                    _transcript!.language.toUpperCase(),
-                    Icons.language,
-                  ),
-                  _buildStatRow(
-                    'Output File',
-                    p.basename(_outputPath),
-                    Icons.insert_drive_file,
-                  ),
-                ],
-              ),
-            ),
+            ],
           ),
         ],
-      ],
-    );
+      );
+
+  Widget _buildProgressSection(ThemeData theme, ColorScheme colorScheme) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Progress indicator
+          LinearProgressIndicator(
+            value: _isComplete ? 1.0 : _progress,
+            backgroundColor: colorScheme.surfaceContainerHighest,
+          ),
+          const SizedBox(height: 12),
+
+          // Phase info
+          Row(
+            children: [
+              if (_isComplete)
+                Icon(
+                  Icons.check_circle,
+                  color: colorScheme.primary,
+                  size: 20,
+                )
+              else
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _isComplete
+                      ? 'Subtitles generated successfully!'
+                      : _currentPhase,
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ),
+            ],
+          ),
+
+          if (_isComplete && _transcript != null) ...[
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Subtitle Statistics',
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildStatRow(
+                      'Segments',
+                      '${_transcript!.segments.length}',
+                      Icons.segment,
+                    ),
+                    _buildStatRow(
+                      'Total Words',
+                      '${_transcript!.totalWordCount}',
+                      Icons.text_fields,
+                    ),
+                    _buildStatRow(
+                      'Language',
+                      _transcript!.language.toUpperCase(),
+                      Icons.language,
+                    ),
+                    _buildStatRow(
+                      'Output File',
+                      p.basename(_outputPath),
+                      Icons.insert_drive_file,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      );
 
   Widget _buildStatRow(String label, String value, IconData icon) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 16),
-          const SizedBox(width: 8),
-          Text('$label: '),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Icon(icon, size: 16),
+            const SizedBox(width: 8),
+            Text('$label: '),
+            Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      );
 
   String _getFormatDescription(SubtitleFormat format) => switch (format) {
         SubtitleFormat.srt =>

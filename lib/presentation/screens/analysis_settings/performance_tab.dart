@@ -23,7 +23,8 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
   SystemCapabilities? _systemCapabilities;
   GpuInfoDetails? _gpuDetails;
   List<CudaGpuDevice> _cudaDevices = const [];
-  List<DirectMLDevice> _directmlDevices = const []; // Reserved for future DirectML device selection UI
+  List<DirectMLDevice> _directmlDevices =
+      const []; // Reserved for future DirectML device selection UI
   List<String> _availableProviders = const [];
   bool _whisperGpuAvailable = false;
   String? _whisperGpuBackend;
@@ -112,7 +113,9 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
     try {
       if (Platform.isWindows) {
         final result = await Process.run(
-            'wmic', ['OS', 'get', 'TotalVisibleMemorySize', '/value'],);
+          'wmic',
+          ['OS', 'get', 'TotalVisibleMemorySize', '/value'],
+        );
         final match = RegExp(r'TotalVisibleMemorySize=(\d+)')
             .firstMatch(result.stdout.toString());
         if (match != null) {
@@ -138,7 +141,9 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
     try {
       if (Platform.isWindows) {
         final result = await Process.run(
-            'wmic', ['logicaldisk', 'get', 'size,freespace', '/value'],);
+          'wmic',
+          ['logicaldisk', 'get', 'size,freespace', '/value'],
+        );
         final sizeMatch =
             RegExp(r'Size=(\d+)').firstMatch(result.stdout.toString());
         final freeMatch =
@@ -188,7 +193,7 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
           _buildSectionHeader(context, 'Detected Hardware', Icons.memory),
           const SizedBox(height: 16),
           _buildHardwareInfo(context),
-          
+
           // GPU Device Enumeration (shown for multi-GPU systems)
           if (_cudaDevices.isNotEmpty || _directmlDevices.length > 1) ...[
             const SizedBox(height: 16),
@@ -207,7 +212,10 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Acceleration Method', style: theme.textTheme.titleMedium),
+                  Text(
+                    'Acceleration Method',
+                    style: theme.textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     'Choose how AI models process frames',
@@ -227,19 +235,22 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
                         value: 'cuda',
                         label: const Text('CUDA'),
                         icon: const Icon(Icons.bolt),
-                        enabled: _availableProviders.contains('CUDAExecutionProvider'),
+                        enabled: _availableProviders
+                            .contains('CUDAExecutionProvider'),
                       ),
                       ButtonSegment(
                         value: 'directml',
                         label: const Text('DirectML'),
                         icon: const Icon(Icons.dashboard_customize),
-                        enabled: _availableProviders.contains('DmlExecutionProvider'),
+                        enabled: _availableProviders
+                            .contains('DmlExecutionProvider'),
                       ),
                       ButtonSegment(
                         value: 'coreml',
                         label: const Text('CoreML'),
                         icon: const Icon(Icons.apple),
-                        enabled: _availableProviders.contains('CoreMLExecutionProvider'),
+                        enabled: _availableProviders
+                            .contains('CoreMLExecutionProvider'),
                       ),
                       const ButtonSegment(
                         value: 'cpu',
@@ -248,7 +259,7 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
                       ),
                     ],
                     selected: {modelConfig.onnxExecutionProvider},
-                    onSelectionChanged: (Set<String> selection) {
+                    onSelectionChanged: (selection) {
                       _updateModelConfig(
                         ref,
                         settings,
@@ -289,7 +300,7 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
               ),
             ),
           ),
-          
+
           // Single GPU selector for both transcription and content analysis
           if (hasCudaDevices && modelConfig.useGpu) ...[
             const SizedBox(height: 12),
@@ -308,26 +319,33 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    
+
                     // Show which physical GPU this index refers to
-                    if (_directmlDevices.length > 1)
-                      _buildGpuIndexInfo(theme),
-                    if (_directmlDevices.length > 1)
-                      const SizedBox(height: 12),
-                    
+                    if (_directmlDevices.length > 1) _buildGpuIndexInfo(theme),
+                    if (_directmlDevices.length > 1) const SizedBox(height: 12),
+
                     DropdownButtonFormField<int>(
-                      value: _resolveSelectedCudaIndex(modelConfig.gpuDeviceIndex),
+                      initialValue:
+                          _resolveSelectedCudaIndex(modelConfig.gpuDeviceIndex),
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                         isDense: true,
                       ),
-                      items: _cudaDevices.map((gpu) => DropdownMenuItem<int>(
-                        value: gpu.index,
-                        child: Text('GPU ${gpu.index}: ${gpu.name}'),
-                      )).toList(),
+                      items: _cudaDevices
+                          .map(
+                            (gpu) => DropdownMenuItem<int>(
+                              value: gpu.index,
+                              child: Text('GPU ${gpu.index}: ${gpu.name}'),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (value) {
                         if (value == null) return;
-                        _updateModelConfig(ref, settings, gpuDeviceIndex: value);
+                        _updateModelConfig(
+                          ref,
+                          settings,
+                          gpuDeviceIndex: value,
+                        );
                       },
                     ),
                   ],
@@ -342,14 +360,18 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+                  const Icon(
+                    Icons.warning_amber,
+                    color: Colors.orange,
+                    size: 20,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -387,7 +409,10 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
 
           // CPU Configuration Section
           _buildSectionHeader(
-              context, 'CPU Configuration', Icons.developer_board,),
+            context,
+            'CPU Configuration',
+            Icons.developer_board,
+          ),
           const SizedBox(height: 16),
 
           // CPU threads slider
@@ -754,7 +779,7 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
   Widget _buildGpuEnumerationInfo(BuildContext context, ThemeData theme) {
     final hasCuda = _cudaDevices.isNotEmpty;
     final hasDirectML = _directmlDevices.isNotEmpty;
-    
+
     if (!hasCuda && !hasDirectML) return const SizedBox.shrink();
 
     return Card(
@@ -781,7 +806,7 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // CUDA devices
             if (hasCuda) ...[
               Text(
@@ -792,45 +817,47 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
                 ),
               ),
               const SizedBox(height: 8),
-              ..._cudaDevices.map((gpu) => Padding(
-                padding: const EdgeInsets.only(left: 16, bottom: 4),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 24,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        '${gpu.index}',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
+              ..._cudaDevices.map(
+                (gpu) => Padding(
+                  padding: const EdgeInsets.only(left: 16, bottom: 4),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 24,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '${gpu.index}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        gpu.name,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ),
-                    if (gpu.memoryTotalMB != null)
-                      Text(
-                        '${(gpu.memoryTotalMB! / 1024).toStringAsFixed(1)} GB',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          gpu.name,
+                          style: theme.textTheme.bodySmall,
                         ),
                       ),
-                  ],
+                      if (gpu.memoryTotalMB != null)
+                        Text(
+                          '${(gpu.memoryTotalMB! / 1024).toStringAsFixed(1)} GB',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              )),
+              ),
               if (hasDirectML) const SizedBox(height: 16),
             ],
-            
+
             // DirectML devices
             if (hasDirectML) ...[
               Text(
@@ -842,9 +869,9 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
               ),
               const SizedBox(height: 8),
               ..._directmlDevices.map((gpu) {
-                final isIntegrated = gpu.name.contains('Intel') || 
-                                    gpu.name.contains('UHD') ||
-                                    gpu.name.contains('Iris');
+                final isIntegrated = gpu.name.contains('Intel') ||
+                    gpu.name.contains('UHD') ||
+                    gpu.name.contains('Iris');
                 return Padding(
                   padding: const EdgeInsets.only(left: 16, bottom: 4),
                   child: Row(
@@ -878,10 +905,10 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.2),
+                            color: Colors.orange.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
-                              color: Colors.orange.withOpacity(0.5),
+                              color: Colors.orange.withValues(alpha: 0.5),
                             ),
                           ),
                           child: Text(
@@ -903,21 +930,25 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
                 );
               }),
             ],
-            
+
             // Info banner about device numbering
             if (hasCuda && hasDirectML && _directmlDevices.length > 1) ...[
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                    const Icon(
+                      Icons.info_outline,
+                      color: Colors.blue,
+                      size: 20,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -948,11 +979,11 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
     if (_cudaDevices.isEmpty || _directmlDevices.length <= 1) {
       return const SizedBox.shrink();
     }
-    
+
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
+        color: Colors.blue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
@@ -965,46 +996,46 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
 
   Widget _buildProviderInfoBanner(String provider) {
     final theme = Theme.of(context);
-    
+
     final (icon, color, title, message) = switch (provider) {
       'cuda' => (
-        Icons.rocket_launch,
-        Colors.green,
-        'Maximum Performance',
-        'CUDA provides fastest inference on NVIDIA GPUs',
-      ),
+          Icons.rocket_launch,
+          Colors.green,
+          'Maximum Performance',
+          'CUDA provides fastest inference on NVIDIA GPUs',
+        ),
       'directml' => (
-        Icons.info,
-        Colors.blue,
-        'Universal Compatibility',
-        'DirectML works with NVIDIA, AMD, and Intel GPUs',
-      ),
+          Icons.info,
+          Colors.blue,
+          'Universal Compatibility',
+          'DirectML works with NVIDIA, AMD, and Intel GPUs',
+        ),
       'coreml' => (
-        Icons.apple,
-        Colors.blue,
-        'Apple Silicon Optimized',
-        'Leverages Neural Engine for efficient inference',
-      ),
+          Icons.apple,
+          Colors.blue,
+          'Apple Silicon Optimized',
+          'Leverages Neural Engine for efficient inference',
+        ),
       'cpu' => (
-        Icons.warning_amber,
-        Colors.orange,
-        'Limited Performance',
-        'CPU-only mode is significantly slower',
-      ),
+          Icons.warning_amber,
+          Colors.orange,
+          'Limited Performance',
+          'CPU-only mode is significantly slower',
+        ),
       _ => (
-        Icons.auto_awesome,
-        Colors.blue,
-        'Automatic Selection',
-        'Automatically chooses the best available accelerator',
-      ),
+          Icons.auto_awesome,
+          Colors.blue,
+          'Automatic Selection',
+          'Automatically chooses the best available accelerator',
+        ),
     };
-    
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -1034,14 +1065,15 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
     int? batchSize,
     String? onnxExecutionProvider,
   }) {
-    var finalGpuDeviceIndex = gpuDeviceIndex ?? settings.modelConfig.gpuDeviceIndex;
-    
+    var finalGpuDeviceIndex =
+        gpuDeviceIndex ?? settings.modelConfig.gpuDeviceIndex;
+
     // Handle provider switching: intelligently map device indices
-    if (onnxExecutionProvider != null && 
+    if (onnxExecutionProvider != null &&
         onnxExecutionProvider != settings.modelConfig.onnxExecutionProvider) {
       final oldProvider = settings.modelConfig.onnxExecutionProvider;
       final currentDeviceIndex = settings.modelConfig.gpuDeviceIndex;
-      
+
       // Switching between CUDA and DirectML requires device mapping
       if ((oldProvider == 'cuda' && onnxExecutionProvider == 'directml') ||
           (oldProvider == 'directml' && onnxExecutionProvider == 'cuda') ||
@@ -1054,41 +1086,43 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
         );
       }
     }
-    
+
     final updatedConfig = settings.modelConfig.copyWith(
       useGpu: useGpu ?? settings.modelConfig.useGpu,
       useFp16: useFp16 ?? settings.modelConfig.useFp16,
       gpuDeviceIndex: finalGpuDeviceIndex,
       cpuThreads: cpuThreads ?? settings.modelConfig.cpuThreads,
       batchSize: batchSize ?? settings.modelConfig.batchSize,
-      onnxExecutionProvider: onnxExecutionProvider ?? settings.modelConfig.onnxExecutionProvider,
+      onnxExecutionProvider:
+          onnxExecutionProvider ?? settings.modelConfig.onnxExecutionProvider,
     );
     final updated = settings.copyWith(modelConfig: updatedConfig);
     ref.read(settingsNotifierProvider.notifier).updateAnalysisSettings(updated);
   }
 
   /// Map device index when switching between execution providers
-  /// 
+  ///
   /// Attempts to maintain the same physical GPU when switching between
   /// CUDA (NVIDIA-only) and DirectML (all GPUs) providers.
   int _mapDeviceIndexBetweenProviders(
-    int currentIndex,
-    {required String fromProvider,
+    int currentIndex, {
+    required String fromProvider,
     required String toProvider,
   }) {
     // CUDA/Auto -> DirectML: Find the NVIDIA GPU in DirectML list
-    if ((fromProvider == 'cuda' || fromProvider == 'auto') && toProvider == 'directml') {
+    if ((fromProvider == 'cuda' || fromProvider == 'auto') &&
+        toProvider == 'directml') {
       if (_cudaDevices.isEmpty || _directmlDevices.isEmpty) return 0;
-      
+
       // Get the name of the currently selected CUDA device
       final cudaDevice = _cudaDevices.firstWhere(
         (gpu) => gpu.index == currentIndex,
         orElse: () => _cudaDevices.first,
       );
-      
+
       // Find matching DirectML device by name (contains NVIDIA or RTX)
       for (final dmlDevice in _directmlDevices) {
-        if (dmlDevice.name.contains('NVIDIA') || 
+        if (dmlDevice.name.contains('NVIDIA') ||
             dmlDevice.name.contains('RTX') ||
             dmlDevice.name.contains('GeForce') ||
             dmlDevice.name.contains('Quadro') ||
@@ -1097,27 +1131,29 @@ class _PerformanceTabState extends ConsumerState<PerformanceTab> {
           return dmlDevice.deviceId;
         }
       }
-      
+
       // Fallback: return last device (often discrete GPU)
       return _directmlDevices.last.deviceId;
     }
-    
+
     // DirectML/Auto -> CUDA: Find the NVIDIA GPU in CUDA list
-    if ((fromProvider == 'directml' || fromProvider == 'auto') && toProvider == 'cuda') {
+    if ((fromProvider == 'directml' || fromProvider == 'auto') &&
+        toProvider == 'cuda') {
       if (_cudaDevices.isEmpty) return 0;
-      
+
       // If coming from first DirectML device (often integrated), use first CUDA
       // Otherwise, try to maintain selection
       if (currentIndex == 0) return _cudaDevices.first.index;
-      
+
       // Try to find matching index if valid
-      final matchingCuda = _cudaDevices.where((gpu) => gpu.index == currentIndex).firstOrNull;
+      final matchingCuda =
+          _cudaDevices.where((gpu) => gpu.index == currentIndex).firstOrNull;
       if (matchingCuda != null) return matchingCuda.index;
-      
+
       // Default to first CUDA device
       return _cudaDevices.first.index;
     }
-    
+
     // Default: keep current index
     return currentIndex;
   }

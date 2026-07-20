@@ -120,7 +120,8 @@ class ThresholdsTab extends ConsumerWidget {
           // Empty state when no categories are configured
           if (categories.isEmpty)
             Card(
-              color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.3),
+              color:
+                  theme.colorScheme.secondaryContainer.withValues(alpha: 0.3),
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Center(
@@ -296,12 +297,10 @@ class ThresholdsTab extends ConsumerWidget {
                   _buildPresetChip(
                     context,
                     label: 'Strict',
-                    description:
-                        'Maximum protection, may have false positives',
+                    description: 'Maximum protection, may have false positives',
                     icon: Icons.shield,
                     color: Colors.green,
-                    onTap: () =>
-                        _applyPreset(ref, AnalysisSettings.strict()),
+                    onTap: () => _applyPreset(ref, AnalysisSettings.strict()),
                   ),
                   _buildPresetChip(
                     context,
@@ -309,14 +308,12 @@ class ThresholdsTab extends ConsumerWidget {
                     description: 'Good balance of detection and accuracy',
                     icon: Icons.balance,
                     color: Colors.blue,
-                    onTap: () =>
-                        _applyPreset(ref, AnalysisSettings.defaults()),
+                    onTap: () => _applyPreset(ref, AnalysisSettings.defaults()),
                   ),
                   _buildPresetChip(
                     context,
                     label: 'Permissive',
-                    description:
-                        'Fewer false positives, may miss some content',
+                    description: 'Fewer false positives, may miss some content',
                     icon: Icons.tune,
                     color: Colors.orange,
                     onTap: () =>
@@ -365,8 +362,7 @@ class ThresholdsTab extends ConsumerWidget {
                   Text(
                     description,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                   ),
                 ],
@@ -434,14 +430,12 @@ class ThresholdsTab extends ConsumerWidget {
                           ),
                           Text(
                             description,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
                           ),
                         ],
                       ),
@@ -504,8 +498,7 @@ class ThresholdsTab extends ConsumerWidget {
 
   void _applyPreset(WidgetRef ref, AnalysisSettings preset) {
     // Keep current model config and content detection config but apply preset thresholds
-    final currentSettings =
-        ref.read(settingsNotifierProvider).analysisSettings;
+    final currentSettings = ref.read(settingsNotifierProvider).analysisSettings;
     final updated = preset.copyWith(
       modelConfig: currentSettings.modelConfig,
       contentDetectionConfig: currentSettings.contentDetectionConfig,
@@ -514,13 +507,14 @@ class ThresholdsTab extends ConsumerWidget {
   }
 
   void _resetToDefaults(WidgetRef ref) {
-    final currentSettings =
-        ref.read(settingsNotifierProvider).analysisSettings;
+    final currentSettings = ref.read(settingsNotifierProvider).analysisSettings;
     final defaults = AnalysisSettings.defaults().copyWith(
       modelConfig: currentSettings.modelConfig,
       contentDetectionConfig: currentSettings.contentDetectionConfig,
     );
-    ref.read(settingsNotifierProvider.notifier).updateAnalysisSettings(defaults);
+    ref
+        .read(settingsNotifierProvider.notifier)
+        .updateAnalysisSettings(defaults);
   }
 
   Widget _buildThresholdExplanation(ThemeData theme) => Card(

@@ -23,8 +23,6 @@ void main() {
       test('validates successfully with correct settings', () {
         const config = ModelConfig(
           asrModelId: 'whisper-base',
-          useGpu: true,
-          gpuDeviceIndex: 0,
           onnxExecutionProvider: 'cuda',
         );
         expect(config.validate(), isEmpty);
@@ -34,7 +32,6 @@ void main() {
       test('rejects negative GPU device index', () {
         const config = ModelConfig(
           asrModelId: 'whisper-base',
-          useGpu: true,
           gpuDeviceIndex: -1,
         );
         final issues = config.validate();
@@ -45,7 +42,6 @@ void main() {
       test('rejects negative GPU device index (alternate case)', () {
         const config = ModelConfig(
           asrModelId: 'whisper-base',
-          useGpu: true,
           gpuDeviceIndex: -2,
         );
         final issues = config.validate();
@@ -56,7 +52,6 @@ void main() {
       test('rejects GPU enabled with CPU execution provider', () {
         const config = ModelConfig(
           asrModelId: 'whisper-base',
-          useGpu: true,
           onnxExecutionProvider: 'cpu',
         );
         final issues = config.validate();

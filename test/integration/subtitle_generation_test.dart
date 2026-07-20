@@ -107,7 +107,9 @@ void main() {
       final whisper2 = container.read(whisperBindingsProvider);
       // Should already be initialized since same instance
       expect(
-          whisper2.isModelLoaded(), isFalse,); // Initialized but no model loaded
+        whisper2.isModelLoaded(),
+        isFalse,
+      ); // Initialized but no model loaded
     });
   });
 
@@ -278,14 +280,20 @@ void main() {
 
       expect(subtitleTrack.segments[0].text, equals('Hello world'));
       expect(subtitleTrack.segments[0].startTime, equals(Duration.zero));
-      expect(subtitleTrack.segments[0].endTime,
-          equals(const Duration(seconds: 2)),);
+      expect(
+        subtitleTrack.segments[0].endTime,
+        equals(const Duration(seconds: 2)),
+      );
 
       expect(subtitleTrack.segments[1].text, equals('This is a test'));
-      expect(subtitleTrack.segments[1].startTime,
-          equals(const Duration(seconds: 2)),);
-      expect(subtitleTrack.segments[1].endTime,
-          equals(const Duration(seconds: 5)),);
+      expect(
+        subtitleTrack.segments[1].startTime,
+        equals(const Duration(seconds: 2)),
+      );
+      expect(
+        subtitleTrack.segments[1].endTime,
+        equals(const Duration(seconds: 5)),
+      );
     });
 
     test('should convert SubtitleTrack back to Transcript', () {
@@ -417,7 +425,11 @@ void main() {
             id: 'seg',
             text: 'Test',
             startTime: Duration(
-                hours: 1, minutes: 23, seconds: 45, milliseconds: 678,),
+              hours: 1,
+              minutes: 23,
+              seconds: 45,
+              milliseconds: 678,
+            ),
             endTime: Duration(hours: 2),
             words: [],
           ),

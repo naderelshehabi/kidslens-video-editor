@@ -118,8 +118,8 @@ class FrameBufferPool {
     // Cancel all waiters
     while (_waiters.isNotEmpty) {
       _waiters.removeFirst().completeError(
-        FrameBufferDisposedException('Frame buffer pool was disposed'),
-      );
+            FrameBufferDisposedException('Frame buffer pool was disposed'),
+          );
     }
   }
 }

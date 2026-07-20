@@ -28,8 +28,7 @@ class TimelineState {
   }) =>
       TimelineState(
         timeline: timeline ?? this.timeline,
-        selectedDetectionIds:
-            selectedDetectionIds ?? this.selectedDetectionIds,
+        selectedDetectionIds: selectedDetectionIds ?? this.selectedDetectionIds,
         playheadPosition: playheadPosition ?? this.playheadPosition,
         zoomLevel: zoomLevel ?? this.zoomLevel,
         isPlaying: isPlaying ?? this.isPlaying,
@@ -65,7 +64,7 @@ class TimelineNotifier extends _$TimelineNotifier {
     final timeline = state.timeline;
     final updatedIds = Set<String>.from(state.selectedDetectionIds)
       ..remove(detectionId);
-    
+
     if (timeline != null) {
       final updated = timeline.updateDetection(detectionId, isSelected: false);
       state = state.copyWith(

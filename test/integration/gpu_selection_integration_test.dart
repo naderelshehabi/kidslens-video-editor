@@ -4,10 +4,8 @@ import 'package:kidslens_video_editor/data/models/analysis_settings.dart';
 void main() {
   group('GPU Selection Integration', () {
     test('ModelConfig validation accepts valid GPU indices', () {
-      final config = ModelConfig(
+      const config = ModelConfig(
         asrModelId: 'whisper-base',
-        useGpu: true,
-        gpuDeviceIndex: 0,
         onnxExecutionProvider: 'cuda',
       );
 
@@ -16,9 +14,8 @@ void main() {
     });
 
     test('ModelConfig validation rejects negative GPU indices', () {
-      final config = ModelConfig(
+      const config = ModelConfig(
         asrModelId: 'whisper-base',
-        useGpu: true,
         gpuDeviceIndex: -1,
       );
 
@@ -28,7 +25,7 @@ void main() {
     });
 
     test('ModelConfig validation rejects invalid execution providers', () {
-      final config = ModelConfig(
+      const config = ModelConfig(
         asrModelId: 'whisper-base',
         onnxExecutionProvider: 'invalid_provider',
       );
@@ -39,15 +36,17 @@ void main() {
     });
 
     test('ModelConfig validation rejects CPU provider with GPU enabled', () {
-      final config = ModelConfig(
+      const config = ModelConfig(
         asrModelId: 'whisper-base',
-        useGpu: true,
         onnxExecutionProvider: 'cpu',
       );
 
       final issues = config.validate();
       expect(issues, isNotEmpty);
-      expect(issues.first, contains('Cannot enable GPU with CPU execution provider'));
+      expect(
+        issues.first,
+        contains('Cannot enable GPU with CPU execution provider'),
+      );
     });
 
     test('ModelConfig validation accepts all valid execution providers', () {
@@ -67,7 +66,7 @@ void main() {
     });
 
     test('ModelConfig validation allows GPU disabled', () {
-      final config = ModelConfig(
+      const config = ModelConfig(
         asrModelId: 'whisper-base',
         useGpu: false,
         onnxExecutionProvider: 'cpu',
@@ -78,10 +77,8 @@ void main() {
     });
 
     test('ModelConfig validation allows GPU device 0 when enabled', () {
-      final config = ModelConfig(
+      const config = ModelConfig(
         asrModelId: 'whisper-base',
-        useGpu: true,
-        gpuDeviceIndex: 0,
       );
 
       final issues = config.validate();
@@ -89,9 +86,8 @@ void main() {
     });
 
     test('ModelConfig isValid getter returns true for valid config', () {
-      final config = ModelConfig(
+      const config = ModelConfig(
         asrModelId: 'whisper-base',
-        useGpu: true,
         gpuDeviceIndex: 1,
         onnxExecutionProvider: 'cuda',
       );
@@ -100,9 +96,8 @@ void main() {
     });
 
     test('ModelConfig isValid getter returns false for invalid config', () {
-      final config = ModelConfig(
+      const config = ModelConfig(
         asrModelId: 'whisper-base',
-        useGpu: true,
         gpuDeviceIndex: -1,
       );
 
@@ -118,7 +113,7 @@ void main() {
     });
 
     test('ModelConfig allows disabling GPU with non-CPU provider', () {
-      final config = ModelConfig(
+      const config = ModelConfig(
         asrModelId: 'whisper-base',
         useGpu: false,
         onnxExecutionProvider: 'cuda',
@@ -130,9 +125,8 @@ void main() {
     });
 
     test('ModelConfig supports choosing a specific GPU device', () {
-      final config = ModelConfig(
+      const config = ModelConfig(
         asrModelId: 'whisper-base',
-        useGpu: true,
         gpuDeviceIndex: 2,
         onnxExecutionProvider: 'cuda',
       );

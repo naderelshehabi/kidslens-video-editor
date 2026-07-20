@@ -122,7 +122,8 @@ class ClipTokenizer {
 
     // Pad or truncate to contextLength
     final result = Int32List(contextLength);
-    final copyLen = tokens.length < contextLength ? tokens.length : contextLength;
+    final copyLen =
+        tokens.length < contextLength ? tokens.length : contextLength;
 
     // If truncating, ensure EOT is at the end
     for (var i = 0; i < copyLen; i++) {
@@ -213,7 +214,8 @@ class ClipTokenizer {
   }
 
   /// Clean whitespace in text.
-  static String _whitespaceClean(String text) => text.replaceAll(RegExp(r'\s+'), ' ').trim();
+  static String _whitespaceClean(String text) =>
+      text.replaceAll(RegExp(r'\s+'), ' ').trim();
 
   /// Build byte-to-unicode mapping (standard CLIP BPE byte encoding).
   ///
@@ -222,12 +224,18 @@ class ClipTokenizer {
   static Map<int, String> _bytesToUnicode() {
     // Printable ASCII + Latin-1 Supplement ranges
     final bs = <int>[
-      ...List.generate('~'.codeUnitAt(0) - '!'.codeUnitAt(0) + 1,
-          (i) => '!'.codeUnitAt(0) + i,),
-      ...List.generate('¬'.codeUnitAt(0) - '¡'.codeUnitAt(0) + 1,
-          (i) => '¡'.codeUnitAt(0) + i,),
-      ...List.generate('ÿ'.codeUnitAt(0) - '®'.codeUnitAt(0) + 1,
-          (i) => '®'.codeUnitAt(0) + i,),
+      ...List.generate(
+        '~'.codeUnitAt(0) - '!'.codeUnitAt(0) + 1,
+        (i) => '!'.codeUnitAt(0) + i,
+      ),
+      ...List.generate(
+        '¬'.codeUnitAt(0) - '¡'.codeUnitAt(0) + 1,
+        (i) => '¡'.codeUnitAt(0) + i,
+      ),
+      ...List.generate(
+        'ÿ'.codeUnitAt(0) - '®'.codeUnitAt(0) + 1,
+        (i) => '®'.codeUnitAt(0) + i,
+      ),
     ];
 
     final cs = List<int>.from(bs);
@@ -273,12 +281,19 @@ class ClipBuiltInTokens {
 
   /// "explicit sexual act"
   static final Int32List explicitSexualAct = _pad([
-    49406, 6969, 6402, 1328, 49407,
+    49406,
+    6969,
+    6402,
+    1328,
+    49407,
   ]);
 
   /// "sexual intercourse"
   static final Int32List sexualIntercourse = _pad([
-    49406, 6402, 22031, 49407,
+    49406,
+    6402,
+    22031,
+    49407,
   ]);
 
   // ============================================================
@@ -287,12 +302,18 @@ class ClipBuiltInTokens {
 
   /// "people exercising"
   static final Int32List peopleExercising = _pad([
-    49406, 1047, 26585, 49407,
+    49406,
+    1047,
+    26585,
+    49407,
   ]);
 
   /// "wrestling match"
   static final Int32List wrestlingMatch = _pad([
-    49406, 14838, 1528, 49407,
+    49406,
+    14838,
+    1528,
+    49407,
   ]);
 
   // ============================================================
@@ -301,12 +322,22 @@ class ClipBuiltInTokens {
 
   /// "two people kissing"
   static final Int32List twoPeopleKissing = _pad([
-    49406, 1237, 1047, 25765, 49407,
+    49406,
+    1237,
+    1047,
+    25765,
+    49407,
   ]);
 
   /// "romantic kiss on the lips"
   static final Int32List romanticKissOnTheLips = _pad([
-    49406, 6875, 6836, 525, 518, 10734, 49407,
+    49406,
+    6875,
+    6836,
+    525,
+    518,
+    10734,
+    49407,
   ]);
 
   // ============================================================
@@ -315,12 +346,22 @@ class ClipBuiltInTokens {
 
   /// "two people talking face to face"
   static final Int32List twoPeopleTalkingFaceToFace = _pad([
-    49406, 1237, 1047, 3823, 1933, 531, 1933, 49407,
+    49406,
+    1237,
+    1047,
+    3823,
+    1933,
+    531,
+    1933,
+    49407,
   ]);
 
   /// "people hugging"
   static final Int32List peopleHugging = _pad([
-    49406, 1047, 26360, 49407,
+    49406,
+    1047,
+    26360,
+    49407,
   ]);
 
   // ============================================================
@@ -329,17 +370,30 @@ class ClipBuiltInTokens {
 
   /// "woman in revealing clothing"
   static final Int32List womanInRevealingClothing = _pad([
-    49406, 2308, 530, 15127, 5765, 49407,
+    49406,
+    2308,
+    530,
+    15127,
+    5765,
+    49407,
   ]);
 
   /// "woman wearing bikini"
   static final Int32List womanWearingBikini = _pad([
-    49406, 2308, 3448, 25591, 49407,
+    49406,
+    2308,
+    3448,
+    25591,
+    49407,
   ]);
 
   /// "person in underwear"
   static final Int32List personInUnderwear = _pad([
-    49406, 2533, 530, 16529, 49407,
+    49406,
+    2533,
+    530,
+    16529,
+    49407,
   ]);
 
   // ============================================================
@@ -348,12 +402,22 @@ class ClipBuiltInTokens {
 
   /// "person wearing normal clothing"
   static final Int32List personWearingNormalClothing = _pad([
-    49406, 2533, 3448, 3622, 5765, 49407,
+    49406,
+    2533,
+    3448,
+    3622,
+    5765,
+    49407,
   ]);
 
   /// "person in business attire"
   static final Int32List personInBusinessAttire = _pad([
-    49406, 2533, 530, 1782, 34033, 49407,
+    49406,
+    2533,
+    530,
+    1782,
+    34033,
+    49407,
   ]);
 
   /// Pad token list to context length.

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kidslens_video_editor/data/models/huggingface_model.dart';
 import 'package:kidslens_video_editor/data/models/content_category_defaults.dart';
+import 'package:kidslens_video_editor/data/models/huggingface_model.dart';
 
 void main() {
   test('normalizeCategories appends missing default model contributions', () {

@@ -80,7 +80,7 @@ class ThumbnailService {
     // Ensure FFmpeg is initialized
     await _ffmpegBindings.initialize();
     final ffmpegPath = _ffmpegBindings.ffmpegPath;
-    
+
     if (ffmpegPath == null) {
       debugPrint('FFmpeg not found via bindings');
       return _generatePlaceholderThumbnails(count, width, height);
@@ -199,18 +199,26 @@ class ThumbnailService {
     final normalizedHue = hue % 360;
     if (normalizedHue < 60) return ((normalizedHue / 60) * 128 + 64).toInt();
     if (normalizedHue < 180) return 192;
-    if (normalizedHue < 240) return (((240 - normalizedHue) / 60) * 128 + 64).toInt();
+    if (normalizedHue < 240) {
+      return (((240 - normalizedHue) / 60) * 128 + 64).toInt();
+    }
     return 64;
   }
 
   Future<Uint8List> _generatePlaceholderThumbnail(
-      int width, int height, int index,) async =>
+    int width,
+    int height,
+    int index,
+  ) async =>
       // Use dart:ui to create a proper PNG image asynchronously
       _createPngWithDartUi(width, height, index);
 
   /// Create a valid PNG using dart:ui for async placeholder generation
   Future<Uint8List> _createPngWithDartUi(
-      int width, int height, int index,) async {
+    int width,
+    int height,
+    int index,
+  ) async {
     try {
       final recorder = ui.PictureRecorder();
       final canvas = ui.Canvas(recorder);
@@ -247,7 +255,11 @@ class ThumbnailService {
           )
           ..drawRect(
             ui.Rect.fromLTWH(
-                width - holeSize * 0.6 - 2, y, holeSize * 0.6, holeSize,),
+              width - holeSize * 0.6 - 2,
+              y,
+              holeSize * 0.6,
+              holeSize,
+            ),
             iconPaint,
           );
       }

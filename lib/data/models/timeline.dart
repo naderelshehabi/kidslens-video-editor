@@ -65,7 +65,10 @@ class TimelineSegment with _$TimelineSegment {
       _$TimelineSegmentFromJson(json);
 
   /// Creates a TimelineSegment from a Detection
-  factory TimelineSegment.fromDetection(Detection detection, {Modification? modification}) =>
+  factory TimelineSegment.fromDetection(
+    Detection detection, {
+    Modification? modification,
+  }) =>
       TimelineSegment(
         id: 'seg_${detection.id}',
         start: detection.startTime,
@@ -297,15 +300,17 @@ class UnifiedTimeline with _$UnifiedTimeline {
     for (final track in tracks) {
       for (final segment in track.segments) {
         if (segment.detectionId != null) {
-          result.add(Detection(
-            id: segment.detectionId!,
-            mediaId: '', // mediaId not available in timeline context
-            type: segment.type,
-            startTime: segment.start,
-            endTime: segment.end,
-            confidence: segment.confidence,
-            description: '${segment.type.name} detection',
-          ),);
+          result.add(
+            Detection(
+              id: segment.detectionId!,
+              mediaId: '', // mediaId not available in timeline context
+              type: segment.type,
+              startTime: segment.start,
+              endTime: segment.end,
+              confidence: segment.confidence,
+              description: '${segment.type.name} detection',
+            ),
+          );
         }
       }
     }
@@ -435,21 +440,27 @@ class UnifiedTimeline with _$UnifiedTimeline {
 
           if (seg1.overlapsWith(seg2)) {
             // Check for time overlap
-            conflicts.add(TimelineConflict(
-              segment1: seg1,
-              segment2: seg2,
-              conflictType: ConflictType.overlap,
-              description: 'Segments overlap between ${_formatDuration(seg1.start)} and ${_formatDuration(seg2.end)}',
-            ),);
+            conflicts.add(
+              TimelineConflict(
+                segment1: seg1,
+                segment2: seg2,
+                conflictType: ConflictType.overlap,
+                description:
+                    'Segments overlap between ${_formatDuration(seg1.start)} and ${_formatDuration(seg2.end)}',
+              ),
+            );
 
             // Check for multiple modifications
             if (seg1.hasModification && seg2.hasModification) {
-              conflicts.add(TimelineConflict(
-                segment1: seg1,
-                segment2: seg2,
-                conflictType: ConflictType.multipleModifications,
-                description: 'Multiple modifications applied to overlapping segments',
-              ),);
+              conflicts.add(
+                TimelineConflict(
+                  segment1: seg1,
+                  segment2: seg2,
+                  conflictType: ConflictType.multipleModifications,
+                  description:
+                      'Multiple modifications applied to overlapping segments',
+                ),
+              );
 
               // Check for incompatible modifications
               final mod1 = seg1.modification!;
@@ -457,12 +468,15 @@ class UnifiedTimeline with _$UnifiedTimeline {
               if (mod1.isAudioModification != mod2.isAudioModification) {
                 // This is actually allowed, no conflict
               } else if (mod1.isDestructive || mod2.isDestructive) {
-                conflicts.add(TimelineConflict(
-                  segment1: seg1,
-                  segment2: seg2,
-                  conflictType: ConflictType.incompatibleModifications,
-                  description: 'Destructive modification conflicts with another modification',
-                ),);
+                conflicts.add(
+                  TimelineConflict(
+                    segment1: seg1,
+                    segment2: seg2,
+                    conflictType: ConflictType.incompatibleModifications,
+                    description:
+                        'Destructive modification conflicts with another modification',
+                  ),
+                );
               }
             }
           }

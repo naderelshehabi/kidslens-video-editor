@@ -31,76 +31,76 @@ class TransportControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Seek bar
-        Slider(
-          value: _progressValue,
-          onChanged: (value) {
-            if (onSeek != null) {
-              final position = Duration(
-                milliseconds: (value * totalDuration.inMilliseconds).round(),
-              );
-              onSeek!(position);
-            }
-          },
-        ),
-        // Time display
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Seek bar
+          Slider(
+            value: _progressValue,
+            onChanged: (value) {
+              if (onSeek != null) {
+                final position = Duration(
+                  milliseconds: (value * totalDuration.inMilliseconds).round(),
+                );
+                onSeek!(position);
+              }
+            },
+          ),
+          // Time display
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(_formatDuration(currentPosition)),
+                Text(_formatDuration(totalDuration)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Control buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(_formatDuration(currentPosition)),
-              Text(_formatDuration(totalDuration)),
+              if (onPrevious != null)
+                IconButton(
+                  icon: const Icon(Icons.skip_previous),
+                  onPressed: onPrevious,
+                  tooltip: 'Previous',
+                ),
+              if (onSkipBackward != null)
+                IconButton(
+                  icon: const Icon(Icons.replay_10),
+                  onPressed: onSkipBackward,
+                  tooltip: 'Back 10s',
+                ),
+              const SizedBox(width: 8),
+              FloatingActionButton(
+                onPressed: isPlaying ? onPause : onPlay,
+                child: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
+              ),
+              const SizedBox(width: 8),
+              if (onSkipForward != null)
+                IconButton(
+                  icon: const Icon(Icons.forward_10),
+                  onPressed: onSkipForward,
+                  tooltip: 'Forward 10s',
+                ),
+              if (onNext != null)
+                IconButton(
+                  icon: const Icon(Icons.skip_next),
+                  onPressed: onNext,
+                  tooltip: 'Next',
+                ),
+              if (onStop != null)
+                IconButton(
+                  icon: const Icon(Icons.stop),
+                  onPressed: onStop,
+                  tooltip: 'Stop',
+                ),
             ],
           ),
-        ),
-        const SizedBox(height: 8),
-        // Control buttons
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (onPrevious != null)
-              IconButton(
-                icon: const Icon(Icons.skip_previous),
-                onPressed: onPrevious,
-                tooltip: 'Previous',
-              ),
-            if (onSkipBackward != null)
-              IconButton(
-                icon: const Icon(Icons.replay_10),
-                onPressed: onSkipBackward,
-                tooltip: 'Back 10s',
-              ),
-            const SizedBox(width: 8),
-            FloatingActionButton(
-              onPressed: isPlaying ? onPause : onPlay,
-              child: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
-            ),
-            const SizedBox(width: 8),
-            if (onSkipForward != null)
-              IconButton(
-                icon: const Icon(Icons.forward_10),
-                onPressed: onSkipForward,
-                tooltip: 'Forward 10s',
-              ),
-            if (onNext != null)
-              IconButton(
-                icon: const Icon(Icons.skip_next),
-                onPressed: onNext,
-                tooltip: 'Next',
-              ),
-            if (onStop != null)
-              IconButton(
-                icon: const Icon(Icons.stop),
-                onPressed: onStop,
-                tooltip: 'Stop',
-              ),
-          ],
-        ),
-      ],
-    );
+        ],
+      );
 
   double get _progressValue {
     if (totalDuration.inMilliseconds == 0) return 0;

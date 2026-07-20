@@ -151,7 +151,8 @@ class FrameData with _$FrameData {
   FrameData resizedDescriptor(int newWidth, int newHeight) => copyWith(
         width: newWidth,
         height: newHeight,
-        data: Uint8List(0), // Placeholder - actual resize needs image processing
+        data:
+            Uint8List(0), // Placeholder - actual resize needs image processing
       );
 }
 

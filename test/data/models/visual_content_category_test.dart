@@ -7,19 +7,40 @@ void main() {
   group('VisualContentAction', () {
     test('should have all expected values', () {
       expect(VisualContentAction.values, hasLength(4));
-      expect(VisualContentAction.values, contains(VisualContentAction.blurRegion));
-      expect(VisualContentAction.values, contains(VisualContentAction.pixelateRegion));
-      expect(VisualContentAction.values, contains(VisualContentAction.blackBoxRegion));
-      expect(VisualContentAction.values, contains(VisualContentAction.cutScene));
+      expect(
+        VisualContentAction.values,
+        contains(VisualContentAction.blurRegion),
+      );
+      expect(
+        VisualContentAction.values,
+        contains(VisualContentAction.pixelateRegion),
+      );
+      expect(
+        VisualContentAction.values,
+        contains(VisualContentAction.blackBoxRegion),
+      );
+      expect(
+        VisualContentAction.values,
+        contains(VisualContentAction.cutScene),
+      );
     });
   });
 
   group('CategoryDetectionSource', () {
     test('should have all expected values', () {
       expect(CategoryDetectionSource.values, hasLength(3));
-      expect(CategoryDetectionSource.values, contains(CategoryDetectionSource.nudeNet));
-      expect(CategoryDetectionSource.values, contains(CategoryDetectionSource.clip));
-      expect(CategoryDetectionSource.values, contains(CategoryDetectionSource.both));
+      expect(
+        CategoryDetectionSource.values,
+        contains(CategoryDetectionSource.nudeNet),
+      );
+      expect(
+        CategoryDetectionSource.values,
+        contains(CategoryDetectionSource.clip),
+      );
+      expect(
+        CategoryDetectionSource.values,
+        contains(CategoryDetectionSource.both),
+      );
     });
   });
 
@@ -36,7 +57,10 @@ void main() {
         expect(category.id, equals('test_category'));
         expect(category.name, equals('Test Category'));
         expect(category.description, equals('A test category'));
-        expect(category.detectionSource, equals(CategoryDetectionSource.nudeNet));
+        expect(
+          category.detectionSource,
+          equals(CategoryDetectionSource.nudeNet),
+        );
         expect(category.enabled, isTrue);
         expect(category.threshold, equals(0.5));
         expect(category.clipThreshold, equals(3.0));
@@ -110,7 +134,8 @@ void main() {
         expect(category.usesClip, isTrue);
       });
 
-      test('hasBoundingBoxes returns true only for nudeNet-using categories', () {
+      test('hasBoundingBoxes returns true only for nudeNet-using categories',
+          () {
         const nudeNet = VisualContentCategory(
           id: 'a',
           name: 'A',

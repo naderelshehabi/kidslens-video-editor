@@ -330,7 +330,10 @@ void main() {
         // Should detect 't3st' as leetspeak for 'test'
         if (matches.isNotEmpty) {
           expect(matches.first.type, equals(MatchType.leetspeak));
-          expect(matches.first.confidence, lessThan(1.0)); // Lower confidence for leetspeak
+          expect(
+            matches.first.confidence,
+            lessThan(1.0),
+          ); // Lower confidence for leetspeak
         }
       });
     });
@@ -742,7 +745,8 @@ void main() {
         // Result depends on phonetic algorithm specifics
       });
 
-      test('should match words with different spellings but same sound', () async {
+      test('should match words with different spellings but same sound',
+          () async {
         await profanityService.loadWordList('en');
         profanityService.addCustomWords(['tough']);
 
@@ -942,8 +946,11 @@ void main() {
 
         final languages = profanityService.supportedLanguages;
 
-        expect(() => languages.add(const LanguageInfo(code: 'xx', name: 'Test', rtl: false)),
-            throwsA(isA<UnsupportedError>()),);
+        expect(
+          () => languages
+              .add(const LanguageInfo(code: 'xx', name: 'Test', rtl: false)),
+          throwsA(isA<UnsupportedError>()),
+        );
       });
     });
   });

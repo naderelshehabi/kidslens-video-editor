@@ -147,7 +147,8 @@ class ModestyAnalysisService {
         );
       } on NsfwOnnxException catch (e) {
         segmentationAvailable = false;
-        warnings.add('Human parser disabled after inference failure: ${e.message}');
+        warnings
+            .add('Human parser disabled after inference failure: ${e.message}');
         break;
       }
 
@@ -179,7 +180,8 @@ class ModestyAnalysisService {
           }
         } on NsfwOnnxException catch (e) {
           genderAvailable = false;
-          warnings.add('Gender helper disabled after inference failure: ${e.message}');
+          warnings.add(
+              'Gender helper disabled after inference failure: ${e.message}');
         }
       }
 
@@ -406,10 +408,10 @@ class ModestyAnalysisService {
     final padY = bounds.height * 0.08;
     final startX = ((bounds.x - padX).clamp(0.0, 1.0) * width).floor();
     final startY = ((bounds.y - padY).clamp(0.0, 1.0) * height).floor();
-    final endX = ((bounds.x + bounds.width + padX).clamp(0.0, 1.0) * width)
-        .ceil();
-    final endY = ((bounds.y + bounds.height + padY).clamp(0.0, 1.0) * height)
-        .ceil();
+    final endX =
+        ((bounds.x + bounds.width + padX).clamp(0.0, 1.0) * width).ceil();
+    final endY =
+        ((bounds.y + bounds.height + padY).clamp(0.0, 1.0) * height).ceil();
     final cropWidth = max(1, endX - startX);
     final cropHeight = max(1, endY - startY);
     if (cropWidth < 8 || cropHeight < 8) {
@@ -449,9 +451,11 @@ class ModestyAnalysisService {
     var skinPixels = 0;
 
     for (var y = startY; y < endY; y += step) {
-      final maskY = ((y / frameHeight) * mask.height).floor().clamp(0, mask.height - 1);
+      final maskY =
+          ((y / frameHeight) * mask.height).floor().clamp(0, mask.height - 1);
       for (var x = startX; x < endX; x += step) {
-        final maskX = ((x / frameWidth) * mask.width).floor().clamp(0, mask.width - 1);
+        final maskX =
+            ((x / frameWidth) * mask.width).floor().clamp(0, mask.width - 1);
         if (!mask.isForegroundAt(maskX, maskY)) {
           continue;
         }

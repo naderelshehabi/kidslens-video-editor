@@ -209,10 +209,13 @@ class BoundingBox with _$BoundingBox {
   const factory BoundingBox({
     /// Left edge (0-1 normalized)
     required double left,
+
     /// Top edge (0-1 normalized)
     required double top,
+
     /// Width (0-1 normalized)
     required double width,
+
     /// Height (0-1 normalized)
     required double height,
   }) = _BoundingBox;

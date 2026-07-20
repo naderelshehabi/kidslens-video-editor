@@ -50,9 +50,11 @@ class Project with _$Project {
 
     /// Whether analysis is complete
     @Default(false) bool analysisComplete,
-    
+
     /// Track if project has unsaved changes
-    @Default(false) @JsonKey(includeFromJson: false, includeToJson: false) bool isDirty,
+    @Default(false)
+    @JsonKey(includeFromJson: false, includeToJson: false)
+    bool isDirty,
   }) = _Project;
 
   const Project._();

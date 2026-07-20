@@ -305,7 +305,8 @@ void main() {
           isTrue,
         );
         expect(
-          const AnalysisResult(id: 'test', status: AnalysisStatus.failed).isFinished,
+          const AnalysisResult(id: 'test', status: AnalysisStatus.failed)
+              .isFinished,
           isTrue,
         );
         expect(
@@ -314,7 +315,8 @@ void main() {
           isTrue,
         );
         expect(
-          const AnalysisResult(id: 'test', status: AnalysisStatus.running).isFinished,
+          const AnalysisResult(id: 'test', status: AnalysisStatus.running)
+              .isFinished,
           isFalse,
         );
       });

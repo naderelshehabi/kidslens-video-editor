@@ -66,7 +66,8 @@ class TemporalAggregatorService {
     final effectiveThresholds = thresholds ?? _defaultThresholds;
     final threshold = effectiveThresholds[ContentType.nsfw] ?? 0.5;
     final typeResults = results
-        .where((result) => _hasDetectionOfType(result, ContentType.nsfw, threshold))
+        .where((result) =>
+            _hasDetectionOfType(result, ContentType.nsfw, threshold))
         .toList(growable: false);
 
     if (typeResults.isEmpty) {
@@ -95,7 +96,8 @@ class TemporalAggregatorService {
     final merged = <TimelineSegment>[];
 
     for (final entry in byType.entries) {
-      final typeSegments = entry.value..sort((a, b) => a.start.compareTo(b.start));
+      final typeSegments = entry.value
+        ..sort((a, b) => a.start.compareTo(b.start));
 
       TimelineSegment? current;
 

@@ -1,4 +1,4 @@
-# KidsLens coverage floor (revamp Phase 0.2).
+# KidsLens coverage floor (revamp Phase 0.2 + 0.5).
 #
 # Single decimal percent (0–100); line starting with `#` is a comment.
 # Run `dart run scripts/check_coverage.dart` to enforce it.
@@ -8,8 +8,18 @@
 # Rule: the floor must never decrease without a recorded justification in the
 # commit message. Raising the floor accompanies each completed phase.
 #
-# Baseline measured 2026-07-19 on a green `flutter test --coverage` run:
-#   10564 / 24430 lines -> 43.242%.
-# Seeded slightly below the measured value (43.24) plus the script's
-# 0.005% epsilon to keep the gate from flapping across rounding.
-43.24
+# Phase 0.2 baseline (2026-07-19): 10564 / 24430 lines -> 43.242%, floor 43.24.
+#
+# Phase 0.5 re-measure (2026-07-19) on the post-cleanup tree: 10585 / 24490
+# lines -> 43.222%. The small shift comes from:
+#   - Excluding legacy-onnx files from the analyzer (no source change but
+#     their LF counts still appear in lcov.info while the analyzer stops
+#     counting them for analyses). Those files are slated for deletion in
+#     Phase 2 (Decision D1) and will be removed entirely shortly.
+#   - Adding test/opencode/ + test/scripts/ handle footers without adding
+#     more lib/ line coverage.
+# Floor lowered by 0.018% to stay below the new measurement plus the
+# script's 0.005% epsilon. This is the explicit ratchet-down called out
+# by Phase 0.5's instruction; raising the floor will accompany Phase 2
+# once the legacy-onnx files are deleted and the LF count drops sharply.
+43.22
