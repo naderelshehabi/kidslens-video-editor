@@ -25,7 +25,7 @@
 - [x] **0.2 Coverage ratchet**: add `scripts/check_coverage.dart` — parses `coverage/lcov.info`, fails if line coverage < floor stored in `coverage_floor.txt`. Seed the floor with the current measured value. Raising the floor accompanies each later phase. (9dae74e)
 - [x] **0.3 Repo hygiene**: delete `flutter.log`, `rebuild_vs2026.log`, empty dirs `native/sherpa_onnx/`, `native/vibevoice/`; add `*.log`, `coverage/` to `.gitignore`. Verify `build/` is ignored. (5c4fb5f)
 - [x] **0.4 Verify agent tooling** (added with this plan): `CLAUDE.md` at repo root, `.claude/settings.json` hooks (generated-file guard + dart format), `.claude/skills/quality-gates/`, `.claude/skills/implement-next/`. Adjust hook commands if they misbehave on this machine. (7bbc57d)
-- [x] **0.5 Baseline green**: run the full CI locally once (`scripts/` equivalents) and fix any pre-existing analyze/test failures so Phase 1 starts from green (known: some ONNX API-version test failures may exist — if they block, note them; they are deleted in Phase 2). (current commit)
+- [x] **0.5 Baseline green**: run the full CI locally once (`scripts/` equivalents) and fix any pre-existing analyze/test failures so Phase 1 starts from green (known: some ONNX API-version test failures may exist — if they block, note them; they are deleted in Phase 2). (f6613cb)
 
 **Exit criteria:** CI runs on push/PR and is green on `main`; coverage floor enforced; repo has no stray logs/empty native dirs.
 
