@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  KidsLens Video Editor — logo
+  Concept: a lens (eye) inside a play button (video editor), cradled by a
+  shield outline (local, family-safe). Uses the app palette from
+  lib/presentation/themes/app_theme.dart:
+    primary   #1E88E5 (Blue 600, safe/trustworthy)
+    secondary #FFB300 (Amber 600, joy/play)
+    tertiary  #43A047 (Green 600, safety/ok)
+  Keep this file in sync with assets/images/app_logo.png (export via the
+  flutter_launcher_icons tool → pubspec.yaml).
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 256 256"
+     role="img"
+     aria-label="KidsLens Video Editor">
+  <title>KidsLens Video Editor</title>
+  <desc>A play button shaped like a camera lens, cradled by a protective shield outline.</desc>
+
+  <defs>
+    <!-- soft background radial -->
+    <radialGradient id="bgGrad" cx="50%" cy="42%" r="62%">
+      <stop offset="0%"  stop-color="#E3F2FD"/>
+      <stop offset="100%" stop-color="#BBDEFB"/>
+    </radialGradient>
+
+    <!-- lens body conic-ish gradient (approximated with linear) -->
+    <linearGradient id="lensGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#64B5F6"/>
+      <stop offset="55%"  stop-color="#1E88E5"/>
+      <stop offset="100%" stop-color="#1565C0"/>
+    </linearGradient>
+
+    <linearGradient id="irisGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#FFD54F"/>
+      <stop offset="100%" stop-color="#FFB300"/>
+    </linearGradient>
+
+    <!-- subtle inner shadow ring -->
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="3" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.35"/></feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- rounded transparent canvas; no opaque background so it sits on any UI -->
+
+  <!-- Protective shield outline (family-safe, local-only) -->
+  <path d="M 128 18
+           L 38 50
+           L 38 132
+           C 38 188 78 226 128 240
+           C 178 226 218 188 218 132
+           L 218 50 Z"
+        fill="url(#bgGrad)"
+        stroke="#1E88E5"
+        stroke-width="6"
+        stroke-linejoin="round"/>
+
+  <!-- Lens outer ring (also the editor's "play button" body) -->
+  <circle cx="128" cy="128" r="74" fill="url(#lensGrad)"
+          filter="url(#softShadow)"/>
+
+  <!-- film-reel notch ticks around the lens, hint at "video editor" -->
+  <g stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.55">
+    <!-- 12 ticks at 30°; r1=74, r2=86 -->
+    <g transform="translate(128 128)">
+      <line x1="0"  y1="-80" x2="0"  y2="-88"/>
+      <line x1="40" y1="-69" x2="44" y2="-76"/>
+      <line x1="69" y1="-40" x2="76" y2="-44"/>
+      <line x1="80" y1="0"   x2="88" y2="0"/>
+      <line x1="69" y1="40"  x2="76" y2="44"/>
+      <line x1="40" y1="69"  x2="44" y2="76"/>
+      <line x1="0"  y1="80"  x2="0"  y2="88"/>
+      <line x1="-40" y1="69"  x2="-44" y2="76"/>
+      <line x1="-69" y1="40"  x2="-76" y2="44"/>
+      <line x1="-80" y1="0"   x2="-88" y2="0"/>
+      <line x1="-69" y1="-40" x2="-76" y2="-44"/>
+      <line x1="-40" y1="-69" x2="-44" y2="-76"/>
+    </g>
+  </g>
+
+  <!-- Amber iris (joy/play) -->
+  <circle cx="128" cy="128" r="44" fill="url(#irisGrad)"/>
+
+  <!-- Pupil — a play triangle pointing right, carved out of the iris -->
+  <path d="M 116 110 L 116 146 L 146 128 Z" fill="#1565C0"/>
+
+  <!-- Sparkle highlight on the lens (kid-friendly, eye-like glint) -->
+  <circle cx="108" cy="108" r="7" fill="#FFFFFF" opacity="0.85"/>
+  <circle cx="120" cy="100" r="3" fill="#FFFFFF" opacity="0.7"/>
+
+  <!-- Green safety check at shield's lower third -->
+  <circle cx="128" cy="206" r="20" fill="#43A047" stroke="#FFFFFF" stroke-width="4"/>
+  <path d="M 118 206 L 125 213 L 139 199"
+        fill="none" stroke="#FFFFFF" stroke-width="4"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
